@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Tpoet.SmokePoet do
     t1 = System.monotonic_time(:millisecond)
 
     {:ok, pid} =
-      case GatewaySocketSupervisor.ensure_connected(user) do
+      case GatewaySocketSupervisor.ensure_connected(user, attempts: 10) do
         {:ok, pid} -> {:ok, pid}
         {:error, reason} -> Mix.raise("Gateway connect failed: #{inspect(reason)}")
       end

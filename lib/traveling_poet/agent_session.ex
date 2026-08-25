@@ -31,7 +31,7 @@ defmodule TravelingPoet.AgentSession do
     timeout = Keyword.get(opts, :reply_timeout_ms, @default_reply_timeout_ms)
     persist? = Keyword.get(opts, :persist, true)
 
-    case GatewaySocketSupervisor.ensure_connected(user) do
+    case GatewaySocketSupervisor.ensure_connected(user, attempts: 6) do
       {:ok, pid} ->
         GatewaySocket.subscribe(pid)
         GatewaySocket.send_message(pid, message)

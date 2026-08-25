@@ -6,14 +6,44 @@ defmodule TravelingPoet.GatewaySocketSupervisor do
 
   require Logger
 
-  def ensure_connected(user) do
-    case TravelingPoet.GatewaySocket.whereis(user.id) do
-      nil ->
-        start_socket(user)
+  alias TravelingPoet.SpritesClient
 
-      pid ->
-        {:ok, pid}
-    end
+  @retry_delay_ms 4_000
+
+  @doc """
+  Ensures a live GatewaySocket for the user.
+
+  The first WebSocket connect can fail transiently: a suspended sprite 502s
+  or times out while it cold-starts, and right after (re)provisioning the
+  gateway service needs a few seconds to bind its port. Pass `attempts: n`
+  to retry through that window — after the first failure the sprite is woken
+  with a blocking exec, then connects are retried #{@retry_delay_ms}ms apart.
+  Headless callers (scheduler, Telegram, smoke test) should use several
+  attempts; LiveView keeps the default single fast attempt and recovers via
+  its own wake-and-retry on chat send.
+  """
+  def ensure_connected(user, opts \\ []) do
+    attempts = Keyword.get(opts, :attempts, 1)
+
+    Enum.reduce_while(1..attempts, {:error, :not_attempted}, fn i, _acc ->
+      case try_connect(user) do
+        {:ok, pid} ->
+          {:halt, {:ok, pid}}
+
+        {:error, _} = err ->
+          if i < attempts do
+            # Synchronous wake: exec returns once the sprite is running.
+            if i == 1 and is_binary(user.sprite_name) do
+              SpritesClient.exec(user.sprite_name, "true")
+            end
+
+            Process.sleep(@retry_delay_ms)
+            {:cont, err}
+          else
+            {:halt, err}
+          end
+      end
+    end)
   end
 
   def disconnect(user_id) do
@@ -23,6 +53,16 @@ defmodule TravelingPoet.GatewaySocketSupervisor do
 
       pid ->
         DynamicSupervisor.terminate_child(__MODULE__, pid)
+    end
+  end
+
+  defp try_connect(user) do
+    case TravelingPoet.GatewaySocket.whereis(user.id) do
+      nil ->
+        start_socket(user)
+
+      pid ->
+        {:ok, pid}
     end
   end
 
