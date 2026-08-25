@@ -2,7 +2,7 @@
 # Deploy traveling-poet to Fly.io. Selects env config and app based on arg.
 #
 # Usage:
-#   ./deploy.sh dev     # deploys to traveling-poet-dev (personal org)
+#   ./deploy.sh dev     # deploys to traveling-poet-dev (poet org)
 #   ./deploy.sh prod    # deploys to traveling-poet     (once it exists)
 #
 # Extra args are forwarded to `fly deploy`, e.g. ./deploy.sh dev --ha=false

@@ -1,8 +1,8 @@
-# Dev Fly.io config for traveling-poet-dev (personal org).
+# Dev Fly.io config for traveling-poet-dev (poet org, slug poet-217).
 # Deploy with: ./deploy.sh dev   (first deploy: add --ha=false)
 #
 # PREREQUISITES before first deploy:
-#   1. fly apps create traveling-poet-dev -o personal
+#   1. fly apps create traveling-poet-dev -o poet-217
 #   2. fly volumes create traveling_poet_data -a traveling-poet-dev --size 1 --region sjc
 #   3. fly secrets set -a traveling-poet-dev \
 #        SECRET_KEY_BASE="$(mix phx.gen.secret)" \
@@ -34,7 +34,9 @@ kill_signal = 'SIGTERM'
   # Namespace sprite names so dev can't collide with a future prod on the
   # same sprites.dev account
   SPRITE_NAMESPACE = 'tpoetdev'
-  TIGRIS_BUCKET_NAME = 'traveling-poet-dev'
+  # Bucket lives in the poet org; "traveling-poet-dev" was burned by a
+  # create-then-move-org dance (Tigris cools down deleted names)
+  TIGRIS_BUCKET_NAME = 'tpoet-dev-media'
   AWS_ENDPOINT_URL_S3 = 'https://fly.storage.tigris.dev'
   AWS_REGION = 'auto'
   # Daily journey scheduler tick (minutes); 0 disables
