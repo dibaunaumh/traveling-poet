@@ -59,7 +59,10 @@ defmodule TravelingPoet.GatewaySocketSupervisor do
   defp try_connect(user) do
     case TravelingPoet.GatewaySocket.whereis(user.id) do
       nil ->
-        start_socket(user)
+        # Refetch: callers often hold a stale struct (a LiveView assign from
+        # mount) whose sprite_url/tokens/device keys may have been rotated by
+        # a re-provision since. Connect with what the DB says now.
+        start_socket(TravelingPoet.Accounts.get_user(user.id) || user)
 
       pid ->
         {:ok, pid}

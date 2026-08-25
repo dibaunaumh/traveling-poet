@@ -89,7 +89,17 @@ defmodule TravelingPoet.Provisioner do
 
     Logger.info("Provisioning sprite #{sprite_name} for user #{user_id}")
 
-    {device_pub, device_priv} = GatewaySocket.generate_device_keys()
+    # Reuse existing device keys (like the tokens above): regenerating on
+    # every re-provision rewrites the sprite's paired.json and instantly
+    # invalidates any live GatewaySocket still authenticated with the old
+    # keys ("Authentication failed: pairing required").
+    {device_pub, device_priv} =
+      if user.device_public_key && user.device_private_key do
+        {user.device_public_key, user.device_private_key}
+      else
+        GatewaySocket.generate_device_keys()
+      end
+
     phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
 
     with {:ok, _} <- create_sprite(sprite_name),
