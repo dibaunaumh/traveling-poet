@@ -139,11 +139,11 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         >
         </div>
 
-        <div :if={@entry} class="mt-6">
+        <article :if={@entry} class="notebook-page mt-6">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-lg font-semibold">
+            <h2 class="notebook-title">
               {@entry.title || @entry.place_name || "Journal"}
-              <span class="text-sm font-normal opacity-60 ml-2">
+              <span class="notebook-date ml-2">
                 {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
               </span>
             </h2>
@@ -173,7 +173,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               <span :if={@public_reactions[kind]} class="text-xs">{@public_reactions[kind]}</span>
             </button>
           </div>
-        </div>
+        </article>
 
         <div :if={is_nil(@entry)} class="mt-10 text-center opacity-70">
           <p>No published entries yet — check back soon.</p>
@@ -188,7 +188,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp section(%{section: %{kind: "illustration"}} = assigns) do
     ~H"""
-    <figure :if={@media} class="my-4">
+    <figure :if={@media} class="taped-photo my-4">
       <img
         src={~p"/media/#{@media.id}"}
         alt={@media.alt_text || "illustration"}
@@ -212,8 +212,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp section(assigns) do
     ~H"""
-    <div>
-      <h3 :if={@section.title} class="font-medium mb-1">{@section.title}</h3>
+    <div class={@section.kind == "poem" && "notebook-poem"}>
+      <h3 :if={@section.title} class="notebook-section-title mb-1">{@section.title}</h3>
       <div class="prose prose-sm max-w-none">
         {raw_markdown(@section.body)}
       </div>

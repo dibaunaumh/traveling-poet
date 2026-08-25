@@ -106,3 +106,129 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* ---- Notebook look for journal entries ---------------------------------- */
+/* Cream ruled paper, handwritten text, drawings "taped" onto the page.
+   The paper stays paper-colored in dark mode — only the desk around darkens. */
+
+.notebook-page {
+  background-color: #fdf8ec;
+  color: #3a3226;
+  background-image:
+    /* faint ruled lines */
+    repeating-linear-gradient(
+      transparent,
+      transparent calc(2rem - 1px),
+      rgba(140, 120, 90, 0.16) calc(2rem - 1px),
+      rgba(140, 120, 90, 0.16) 2rem
+    ),
+    /* red margin line */
+    linear-gradient(to right, transparent 2.75rem, rgba(214, 96, 96, 0.35) 2.75rem, rgba(214, 96, 96, 0.35) calc(2.75rem + 2px), transparent calc(2.75rem + 2px));
+  border-radius: 0.25rem 0.75rem 0.75rem 0.25rem;
+  box-shadow:
+    0 1px 3px rgba(60, 45, 20, 0.25),
+    0 8px 24px rgba(60, 45, 20, 0.15);
+  padding: 2rem 2rem 2.5rem 4rem;
+}
+
+.notebook-page .prose {
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+  font-size: 1.15rem;
+  line-height: 2rem; /* sit the writing on the ruled lines */
+  color: #3a3226;
+}
+
+.notebook-page .prose p {
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.notebook-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 2rem;
+  color: #2f2a1e;
+}
+
+.notebook-date {
+  font-family: "Caveat", cursive;
+  font-size: 1.25rem;
+  color: #8c7454;
+}
+
+.notebook-section-title {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  color: #4a3f2d;
+}
+
+/* Poems get the loopier hand and drift off the margin */
+.notebook-poem .prose {
+  font-family: "Caveat", cursive;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  color: #43395f;
+  padding-left: 1.5rem;
+}
+
+/* A drawing "taped" onto the page: white photo border, slight tilt, tape */
+.taped-photo {
+  position: relative;
+  display: inline-block;
+  background: #fff;
+  padding: 0.75rem 0.75rem 1rem;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+  margin: 0.5rem 0 1rem;
+}
+
+.taped-photo:nth-child(even) {
+  transform: rotate(0.8deg);
+}
+
+.taped-photo img {
+  display: block;
+  border-radius: 2px;
+}
+
+.taped-photo::before,
+.taped-photo::after {
+  content: "";
+  position: absolute;
+  width: 5.5rem;
+  height: 1.6rem;
+  background: rgba(255, 244, 200, 0.6);
+  border-left: 1px dashed rgba(160, 140, 90, 0.3);
+  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
+}
+
+.taped-photo::before {
+  top: -0.8rem;
+  left: -1.5rem;
+  transform: rotate(-38deg);
+}
+
+.taped-photo::after {
+  top: -0.8rem;
+  right: -1.5rem;
+  transform: rotate(38deg);
+}
+
+.taped-photo figcaption {
+  font-family: "Caveat", cursive;
+  font-size: 1.1rem;
+  color: #6b5b40;
+}
+
+.notebook-links a,
+.notebook-page .link {
+  color: #4a5f8c;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
