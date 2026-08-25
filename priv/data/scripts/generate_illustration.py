@@ -3,9 +3,10 @@
 
 Usage: python3 generate_illustration.py "prompt text" /path/to/out.png
 
+Run it exactly like that — a direct interpreter invocation. (OpenClaw's exec
+preflight refuses compound shell commands like `source .env && python3 ...`.)
 Reads IMAGE_GEN_API_KEY (required) and IMAGE_GEN_MODEL (optional) from the
-environment (~/.openclaw/.env is loaded into the gateway's env at startup;
-when running from a plain shell, `export $(grep -v '^#' ~/.openclaw/.env | xargs)` first).
+environment, falling back to ~/.openclaw/.env so no shell sourcing is needed.
 """
 
 import base64
@@ -14,7 +15,22 @@ import os
 import sys
 import urllib.request
 
+def load_openclaw_env():
+    """Fill in missing env vars from ~/.openclaw/.env (KEY=VALUE lines)."""
+    path = os.path.expanduser("~/.openclaw/.env")
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                os.environ.setdefault(key.strip(), value.strip())
+    except OSError:
+        pass
+
 def main():
+    load_openclaw_env()
     if len(sys.argv) != 3:
         print(__doc__, file=sys.stderr)
         sys.exit(2)

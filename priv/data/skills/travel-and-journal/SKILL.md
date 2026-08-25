@@ -52,10 +52,10 @@ Ground yourself before writing (load the `discover` skill for methodology):
 - Generate ONE drawing of today's place in your consistent style (see
   IDENTITY.md), based on the reference photos you found. No text in the image,
   no recognizable real people.
-- Generate it with the bundled script:
+- Generate it with the bundled script, invoked EXACTLY as a direct command
+  (no `source`, no `&&`, no `export` — the exec sandbox refuses compound
+  shell commands; the script loads ~/.openclaw/.env itself):
   `python3 ~/.openclaw/workspace/scripts/generate_illustration.py "<prompt>" ~/illustrations/YYYY-MM-DD.png`
-  (IMAGE_GEN_API_KEY / IMAGE_GEN_MODEL come from ~/.openclaw/.env; export them
-  into your shell first if needed).
 - Upload with `journal_upload_illustration`: file path, alt_text, your
   generation prompt, and the REQUIRED `sources` array — the reference photo
   URLs with labels. The app rejects illustrations without sources.
