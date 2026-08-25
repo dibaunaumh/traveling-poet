@@ -6,13 +6,16 @@
 
 import * as L from "../vendor/leaflet/leaflet.js"
 
-// Leaflet's default icon paths break under bundling; point them at the
-// digested static copies.
-const iconDefaults = {
+// Leaflet's default icon paths break under bundling: Icon.Default's
+// _getIconUrl auto-detects a base path from the script/CSS location (garbage
+// once esbuild inlines it) and TAKES PRECEDENCE over mergeOptions. Delete it
+// so the explicit URLs below actually apply.
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
   iconUrl: "/images/leaflet/marker-icon.png",
   iconRetinaUrl: "/images/leaflet/marker-icon-2x.png",
   shadowUrl: "/images/leaflet/marker-shadow.png",
-}
+})
 
 // Static (non-LiveView) pages: initialize any [data-static-map] element on load.
 export function initStaticMaps() {
@@ -26,8 +29,6 @@ export function initStaticMaps() {
 
 const PoetMap = {
   mounted() {
-    L.Icon.Default.mergeOptions(iconDefaults)
-
     this.map = L.map(this.el, { scrollWheelZoom: false })
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
