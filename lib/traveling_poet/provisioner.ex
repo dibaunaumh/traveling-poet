@@ -57,7 +57,29 @@ defmodule TravelingPoet.Provisioner do
     Application.get_env(:traveling_poet, :openrouter_model, "anthropic/claude-sonnet-4.6")
   end
 
-  def provision_user(%{id: user_id} = user, opts \\ []) do
+  @doc """
+  The OpenRouter key is a hard prerequisite: openclaw.json references
+  ${OPENROUTER_API_KEY}, and the gateway refuses to start when a referenced
+  secret is empty — the service just crash-loops. Fail before touching the
+  sprite instead.
+  """
+  def missing_prerequisites do
+    for {key, env} <- [
+          {:sprites_token, "SPRITES_TOKEN"},
+          {:openrouter_api_key, "OPENROUTER_API_KEY"}
+        ],
+        Application.get_env(:traveling_poet, key) in [nil, ""],
+        do: env
+  end
+
+  def provision_user(user, opts \\ []) do
+    case missing_prerequisites() do
+      [] -> do_provision_user(user, opts)
+      missing -> {:error, {:missing_env, missing}}
+    end
+  end
+
+  defp do_provision_user(%{id: user_id} = user, opts) do
     sprite_name = user.sprite_name || default_sprite_name(user_id)
     gateway_token = Keyword.get(opts, :gateway_token, user.gateway_token || generate_token())
     agent_api_token = user.agent_api_token || "#{user_id}.#{generate_token()}"

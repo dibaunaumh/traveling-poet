@@ -32,6 +32,17 @@ defmodule Mix.Tasks.Tpoet.SmokePoet do
   end
 
   defp run_smoke do
+    case Provisioner.missing_prerequisites() do
+      [] ->
+        :ok
+
+      missing ->
+        Mix.raise(
+          "Missing required env vars in .env: #{Enum.join(missing, ", ")}. " <>
+            "The gateway cannot start without them (see .env.example)."
+        )
+    end
+
     user = ensure_user()
     poet = ensure_poet(user)
     IO.puts("== Smoke poet: user #{user.id}, poet #{poet.id} (#{poet.name})")
