@@ -48,7 +48,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
             interests: poet.interests,
             currently_reading: Map.get(poet.currently_reading || %{}, "items", []),
             is_public: poet.is_public,
-            stay_duration_days: Poet.stay_duration_days(poet)
+            stay_duration_days: Poet.stay_duration_days(poet),
+            # brief | balanced | expansive — how long journal prose should run;
+            # user-editable in settings, so honor the CURRENT value each run
+            verbosity: Map.get(poet.settings || %{}, "verbosity", "balanced")
           },
           location: %{
             lat: poet.current_lat,

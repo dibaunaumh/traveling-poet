@@ -26,6 +26,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
        |> assign(:user_interests, "")
        |> assign(:poet_name, "")
        |> assign(:poet_personality, "")
+       |> assign(:verbosity, "balanced")
        |> assign(:reading_list, Geocoder.reading_list())
        |> assign(:selected_reading, MapSet.new())
        |> assign(:custom_reading, "")
@@ -158,6 +159,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
       arrived_at: DateTime.utc_now() |> DateTime.truncate(:second),
       settings: %{
         "stay_duration_days" => 3,
+        "verbosity" => socket.assigns.verbosity,
         "user_interests" => split_interests(socket.assigns.user_interests)
       }
     }
@@ -222,6 +224,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:poet_name, params["poet_name"] || socket.assigns.poet_name)
         |> assign(:poet_personality, params["personality"] || socket.assigns.poet_personality)
         |> assign(:custom_reading, params["custom_reading"] || socket.assigns.custom_reading)
+        |> assign(:verbosity, params["verbosity"] || socket.assigns.verbosity)
 
       _ ->
         socket
@@ -270,7 +273,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
       <div class="mx-auto max-w-xl py-8">
         <div class="mb-6">
           <div class="text-sm opacity-60 mb-1">Step {step_number(@step)} of 6</div>
@@ -330,6 +333,41 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 placeholder="melancholy but funny; talks to cats; obsessed with bridges"
               >{@poet_personality}</textarea>
             </label>
+            <div>
+              <span class="text-sm font-medium">How chatty should the journal be?</span>
+              <div class="mt-2 space-y-1">
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="verbosity"
+                    value="brief"
+                    class="radio radio-sm"
+                    checked={@verbosity == "brief"}
+                  />
+                  <span><b>Brief</b> — short postcards, a few lines and a poem</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="verbosity"
+                    value="balanced"
+                    class="radio radio-sm"
+                    checked={@verbosity == "balanced"}
+                  />
+                  <span><b>Balanced</b> — a solid paragraph or two per section</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="verbosity"
+                    value="expansive"
+                    class="radio radio-sm"
+                    checked={@verbosity == "expansive"}
+                  />
+                  <span><b>Expansive</b> — full travel-journal essays</span>
+                </label>
+              </div>
+            </div>
             <div>
               <span class="text-sm font-medium">Currently reading (pick any)</span>
               <div class="mt-2 flex flex-wrap gap-2">

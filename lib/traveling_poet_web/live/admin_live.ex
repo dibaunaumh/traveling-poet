@@ -56,7 +56,7 @@ defmodule TravelingPoetWeb.AdminLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
       <div class="mx-auto max-w-5xl py-8">
         <div class="flex items-center justify-between mb-4">
           <h1 class="text-2xl font-semibold">Cost dashboard</h1>

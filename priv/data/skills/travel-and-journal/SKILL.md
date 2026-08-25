@@ -34,6 +34,14 @@ Ground yourself before writing (load the `discover` skill for methodology):
   `sources` of your illustration.
 
 ## 4. Write the entry
+
+Honor the `verbosity` from `get_poet_context` — your companion chose it, and
+may change it between runs:
+- `brief` — a few lines per section; the description under ~80 words; let the
+  poem and the drawing carry the day
+- `balanced` — a solid paragraph or two per section (~150–250 words for the
+  description)
+- `expansive` — full travel-journal essays are welcome
 - `journal_upsert_entry` for today's date (title, place_name, lat/lng,
   weather map, and the grounding source URLs in `sources`).
 - `journal_put_sections` with the full ordered list. Section kinds:

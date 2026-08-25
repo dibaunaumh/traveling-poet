@@ -30,6 +30,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       (poet.settings || %{})
       |> Map.put("stay_duration_days", parse_days(params["stay_duration_days"]))
       |> Map.put("telegram_notify", params["telegram_notify"] == "on")
+      |> Map.put("verbosity", parse_verbosity(params["verbosity"]))
 
     attrs = %{
       personality: params["personality"],
@@ -86,10 +87,21 @@ defmodule TravelingPoetWeb.SettingsLive do
     end
   end
 
+  defp parse_verbosity(v) when v in ["brief", "balanced", "expansive"], do: v
+  defp parse_verbosity(_), do: "balanced"
+
+  defp verbosity_options do
+    [
+      {"brief", "Brief — short postcards, a few lines and a poem"},
+      {"balanced", "Balanced — a paragraph or two per section"},
+      {"expansive", "Expansive — full travel-journal essays"}
+    ]
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash}>
+    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
       <div class="mx-auto max-w-xl py-8">
         <div class="flex items-center justify-between mb-6">
           <h1 class="text-2xl font-semibold">Settings</h1>
@@ -113,6 +125,19 @@ defmodule TravelingPoetWeb.SettingsLive do
                 value={Map.get(@poet.settings || %{}, "stay_duration_days", 3)}
                 class="input input-bordered w-24 mt-1"
               />
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-medium">Journal chattiness</span>
+              <select name="verbosity" class="select select-bordered w-full mt-1">
+                <option
+                  :for={{value, label} <- verbosity_options()}
+                  value={value}
+                  selected={Map.get(@poet.settings || %{}, "verbosity", "balanced") == value}
+                >
+                  {label}
+                </option>
+              </select>
             </label>
 
             <label class="flex items-center gap-3">
