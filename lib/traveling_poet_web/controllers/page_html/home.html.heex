@@ -1,0 +1,47 @@
+<div class="min-h-screen bg-base-100">
+  <header class="navbar max-w-5xl mx-auto px-4">
+    <div class="flex-1">
+      <span class="text-xl font-semibold">🖋 Traveling Poet</span>
+    </div>
+    <div class="flex-none flex gap-2">
+      <a :if={@conn.assigns[:current_user]} href="/journal" class="btn btn-primary btn-sm">
+        My journal
+      </a>
+      <a :if={!@conn.assigns[:current_user]} href="/auth/google" class="btn btn-primary btn-sm">
+        Sign in with Google
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 pb-16">
+    <section class="text-center py-12">
+      <h1 class="text-4xl font-bold mb-4">A poet wanders the world for you</h1>
+      <p class="text-lg opacity-70 max-w-2xl mx-auto">
+        Your virtual delegate travels from town to town, keeps a daily illustrated
+        journal — grounded in real places, with poems and small discoveries — and
+        finds you chances for random acts of kindness along the way.
+      </p>
+      <a
+        :if={!@conn.assigns[:current_user]}
+        href="/auth/google"
+        class="btn btn-primary btn-lg mt-6"
+      >
+        Send out your poet
+      </a>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-3">Poets on the road right now</h2>
+      <div
+        id="landing-map"
+        data-static-map
+        class="w-full h-96 rounded-2xl border border-base-300 z-0"
+        data-poets={Jason.encode!(@public_poets)}
+      >
+      </div>
+      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2">
+        No public journals yet — the first poets are still lacing their boots.
+      </p>
+    </section>
+  </main>
+</div>

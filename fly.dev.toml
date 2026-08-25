@@ -1,0 +1,71 @@
+# Dev Fly.io config for traveling-poet-dev (personal org).
+# Deploy with: ./deploy.sh dev   (first deploy: add --ha=false)
+#
+# PREREQUISITES before first deploy:
+#   1. fly apps create traveling-poet-dev -o personal
+#   2. fly volumes create traveling_poet_data -a traveling-poet-dev --size 1 --region sjc
+#   3. fly secrets set -a traveling-poet-dev \
+#        SECRET_KEY_BASE="$(mix phx.gen.secret)" \
+#        PHOENIX_URL='https://traveling-poet-dev.fly.dev' \
+#        GOOGLE_CLIENT_ID='<dev OAuth client id>' \
+#        GOOGLE_CLIENT_SECRET='<dev OAuth client secret>' \
+#        SPRITES_TOKEN='<sprites.dev token>' \
+#        OPENROUTER_API_KEY='<openrouter key>' \
+#        IMAGE_GEN_API_KEY='<google ai key for gemini image gen>' \
+#        AWS_ACCESS_KEY_ID='<tigris>' AWS_SECRET_ACCESS_KEY='<tigris>' \
+#        TELEGRAM_BOT_TOKEN='<bot token>' TELEGRAM_BOT_USERNAME='<bot username>'
+#
+#   The dev Google OAuth client needs redirect URI
+#   https://traveling-poet-dev.fly.dev/auth/google/callback
+#
+# NOTE: single machine only — SQLite + the schedulers + the Telegram
+# long-poller all assume one instance. Never scale this app horizontally.
+
+app = 'traveling-poet-dev'
+primary_region = 'sjc'
+kill_signal = 'SIGTERM'
+
+[build]
+
+[env]
+  DATABASE_PATH = '/mnt/data/traveling_poet.db'
+  PHX_HOST = 'traveling-poet-dev.fly.dev'
+  PORT = '8080'
+  # Namespace sprite names so dev can't collide with a future prod on the
+  # same sprites.dev account
+  SPRITE_NAMESPACE = 'tpoetdev'
+  TIGRIS_BUCKET_NAME = 'traveling-poet-dev'
+  AWS_ENDPOINT_URL_S3 = 'https://fly.storage.tigris.dev'
+  AWS_REGION = 'auto'
+  # Daily journey scheduler tick (minutes); 0 disables
+  JOURNEY_CHECK_INTERVAL_MINUTES = '30'
+  DAILY_RUNS_CAP = '1'
+  DAILY_CHAT_TURNS_CAP = '50'
+  DAILY_IMAGE_CAP = '6'
+
+[[mounts]]
+  source = 'traveling_poet_data'
+  destination = '/mnt/data'
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = '1GB'
+  auto_extend_size_limit = '10GB'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  # Keep one machine running: the DailyJourneyScheduler tick and the Telegram
+  # long-poller live in the app — with min 0 they silently never fire.
+  min_machines_running = 1
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 1000
+    soft_limit = 1000
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1

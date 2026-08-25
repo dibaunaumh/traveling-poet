@@ -1,0 +1,17 @@
+[
+  {"place_name": "Lisbon, Portugal", "country_code": "PT", "lat": 38.7223, "lng": -9.1393},
+  {"place_name": "Kyoto, Japan", "country_code": "JP", "lat": 35.0116, "lng": 135.7681},
+  {"place_name": "Oaxaca, Mexico", "country_code": "MX", "lat": 17.0732, "lng": -96.7266},
+  {"place_name": "Tbilisi, Georgia", "country_code": "GE", "lat": 41.7151, "lng": 44.8271},
+  {"place_name": "Ljubljana, Slovenia", "country_code": "SI", "lat": 46.0569, "lng": 14.5058},
+  {"place_name": "Hoi An, Vietnam", "country_code": "VN", "lat": 15.8801, "lng": 108.3380},
+  {"place_name": "Valparaíso, Chile", "country_code": "CL", "lat": -33.0472, "lng": -71.6127},
+  {"place_name": "Fez, Morocco", "country_code": "MA", "lat": 34.0181, "lng": -5.0078},
+  {"place_name": "Edinburgh, Scotland", "country_code": "GB", "lat": 55.9533, "lng": -3.1883},
+  {"place_name": "Jaipur, India", "country_code": "IN", "lat": 26.9124, "lng": 75.7873},
+  {"place_name": "Bergen, Norway", "country_code": "NO", "lat": 60.3913, "lng": 5.3221},
+  {"place_name": "Matera, Italy", "country_code": "IT", "lat": 40.6664, "lng": 16.6043},
+  {"place_name": "Luang Prabang, Laos", "country_code": "LA", "lat": 19.8834, "lng": 102.1347},
+  {"place_name": "Cartagena, Colombia", "country_code": "CO", "lat": 10.3910, "lng": -75.4794},
+  {"place_name": "Dakar, Senegal", "country_code": "SN", "lat": 14.7167, "lng": -17.4677}
+]
