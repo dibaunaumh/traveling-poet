@@ -101,7 +101,7 @@ defmodule TravelingPoet.Provisioner do
     with {:ok, _} <- create_sprite(sprite_name),
          {:ok, _} <- make_public(sprite_name),
          {:ok, _} <- install_openclaw(sprite_name, openclaw_version),
-         {:ok, _} <- write_config(sprite_name, gateway_token, phoenix_url),
+         {:ok, _} <- write_config(sprite_name, gateway_token, phoenix_url, poet_model(poet)),
          {:ok, _} <- write_env(sprite_name, gateway_token, agent_api_token, phoenix_url),
          {:ok, _} <- write_workspace(sprite_name, agent_name, user, poet),
          {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token),
@@ -224,9 +224,14 @@ defmodule TravelingPoet.Provisioner do
   # The literal ${OPENROUTER_API_KEY} placeholder is resolved by OpenClaw from
   # ~/.openclaw/.env at gateway startup — single-quoted heredoc in the exec
   # command keeps bash from substituting it here.
-  defp write_config(name, gateway_token, phoenix_url) do
-    model = openrouter_model()
+  # Per-poet model override (poet.settings["model"], an OpenRouter slug) with
+  # the system default as fallback — enables A/B-ing cheaper models on
+  # individual poets without touching the fleet. Takes effect on re-provision.
+  defp poet_model(poet) do
+    (poet && get_in(poet.settings || %{}, ["model"])) || openrouter_model()
+  end
 
+  defp write_config(name, gateway_token, phoenix_url, model) do
     config = %{
       gateway: %{
         controlUi: %{allowedOrigins: ["*", phoenix_url]},
