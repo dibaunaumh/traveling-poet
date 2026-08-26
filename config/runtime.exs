@@ -28,13 +28,23 @@ config :traveling_poet,
   openclaw_stable_version: System.get_env("OPENCLAW_STABLE_VERSION", "2026.4.9"),
   openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
   openrouter_model: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"),
-  image_gen_api_key: System.get_env("IMAGE_GEN_API_KEY"),
+  # nil in test for the same reason as telegram below — and so tests can
+  # never spend real image-generation money
+  image_gen_api_key:
+    if(config_env() == :test, do: nil, else: System.get_env("IMAGE_GEN_API_KEY")),
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "gemini-2.5-flash-image"),
-  telegram_bot_token: System.get_env("TELEGRAM_BOT_TOKEN"),
+  # nil in test: runtime.exs loads .env in every env, and a real token here
+  # would boot the Telegram Poller/Notifier inside the test run — they'd hit
+  # the DB outside the sandbox and lock-jam SQLite (learned the hard way)
+  telegram_bot_token:
+    if(config_env() == :test, do: nil, else: System.get_env("TELEGRAM_BOT_TOKEN")),
   telegram_bot_username: System.get_env("TELEGRAM_BOT_USERNAME"),
   tigris_bucket_name: System.get_env("TIGRIS_BUCKET_NAME"),
   journey_check_interval_minutes:
-    String.to_integer(System.get_env("JOURNEY_CHECK_INTERVAL_MINUTES") || "0"),
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("JOURNEY_CHECK_INTERVAL_MINUTES") || "0")
+    ),
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6")

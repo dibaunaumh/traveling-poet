@@ -1,5 +1,5 @@
 defmodule TravelingPoet.UsageTest do
-  use TravelingPoet.DataCase, async: true
+  use TravelingPoet.DataCase, async: false
 
   import TravelingPoet.Fixtures
 

@@ -1,5 +1,5 @@
 defmodule TravelingPoetWeb.AgentApiTest do
-  use TravelingPoetWeb.ConnCase, async: true
+  use TravelingPoetWeb.ConnCase, async: false
 
   import TravelingPoet.Fixtures
 
