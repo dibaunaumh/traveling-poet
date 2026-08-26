@@ -13,6 +13,7 @@ defmodule TravelingPoetWeb.JournalLive do
   @wake_timeout_ms 30_000
   @wake_poll_ms 2_000
   @chat_attachment_max_bytes 25_000_000
+  @setup_refresh_ms 10_000
 
   @impl true
   def mount(_params, _session, socket) do
@@ -36,6 +37,12 @@ defmodule TravelingPoetWeb.JournalLive do
             if user.sprite_provisioned do
               Process.send_after(self(), :keepalive, @keepalive_interval_ms)
             end
+
+            # Belt-and-braces for the setting-up screen: PubSub updates the
+            # checklist live, but a dropped websocket (backgrounded tab,
+            # proxy blip) silently loses broadcasts — beta users refreshed
+            # manually to see progress. Poll the DB while setting up.
+            Process.send_after(self(), :setup_refresh, @setup_refresh_ms)
 
             if user.sprite_provisioned && user.sprite_url && user.gateway_token &&
                  user.device_public_key do
@@ -331,6 +338,38 @@ defmodule TravelingPoetWeb.JournalLive do
 
     Process.send_after(self(), :keepalive, @keepalive_interval_ms)
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:setup_refresh, socket) do
+    if setting_up?(socket.assigns) do
+      user = Accounts.get_user!(socket.assigns.user.id)
+      poet = Poets.get_poet_by_user(user.id) || socket.assigns.poet
+
+      sprite_status =
+        cond do
+          # don't downgrade a live status the gateway already reported
+          socket.assigns.sprite_status in [:running, :waking, :reconnecting] ->
+            socket.assigns.sprite_status
+
+          user.sprite_provisioned ->
+            :provisioned
+
+          true ->
+            :not_provisioned
+        end
+
+      Process.send_after(self(), :setup_refresh, @setup_refresh_ms)
+
+      {:noreply,
+       socket
+       |> assign(:user, user)
+       |> assign(:poet, poet)
+       |> assign(:sprite_status, sprite_status)
+       |> assign_journal(poet, nil)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
