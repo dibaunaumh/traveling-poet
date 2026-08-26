@@ -5,7 +5,7 @@
     </div>
     <div class="flex-none flex gap-2">
       <a :if={@conn.assigns[:current_user]} href="/journal" class="btn btn-primary btn-sm">
-        My journal
+        {if @my_poet, do: "#{@my_poet.name}'s journal", else: "My poet's journal"}
       </a>
       <a :if={!@conn.assigns[:current_user]} href="/auth/google" class="btn btn-primary btn-sm">
         Sign in with Google

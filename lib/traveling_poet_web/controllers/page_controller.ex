@@ -4,6 +4,12 @@ defmodule TravelingPoetWeb.PageController do
   alias TravelingPoet.Poets
 
   def home(conn, _params) do
+    my_poet =
+      case conn.assigns[:current_user] do
+        nil -> nil
+        user -> Poets.get_poet_by_user(user.id)
+      end
+
     poets =
       Poets.list_public_poets()
       |> Enum.map(fn p ->
@@ -16,6 +22,6 @@ defmodule TravelingPoetWeb.PageController do
         }
       end)
 
-    render(conn, :home, public_poets: poets, layout: false)
+    render(conn, :home, public_poets: poets, my_poet: my_poet, layout: false)
   end
 end

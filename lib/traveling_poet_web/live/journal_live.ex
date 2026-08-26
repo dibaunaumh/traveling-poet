@@ -359,9 +359,6 @@ defmodule TravelingPoetWeb.JournalLive do
                 </span>
               </p>
             </div>
-            <div class="ml-auto">
-              <.link navigate={~p"/settings"} class="btn btn-ghost btn-sm">Settings</.link>
-            </div>
           </div>
 
           <div
