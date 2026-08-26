@@ -42,3 +42,6 @@ npm-debug.log
 
 # Local secrets (loaded by config/runtime.exs); .env.example is the template
 .env
+
+# macOS
+.DS_Store
