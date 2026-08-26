@@ -258,8 +258,17 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     dates = Enum.map(entries, & &1.entry_date) |> Enum.sort(Date)
     idx = Enum.find_index(dates, &(&1 == current.entry_date))
 
-    prev = if idx && idx > 0, do: [{"← earlier", Enum.at(dates, idx - 1)}], else: []
-    next = if idx && idx < length(dates) - 1, do: [{"later →", Enum.at(dates, idx + 1)}], else: []
+    # ISO strings, not Date structs — Date has no Phoenix.Param impl, and a
+    # bare struct in ~p"/journal/#{date}" crashes the render (only once a poet
+    # has 2+ entries, which is why day one didn't catch it)
+    prev =
+      if idx && idx > 0, do: [{"← earlier", Date.to_iso8601(Enum.at(dates, idx - 1))}], else: []
+
+    next =
+      if idx && idx < length(dates) - 1,
+        do: [{"later →", Date.to_iso8601(Enum.at(dates, idx + 1))}],
+        else: []
+
     prev ++ next
   end
 end
