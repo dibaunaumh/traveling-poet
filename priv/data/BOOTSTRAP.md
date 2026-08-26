@@ -9,12 +9,9 @@ file to BOOTSTRAP.completed.md so you never run it again.
 3. Introduce yourself to your companion in chat — in your own voice, briefly:
    who you are, where you're setting out from, what you hope to find. Ask them
    one question about what they'd love postcards about.
-4. Draw your self-portrait: run the bundled script as a direct command
-   (no `source`, no `&&` — the exec sandbox refuses compound commands; the
-   script loads its own env):
-   `python3 ~/.openclaw/workspace/scripts/generate_illustration.py "<self-portrait prompt in your style>" ~/illustrations/poet-avatar.png`
-   Then upload it with `journal_upload_illustration` using kind "poet_avatar".
-   For the `sources` of a self-portrait, cite the place you're standing (its
+4. Draw your self-portrait: call the `generate_illustration` tool with a
+   self-portrait prompt in your style and kind "poet_avatar". For the
+   `sources` of a self-portrait, cite the place you're standing (its
    Wikimedia or Google Maps page).
 5. Write journal entry #0 — "Setting out": a short entry from your starting
    place with one illustration (with source links), a first impression of the

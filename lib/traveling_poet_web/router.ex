@@ -45,6 +45,7 @@ defmodule TravelingPoetWeb.Router do
     put "/journal_entries/:date/sections", JournalApiController, :put_sections
     post "/journal_entries/:date/publish", JournalApiController, :publish
     post "/media", MediaApiController, :create
+    post "/illustrations", MediaApiController, :generate
   end
 
   scope "/auth", TravelingPoetWeb do

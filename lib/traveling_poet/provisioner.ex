@@ -30,10 +30,6 @@ defmodule TravelingPoet.Provisioner do
   @external_resource @heartbeat_path
   @heartbeat_md File.read!(@heartbeat_path)
 
-  @illustration_script_path "priv/data/scripts/generate_illustration.py"
-  @external_resource @illustration_script_path
-  @illustration_script File.read!(@illustration_script_path)
-
   @skill_names ~w(travel-and-journal discover poem chat-companion onboard)
   @skill_contents (for skill <- @skill_names, into: %{} do
                      path = "priv/data/skills/#{skill}/SKILL.md"
@@ -273,18 +269,19 @@ defmodule TravelingPoet.Provisioner do
     SpritesClient.exec(name, cmd)
   end
 
+  # SECURITY: the sprite is user-driven territory — a user can talk their
+  # agent into reading any file on it, .env included (learned from beta user
+  # #1, age 13). Only per-user credentials may go here; shared system keys
+  # (image gen, etc.) stay app-side. OPENROUTER_API_KEY is the one exception
+  # OpenClaw itself requires — its mitigation is per-user capped keys.
   defp write_env(name, gateway_token, agent_api_token, phoenix_url) do
     openrouter_key = Application.get_env(:traveling_poet, :openrouter_api_key, "")
-    image_key = Application.get_env(:traveling_poet, :image_gen_api_key, "")
-    image_model = Application.get_env(:traveling_poet, :image_gen_model, "gemini-2.5-flash-image")
 
     env_content = """
     OPENROUTER_API_KEY=#{openrouter_key}
     OPENCLAW_GATEWAY_TOKEN=#{gateway_token}
     TPOET_API_TOKEN=#{agent_api_token}
     TPOET_APP_URL=#{phoenix_url}
-    IMAGE_GEN_API_KEY=#{image_key}
-    IMAGE_GEN_MODEL=#{image_model}
     """
 
     cmd = "cat > ~/.openclaw/.env << 'ENVEOF'\n#{String.trim(env_content)}\nENVEOF"
@@ -350,9 +347,10 @@ defmodule TravelingPoet.Provisioner do
 
     ## Your tools
     The tpoet-plugin gives you: `get_poet_context`, `get_feedback`,
-    `journal_upsert_entry`, `journal_put_sections`,
+    `journal_upsert_entry`, `journal_put_sections`, `generate_illustration`,
     `journal_upload_illustration`, `journal_publish`, `update_location`.
-    All journal work must go through them.
+    All journal work must go through them; drawings are made with
+    `generate_illustration` (the app renders them for you).
 
     ## Skills
     Skills live under #{@workspace}/skills/ — scan the SKILL.md descriptions
@@ -372,19 +370,13 @@ defmodule TravelingPoet.Provisioner do
     with {:ok, _} <-
            SpritesClient.exec(
              sprite_name,
-             "mkdir -p #{agent_dir} #{@workspace}/memory #{@workspace}/uploads #{@workspace}/scripts"
+             "mkdir -p #{agent_dir} #{@workspace}/memory #{@workspace}/uploads && rm -f #{@workspace}/scripts/generate_illustration.py"
            ),
          {:ok, _} <- write_file(sprite_name, "#{agent_dir}/instructions.md", instructions_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/IDENTITY.md", identity_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/USER.md", user_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/AGENTS.md", @agents_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/HEARTBEAT.md", @heartbeat_md),
-         {:ok, _} <-
-           write_file(
-             sprite_name,
-             "#{@workspace}/scripts/generate_illustration.py",
-             @illustration_script
-           ),
          # never clobber a completed bootstrap on re-provision
          {:ok, _} <-
            write_file_if_absent(sprite_name, "#{@workspace}/BOOTSTRAP.md", @bootstrap_md),
@@ -525,6 +517,29 @@ defmodule TravelingPoet.Provisioner do
             var a = asParams(raw);
             return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/sections", { sections: a.sections });
           }
+        });
+        ctx.registerTool({
+          name: "generate_illustration",
+          description: "Generate a drawing from your prompt (the app renders it, stores it, and returns media_id). REQUIRES sources: the reference photo URLs you drew from. Preferred over local generation.",
+          parameters: {
+            type: "object",
+            required: ["prompt", "sources"],
+            properties: {
+              prompt: { type: "string", description: "the full image-generation prompt, in your consistent style" },
+              entry_date: { type: "string", description: "YYYY-MM-DD to attach to (omit for poet_avatar)" },
+              kind: { type: "string", description: "illustration (default) or poet_avatar" },
+              alt_text: { type: "string" },
+              sources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["url", "label"],
+                  properties: { url: { type: "string" }, label: { type: "string" } }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/illustrations", asParams(raw)); }
         });
         ctx.registerTool({
           name: "journal_upload_illustration",

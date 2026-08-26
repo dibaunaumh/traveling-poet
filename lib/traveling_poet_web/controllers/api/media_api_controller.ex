@@ -33,6 +33,45 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
     conn |> put_status(422) |> json(%{error: "image_base64 and content_type are required"})
   end
 
+  @doc """
+  Server-side illustration generation: the app calls the image API (the key
+  never lives on the sprite), enforces the image quota, uploads to Tigris,
+  and records the media row — one tool call for the agent.
+  """
+  def generate(conn, %{"prompt" => prompt} = params) when is_binary(prompt) do
+    user = conn.assigns.agent_user
+
+    cond do
+      String.trim(prompt) == "" ->
+        conn |> put_status(422) |> json(%{error: "prompt must not be empty"})
+
+      not TravelingPoet.Illustrations.configured?() ->
+        conn |> put_status(503) |> json(%{error: "image generation is not configured"})
+
+      not Usage.within_budget?(user, "image_gen") ->
+        conn |> put_status(429) |> json(%{error: "daily image quota reached"})
+
+      true ->
+        case TravelingPoet.Illustrations.generate(prompt) do
+          {:ok, bytes} ->
+            do_create(
+              conn,
+              user,
+              Base.encode64(bytes),
+              "image/png",
+              Map.put(params, "prompt", prompt)
+            )
+
+          {:error, reason} ->
+            conn |> put_status(502) |> json(%{error: "generation failed: #{inspect(reason)}"})
+        end
+    end
+  end
+
+  def generate(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "prompt is required"})
+  end
+
   defp do_create(conn, user, b64, content_type, params) do
     with %Poets.Poet{} = poet <- Poets.get_poet_by_user(user.id),
          {:ok, bytes} <- Base.decode64(b64),

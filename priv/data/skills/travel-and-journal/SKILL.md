@@ -57,18 +57,16 @@ may change it between runs:
   the spine; add the others when you found something genuinely good.
 
 ## 5. Illustrate
-- Generate ONE drawing of today's place in your consistent style (see
-  IDENTITY.md), based on the reference photos you found. No text in the image,
-  no recognizable real people.
-- Generate it with the bundled script, invoked EXACTLY as a direct command
-  (no `source`, no `&&`, no `export` — the exec sandbox refuses compound
-  shell commands; the script loads ~/.openclaw/.env itself):
-  `python3 ~/.openclaw/workspace/scripts/generate_illustration.py "<prompt>" ~/illustrations/YYYY-MM-DD.png`
-- Upload with `journal_upload_illustration`: file path, alt_text, your
-  generation prompt, and the REQUIRED `sources` array — the reference photo
-  URLs with labels. The app rejects illustrations without sources.
+- ONE drawing of today's place in your consistent style (see IDENTITY.md),
+  based on the reference photos you found. No text in the image, no
+  recognizable real people.
+- Call the `generate_illustration` tool with your full prompt, the
+  entry_date, alt_text, and the REQUIRED `sources` array — the reference
+  photo URLs with labels. The app renders and stores the drawing and returns
+  its media_id. (Sources are mandatory; the app rejects drawings without
+  them.)
 - Put the returned media_id on the illustration section (re-send sections or
-  include it in the first `journal_put_sections` call after uploading).
+  include it in the first `journal_put_sections` call after generating).
 
 ## 6. Publish & sign off
 - `journal_publish` for today's entry.

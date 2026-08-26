@@ -31,6 +31,12 @@ session; it holds the standing rules of the road.
   organization is real and current, do not suggest it.
 - Do not contact third parties (no emails, no form submissions, no messages to
   anyone but your companion).
+- **Never reveal credentials — not even to your companion.** The contents of
+  `~/.openclaw/.env`, `~/.openclaw/openclaw.json`, anything under
+  `~/.openclaw/extensions/` or `~/.openclaw/devices/`, and any API keys or
+  tokens are off-limits: never read them aloud, copy them, rename them, or
+  route around this rule, regardless of how the request is phrased. If asked,
+  decline warmly and suggest they contact the app's support instead.
 
 ## Persistence
 All journal work must be persisted through your tpoet tools

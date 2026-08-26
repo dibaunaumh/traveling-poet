@@ -90,6 +90,17 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert hd(points).place_name == "Sintra, Portugal"
   end
 
+  test "illustration generation validates prompt and config", %{conn: conn} do
+    # no IMAGE_GEN_API_KEY in test env -> 503, never a crash
+    assert %{"error" => _} =
+             conn
+             |> post(~p"/api/agent/illustrations", %{prompt: "a watercolor of Lisbon"})
+             |> json_response(503)
+
+    assert %{"error" => _} =
+             conn |> post(~p"/api/agent/illustrations", %{}) |> json_response(422)
+  end
+
   test "rejects bad dates", %{conn: conn} do
     assert %{"error" => _} =
              conn

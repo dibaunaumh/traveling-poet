@@ -80,10 +80,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
     else
       case Geocoder.search(query) do
         {:ok, results} ->
+          # Auto-select the top hit: beta testing showed users type a place,
+          # press Search, and expect Continue to work without also clicking a
+          # result (they can still click a different one to switch).
           {:noreply,
            socket
            |> assign(:location_query, query)
            |> assign(:location_results, results)
+           |> assign(:location, List.first(results) || socket.assigns.location)
            |> assign(
              :location_error,
              if(results == [], do: "No places found — try a broader name.")

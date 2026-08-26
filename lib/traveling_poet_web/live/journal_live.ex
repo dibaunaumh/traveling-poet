@@ -247,7 +247,11 @@ defmodule TravelingPoetWeb.JournalLive do
 
   @impl true
   def handle_info({:gateway_event, {:error, reason}}, socket) do
-    send_update(ChatSidebarComponent, id: "chat-sidebar", stream_error: reason)
+    send_update(ChatSidebarComponent,
+      id: "chat-sidebar",
+      stream_error: friendly_error(reason, socket)
+    )
+
     {:noreply, socket}
   end
 
@@ -538,6 +542,21 @@ defmodule TravelingPoetWeb.JournalLive do
   defp mark_activity(socket) do
     assign(socket, :last_activity_at, System.monotonic_time(:millisecond))
   end
+
+  # The gateway rejects a chat.send while another turn is running (e.g. the
+  # auto-fired /onboard right after provisioning) with a bare "Chat error" —
+  # translate it into something a user can act on.
+  defp friendly_error(reason, socket) when is_binary(reason) do
+    poet_name = (socket.assigns[:poet] && socket.assigns.poet.name) || "Your poet"
+
+    if String.contains?(reason, "Chat error") do
+      "#{poet_name} is mid-thought (possibly writing to you right now) — give it a moment and resend."
+    else
+      reason
+    end
+  end
+
+  defp friendly_error(reason, _socket), do: reason
 
   defp recently_active?(socket) do
     case socket.assigns[:last_activity_at] do
