@@ -20,7 +20,7 @@ defmodule TravelingPoet.Illustrations do
   end
 
   def model do
-    Application.get_env(:traveling_poet, :image_gen_model, "openai/gpt-5-image-mini")
+    Application.get_env(:traveling_poet, :image_gen_model, "google/gemini-2.5-flash-image")
   end
 
   @doc """

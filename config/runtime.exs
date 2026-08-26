@@ -33,7 +33,7 @@ config :traveling_poet,
   openrouter_model: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"),
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
-  image_gen_model: System.get_env("IMAGE_GEN_MODEL", "openai/gpt-5-image-mini"),
+  image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
   # nil in test: runtime.exs loads .env in every env, and a real token here
   # would boot the Telegram Poller/Notifier inside the test run — they'd hit
   # the DB outside the sandbox and lock-jam SQLite (learned the hard way)
