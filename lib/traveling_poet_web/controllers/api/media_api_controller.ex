@@ -53,12 +53,12 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
       true ->
         case TravelingPoet.Illustrations.generate(prompt) do
-          {:ok, bytes} ->
+          {:ok, bytes, content_type} ->
             do_create(
               conn,
               user,
               Base.encode64(bytes),
-              "image/png",
+              content_type,
               Map.put(params, "prompt", prompt)
             )
 

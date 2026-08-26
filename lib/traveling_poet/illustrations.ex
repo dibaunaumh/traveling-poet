@@ -1,46 +1,57 @@
 defmodule TravelingPoet.Illustrations do
   @moduledoc """
-  Server-side illustration generation via the Gemini image API.
+  Server-side illustration generation via OpenRouter's chat-completions API
+  (image-output models return base64 data URLs in `message.images`).
 
   Generation deliberately happens HERE and not on the sprite: the sprite is
-  user-driven territory (a user talked their agent into reading the sprite
-  .env and exfiltrated the shared keys), so shared secrets never go there.
-  The agent calls the `generate_illustration` tool -> POST
-  /api/agent/illustrations -> this module -> Gemini, with the image quota
-  enforced app-side.
+  user-driven territory, so shared secrets never go there. The agent calls
+  the `generate_illustration` tool -> POST /api/agent/illustrations -> this
+  module -> OpenRouter, with the image quota enforced app-side. Using
+  OpenRouter (same key as the text models) keeps billing and rotation in one
+  place — IMAGE_GEN_API_KEY no longer exists.
   """
 
   require Logger
 
-  @base_url "https://generativelanguage.googleapis.com/v1beta/models"
+  @api_url "https://openrouter.ai/api/v1/chat/completions"
 
   def configured? do
-    Application.get_env(:traveling_poet, :image_gen_api_key) not in [nil, ""]
+    Application.get_env(:traveling_poet, :openrouter_api_key) not in [nil, ""]
   end
 
-  @doc "Generates a PNG for the prompt. Returns {:ok, png_bytes} | {:error, reason}."
+  def model do
+    Application.get_env(:traveling_poet, :image_gen_model, "openai/gpt-5-image-mini")
+  end
+
+  @doc """
+  Generates an image for the prompt.
+  Returns {:ok, bytes, content_type} | {:error, reason}.
+  """
   def generate(prompt) when is_binary(prompt) do
-    key = Application.get_env(:traveling_poet, :image_gen_api_key)
-    model = Application.get_env(:traveling_poet, :image_gen_model, "gemini-2.5-flash-image")
+    key = Application.get_env(:traveling_poet, :openrouter_api_key)
 
     if key in [nil, ""] do
       {:error, :not_configured}
     else
       body = %{
-        contents: [%{parts: [%{text: prompt}]}],
-        generationConfig: %{responseModalities: ["IMAGE"]}
+        model: model(),
+        messages: [%{role: "user", content: prompt}],
+        modalities: ["image", "text"]
       }
 
-      case Req.post("#{@base_url}/#{model}:generateContent",
+      case Req.post(@api_url,
              json: body,
-             headers: [{"x-goog-api-key", key}],
+             headers: [{"authorization", "Bearer #{key}"}],
              receive_timeout: 120_000
            ) do
         {:ok, %{status: 200, body: resp}} ->
           extract_image(resp)
 
         {:ok, %{status: status, body: resp}} ->
-          Logger.warning("Illustrations: Gemini returned #{status}: #{inspect(resp, limit: 300)}")
+          Logger.warning(
+            "Illustrations: OpenRouter returned #{status}: #{inspect(resp, limit: 300)}"
+          )
+
           {:error, "image API returned #{status}"}
 
         {:error, reason} ->
@@ -50,21 +61,36 @@ defmodule TravelingPoet.Illustrations do
     end
   end
 
-  defp extract_image(%{"candidates" => candidates}) when is_list(candidates) do
-    candidates
-    |> Enum.flat_map(fn c -> get_in(c, ["content", "parts"]) || [] end)
-    |> Enum.find_value(fn part ->
-      data = get_in(part, ["inlineData", "data"]) || get_in(part, ["inline_data", "data"])
-      data && Base.decode64(data) |> elem_ok()
+  defp extract_image(%{"choices" => choices}) when is_list(choices) do
+    choices
+    |> Enum.flat_map(fn c -> get_in(c, ["message", "images"]) || [] end)
+    |> Enum.find_value(fn img ->
+      case get_in(img, ["image_url", "url"]) do
+        "data:" <> _ = data_url -> decode_data_url(data_url)
+        _ -> nil
+      end
     end)
     |> case do
       nil -> {:error, "no image in response"}
-      bytes -> {:ok, bytes}
+      {bytes, content_type} -> {:ok, bytes, content_type}
     end
   end
 
   defp extract_image(_), do: {:error, "no image in response"}
 
-  defp elem_ok({:ok, bytes}), do: bytes
-  defp elem_ok(_), do: nil
+  defp decode_data_url("data:" <> rest) do
+    with [meta, b64] <- String.split(rest, ",", parts: 2),
+         {:ok, bytes} <- Base.decode64(b64) do
+      # normalize to the types the media pipeline serves; default png
+      content_type =
+        case meta |> String.split(";") |> hd() do
+          ct when ct in ["image/png", "image/jpeg", "image/webp"] -> ct
+          _ -> "image/png"
+        end
+
+      {bytes, content_type}
+    else
+      _ -> nil
+    end
+  end
 end

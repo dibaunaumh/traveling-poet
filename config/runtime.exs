@@ -26,13 +26,14 @@ config :traveling_poet,
   sprites_token: System.get_env("SPRITES_TOKEN"),
   sprite_namespace: System.get_env("SPRITE_NAMESPACE"),
   openclaw_stable_version: System.get_env("OPENCLAW_STABLE_VERSION", "2026.4.9"),
-  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
+  # nil in test: .env loads in every env, and a live key would let tests hit
+  # the real OpenRouter API (text or image) and spend money
+  openrouter_api_key:
+    if(config_env() == :test, do: nil, else: System.get_env("OPENROUTER_API_KEY")),
   openrouter_model: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"),
-  # nil in test for the same reason as telegram below — and so tests can
-  # never spend real image-generation money
-  image_gen_api_key:
-    if(config_env() == :test, do: nil, else: System.get_env("IMAGE_GEN_API_KEY")),
-  image_gen_model: System.get_env("IMAGE_GEN_MODEL", "gemini-2.5-flash-image"),
+  # image generation rides the OpenRouter key (Illustrations module);
+  # IMAGE_GEN_API_KEY no longer exists
+  image_gen_model: System.get_env("IMAGE_GEN_MODEL", "openai/gpt-5-image-mini"),
   # nil in test: runtime.exs loads .env in every env, and a real token here
   # would boot the Telegram Poller/Notifier inside the test run — they'd hit
   # the DB outside the sandbox and lock-jam SQLite (learned the hard way)
