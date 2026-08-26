@@ -59,6 +59,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:keepalive_ref, nil)
           |> assign(:last_activity_at, nil)
           |> assign(:sprite_status, initial_sprite_status)
+          |> assign(:show_anyway, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign_journal(poet, nil)
           |> allow_upload(:chat_attachment,
@@ -143,6 +144,11 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("toggle_chat", _params, socket) do
     {:noreply, assign(socket, :sidebar_open, !socket.assigns.sidebar_open)}
+  end
+
+  @impl true
+  def handle_event("peek_anyway", _params, socket) do
+    {:noreply, assign(socket, :show_anyway, true)}
   end
 
   @impl true
@@ -335,11 +341,83 @@ defmodule TravelingPoetWeb.JournalLive do
 
   ## Render
 
+  # New poets show a setting-up screen until their first entry publishes
+  # (entry #0 from the bootstrap ritual) — the point at which everything is
+  # truly operational. Beta feedback: landing straight in the half-alive
+  # journal + chat during provisioning was confusing. The gateway wiring
+  # keeps running underneath so /onboard still auto-fires.
+  defp setting_up?(assigns) do
+    assigns.entries == [] and not assigns.show_anyway
+  end
+
+  attr :poet, :any, required: true
+  attr :user, :any, required: true
+  attr :sprite_status, :atom, required: true
+
+  defp setting_up_screen(assigns) do
+    ~H"""
+    <div class="mx-auto max-w-md py-16 text-center">
+      <div class="text-6xl animate-bounce mb-6">🧳</div>
+      <h1 class="text-2xl font-semibold mb-2">{@poet.name} is getting ready</h1>
+      <p class="opacity-70 mb-8">
+        Packing a notebook, lacing boots, finding the first light in {@poet.current_place_name ||
+          "the starting place"}…
+      </p>
+
+      <ol class="text-left space-y-3 mb-8">
+        <li class="flex items-center gap-3">
+          <.step_mark done={@sprite_status in [:provisioned, :running, :waking, :reconnecting]} />
+          <span>Setting up {@poet.name}'s travel desk</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <.step_mark done={@user.agent_onboarded_at != nil} />
+          <span>Waking the poet</span>
+        </li>
+        <li class="flex items-center gap-3">
+          <.step_mark done={false} />
+          <span>Writing the first journal entry</span>
+        </li>
+      </ol>
+
+      <p class="text-sm opacity-60 mb-2">
+        This usually takes <b>5–10 minutes</b>. The page updates by itself —
+        and you can safely close it; the poet keeps working.
+      </p>
+      <p :if={@user.telegram_chat_id} class="text-sm opacity-60 mb-6">
+        📱 We'll message you on Telegram the moment the first entry is out.
+      </p>
+      <p :if={is_nil(@user.telegram_chat_id)} class="text-sm opacity-60 mb-6">
+        Tip: pair Telegram in <.link navigate={~p"/settings"} class="link">settings</.link>
+        and your poet will write to you there when it's ready.
+      </p>
+
+      <button phx-click="peek_anyway" class="btn btn-ghost btn-xs opacity-60">
+        peek behind the curtain anyway
+      </button>
+    </div>
+    """
+  end
+
+  attr :done, :boolean, required: true
+
+  defp step_mark(assigns) do
+    ~H"""
+    <span :if={@done} class="text-success text-lg">✓</span>
+    <span :if={!@done} class="loading loading-dots loading-sm opacity-50"></span>
+    """
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
-      <div class="flex h-[calc(100vh-4rem)] gap-4">
+      <.setting_up_screen
+        :if={setting_up?(assigns)}
+        poet={@poet}
+        user={@user}
+        sprite_status={@sprite_status}
+      />
+      <div :if={!setting_up?(assigns)} class="flex h-[calc(100vh-4rem)] gap-4">
         <div class="flex-1 min-w-0 overflow-y-auto pr-1">
           <div class="flex items-center gap-3 mb-3">
             <img

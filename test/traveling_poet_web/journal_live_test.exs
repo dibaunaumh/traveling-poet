@@ -46,4 +46,20 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ "Day two"
     assert html =~ "earlier"
   end
+
+  test "new poet without entries sees the setting-up screen", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true})
+    poet = poet_fixture(user)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, html} = live(conn, ~p"/journal")
+
+    assert html =~ "#{poet.name} is getting ready"
+    assert html =~ "5–10 minutes"
+    refute html =~ "poet-map"
+
+    # escape hatch reveals the real UI
+    html = view |> element("button", "peek behind the curtain") |> render_click()
+    assert html =~ "poet-map"
+  end
 end
