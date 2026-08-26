@@ -104,8 +104,18 @@ if config_env() == :prod do
 
   config :traveling_poet, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # The app answers on both the custom domain (PHX_HOST) and the Fly-provided
+  # hostname; allow LiveView websockets from both so the fly.dev URL keeps
+  # working as a fallback after the domain switch.
+  extra_origins =
+    case System.get_env("FLY_APP_NAME") do
+      nil -> []
+      app -> ["https://#{app}.fly.dev"]
+    end
+
   config :traveling_poet, TravelingPoetWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    check_origin: ["https://#{host}" | extra_origins],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

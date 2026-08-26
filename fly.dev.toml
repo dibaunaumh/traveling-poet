@@ -29,7 +29,9 @@ kill_signal = 'SIGTERM'
 
 [env]
   DATABASE_PATH = '/mnt/data/traveling_poet.db'
-  PHX_HOST = 'traveling-poet-dev.fly.dev'
+  # Custom domain (certs added via `fly certs add poet.travel`); the
+  # traveling-poet-dev.fly.dev hostname stays valid via check_origin.
+  PHX_HOST = 'poet.travel'
   PORT = '8080'
   # Namespace sprite names so dev can't collide with a future prod on the
   # same sprites.dev account
