@@ -49,6 +49,8 @@ defmodule TravelingPoetWeb.Api.AgentController do
             currently_reading: Map.get(poet.currently_reading || %{}, "items", []),
             is_public: poet.is_public,
             stay_duration_days: Poet.stay_duration_days(poet),
+            # "wander" = roam freely; "scout" = pre-visit the itinerary in order
+            mode: Poet.mode(poet),
             # brief | balanced | expansive — how long journal prose should run;
             # user-editable in settings, so honor the CURRENT value each run
             verbosity: Map.get(poet.settings || %{}, "verbosity", "balanced")
@@ -61,10 +63,40 @@ defmodule TravelingPoetWeb.Api.AgentController do
             arrived_at: poet.arrived_at,
             days_here: Poet.days_at_location(poet)
           },
+          itinerary: itinerary_for(poet),
+          next_stop: next_stop_for(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),
           recent_private_feedback: feedback
         })
+    end
+  end
+
+  defp itinerary_for(poet) do
+    if Poet.mode(poet) == "scout" do
+      Poets.list_stops(poet.id)
+      |> Enum.map(fn s ->
+        %{
+          id: s.id,
+          position: s.position,
+          place_name: s.place_name,
+          lat: s.lat,
+          lng: s.lng,
+          country_code: s.country_code,
+          visited_at: s.visited_at
+        }
+      end)
+    else
+      []
+    end
+  end
+
+  defp next_stop_for(poet) do
+    if Poet.mode(poet) == "scout" do
+      case Poets.next_pending_stop(poet.id) do
+        nil -> nil
+        s -> %{id: s.id, position: s.position, place_name: s.place_name, lat: s.lat, lng: s.lng}
+      end
     end
   end
 

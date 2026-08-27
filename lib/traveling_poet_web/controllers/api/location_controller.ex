@@ -19,10 +19,13 @@ defmodule TravelingPoetWeb.Api.LocationController do
                country_code: params["country_code"]
              }) do
           {:ok, updated} ->
+            stop_visited = maybe_mark_stop_visited(poet, params["itinerary_stop_id"])
+
             json(conn, %{
               ok: true,
               place_name: updated.current_place_name,
-              arrived_at: updated.arrived_at
+              arrived_at: updated.arrived_at,
+              itinerary_stop_visited: stop_visited
             })
 
           {:error, reason} ->
@@ -34,4 +37,13 @@ defmodule TravelingPoetWeb.Api.LocationController do
   def update(conn, _params) do
     conn |> put_status(422) |> json(%{error: "lat and lng (numbers) are required"})
   end
+
+  defp maybe_mark_stop_visited(poet, stop_id) when is_integer(stop_id) do
+    case Poets.mark_stop_visited(poet.id, stop_id) do
+      {:ok, _} -> stop_id
+      _ -> nil
+    end
+  end
+
+  defp maybe_mark_stop_visited(_poet, _), do: nil
 end

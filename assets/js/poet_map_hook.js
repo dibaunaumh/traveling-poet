@@ -62,10 +62,37 @@ const PoetMap = {
         .addTo(this.layer)
     })
 
+    // Trip Scout: planned (unvisited) stops as gray hollow markers, with a
+    // dashed gray line from the current position through the route ahead
+    const planned = (data.planned || []).map((p) => [p.lat, p.lng])
+    if (planned.length > 0 && data.current) {
+      L.polyline([[data.current.lat, data.current.lng], ...planned], {
+        color: "#9ca3af",
+        weight: 2,
+        opacity: 0.7,
+        dashArray: "2 8",
+      }).addTo(this.layer)
+    }
+    ;(data.planned || []).forEach((p) => {
+      L.circleMarker([p.lat, p.lng], {
+        radius: 6,
+        color: "#9ca3af",
+        fillColor: "#ffffff",
+        fillOpacity: 0.9,
+        weight: 2,
+      })
+        .bindPopup(`planned: ${p.name || ""}`)
+        .addTo(this.layer)
+    })
+
     if (data.current) {
       const m = L.marker([data.current.lat, data.current.lng]).addTo(this.layer)
       m.bindPopup(`<b>${data.poet || "Your poet"}</b><br/>${data.current.name || ""}`)
-      this.map.setView([data.current.lat, data.current.lng], 9)
+      if (planned.length > 0) {
+        this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
+      } else {
+        this.map.setView([data.current.lat, data.current.lng], 9)
+      }
     } else if (path.length > 0) {
       this.map.fitBounds(path, { padding: [30, 30] })
     } else {

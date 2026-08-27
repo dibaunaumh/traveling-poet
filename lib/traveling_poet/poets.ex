@@ -5,7 +5,7 @@ defmodule TravelingPoet.Poets do
 
   import Ecto.Query
   alias TravelingPoet.Repo
-  alias TravelingPoet.Poets.{Poet, PathPoint}
+  alias TravelingPoet.Poets.{ItineraryStop, Poet, PathPoint}
 
   def get_poet!(id), do: Repo.get!(Poet, id)
   def get_poet(id), do: Repo.get(Poet, id)
@@ -101,6 +101,66 @@ defmodule TravelingPoet.Poets do
       })
       |> Repo.update!()
     end)
+  end
+
+  ## Itinerary (Trip Scout mode)
+
+  def list_stops(poet_id) do
+    ItineraryStop
+    |> where(poet_id: ^poet_id)
+    |> order_by(asc: :position)
+    |> Repo.all()
+  end
+
+  def add_stop(poet_id, attrs) do
+    next_position =
+      ItineraryStop
+      |> where(poet_id: ^poet_id)
+      |> select([s], max(s.position))
+      |> Repo.one()
+      |> case do
+        nil -> 0
+        max -> max + 1
+      end
+
+    %ItineraryStop{}
+    |> ItineraryStop.changeset(
+      attrs
+      |> Map.new(fn {k, v} -> {to_string(k), v} end)
+      |> Map.put("poet_id", poet_id)
+      |> Map.put("position", next_position)
+    )
+    |> Repo.insert()
+  end
+
+  def remove_stop(poet_id, stop_id) do
+    case Repo.get_by(ItineraryStop, id: stop_id, poet_id: poet_id) do
+      nil -> {:error, :not_found}
+      stop -> Repo.delete(stop)
+    end
+  end
+
+  def next_pending_stop(poet_id) do
+    ItineraryStop
+    |> where(poet_id: ^poet_id)
+    |> where([s], is_nil(s.visited_at))
+    |> order_by(asc: :position)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  def mark_stop_visited(poet_id, stop_id) do
+    case Repo.get_by(ItineraryStop, id: stop_id, poet_id: poet_id) do
+      nil ->
+        {:error, :not_found}
+
+      stop ->
+        stop
+        |> ItineraryStop.changeset(%{
+          visited_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> Repo.update()
+    end
   end
 
   def current_path_point(poet_id) do

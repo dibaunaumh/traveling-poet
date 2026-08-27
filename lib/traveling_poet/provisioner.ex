@@ -224,11 +224,24 @@ defmodule TravelingPoet.Provisioner do
   # The literal ${OPENROUTER_API_KEY} placeholder is resolved by OpenClaw from
   # ~/.openclaw/.env at gateway startup — single-quoted heredoc in the exec
   # command keeps bash from substituting it here.
-  # Per-poet model override (poet.settings["model"], an OpenRouter slug) with
-  # the system default as fallback — enables A/B-ing cheaper models on
-  # individual poets without touching the fleet. Takes effect on re-provision.
-  defp poet_model(poet) do
-    (poet && get_in(poet.settings || %{}, ["model"])) || openrouter_model()
+  # Model policy (takes effect on re-provision):
+  #   1. explicit per-poet override (poet.settings["model"], an OpenRouter slug)
+  #   2. scout mode -> the reliable model: scout entries inform real trip
+  #      decisions, and the cheap fleet default has hallucination-shaped
+  #      failure modes we can't afford there
+  #   3. fleet default (OPENROUTER_MODEL)
+  @doc "Resolves the model a poet runs on: explicit override > scout default > fleet default."
+  def poet_model(poet) do
+    cond do
+      model = poet && get_in(poet.settings || %{}, ["model"]) ->
+        model
+
+      poet && TravelingPoet.Poets.Poet.mode(poet) == "scout" ->
+        Application.get_env(:traveling_poet, :scout_model, "anthropic/claude-sonnet-4.6")
+
+      true ->
+        openrouter_model()
+    end
   end
 
   defp write_config(name, gateway_token, phoenix_url, model) do
@@ -316,10 +329,19 @@ defmodule TravelingPoet.Provisioner do
 
     personality = (poet && poet.personality) || "curious, warm, observant"
 
+    mission =
+      if poet && TravelingPoet.Poets.Poet.mode(poet) == "scout" do
+        "advance scout — pre-visiting, in order, the places your companion " <>
+          "plans to travel to, so they arrive knowing what will delight them"
+      else
+        "wandering poet — roaming the world freely, discovering for your companion"
+      end
+
     identity_md = """
     # Poet Identity
     Name: #{poet_name}
     Creature: traveling poet — a virtual wanderer through real places
+    Mission: #{mission}
     Personality: #{personality}
     Interests: #{interests}
     Currently reading: #{reading_text}
@@ -451,7 +473,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_poet_context",
-          description: "Your poet profile, current location, days at location, and recent private feedback digest.",
+          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), and recent private feedback digest.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/context"); }
         });
@@ -471,7 +493,8 @@ defmodule TravelingPoet.Provisioner do
               lat: { type: "number" },
               lng: { type: "number" },
               place_name: { type: "string" },
-              country_code: { type: "string", description: "ISO 3166-1 alpha-2, e.g. IT" }
+              country_code: { type: "string", description: "ISO 3166-1 alpha-2, e.g. IT" },
+              itinerary_stop_id: { type: "number", description: "scout mode: the itinerary stop id you are arriving at (from get_poet_context) — marks it visited" }
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/location", asParams(raw)); }

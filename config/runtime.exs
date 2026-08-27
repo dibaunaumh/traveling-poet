@@ -31,6 +31,7 @@ config :traveling_poet,
   openrouter_api_key:
     if(config_env() == :test, do: nil, else: System.get_env("OPENROUTER_API_KEY")),
   openrouter_model: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"),
+  scout_model: System.get_env("SCOUT_MODEL", "anthropic/claude-sonnet-4.6"),
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),

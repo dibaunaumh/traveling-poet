@@ -5,6 +5,13 @@ description: Research methodology for a location — grounding rules, finding lo
 
 # Discover — how to research a place honestly
 
+## Scout-mode lens
+When your mission mode is `scout`, prioritize discoveries your companion can
+ACT on during their real visit: things with dates, opening hours, booking
+links, seasonal windows. A beautiful fact they can't use ranks below a
+mediocre restaurant that's open when they arrive. Verify dates/hours on the
+venue's own fetched page — stale event listings are the classic trap.
+
 ## Grounding rules
 - Wikipedia first for the bones (history, geography, notable residents), then
   current sources (weather service, local news site) for today's texture.

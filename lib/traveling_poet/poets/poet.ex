@@ -23,6 +23,7 @@ defmodule TravelingPoet.Poets.Poet do
 
     belongs_to :user, TravelingPoet.Accounts.User
     has_many :path_points, TravelingPoet.Poets.PathPoint
+    has_many :itinerary_stops, TravelingPoet.Poets.ItineraryStop
     has_many :journal_entries, TravelingPoet.Journal.Entry
 
     timestamps()
@@ -82,5 +83,16 @@ defmodule TravelingPoet.Poets.Poet do
 
   def stay_duration_days(%__MODULE__{settings: settings}) do
     Map.get(settings || %{}, "stay_duration_days", 3)
+  end
+
+  @doc """
+  The poet's mission mode: "wander" (free roaming, the default) or "scout" —
+  pre-visiting the user's planned itinerary.
+  """
+  def mode(%__MODULE__{settings: settings}) do
+    case Map.get(settings || %{}, "mode") do
+      "scout" -> "scout"
+      _ -> "wander"
+    end
   end
 end

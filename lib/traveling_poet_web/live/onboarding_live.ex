@@ -5,7 +5,10 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   require Logger
 
-  @steps [:you, :poet, :location, :visibility, :telegram, :review]
+  # step list depends on chosen mode (alice-in's conditional-steps lesson:
+  # derive one list and use it everywhere)
+  defp steps("scout"), do: [:you, :poet, :mode, :itinerary, :visibility, :telegram, :review]
+  defp steps(_wander), do: [:you, :poet, :mode, :location, :visibility, :telegram, :review]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -27,6 +30,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
        |> assign(:poet_name, "")
        |> assign(:poet_personality, "")
        |> assign(:verbosity, "balanced")
+       |> assign(:mode, "wander")
+       |> assign(:stops, [])
        |> assign(:reading_list, Geocoder.reading_list())
        |> assign(:selected_reading, MapSet.new())
        |> assign(:custom_reading, "")
@@ -47,12 +52,12 @@ defmodule TravelingPoetWeb.OnboardingLive do
   @impl true
   def handle_event("next", params, socket) do
     socket = capture_step(socket, params)
-    {:noreply, assign(socket, :step, next_step(socket.assigns.step))}
+    {:noreply, assign(socket, :step, next_step(socket.assigns.step, socket.assigns.mode))}
   end
 
   @impl true
   def handle_event("back", _params, socket) do
-    {:noreply, assign(socket, :step, prev_step(socket.assigns.step))}
+    {:noreply, assign(socket, :step, prev_step(socket.assigns.step, socket.assigns.mode))}
   end
 
   ## Step 2: reading picks
@@ -67,6 +72,39 @@ defmodule TravelingPoetWeb.OnboardingLive do
         else: MapSet.put(socket.assigns.selected_reading, idx)
 
     {:noreply, assign(socket, :selected_reading, selected)}
+  end
+
+  ## Mode step
+
+  @impl true
+  def handle_event("choose_mode", %{"mode" => mode}, socket) when mode in ["wander", "scout"] do
+    {:noreply,
+     socket
+     |> assign(:mode, mode)
+     |> assign(:step, next_step(:mode, mode))}
+  end
+
+  ## Itinerary step (scout)
+
+  @impl true
+  def handle_event("add_stop", %{"idx" => idx}, socket) do
+    case Enum.at(socket.assigns.location_results, String.to_integer(idx)) do
+      nil ->
+        {:noreply, socket}
+
+      result ->
+        {:noreply,
+         socket
+         |> assign(:stops, socket.assigns.stops ++ [result])
+         |> assign(:location_results, [])
+         |> assign(:location_query, "")}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_stop", %{"idx" => idx}, socket) do
+    {:noreply,
+     assign(socket, :stops, List.delete_at(socket.assigns.stops, String.to_integer(idx)))}
   end
 
   ## Step 3: location
@@ -147,7 +185,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
       |> Enum.reject(&is_nil/1)
       |> maybe_add_custom_reading(socket.assigns.custom_reading)
 
-    location = socket.assigns.location
+    location =
+      case socket.assigns.mode do
+        "scout" -> List.first(socket.assigns.stops)
+        _ -> socket.assigns.location
+      end
 
     attrs = %{
       user_id: user.id,
@@ -163,15 +205,21 @@ defmodule TravelingPoetWeb.OnboardingLive do
       arrived_at: DateTime.utc_now() |> DateTime.truncate(:second),
       settings: %{
         "stay_duration_days" => 3,
+        "mode" => socket.assigns.mode,
         "verbosity" => socket.assigns.verbosity,
         "user_interests" => split_interests(socket.assigns.user_interests)
       }
     }
 
     with {:ok, name_ok} <- validate_poet_name(socket.assigns.poet_name),
+         :ok <- validate_mode_inputs(socket.assigns),
          {:ok, poet} <- Poets.create_poet(%{attrs | name: name_ok}) do
       # Record the starting point as path point zero
       if location, do: Poets.move_to(poet, location)
+
+      if socket.assigns.mode == "scout" do
+        Enum.each(socket.assigns.stops, fn stop -> Poets.add_stop(poet.id, stop) end)
+      end
 
       {:ok, _} =
         Accounts.update_user(user, %{
@@ -235,17 +283,25 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
-  defp next_step(step) do
-    idx = Enum.find_index(@steps, &(&1 == step))
-    Enum.at(@steps, min(idx + 1, length(@steps) - 1))
+  defp next_step(step, mode) do
+    list = steps(mode)
+    idx = Enum.find_index(list, &(&1 == step))
+    Enum.at(list, min(idx + 1, length(list) - 1))
   end
 
-  defp prev_step(step) do
-    idx = Enum.find_index(@steps, &(&1 == step))
-    Enum.at(@steps, max(idx - 1, 0))
+  defp prev_step(step, mode) do
+    list = steps(mode)
+    idx = Enum.find_index(list, &(&1 == step))
+    Enum.at(list, max(idx - 1, 0))
   end
 
-  defp step_number(step), do: Enum.find_index(@steps, &(&1 == step)) + 1
+  defp step_number(step, mode), do: Enum.find_index(steps(mode), &(&1 == step)) + 1
+  defp step_count(mode), do: length(steps(mode))
+
+  defp validate_mode_inputs(%{mode: "scout", stops: []}),
+    do: {:error, "A Trip Scout needs at least one planned stop — go back and add one."}
+
+  defp validate_mode_inputs(_), do: :ok
 
   defp validate_poet_name(name) do
     case String.trim(name) do
@@ -280,8 +336,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
     <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
       <div class="mx-auto max-w-xl py-8">
         <div class="mb-6">
-          <div class="text-sm opacity-60 mb-1">Step {step_number(@step)} of 6</div>
-          <progress class="progress progress-primary w-full" value={step_number(@step)} max="6" />
+          <div class="text-sm opacity-60 mb-1">
+            Step {step_number(@step, @mode)} of {step_count(@mode)}
+          </div>
+          <progress
+            class="progress progress-primary w-full"
+            value={step_number(@step, @mode)}
+            max={step_count(@mode)}
+          />
         </div>
 
         <div :if={@step == :you}>
@@ -403,6 +465,83 @@ defmodule TravelingPoetWeb.OnboardingLive do
           </form>
         </div>
 
+        <div :if={@step == :mode}>
+          <h1 class="text-2xl font-semibold mb-2">What's the mission?</h1>
+          <p class="opacity-70 mb-4">You can switch modes later in settings.</p>
+          <div class="space-y-3 mb-6">
+            <button
+              phx-click="choose_mode"
+              phx-value-mode="wander"
+              class="w-full text-left p-4 rounded-xl border border-base-300 hover:border-primary"
+            >
+              <div class="text-lg font-semibold">🧭 Wanderer</div>
+              <div class="text-sm opacity-70">
+                Let your poet wander the world freely — a new nearby place every few
+                days, discoveries you never asked for.
+              </div>
+            </button>
+            <button
+              phx-click="choose_mode"
+              phx-value-mode="scout"
+              class="w-full text-left p-4 rounded-xl border border-base-300 hover:border-primary"
+            >
+              <div class="text-lg font-semibold">🗺️ Trip Scout</div>
+              <div class="text-sm opacity-70">
+                Planning a real trip? Your poet pre-visits the places on your route, in
+                order, and reports what will interest you when you get there.
+              </div>
+            </button>
+          </div>
+          <button phx-click="back" class="btn btn-ghost">Back</button>
+        </div>
+
+        <div :if={@step == :itinerary}>
+          <h1 class="text-2xl font-semibold mb-2">Where are you planning to go?</h1>
+          <p class="opacity-70 mb-4">
+            Add the places in the order you'll visit them. Your poet starts scouting at
+            the first one.
+          </p>
+          <form phx-submit="search_location" class="flex gap-2 mb-3">
+            <input
+              type="text"
+              name="query"
+              value={@location_query}
+              class="input input-bordered flex-1"
+              placeholder="Search a city or town…"
+            />
+            <button type="submit" class="btn">Search</button>
+          </form>
+          <p :if={@location_error} class="text-error text-sm mb-2">{@location_error}</p>
+          <div :if={@location_results != []} class="space-y-1 mb-3">
+            <button
+              :for={{result, idx} <- Enum.with_index(@location_results)}
+              phx-click="add_stop"
+              phx-value-idx={idx}
+              class="btn btn-outline btn-sm w-full justify-start text-left normal-case"
+            >
+              + {result.place_name}
+            </button>
+          </div>
+          <ol :if={@stops != []} class="mb-4 space-y-1">
+            <li
+              :for={{stop, idx} <- Enum.with_index(@stops)}
+              class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
+            >
+              <span class="font-semibold">{idx + 1}.</span>
+              <span class="flex-1">{stop.place_name}</span>
+              <button phx-click="remove_stop" phx-value-idx={idx} class="btn btn-ghost btn-xs">
+                ✕
+              </button>
+            </li>
+          </ol>
+          <div class="flex gap-2">
+            <button phx-click="back" class="btn btn-ghost">Back</button>
+            <button phx-click="next" class="btn btn-primary flex-1" disabled={@stops == []}>
+              Continue
+            </button>
+          </div>
+        </div>
+
         <div :if={@step == :location}>
           <h1 class="text-2xl font-semibold mb-2">Where do they set out?</h1>
           <form phx-submit="search_location" class="flex gap-2 mb-3">
@@ -513,7 +652,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
           <ul class="space-y-2 mb-6 text-sm">
             <li><b>Poet:</b> {@poet_name}</li>
             <li :if={@poet_personality != ""}><b>Personality:</b> {@poet_personality}</li>
-            <li><b>Starting from:</b> {(@location && @location.place_name) || "—"}</li>
+            <li>
+              <b>Mission:</b> {if @mode == "scout", do: "Trip Scout", else: "Wanderer"}
+            </li>
+            <li :if={@mode == "wander"}>
+              <b>Starting from:</b> {(@location && @location.place_name) || "—"}
+            </li>
+            <li :if={@mode == "scout"}>
+              <b>Route:</b> {Enum.map_join(@stops, " → ", & &1.place_name)}
+            </li>
             <li><b>Journal:</b> {if @is_public, do: "public", else: "private"}</li>
             <li><b>Telegram:</b> {if @telegram_paired, do: "paired", else: "not paired"}</li>
           </ul>

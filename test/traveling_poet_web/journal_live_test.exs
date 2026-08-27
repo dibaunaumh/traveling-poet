@@ -62,4 +62,26 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     html = view |> element("button", "peek behind the curtain") |> render_click()
     assert html =~ "poet-map"
   end
+
+  test "onboarding scout flow creates poet with itinerary", %{conn: conn} do
+    user = user_fixture(%{onboarding_completed: false})
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+
+    {:ok, view, _html} = live(conn, ~p"/onboarding")
+
+    view |> element("form[phx-submit=next]") |> render_submit(%{name: "Udi", interests: "food"})
+
+    view
+    |> element("form[phx-submit=next]")
+    |> render_submit(%{poet_name: "Scouty", personality: "keen"})
+
+    assert render(view) =~ "Trip Scout"
+    view |> element("button[phx-value-mode=scout]") |> render_click()
+
+    # itinerary step gates Continue until at least one stop is added
+    # (adding stops exercises Nominatim, so network-bound paths stop here)
+    html = render(view)
+    assert html =~ "Where are you planning to go?"
+    assert view |> element("button[phx-click=next][disabled]") |> has_element?()
+  end
 end

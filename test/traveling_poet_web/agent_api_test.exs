@@ -135,4 +135,42 @@ defmodule TravelingPoetWeb.AgentApiTest do
 
     assert error =~ "byte-identical"
   end
+
+  test "scout context exposes itinerary; location marks stop visited", %{conn: conn, poet: poet} do
+    {:ok, _} =
+      TravelingPoet.Poets.update_poet(poet, %{
+        settings: Map.put(poet.settings || %{}, "mode", "scout")
+      })
+
+    {:ok, s1} =
+      TravelingPoet.Poets.add_stop(poet.id, %{place_name: "Porto", lat: 41.15, lng: -8.61})
+
+    {:ok, _s2} =
+      TravelingPoet.Poets.add_stop(poet.id, %{place_name: "Coimbra", lat: 40.2, lng: -8.42})
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["poet"]["mode"] == "scout"
+    assert [%{"place_name" => "Porto"}, %{"place_name" => "Coimbra"}] = body["itinerary"]
+    assert body["next_stop"]["id"] == s1.id
+
+    assert %{"ok" => true, "itinerary_stop_visited" => visited_id} =
+             conn
+             |> post(~p"/api/agent/location", %{
+               lat: 41.15,
+               lng: -8.61,
+               place_name: "Porto, Portugal",
+               itinerary_stop_id: s1.id
+             })
+             |> json_response(200)
+
+    assert visited_id == s1.id
+    assert TravelingPoet.Poets.next_pending_stop(poet.id).place_name == "Coimbra"
+  end
+
+  test "wander context has empty itinerary", %{conn: conn} do
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["poet"]["mode"] == "wander"
+    assert body["itinerary"] == []
+    assert body["next_stop"] == nil
+  end
 end

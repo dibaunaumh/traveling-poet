@@ -1,7 +1,8 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Poets}
+  alias TravelingPoet.{Accounts, Poets, Provisioner}
+  alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Telegram
 
   @impl true
@@ -19,7 +20,11 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:user, user)
      |> assign(:poet, poet)
      |> assign(:telegram_configured, Telegram.Client.configured?())
-     |> assign(:telegram_link, nil)}
+     |> assign(:telegram_link, nil)
+     |> assign(:stops, (poet && Poets.list_stops(poet.id)) || [])
+     |> assign(:stop_query, "")
+     |> assign(:stop_results, [])
+     |> assign(:stop_error, nil)}
   end
 
   @impl true
@@ -48,6 +53,92 @@ defmodule TravelingPoetWeb.SettingsLive do
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not save settings.")}
     end
+  end
+
+  @impl true
+  def handle_event("switch_mode", %{"mode" => mode}, socket) when mode in ["wander", "scout"] do
+    poet = socket.assigns.poet
+    pending = Enum.count(socket.assigns.stops, &is_nil(&1.visited_at))
+
+    cond do
+      Poet.mode(poet) == mode ->
+        {:noreply, socket}
+
+      mode == "scout" and pending == 0 ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Add at least one itinerary stop below before switching to Trip Scout."
+         )}
+
+      true ->
+        {:ok, updated} =
+          Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, "mode", mode)})
+
+        # The mission (and its model) is baked into the sprite at provision
+        # time — repack in the background; keys/tokens are reused so nothing
+        # else is disturbed.
+        user = socket.assigns.user
+
+        Task.start(fn ->
+          case Provisioner.provision_user(user) do
+            {:ok, _} ->
+              :ok
+
+            {:error, reason} ->
+              require Logger
+              Logger.error("Mode-switch re-provision failed: #{inspect(reason)}")
+          end
+        end)
+
+        {:noreply,
+         socket
+         |> assign(:poet, updated)
+         |> put_flash(:info, "Your poet is repacking for the new mission — ready in ~2 minutes.")}
+    end
+  end
+
+  @impl true
+  def handle_event("search_stop", %{"query" => query}, socket) do
+    case String.trim(query) do
+      "" ->
+        {:noreply, socket}
+
+      q ->
+        case TravelingPoet.Geocoder.search(q) do
+          {:ok, results} ->
+            {:noreply,
+             socket
+             |> assign(:stop_query, q)
+             |> assign(:stop_results, results)
+             |> assign(:stop_error, if(results == [], do: "No places found."))}
+
+          {:error, reason} ->
+            {:noreply, assign(socket, :stop_error, "Search failed: #{reason}")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("add_stop", %{"idx" => idx}, socket) do
+    with result when not is_nil(result) <-
+           Enum.at(socket.assigns.stop_results, String.to_integer(idx)),
+         {:ok, _} <- Poets.add_stop(socket.assigns.poet.id, result) do
+      {:noreply,
+       socket
+       |> assign(:stops, Poets.list_stops(socket.assigns.poet.id))
+       |> assign(:stop_results, [])
+       |> assign(:stop_query, "")}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_stop", %{"id" => id}, socket) do
+    Poets.remove_stop(socket.assigns.poet.id, String.to_integer(id))
+    {:noreply, assign(socket, :stops, Poets.list_stops(socket.assigns.poet.id))}
   end
 
   @impl true
@@ -167,6 +258,75 @@ defmodule TravelingPoetWeb.SettingsLive do
 
             <button type="submit" class="btn btn-primary">Save</button>
           </form>
+
+          <div class="divider"></div>
+
+          <h2 class="font-semibold mb-2">Mission</h2>
+          <div class="flex gap-2 mb-3">
+            <button
+              phx-click="switch_mode"
+              phx-value-mode="wander"
+              class={["btn btn-sm flex-1", Poet.mode(@poet) == "wander" && "btn-primary"]}
+            >
+              🧭 Wanderer
+            </button>
+            <button
+              phx-click="switch_mode"
+              phx-value-mode="scout"
+              class={["btn btn-sm flex-1", Poet.mode(@poet) == "scout" && "btn-primary"]}
+            >
+              🗺️ Trip Scout
+            </button>
+          </div>
+          <p class="text-xs opacity-60 mb-4">
+            Switching missions repacks your poet (~2 minutes). Trip Scouts follow the
+            itinerary below, in order, on a more careful model.
+          </p>
+
+          <h3 class="text-sm font-medium mb-2">
+            Trip itinerary {if Poet.mode(@poet) != "scout", do: "(used in Trip Scout mode)"}
+          </h3>
+          <form phx-submit="search_stop" class="flex gap-2 mb-2">
+            <input
+              type="text"
+              name="query"
+              value={@stop_query}
+              class="input input-bordered input-sm flex-1"
+              placeholder="Add a place…"
+            />
+            <button type="submit" class="btn btn-sm">Search</button>
+          </form>
+          <p :if={@stop_error} class="text-error text-xs mb-2">{@stop_error}</p>
+          <div :if={@stop_results != []} class="space-y-1 mb-2">
+            <button
+              :for={{result, idx} <- Enum.with_index(@stop_results)}
+              phx-click="add_stop"
+              phx-value-idx={idx}
+              class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
+            >
+              + {result.place_name}
+            </button>
+          </div>
+          <ol :if={@stops != []} class="space-y-1 mb-2">
+            <li
+              :for={stop <- @stops}
+              class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
+            >
+              <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
+              <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
+                {stop.place_name}
+              </span>
+              <button
+                :if={is_nil(stop.visited_at)}
+                phx-click="remove_stop"
+                phx-value-id={stop.id}
+                class="btn btn-ghost btn-xs"
+              >
+                ✕
+              </button>
+            </li>
+          </ol>
+          <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
 
           <div class="divider"></div>
 

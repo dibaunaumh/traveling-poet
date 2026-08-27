@@ -663,7 +663,16 @@ defmodule TravelingPoetWeb.JournalLive do
         %{lat: poet.current_lat, lng: poet.current_lng, name: poet.current_place_name}
       end
 
-    %{path: points, current: current, poet: poet.name}
+    planned =
+      if TravelingPoet.Poets.Poet.mode(poet) == "scout" do
+        Poets.list_stops(poet.id)
+        |> Enum.filter(&is_nil(&1.visited_at))
+        |> Enum.map(fn s -> %{lat: s.lat, lng: s.lng, name: s.place_name} end)
+      else
+        []
+      end
+
+    %{path: points, current: current, planned: planned, poet: poet.name}
   end
 
   defp entry_nav(entries, current) do
