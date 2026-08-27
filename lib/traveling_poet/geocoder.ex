@@ -9,7 +9,16 @@ defmodule TravelingPoet.Geocoder do
 
   def search(query) when is_binary(query) do
     case Req.get(@base_url,
-           params: [q: query, format: "json", limit: 5, addressdetails: 1],
+           # accept-language: en — Nominatim otherwise returns display names in
+           # the place's local language/script (京都市…), which beta users
+           # couldn't read in their itinerary
+           params: [
+             q: query,
+             format: "json",
+             limit: 5,
+             addressdetails: 1,
+             "accept-language": "en"
+           ],
            headers: [{"user-agent", "traveling-poet/0.1 (contact: admin@tpoet.app)"}],
            receive_timeout: 10_000
          ) do
