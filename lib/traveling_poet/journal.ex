@@ -115,6 +115,14 @@ defmodule TravelingPoet.Journal do
 
   def get_media(id), do: Repo.get(Media, id)
 
+  @doc "An existing media row for this poet with identical bytes, if any."
+  def find_media_by_hash(poet_id, content_hash) when is_binary(content_hash) do
+    Media
+    |> where(poet_id: ^poet_id, content_hash: ^content_hash)
+    |> limit(1)
+    |> Repo.one()
+  end
+
   @doc """
   Illustrations uploaded for an entry that no section references — happens
   when the agent generates the drawing but fumbles the final

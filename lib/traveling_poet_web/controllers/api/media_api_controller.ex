@@ -75,7 +75,9 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   defp do_create(conn, user, b64, content_type, params) do
     with %Poets.Poet{} = poet <- Poets.get_poet_by_user(user.id),
          {:ok, bytes} <- Base.decode64(b64),
-         {:ok, entry} <- resolve_entry(poet, params["entry_date"]) do
+         {:ok, entry} <- resolve_entry(poet, params["entry_date"]),
+         content_hash = :crypto.hash(:md5, bytes) |> Base.encode16(),
+         :ok <- reject_duplicate(poet, content_hash, params["kind"]) do
       ext = extension(content_type)
       key = "poets/#{poet.id}/media/#{Ecto.UUID.generate()}#{ext}"
 
@@ -90,6 +92,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
             kind: params["kind"] || "illustration",
             alt_text: params["alt_text"],
             prompt: params["prompt"],
+            content_hash: content_hash,
             sources: %{"items" => normalize_sources(params["sources"])}
           }
 
@@ -114,9 +117,37 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
           conn |> put_status(502) |> json(%{error: "storage upload failed: #{inspect(reason)}"})
       end
     else
-      nil -> conn |> put_status(404) |> json(%{error: "no poet configured"})
-      :error -> conn |> put_status(422) |> json(%{error: "image_base64 is not valid base64"})
-      {:error, :bad_date} -> conn |> put_status(422) |> json(%{error: "invalid entry_date"})
+      nil ->
+        conn |> put_status(404) |> json(%{error: "no poet configured"})
+
+      :error ->
+        conn |> put_status(422) |> json(%{error: "image_base64 is not valid base64"})
+
+      {:error, :bad_date} ->
+        conn |> put_status(422) |> json(%{error: "invalid entry_date"})
+
+      {:error, {:duplicate, existing}} ->
+        conn
+        |> put_status(422)
+        |> json(%{
+          error:
+            "this image is byte-identical to your existing drawing (media #{existing.id}" <>
+              ", uploaded #{NaiveDateTime.to_date(existing.inserted_at)}). " <>
+              "Do not reuse old drawings — generate a fresh one with generate_illustration, " <>
+              "or publish without an illustration and be upfront about why."
+        })
+    end
+  end
+
+  # A poet re-uploading an old drawing as a "new" illustration (observed when
+  # generation failed and the agent quietly substituted a stand-in) misleads
+  # the reader. Avatars are exempt — re-using the portrait is legitimate.
+  defp reject_duplicate(_poet, _hash, "poet_avatar"), do: :ok
+
+  defp reject_duplicate(poet, hash, _kind) do
+    case Journal.find_media_by_hash(poet.id, hash) do
+      nil -> :ok
+      existing -> {:error, {:duplicate, existing}}
     end
   end
 

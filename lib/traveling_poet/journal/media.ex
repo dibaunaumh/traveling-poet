@@ -11,6 +11,7 @@ defmodule TravelingPoet.Journal.Media do
     field :kind, :string
     field :alt_text, :string
     field :prompt, :string
+    field :content_hash, :string
     # %{"items" => [%{"url" => ..., "label" => ...}]} — the original photos
     # the illustration was drawn from; rendered as outbound links only
     field :sources, :map, default: %{"items" => []}
@@ -35,6 +36,7 @@ defmodule TravelingPoet.Journal.Media do
       :kind,
       :alt_text,
       :prompt,
+      :content_hash,
       :sources
     ])
     |> validate_required([:poet_id, :s3_key, :content_type, :kind])

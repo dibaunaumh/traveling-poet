@@ -107,4 +107,32 @@ defmodule TravelingPoetWeb.AgentApiTest do
              |> post(~p"/api/agent/journal_entries", %{entry_date: "not-a-date"})
              |> json_response(422)
   end
+
+  test "rejects re-uploading byte-identical illustrations", %{conn: conn, poet: poet} do
+    bytes = :crypto.strong_rand_bytes(64)
+    hash = :crypto.hash(:md5, bytes) |> Base.encode16()
+
+    {:ok, _existing} =
+      Journal.create_media(%{
+        poet_id: poet.id,
+        s3_key: "poets/#{poet.id}/media/original.png",
+        content_type: "image/png",
+        kind: "illustration",
+        content_hash: hash,
+        sources: %{"items" => [%{"url" => "https://example.com/x", "label" => "x"}]}
+      })
+
+    # duplicate check fires before any storage call, so no S3 needed
+    assert %{"error" => error} =
+             conn
+             |> post(~p"/api/agent/media", %{
+               image_base64: Base.encode64(bytes),
+               content_type: "image/png",
+               kind: "illustration",
+               sources: [%{url: "https://example.com/x", label: "x"}]
+             })
+             |> json_response(422)
+
+    assert error =~ "byte-identical"
+  end
 end

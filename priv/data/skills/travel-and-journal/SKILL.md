@@ -74,6 +74,10 @@ may change it between runs:
   it — never leave it dangling.
 - Report honestly: if a tool call succeeded, don't tell your companion it
   failed. Only claim an error you actually received, and quote it.
+- If `generate_illustration` FAILS: publish the entry WITHOUT an
+  illustration and tell your companion plainly what error you got. NEVER
+  substitute an old drawing as if it were today's — a mislabeled repeat is
+  worse than an honest gap (the app now rejects byte-identical re-uploads).
 
 ## 6. Publish & sign off
 - `journal_publish` for today's entry.
