@@ -45,6 +45,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
      |> assign(:streaming, false)
      |> assign(:current_response, "")
      |> assign(:error, nil)
+     |> assign(:mobile_chat_open, false)
      |> assign(:sprite_status, :unknown)}
   end
 
@@ -60,6 +61,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     socket =
       if assigns[:sidebar_open] != nil,
         do: assign(socket, :sidebar_open, assigns.sidebar_open),
+        else: socket
+
+    socket =
+      if assigns[:mobile_chat_open] != nil,
+        do: assign(socket, :mobile_chat_open, assigns.mobile_chat_open),
         else: socket
 
     socket =
@@ -231,16 +237,21 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     ~H"""
     <div
       id="chat-sidebar-panel"
-      class={[
-        "flex flex-col bg-white border-l border-slate-200",
-        if(@sidebar_open,
-          do: "transition-[width] duration-300",
-          else: "w-0 overflow-hidden transition-all duration-300"
-        )
-      ]}
-      style={if(@sidebar_open, do: "width: var(--chat-width, 24rem)", else: nil)}
+      class={
+        [
+          "flex-col bg-white border-slate-200",
+          # mobile: hidden until the floating button opens it as a fullscreen overlay
+          if(@mobile_chat_open, do: "flex fixed inset-0 z-50", else: "hidden"),
+          # desktop: static side panel, width from the resizer's --chat-width
+          "lg:static lg:inset-auto lg:z-auto lg:border-l",
+          if(@sidebar_open,
+            do: "lg:flex lg:w-[var(--chat-width,24rem)]",
+            else: "lg:hidden"
+          )
+        ]
+      }
     >
-      <div :if={@sidebar_open} class="flex flex-col h-full">
+      <div :if={@sidebar_open or @mobile_chat_open} class="flex flex-col h-full">
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
           <div>
@@ -251,6 +262,13 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
               {status_label(@sprite_status)}
             </span>
           </div>
+          <button
+            phx-click="toggle_mobile_chat"
+            class="lg:hidden btn btn-ghost btn-sm text-lg"
+            aria-label="Close chat"
+          >
+            ✕
+          </button>
         </div>
 
         <%= if @sprite_status in [:not_provisioned, :unknown] do %>

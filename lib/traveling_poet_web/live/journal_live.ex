@@ -67,6 +67,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:last_activity_at, nil)
           |> assign(:sprite_status, initial_sprite_status)
           |> assign(:show_anyway, false)
+          |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign_journal(poet, nil)
           |> allow_upload(:chat_attachment,
@@ -156,6 +157,11 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("peek_anyway", _params, socket) do
     {:noreply, assign(socket, :show_anyway, true)}
+  end
+
+  @impl true
+  def handle_event("toggle_mobile_chat", _params, socket) do
+    {:noreply, assign(socket, :mobile_chat_open, !socket.assigns.mobile_chat_open)}
   end
 
   @impl true
@@ -476,6 +482,13 @@ defmodule TravelingPoetWeb.JournalLive do
                 </span>
               </p>
             </div>
+            <button
+              phx-click="toggle_chat"
+              class="ml-auto hidden lg:inline-flex btn btn-ghost btn-sm"
+              aria-label="Toggle chat"
+            >
+              💬 {if @sidebar_open, do: "Hide chat", else: "Chat"}
+            </button>
           </div>
 
           <div
@@ -545,8 +558,18 @@ defmodule TravelingPoetWeb.JournalLive do
           id="chat-sidebar"
           user={@user}
           sidebar_open={@sidebar_open}
+          mobile_chat_open={@mobile_chat_open}
           chat_attachment_upload={@uploads.chat_attachment}
         />
+
+        <button
+          :if={!@mobile_chat_open}
+          phx-click="toggle_mobile_chat"
+          class="lg:hidden fixed bottom-5 right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
+          aria-label="Open chat"
+        >
+          💬
+        </button>
       </div>
     </Layouts.app>
     """
