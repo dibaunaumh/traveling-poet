@@ -45,10 +45,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
     case Poets.update_poet(poet, attrs) do
       {:ok, updated} ->
-        {:noreply,
-         socket
-         |> assign(:poet, updated)
-         |> put_flash(:info, "Saved.")}
+        {:noreply, assign(socket, :poet, updated)}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not save settings.")}
@@ -200,10 +197,15 @@ defmodule TravelingPoetWeb.SettingsLive do
         </div>
 
         <div :if={@poet}>
-          <form phx-submit="save_poet" class="space-y-4">
+          <p class="text-xs opacity-60 -mt-4 mb-4">Changes save automatically.</p>
+          <form phx-change="save_poet" class="space-y-4">
             <label class="block">
               <span class="text-sm font-medium">{@poet.name}'s personality</span>
-              <textarea name="personality" class="textarea textarea-bordered w-full mt-1">{@poet.personality}</textarea>
+              <textarea
+                name="personality"
+                phx-debounce="750"
+                class="textarea textarea-bordered w-full mt-1"
+              >{@poet.personality}</textarea>
             </label>
 
             <label class="block">
@@ -214,6 +216,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                 min="1"
                 max="30"
                 value={Map.get(@poet.settings || %{}, "stay_duration_days", 3)}
+                phx-debounce="500"
                 class="input input-bordered w-24 mt-1"
               />
             </label>
@@ -255,8 +258,6 @@ defmodule TravelingPoetWeb.SettingsLive do
               />
               <span>Telegram note when a new entry is published</span>
             </label>
-
-            <button type="submit" class="btn btn-primary">Save</button>
           </form>
 
           <div class="divider"></div>
