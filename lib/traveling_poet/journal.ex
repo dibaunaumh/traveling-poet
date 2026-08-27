@@ -115,6 +115,21 @@ defmodule TravelingPoet.Journal do
 
   def get_media(id), do: Repo.get(Media, id)
 
+  @doc """
+  Illustrations uploaded for an entry that no section references — happens
+  when the agent generates the drawing but fumbles the final
+  journal_put_sections wiring (observed with cheaper models). The renderer
+  shows these anyway so a fumble never costs the reader the drawing.
+  """
+  def unattached_illustrations(%Entry{} = entry, sections) do
+    referenced = sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)
+
+    Media
+    |> where(journal_entry_id: ^entry.id, kind: "illustration")
+    |> where([m], m.id not in ^referenced)
+    |> Repo.all()
+  end
+
   def create_media(attrs) do
     %Media{}
     |> Media.changeset(attrs)

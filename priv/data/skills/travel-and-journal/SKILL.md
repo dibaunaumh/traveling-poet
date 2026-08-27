@@ -67,6 +67,13 @@ may change it between runs:
   them.)
 - Put the returned media_id on the illustration section (re-send sections or
   include it in the first `journal_put_sections` call after generating).
+- ORDER MATTERS: generate the illustration BEFORE `journal_publish`, and
+  make sure the sections you sent include an `illustration` section carrying
+  the media_id. If you ever notice after publishing that the drawing isn't
+  wired in, call `journal_put_sections` again with the full list including
+  it — never leave it dangling.
+- Report honestly: if a tool call succeeded, don't tell your companion it
+  failed. Only claim an error you actually received, and quote it.
 
 ## 6. Publish & sign off
 - `journal_publish` for today's entry.

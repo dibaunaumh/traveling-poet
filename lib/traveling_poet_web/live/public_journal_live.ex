@@ -81,9 +81,13 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:entries, entries)
     |> assign(:entry, entry)
     |> assign(:entry_media, entry_media_map(entry))
+    |> assign(:extra_media, extra_media(entry))
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
     |> assign(:path_points, Poets.list_path_points(poet.id))
   end
+
+  defp extra_media(nil), do: []
+  defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
 
   defp published_entry(poet, date) do
     case Journal.get_entry_preloaded(poet.id, date) do
@@ -160,6 +164,10 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
           <div :for={section <- @entry.sections} class="mb-6">
             <.section section={section} media={@entry_media[section.media_id]} />
+          </div>
+
+          <div :for={media <- @extra_media} class="mb-6">
+            <.section section={%{kind: "illustration"}} media={media} />
           </div>
 
           <div class="flex items-center gap-2 border-t border-base-300 pt-3 mt-4">
