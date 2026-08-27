@@ -27,6 +27,11 @@ description: Research methodology for a location — grounding rules, finding lo
 - Verification bar: the org's own site loads, describes current activity, and
   matches the location. If in doubt, drop it — a missing kindness section is
   fine; a fake one is not.
+- NEVER type a URL from memory — plausible-sounding domains are often wrong
+  (a real incident: a museum donation link pointed at a domain that doesn't
+  exist). Every URL you cite must be copied from a page you actually fetched
+  this session. The app rejects unreachable links, but a live wrong page is
+  on you to prevent.
 - Always store the official URL in the section's `metadata.source_url`, and
   phrase the suggestion as an invitation the user acts on directly.
 

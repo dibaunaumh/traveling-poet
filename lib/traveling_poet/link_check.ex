@@ -1,0 +1,85 @@
+defmodule TravelingPoet.LinkCheck do
+  @moduledoc """
+  Reachability check for agent-cited URLs (kindness opportunities,
+  illustration source links). Agents hallucinate plausible-looking domains —
+  a beta entry cited a museum donation link on a domain that doesn't resolve.
+  User-facing links must at least be alive.
+
+  This is a liveness check, not an endorsement: a parked domain still passes.
+  The skill-side rule ("only cite URLs from pages you actually fetched")
+  covers semantic correctness; this covers the dead ones.
+  """
+
+  require Logger
+
+  @timeout_ms 6_000
+  # basic SSRF hygiene: the app fetches agent-supplied URLs
+  @blocked_host_suffixes [".internal", ".local", ".localhost"]
+
+  @doc "Validates a list of URLs; returns :ok or {:error, [bad_urls]}."
+  def validate_all(urls) when is_list(urls) do
+    bad =
+      urls
+      |> Enum.uniq()
+      |> Enum.take(8)
+      |> Enum.reject(&(check(&1) == :ok))
+
+    if bad == [], do: :ok, else: {:error, bad}
+  end
+
+  @doc "Checks a single URL: scheme, host sanity, then a HEAD/GET probe."
+  def check(url) when is_binary(url) do
+    with %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and is_binary(host) <-
+           URI.parse(url),
+         :ok <- check_host(host) do
+      probe(url)
+    else
+      _ -> {:error, :invalid_url}
+    end
+  end
+
+  def check(_), do: {:error, :invalid_url}
+
+  defp check_host(host) do
+    cond do
+      host in ["localhost", "127.0.0.1", "[::1]"] ->
+        {:error, :blocked_host}
+
+      Enum.any?(@blocked_host_suffixes, &String.ends_with?(host, &1)) ->
+        {:error, :blocked_host}
+
+      # literal IPs (v4-ish or bracketed v6) — public sites cite hostnames
+      host =~ ~r/^\d+\.\d+\.\d+\.\d+$/ or String.starts_with?(host, "[") ->
+        {:error, :blocked_host}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp probe(url) do
+    case Req.head(url, receive_timeout: @timeout_ms, redirect: true, retry: false) do
+      {:ok, %{status: status}} when status in 200..399 ->
+        :ok
+
+      # some servers reject HEAD; retry as a cheap GET
+      {:ok, %{status: status}} when status in [405, 403, 501] ->
+        probe_get(url)
+
+      {:ok, %{status: status}} ->
+        {:error, {:http, status}}
+
+      {:error, reason} ->
+        Logger.debug("LinkCheck: #{url} unreachable: #{inspect(reason)}")
+        {:error, :unreachable}
+    end
+  end
+
+  defp probe_get(url) do
+    case Req.get(url, receive_timeout: @timeout_ms, redirect: true, retry: false) do
+      {:ok, %{status: status}} when status in 200..399 -> :ok
+      {:ok, %{status: status}} -> {:error, {:http, status}}
+      {:error, _} -> {:error, :unreachable}
+    end
+  end
+end

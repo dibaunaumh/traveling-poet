@@ -31,26 +31,56 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   def put_sections(conn, %{"date" => date_str, "sections" => sections}) when is_list(sections) do
     with_poet_and_date(conn, date_str, fn poet, date ->
-      case Journal.get_entry(poet.id, date) do
-        nil ->
+      case validate_section_links(sections) do
+        {:error, bad_urls} ->
           conn
-          |> put_status(404)
-          |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
+          |> put_status(422)
+          |> json(%{
+            error:
+              "these cited links are unreachable: #{Enum.join(bad_urls, ", ")}. " <>
+                "Only cite URLs taken from pages you actually fetched and read — " <>
+                "search for the organization's real site and confirm it loads before citing."
+          })
 
-        entry ->
-          case Journal.replace_sections(entry, sections) do
-            {:ok, saved} ->
-              json(conn, %{ok: true, section_count: length(saved)})
-
-            {:error, reason} ->
-              conn |> put_status(422) |> json(%{error: inspect(reason)})
-          end
+        :ok ->
+          do_put_sections(conn, poet, date, sections, date_str)
       end
     end)
   end
 
   def put_sections(conn, _params) do
     conn |> put_status(422) |> json(%{error: "sections (list) is required"})
+  end
+
+  defp do_put_sections(conn, poet, date, sections, date_str) do
+    case Journal.get_entry(poet.id, date) do
+      nil ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
+
+      entry ->
+        case Journal.replace_sections(entry, sections) do
+          {:ok, saved} ->
+            json(conn, %{ok: true, section_count: length(saved)})
+
+          {:error, reason} ->
+            conn |> put_status(422) |> json(%{error: inspect(reason)})
+        end
+    end
+  end
+
+  defp validate_section_links(sections) do
+    sections
+    |> Enum.flat_map(fn section ->
+      metadata = section["metadata"] || section[:metadata] || %{}
+
+      case metadata["source_url"] || metadata[:source_url] do
+        url when is_binary(url) and url != "" -> [url]
+        _ -> []
+      end
+    end)
+    |> TravelingPoet.LinkCheck.validate_all()
   end
 
   def publish(conn, %{"date" => date_str}) do

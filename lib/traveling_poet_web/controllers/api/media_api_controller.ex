@@ -77,7 +77,8 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
          {:ok, bytes} <- Base.decode64(b64),
          {:ok, entry} <- resolve_entry(poet, params["entry_date"]),
          content_hash = :crypto.hash(:md5, bytes) |> Base.encode16(),
-         :ok <- reject_duplicate(poet, content_hash, params["kind"]) do
+         :ok <- reject_duplicate(poet, content_hash, params["kind"]),
+         :ok <- validate_source_links(params["sources"]) do
       ext = extension(content_type)
       key = "poets/#{poet.id}/media/#{Ecto.UUID.generate()}#{ext}"
 
@@ -126,6 +127,15 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
       {:error, :bad_date} ->
         conn |> put_status(422) |> json(%{error: "invalid entry_date"})
 
+      {:error, {:bad_links, bad_urls}} ->
+        conn
+        |> put_status(422)
+        |> json(%{
+          error:
+            "these source links are unreachable: #{Enum.join(bad_urls, ", ")}. " <>
+              "Cite the reference photos' real pages (fetch them to confirm) and retry."
+        })
+
       {:error, {:duplicate, existing}} ->
         conn
         |> put_status(422)
@@ -150,6 +160,21 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
       existing -> {:error, {:duplicate, existing}}
     end
   end
+
+  defp validate_source_links(sources) when is_list(sources) do
+    urls =
+      Enum.flat_map(sources, fn
+        %{"url" => url} when is_binary(url) -> [url]
+        _ -> []
+      end)
+
+    case TravelingPoet.LinkCheck.validate_all(urls) do
+      :ok -> :ok
+      {:error, bad} -> {:error, {:bad_links, bad}}
+    end
+  end
+
+  defp validate_source_links(_), do: :ok
 
   defp resolve_entry(_poet, nil), do: {:ok, nil}
 
