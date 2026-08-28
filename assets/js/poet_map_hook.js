@@ -1,8 +1,9 @@
 // Leaflet map showing a poet's journey path + current location.
 // Reads data-points (JSON: {path: [{lat,lng,name}], current: {lat,lng,name}, poet})
 // on mount; a "map:update" push event with the same shape re-renders.
-// For the landing page, data-poets (JSON: [{lat,lng,name,slug}]) renders
-// clickable markers for all public poets instead.
+// For the landing page, data-poets (JSON: [{lat,lng,name,place,slug,avatar,
+// entry_url}]) renders clickable markers for all public poets instead, and
+// cycles their popups one at a time (see startTour).
 
 import * as L from "../vendor/leaflet/leaflet.js"
 
@@ -25,6 +26,51 @@ export function initStaticMaps() {
     fake.handleEvent = () => {}
     fake.mounted()
   })
+}
+
+const TOUR_SHOW_MS = 4500
+const TOUR_GAP_MS = 1300
+const TOUR_RESUME_MS = 20000
+const HOME_VIEW = { padding: [40, 40], maxZoom: 6, animate: false }
+
+// Built as DOM nodes rather than an HTML string: poet names and places are
+// user-supplied.
+function poetPopup(p) {
+  const el = document.createElement("div")
+  el.className = "poet-popup"
+
+  const avatar = document.createElement(p.avatar ? "img" : "div")
+  avatar.className = "poet-popup-avatar"
+  if (p.avatar) {
+    avatar.src = p.avatar
+    avatar.alt = p.name
+  } else {
+    avatar.textContent = (p.name || "?").trim().charAt(0).toUpperCase()
+  }
+  el.appendChild(avatar)
+
+  const body = document.createElement("div")
+
+  const name = document.createElement("div")
+  name.className = "poet-popup-name"
+  name.textContent = p.name || ""
+  body.appendChild(name)
+
+  if (p.place) {
+    const place = document.createElement("div")
+    place.className = "poet-popup-place"
+    place.textContent = p.place
+    body.appendChild(place)
+  }
+
+  const link = document.createElement("a")
+  link.className = "poet-popup-link"
+  link.href = p.entry_url || `/p/${p.slug}`
+  link.textContent = "Read the latest journal entry →"
+  body.appendChild(link)
+
+  el.appendChild(body)
+  return el
 }
 
 const PoetMap = {
@@ -101,23 +147,103 @@ const PoetMap = {
   },
 
   renderPoets(poets) {
+    this.stopTour()
     this.layer.clearLayers()
 
-    poets.forEach((p) => {
+    this.markers = poets.map((p) => {
       const m = L.marker([p.lat, p.lng]).addTo(this.layer)
-      m.bindPopup(
-        `<b>${p.name}</b><br/>${p.place || ""}<br/><a href="/p/${p.slug}">Read the journal →</a>`
-      )
+      m.bindPopup(poetPopup(p), { minWidth: 200, maxWidth: 240, autoPanPadding: [50, 40] })
+      // A click means the visitor is driving; back off for a while.
+      m.on("click", () => this.engage())
+      return m
     })
 
     if (poets.length > 0) {
-      this.map.fitBounds(poets.map((p) => [p.lat, p.lng]), { padding: [40, 40], maxZoom: 6 })
+      this.homeBounds = L.latLngBounds(poets.map((p) => [p.lat, p.lng]))
+      this.map.fitBounds(this.homeBounds, HOME_VIEW)
     } else {
+      this.homeBounds = null
       this.map.setView([30, 10], 2)
     }
+
+    if (!this.tourBound) {
+      this.tourBound = true
+      this.map.on("dragstart zoomstart", () => this.engage())
+      this.el.addEventListener("mouseenter", () => {
+        this.hovering = true
+        this.clearTourTimer()
+      })
+      this.el.addEventListener("mouseleave", () => {
+        this.hovering = false
+        this.resumeTour()
+      })
+    }
+
+    this.startTour()
+  },
+
+  // Opens each poet's popup in turn -- show, close, brief pause, next one --
+  // looping back to the first. Paused while the visitor hovers or interacts.
+  startTour() {
+    this.clearTourTimer()
+    if (!this.markers || this.markers.length === 0) return
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    if (this.markers.length === 1) {
+      this.tourTimer = setTimeout(() => this.markers[0].openPopup(), TOUR_GAP_MS)
+      return
+    }
+
+    this.tourIndex = -1
+    this.scheduleTour(TOUR_GAP_MS)
+  },
+
+  scheduleTour(delay) {
+    this.clearTourTimer()
+    this.tourTimer = setTimeout(() => this.tourStep(), delay)
+  },
+
+  tourStep() {
+    this.tourIndex = (this.tourIndex + 1) % this.markers.length
+    this.markers[this.tourIndex].openPopup()
+
+    this.tourTimer = setTimeout(() => {
+      this.map.closePopup()
+      // Each popup nudges the map to fit itself (Leaflet's autoPan); snap back
+      // during the gap so the drift doesn't accumulate across the loop.
+      if (this.homeBounds) this.map.fitBounds(this.homeBounds, HOME_VIEW)
+      this.scheduleTour(TOUR_GAP_MS)
+    }, TOUR_SHOW_MS)
+  },
+
+  resumeTour() {
+    if (this.hovering || this.userEngaged) return
+    if (!this.markers || this.markers.length < 2) return
+    this.scheduleTour(TOUR_GAP_MS)
+  },
+
+  engage() {
+    this.userEngaged = true
+    this.clearTourTimer()
+    clearTimeout(this.engageTimer)
+    this.engageTimer = setTimeout(() => {
+      this.userEngaged = false
+      this.resumeTour()
+    }, TOUR_RESUME_MS)
+  },
+
+  clearTourTimer() {
+    clearTimeout(this.tourTimer)
+    this.tourTimer = null
+  },
+
+  stopTour() {
+    this.clearTourTimer()
+    clearTimeout(this.engageTimer)
   },
 
   destroyed() {
+    this.stopTour()
     if (this.map) this.map.remove()
   },
 }

@@ -1,6 +1,7 @@
 defmodule TravelingPoetWeb.PageController do
   use TravelingPoetWeb, :controller
 
+  alias TravelingPoet.Journal
   alias TravelingPoet.Poets
 
   def home(conn, _params) do
@@ -18,7 +19,9 @@ defmodule TravelingPoetWeb.PageController do
           lng: p.current_lng,
           name: p.name,
           place: p.current_place_name,
-          slug: p.slug
+          slug: p.slug,
+          avatar: p.avatar_url,
+          entry_url: latest_entry_url(p)
         }
       end)
 
@@ -28,5 +31,14 @@ defmodule TravelingPoetWeb.PageController do
       signed_out?: is_nil(conn.assigns[:current_user]),
       layout: false
     )
+  end
+
+  # Deep-link straight to the newest published entry when there is one; the
+  # journal index (which redirects to the newest) is the fallback.
+  defp latest_entry_url(poet) do
+    case Journal.latest_published_entry(poet.id) do
+      nil -> "/p/#{poet.slug}"
+      entry -> "/p/#{poet.slug}/#{entry.entry_date}"
+    end
   end
 end
