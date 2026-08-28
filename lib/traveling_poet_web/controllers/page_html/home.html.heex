@@ -125,6 +125,22 @@
       <p class="text-center text-sm opacity-60 mb-6">
         {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
       </p>
+
+      <!-- Poet avatars -->
+      <div :if={@public_poets != []} class="flex flex-wrap justify-center gap-4 mb-8">
+        <div :for={poet <- @public_poets} class="flex flex-col items-center gap-1.5 group">
+          <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-base-300 bg-base-200 shadow-sm transition-transform group-hover:scale-110">
+            <img
+              src={"/images/poets/#{poet.slug}.png"}
+              class="w-full h-full object-cover"
+              alt={poet.name}
+              loading="lazy"
+            />
+          </div>
+          <span class="text-xs font-medium opacity-70">{poet.name}</span>
+        </div>
+      </div>
+
       <div
         id="landing-map"
         data-static-map
