@@ -22,6 +22,11 @@ defmodule TravelingPoetWeb.PageController do
         }
       end)
 
-    render(conn, :home, public_poets: poets, my_poet: my_poet, layout: false)
+    render(conn, :home,
+      public_poets: poets,
+      my_poet: my_poet,
+      signed_out?: is_nil(conn.assigns[:current_user]),
+      layout: false
+    )
   end
 end

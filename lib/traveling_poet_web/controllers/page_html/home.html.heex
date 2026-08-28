@@ -4,10 +4,10 @@
       <span class="text-xl font-semibold">🖋 Traveling Poet</span>
     </div>
     <div class="flex-none flex gap-2">
-      <a :if={@conn.assigns[:current_user]} href="/journal" class="btn btn-primary btn-sm">
+      <a :if={!@signed_out?} href="/journal" class="btn btn-primary btn-sm">
         {if @my_poet, do: "#{@my_poet.name}'s journal", else: "My poet's journal"}
       </a>
-      <a :if={!@conn.assigns[:current_user]} href="/auth/google" class="btn btn-primary btn-sm">
+      <a :if={@signed_out?} href="/auth/google" class="btn btn-primary btn-sm">
         Sign in with Google
       </a>
     </div>
@@ -16,7 +16,9 @@
   <main class="max-w-5xl mx-auto px-4 pb-16">
     <!-- Hero -->
     <section class="text-center py-16">
-      <h1 class="text-4xl font-bold mb-4">Your personal travel scout.<br class="hidden sm:block">Your daily window to the world.</h1>
+      <h1 class="text-4xl font-bold mb-4">
+        Your personal travel scout.<br class="hidden sm:block" />Your daily window to the world.
+      </h1>
       <p class="text-lg opacity-70 max-w-2xl mx-auto mb-8">
         The traveling poet is your spiritual-twin delegate &mdash; an AI that learns
         what fascinates you, then travels ahead. Planning a trip? Send it to scout your
@@ -25,17 +27,16 @@
       </p>
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
         <a
-          :if={!@conn.assigns[:current_user]}
+          :if={@signed_out?}
           href="/auth/google"
           class="btn btn-primary btn-lg"
         >
           Start exploring
         </a>
-        <a
-          :if={!@conn.assigns[:current_user]}
-          href="#how-it-works"
-          class="btn btn-ghost btn-sm"
-        >
+        <a :if={!@signed_out?} href="/journal" class="btn btn-primary btn-lg">
+          Open your journal
+        </a>
+        <a href="#how-it-works" class="btn btn-ghost btn-sm">
           See how it works &darr;
         </a>
       </div>
@@ -86,12 +87,8 @@
               Scout your itinerary. Your poet visits each stop before you do and reports
               what&rsquo;s worth your time &mdash; so you land knowing exactly where to go.
             </p>
-            <div class="card-actions justify-center mt-2">
-              <a
-                :if={!@conn.assigns[:current_user]}
-                href="/auth/google"
-                class="btn btn-outline btn-sm"
-              >
+            <div :if={@signed_out?} class="card-actions justify-center mt-2">
+              <a href="/auth/google" class="btn btn-outline btn-sm">
                 Scout a trip &rarr;
               </a>
             </div>
@@ -105,12 +102,8 @@
               Your poet wanders the world, sending daily illustrated journals from real
               places. You wake up to discovery without leaving your chair.
             </p>
-            <div class="card-actions justify-center mt-2">
-              <a
-                :if={!@conn.assigns[:current_user]}
-                href="/auth/google"
-                class="btn btn-outline btn-sm"
-              >
+            <div :if={@signed_out?} class="card-actions justify-center mt-2">
+              <a href="/auth/google" class="btn btn-outline btn-sm">
                 Start wandering &rarr;
               </a>
             </div>
@@ -122,15 +115,15 @@
     <!-- Poets on the road -->
     <section class="py-8 border-t border-base-200">
       <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
-      <p class="text-center text-sm opacity-60 mb-6">
+      <p :if={@public_poets != []} class="text-center text-sm opacity-60 mb-6">
         {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
       </p>
 
-      <!-- Poet avatars -->
-      <div :if={@public_poets != []} class="flex justify-center mb-8">
+      <!-- Illustration -->
+      <div class="flex justify-center mb-8">
         <img
           src="/images/poets/roster.png"
-          alt="Our traveling poets"
+          alt="An illustrated page from a poet's journal"
           class="max-w-full h-auto max-h-32 object-contain"
           loading="lazy"
         />
@@ -156,41 +149,47 @@
           <div class="text-xl mt-0.5 shrink-0">🔍</div>
           <div>
             <h3 class="font-semibold text-sm">It&rsquo;s proactive</h3>
-            <p class="opacity-70 text-sm">You don&rsquo;t search. Your poet finds things you&rsquo;d never think to look for.</p>
+            <p class="opacity-70 text-sm">
+              You don&rsquo;t search. Your poet finds things you&rsquo;d never think to look for.
+            </p>
           </div>
         </div>
         <div class="flex gap-3">
           <div class="text-xl mt-0.5 shrink-0">🧠</div>
           <div>
             <h3 class="font-semibold text-sm">It learns you</h3>
-            <p class="opacity-70 text-sm">Every journal, every question, every &ldquo;tell me more&rdquo; sharpens what it finds.</p>
+            <p class="opacity-70 text-sm">
+              Every journal, every question, every &ldquo;tell me more&rdquo; sharpens what it finds.
+            </p>
           </div>
         </div>
         <div class="flex gap-3">
           <div class="text-xl mt-0.5 shrink-0">📍</div>
           <div>
             <h3 class="font-semibold text-sm">It&rsquo;s grounded</h3>
-            <p class="opacity-70 text-sm">Real places, real maps, real discoveries. No hallucinations about restaurants that don&rsquo;t exist.</p>
+            <p class="opacity-70 text-sm">
+              Real places, real maps, real discoveries. No hallucinations about restaurants that don&rsquo;t exist.
+            </p>
           </div>
         </div>
         <div class="flex gap-3">
           <div class="text-xl mt-0.5 shrink-0">✈️</div>
           <div>
             <h3 class="font-semibold text-sm">It scouts ahead</h3>
-            <p class="opacity-70 text-sm">The only tool that pre-visits your itinerary and reports back before you buy a plane ticket.</p>
+            <p class="opacity-70 text-sm">
+              The only tool that pre-visits your itinerary and reports back before you buy a plane ticket.
+            </p>
           </div>
         </div>
       </div>
     </section>
 
     <!-- Bottom CTA -->
-    <section class="text-center py-8">
-      <p class="text-sm opacity-60 mb-3">Start exploring &mdash; free for your first destination.</p>
-      <a
-        :if={!@conn.assigns[:current_user]}
-        href="/auth/google"
-        class="btn btn-primary btn-lg"
-      >
+    <section :if={@signed_out?} class="text-center py-8">
+      <p class="text-sm opacity-60 mb-3">
+        Start exploring &mdash; your first days of travel are on us.
+      </p>
+      <a href="/auth/google" class="btn btn-primary btn-lg">
         Send out your poet
       </a>
     </section>
