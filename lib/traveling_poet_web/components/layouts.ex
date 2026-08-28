@@ -32,6 +32,7 @@ defmodule TravelingPoetWeb.Layouts do
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
   attr :current_user, :map, default: nil, doc: "the signed-in user, for header nav"
+  attr :credits_low, :boolean, default: false, doc: "show the low-credits pill in the header"
 
   slot :inner_block, required: true
 
@@ -47,6 +48,16 @@ defmodule TravelingPoetWeb.Layouts do
         <ul class="flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
             <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">Journal</.link>
+          </li>
+          <li :if={@current_user && @credits_low}>
+            <.link
+              navigate={~p"/settings"}
+              class="badge badge-warning badge-sm gap-1"
+              title="Running low on credits"
+            >
+              <.icon name="hero-sparkles" class="size-3" />
+              {TravelingPoet.Credits.format(@current_user.credits_balance || 0)} credits
+            </.link>
           </li>
           <li :if={@current_user}>
             <.link navigate={~p"/settings"} class="btn btn-ghost btn-sm">Settings</.link>

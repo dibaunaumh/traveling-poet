@@ -1,7 +1,8 @@
 defmodule TravelingPoet.Telegram.Notifier do
   @moduledoc """
   Sends a Telegram note to the paired owner when their poet publishes a
-  journal entry. Opt-out via poet settings `"telegram_notify" => false`.
+  journal entry, and when their credits run low. Opt-out of publish notes
+  via poet settings `"telegram_notify" => false`.
   """
 
   use GenServer
@@ -16,6 +17,7 @@ defmodule TravelingPoet.Telegram.Notifier do
   def init(_opts) do
     if Client.configured?() do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "credits:low")
       {:ok, %{}}
     else
       :ignore
@@ -41,6 +43,28 @@ defmodule TravelingPoet.Telegram.Notifier do
         "🖋 #{poet.name} published today's entry from #{entry.place_name || "the road"}: #{link}",
         disable_web_page_preview: false
       )
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:credits_low, user_id, balance}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id do
+      base = Application.get_env(:traveling_poet, :phoenix_url, "")
+      poet = Poets.get_poet_by_user(user.id)
+      name = (poet && poet.name) || "Your poet"
+
+      text =
+        if balance <= 0,
+          do: "💤 #{name} has run out of credits and is resting. Top up: #{base}/settings",
+          else:
+            "⏳ #{name} has about #{TravelingPoet.Credits.format(balance)} credits left — a few days of travel. Top up: #{base}/settings"
+
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end

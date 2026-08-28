@@ -38,6 +38,10 @@ defmodule TravelingPoet.Accounts.User do
     field :daily_budget_cents, :integer, default: 100
     field :quota_exempt, :boolean, default: false
 
+    # Credits (milli-credits; see TravelingPoet.Credits)
+    field :credits_balance, :integer, default: 0
+    field :low_credits_notified_at, :utc_datetime
+
     has_one :poet, TravelingPoet.Poets.Poet
 
     timestamps()
@@ -72,7 +76,9 @@ defmodule TravelingPoet.Accounts.User do
       :openclaw_version,
       :agent_onboarded_at,
       :daily_budget_cents,
-      :quota_exempt
+      :quota_exempt,
+      :credits_balance,
+      :low_credits_notified_at
     ])
     |> validate_required([:email])
     |> validate_has_identity()

@@ -1,7 +1,16 @@
 defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Chat, GatewaySocket, GatewaySocketSupervisor, Journal, Poets}
+  alias TravelingPoet.{
+    Accounts,
+    Chat,
+    Credits,
+    GatewaySocket,
+    GatewaySocketSupervisor,
+    Journal,
+    Poets
+  }
+
   alias TravelingPoet.{SpriteUploads, SpritesClient, Usage}
   alias TravelingPoet.Journal.Media
   alias TravelingPoetWeb.ChatSidebarComponent
@@ -214,6 +223,14 @@ defmodule TravelingPoetWeb.JournalLive do
 
         {:noreply, socket}
 
+      Credits.exhausted?(user, socket.assigns.poet) ->
+        send_update(ChatSidebarComponent,
+          id: "chat-sidebar",
+          stream_error: "Your poet is out of credits — top up in Settings."
+        )
+
+        {:noreply, socket}
+
       not Usage.within_budget?(user, "chat_turn") ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
@@ -323,6 +340,17 @@ defmodule TravelingPoetWeb.JournalLive do
      |> assign(:user, user)
      |> assign(:poet, poet)
      |> assign(:sprite_status, :running)}
+  end
+
+  @impl true
+  def handle_info({:credits_updated, _balance}, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+
+    {:noreply,
+     socket
+     |> assign(:user, user)
+     |> assign(:current_user, user)
+     |> assign(:credits_low, Credits.low?(user, socket.assigns.poet))}
   end
 
   @impl true
@@ -459,7 +487,11 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+    <Layouts.app
+      flash={@flash}
+      current_user={assigns[:current_user]}
+      credits_low={assigns[:credits_low]}
+    >
       <.setting_up_screen
         :if={setting_up?(assigns)}
         poet={@poet}
@@ -468,6 +500,17 @@ defmodule TravelingPoetWeb.JournalLive do
       />
       <div :if={!setting_up?(assigns)} class="flex h-[calc(100vh-4rem)] gap-4">
         <div class="flex-1 min-w-0 overflow-y-auto pr-1">
+          <div
+            :if={Credits.exhausted?(@user, @poet)}
+            class="alert alert-warning text-sm mb-3"
+            id="credits-exhausted-banner"
+          >
+            <.icon name="hero-moon" class="size-5" />
+            <span>
+              {@poet.name} is resting — out of credits.
+              <.link navigate={~p"/settings"} class="link font-semibold">Top up</.link>
+            </span>
+          </div>
           <div class="flex items-center gap-3 mb-3">
             <img
               :if={@poet.avatar_url}

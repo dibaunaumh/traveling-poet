@@ -13,7 +13,9 @@
 #        OPENROUTER_API_KEY='<openrouter key>' \
 #        IMAGE_GEN_API_KEY='<google ai key for gemini image gen>' \
 #        AWS_ACCESS_KEY_ID='<tigris>' AWS_SECRET_ACCESS_KEY='<tigris>' \
-#        TELEGRAM_BOT_TOKEN='<bot token>' TELEGRAM_BOT_USERNAME='<bot username>'
+#        TELEGRAM_BOT_TOKEN='<bot token>' TELEGRAM_BOT_USERNAME='<bot username>' \
+#        STRIPE_SECRET_KEY='<sk_live_…>' STRIPE_WEBHOOK_SECRET='<whsec_…>'
+#   (leave the STRIPE_* pair unset to keep the mock checkout page)
 #
 #   The dev Google OAuth client needs redirect URI
 #   https://traveling-poet-dev.fly.dev/auth/google/callback

@@ -1,14 +1,19 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Poets, Provisioner}
+  alias TravelingPoet.{Accounts, Credits, Payments, Poets, Provisioner}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Telegram
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     user = socket.assigns.current_user
     poet = Poets.get_poet_by_user(user.id)
+
+    socket =
+      if params["purchased"] == "1",
+        do: put_flash(socket, :info, "Credits added — happy travels!"),
+        else: socket
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "user:#{user.id}")
@@ -21,6 +26,9 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:poet, poet)
      |> assign(:telegram_configured, Telegram.Client.configured?())
      |> assign(:telegram_link, nil)
+     |> assign(:packs, Credits.packs())
+     |> assign(:payments_mock, Payments.mock?())
+     |> assign_credits()
      |> assign(:stops, (poet && Poets.list_stops(poet.id)) || [])
      |> assign(:stop_query, "")
      |> assign(:stop_results, [])
@@ -166,7 +174,51 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_info({:credits_updated, _balance}, socket) do
+    {:noreply,
+     socket
+     |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
+     |> assign_credits()}
+  end
+
+  @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp assign_credits(socket) do
+    user = socket.assigns.user
+    poet = socket.assigns.poet
+
+    socket
+    |> assign(:current_user, user)
+    |> assign(:balance, Credits.balance(user))
+    |> assign(:runway, Credits.runway_days(user, poet))
+    |> assign(:credits_low, Credits.low?(user, poet))
+    |> assign(:credits_exhausted, Credits.exhausted?(user, poet))
+    |> assign(:transactions, Credits.list_transactions(user, 10))
+  end
+
+  defp runway_text(nil), do: "Unlimited — this account is exempt from credits."
+  defp runway_text(days) when days < 1, do: "Not enough for tomorrow's entry."
+
+  defp runway_text(days),
+    do:
+      "≈ #{trunc(days)} #{if trunc(days) == 1, do: "day", else: "days"} of travel at your poet's pace."
+
+  defp tx_label("grant_signup"), do: "Welcome credits"
+  defp tx_label("grant_referral"), do: "Referral bonus"
+  defp tx_label("grant_grandfather"), do: "Early traveler bonus"
+  defp tx_label("grant_admin"), do: "Bonus credits"
+  defp tx_label("purchase"), do: "Purchase"
+  defp tx_label("debit_daily_run"), do: "Daily journey"
+  defp tx_label("refund"), do: "Refund"
+  defp tx_label("admin_adjust"), do: "Adjustment"
+  defp tx_label(other), do: other
+
+  defp signed(milli) when milli >= 0, do: "+" <> Credits.format(milli)
+  defp signed(milli), do: "−" <> Credits.format(-milli)
+
+  defp dollars(cents),
+    do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2) |> String.replace(~r/\.00$/, "")}"
 
   defp parse_days(str) do
     case Integer.parse(to_string(str)) do
@@ -189,7 +241,11 @@ defmodule TravelingPoetWeb.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+    <Layouts.app
+      flash={@flash}
+      current_user={assigns[:current_user]}
+      credits_low={assigns[:credits_low]}
+    >
       <div class="mx-auto max-w-xl py-8">
         <div class="flex items-center justify-between mb-6">
           <h1 class="text-2xl font-semibold">Settings</h1>
@@ -198,7 +254,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
         <div :if={@poet}>
           <p class="text-xs opacity-60 -mt-4 mb-4">Changes save automatically.</p>
-          <form phx-change="save_poet" class="space-y-4">
+          <form id="poet-settings-form" phx-change="save_poet" class="space-y-4">
             <label class="block">
               <span class="text-sm font-medium">{@poet.name}'s personality</span>
               <textarea
@@ -259,6 +315,54 @@ defmodule TravelingPoetWeb.SettingsLive do
               <span>Telegram note when a new entry is published</span>
             </label>
           </form>
+
+          <div class="divider"></div>
+
+          <h2 class="font-semibold mb-2">Credits</h2>
+          <div class="flex items-baseline gap-3">
+            <span class="text-3xl font-semibold" id="credits-balance">
+              {Credits.format(@balance)}
+            </span>
+            <span class="text-sm opacity-60">credits</span>
+          </div>
+          <p class={["text-sm mt-1", @credits_low && "text-warning"]}>{runway_text(@runway)}</p>
+          <p :if={@credits_exhausted} class="text-sm text-error mt-1">
+            Your poet is resting until you top up.
+          </p>
+          <p class="text-xs opacity-60 mt-2 mb-3">
+            Each day's journey costs {Credits.format(Credits.daily_run_cost(@poet))}
+            {if Poet.mode(@poet) == "scout", do: "credits (Trip Scout)", else: "credit (Wanderer)"};
+            chatting and drawings are included.
+          </p>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <form :for={pack <- @packs} method="post" action={~p"/credits/checkout"}>
+              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+              <input type="hidden" name="pack" value={pack.id} />
+              <button type="submit" class="btn btn-outline btn-sm w-full flex-col h-auto py-2">
+                <span class="font-semibold">{pack.credits} credits</span>
+                <span class="text-xs opacity-70">{dollars(pack.cents)}</span>
+              </button>
+            </form>
+          </div>
+          <p :if={@payments_mock} class="text-xs text-warning mb-3">
+            Payments are in test mode — purchases are mocked and free.
+          </p>
+
+          <details :if={@transactions != []} class="text-sm">
+            <summary class="cursor-pointer opacity-70">Recent activity</summary>
+            <ul class="mt-2 space-y-1">
+              <li :for={tx <- @transactions} class="flex justify-between gap-2">
+                <span>{tx_label(tx.kind)}</span>
+                <span class="opacity-60 text-xs">
+                  {Calendar.strftime(tx.inserted_at, "%b %-d")}
+                </span>
+                <span class={["tabular-nums", tx.amount < 0 && "opacity-70"]}>
+                  {signed(tx.amount)}
+                </span>
+              </li>
+            </ul>
+          </details>
 
           <div class="divider"></div>
 

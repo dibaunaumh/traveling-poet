@@ -14,7 +14,7 @@ defmodule TravelingPoet.Telegram.Poller do
   use GenServer
   require Logger
 
-  alias TravelingPoet.{Accounts, AgentSession, Usage}
+  alias TravelingPoet.{Accounts, AgentSession, Poets, Usage}
   alias TravelingPoet.Telegram.{Client, Pairing}
 
   @poll_timeout_s 25
@@ -110,6 +110,9 @@ defmodule TravelingPoet.Telegram.Poller do
         cond do
           not user.sprite_provisioned ->
             Client.send_message(chat_id, "Your poet is still packing — check the app.")
+
+          TravelingPoet.Credits.exhausted?(user, Poets.get_poet_by_user(user.id)) ->
+            Client.send_message(chat_id, "Your poet is out of credits — top up in Settings.")
 
           not Usage.within_budget?(user, "chat_turn") ->
             Client.send_message(

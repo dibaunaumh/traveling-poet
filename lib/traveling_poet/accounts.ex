@@ -17,9 +17,14 @@ defmodule TravelingPoet.Accounts do
   def find_or_create_from_oauth(:google, %{"sub" => google_id, "email" => email, "name" => name}) do
     case Repo.get_by(User, google_id: google_id) do
       nil ->
-        %User{}
-        |> User.changeset(%{google_id: google_id, email: email, name: name})
-        |> Repo.insert()
+        with {:ok, user} <-
+               %User{}
+               |> User.changeset(%{google_id: google_id, email: email, name: name})
+               |> Repo.insert() do
+          # Welcome credits; idempotent on "signup:<id>" so a retry can't double-grant.
+          {:ok, _} = TravelingPoet.Credits.grant_signup(user)
+          {:ok, Repo.get!(User, user.id)}
+        end
 
       user ->
         if is_nil(user.name) or user.name == "" do
