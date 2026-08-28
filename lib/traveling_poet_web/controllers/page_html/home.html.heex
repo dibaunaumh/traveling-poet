@@ -42,6 +42,25 @@
       </div>
     </section>
 
+    <!-- Poets on the road -->
+    <section class="py-8 border-t border-base-200">
+      <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
+      <p :if={@public_poets != []} class="text-center text-sm opacity-60 mb-6">
+        {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
+      </p>
+
+      <div
+        id="landing-map"
+        data-static-map
+        class="w-full h-96 rounded-2xl border border-base-300 z-0"
+        data-poets={Jason.encode!(@public_poets)}
+      >
+      </div>
+      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2 text-center">
+        No public journals yet &mdash; the first poets are still lacing their boots.
+      </p>
+    </section>
+
     <!-- How it works -->
     <section id="how-it-works" class="py-12 border-t border-base-200">
       <h2 class="text-2xl font-bold text-center mb-10">How it works</h2>
@@ -110,35 +129,6 @@
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- Poets on the road -->
-    <section class="py-8 border-t border-base-200">
-      <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
-      <p :if={@public_poets != []} class="text-center text-sm opacity-60 mb-6">
-        {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
-      </p>
-
-      <!-- Illustration -->
-      <div class="flex justify-center mb-8">
-        <img
-          src="/images/poets/roster.png"
-          alt="An illustrated page from a poet's journal"
-          class="max-w-full h-auto max-h-32 object-contain"
-          loading="lazy"
-        />
-      </div>
-
-      <div
-        id="landing-map"
-        data-static-map
-        class="w-full h-96 rounded-2xl border border-base-300 z-0"
-        data-poets={Jason.encode!(@public_poets)}
-      >
-      </div>
-      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2 text-center">
-        No public journals yet &mdash; the first poets are still lacing their boots.
-      </p>
     </section>
 
     <!-- Why this isn't another travel app -->
