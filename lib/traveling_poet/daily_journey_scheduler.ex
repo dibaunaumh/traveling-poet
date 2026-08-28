@@ -21,7 +21,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, AgentSession, Repo, Usage}
+  alias TravelingPoet.{Credits, Accounts, AgentSession, Repo, Usage}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
@@ -92,29 +92,59 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   defp run_poet(poet) do
     user = Accounts.get_user(poet.user_id)
 
-    if Usage.within_budget?(user, "daily_run") do
-      Logger.info("DailyJourneyScheduler: running poet #{poet.id} (user #{user.id})")
-      Usage.record(user.id, "daily_run_attempt")
+    case eligible(user, poet) do
+      :ok ->
+        do_run(user, poet)
 
-      case AgentSession.run(user, @trigger,
-             channel: "system",
-             hold_awake_rounds: @hold_awake_rounds,
-             reply_timeout_ms: @reply_timeout_ms
-           ) do
-        {:ok, reply} when reply != "" ->
-          # Success = the agent finished its turn. (The publish API call is
-          # the real outcome; this event closes the day either way so we
-          # don't hammer a poet whose entry legitimately had no publish.)
-          Usage.record(user.id, "daily_run")
+      {:skip, reason} ->
+        Logger.info("DailyJourneyScheduler: user #{user.id} #{reason} — skipping")
+    end
+  end
 
-        {:ok, ""} ->
-          Logger.warning("DailyJourneyScheduler: poet #{poet.id} run timed out")
+  @doc "Whether a daily run may start now: daily caps, then credits."
+  def eligible(user, poet) do
+    cond do
+      not Usage.within_budget?(user, "daily_run") -> {:skip, "over budget"}
+      not Credits.can_run?(user, poet) -> {:skip, "out of credits"}
+      true -> :ok
+    end
+  end
 
-        {:error, reason} ->
-          Logger.warning("DailyJourneyScheduler: poet #{poet.id} run failed: #{inspect(reason)}")
-      end
-    else
-      Logger.info("DailyJourneyScheduler: user #{user.id} over budget — skipping")
+  defp do_run(user, poet) do
+    Logger.info("DailyJourneyScheduler: running poet #{poet.id} (user #{user.id})")
+    {:ok, attempt} = Usage.record(user.id, "daily_run_attempt")
+
+    # Charge up front so a half-day balance can't buy a free run; refund
+    # below when the run demonstrably failed.
+    case Credits.debit_daily_run(user, poet, attempt.id) do
+      {:ok, _} ->
+        case AgentSession.run(user, @trigger,
+               channel: "system",
+               hold_awake_rounds: @hold_awake_rounds,
+               reply_timeout_ms: @reply_timeout_ms
+             ) do
+          {:ok, reply} when reply != "" ->
+            # Success = the agent finished its turn. (The publish API call is
+            # the real outcome; this event closes the day either way so we
+            # don't hammer a poet whose entry legitimately had no publish.)
+            Usage.record(user.id, "daily_run")
+
+          {:ok, ""} ->
+            Logger.warning("DailyJourneyScheduler: poet #{poet.id} run timed out")
+            Credits.refund_daily_run(user, attempt.id)
+
+          {:error, reason} ->
+            Logger.warning(
+              "DailyJourneyScheduler: poet #{poet.id} run failed: #{inspect(reason)}"
+            )
+
+            Credits.refund_daily_run(user, attempt.id)
+        end
+
+      {:error, reason} ->
+        Logger.warning(
+          "DailyJourneyScheduler: poet #{poet.id} not charged (#{inspect(reason)}) — skipping"
+        )
     end
   end
 

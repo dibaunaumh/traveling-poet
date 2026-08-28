@@ -108,10 +108,24 @@ defmodule TravelingPoetWeb.UserAuth do
   end
 
   defp mount_current_user(socket, session) do
-    Phoenix.Component.assign_new(socket, :current_user, fn ->
-      if user_id = session["user_id"] do
-        Accounts.get_user(user_id)
-      end
+    socket =
+      Phoenix.Component.assign_new(socket, :current_user, fn ->
+        if user_id = session["user_id"] do
+          Accounts.get_user(user_id)
+        end
+      end)
+
+    # Header pill: only surfaces when the balance is low, so a fresh read on
+    # every mount is the whole cost of showing it.
+    Phoenix.Component.assign_new(socket, :credits_low, fn ->
+      credits_low?(socket.assigns[:current_user])
     end)
+  end
+
+  @doc "Whether the signed-in user is running low on credits (nil-safe)."
+  def credits_low?(nil), do: false
+
+  def credits_low?(user) do
+    TravelingPoet.Credits.low?(user, TravelingPoet.Poets.get_poet_by_user(user.id))
   end
 end

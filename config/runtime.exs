@@ -49,7 +49,34 @@ config :traveling_poet,
     ),
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
-  daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6")
+  daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),
+  # Credits: whole credits per daily run by mission; welcome grant; alert
+  # threshold in days of runway
+  credit_rates: %{
+    "wander" => String.to_integer(System.get_env("CREDIT_RATE_WANDER") || "1"),
+    "scout" => String.to_integer(System.get_env("CREDIT_RATE_SCOUT") || "5")
+  },
+  signup_credits: String.to_integer(System.get_env("SIGNUP_CREDITS") || "10"),
+  low_credits_days: String.to_integer(System.get_env("LOW_CREDITS_DAYS") || "3"),
+  # nil in test so a live key in .env can never reach Stripe from the suite
+  stripe_secret_key:
+    if(config_env() == :test, do: nil, else: System.get_env("STRIPE_SECRET_KEY")),
+  stripe_webhook_secret:
+    if(config_env() == :test, do: nil, else: System.get_env("STRIPE_WEBHOOK_SECRET"))
+
+# Real Stripe checkout only when both secrets are present; otherwise the
+# clearly-labelled mock pay page (dev/test).
+stripe_configured? =
+  config_env() != :test and
+    System.get_env("STRIPE_SECRET_KEY") not in [nil, ""] and
+    System.get_env("STRIPE_WEBHOOK_SECRET") not in [nil, ""]
+
+config :traveling_poet,
+       :payments_provider,
+       if(stripe_configured?,
+         do: TravelingPoet.Payments.Stripe,
+         else: TravelingPoet.Payments.Mock
+       )
 
 # Tigris (S3-compatible) — same env names alice-in / Fly's Tigris extension use
 if System.get_env("AWS_ACCESS_KEY_ID") do

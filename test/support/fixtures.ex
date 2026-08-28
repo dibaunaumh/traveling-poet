@@ -4,8 +4,10 @@ defmodule TravelingPoet.Fixtures do
   alias TravelingPoet.{Accounts, Poets, Repo}
   alias TravelingPoet.Accounts.User
 
+  @doc "Pass `credits: n` to seed a balance (whole credits) via the ledger."
   def user_fixture(attrs \\ %{}) do
     n = System.unique_integer([:positive])
+    {credits, attrs} = Map.pop(attrs, :credits)
 
     {:ok, user} =
       %User{}
@@ -21,7 +23,12 @@ defmodule TravelingPoet.Fixtures do
       )
       |> Repo.insert()
 
-    user
+    if credits do
+      {:ok, _} = TravelingPoet.Credits.adjust(user, credits)
+      Accounts.get_user!(user.id)
+    else
+      user
+    end
   end
 
   def agent_user_fixture(attrs \\ %{}) do

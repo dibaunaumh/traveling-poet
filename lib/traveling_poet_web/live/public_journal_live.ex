@@ -115,7 +115,11 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+    <Layouts.app
+      flash={@flash}
+      current_user={assigns[:current_user]}
+      credits_low={assigns[:credits_low]}
+    >
       <div class="mx-auto max-w-3xl">
         <div class="flex items-center gap-3 mb-3">
           <img

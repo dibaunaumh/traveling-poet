@@ -47,6 +47,8 @@ defmodule TravelingPoetWeb.Endpoint do
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library(),
+    # keeps raw bytes for /webhooks/* (Stripe signature verification)
+    body_reader: {TravelingPoetWeb.Plugs.CacheBodyReader, :read_body, []},
     # base64 illustration uploads on /api/agent/media run ~8MB
     length: 12_000_000
 

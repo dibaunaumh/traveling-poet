@@ -333,7 +333,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+    <Layouts.app
+      flash={@flash}
+      current_user={assigns[:current_user]}
+      credits_low={assigns[:credits_low]}
+    >
       <div class="mx-auto max-w-xl py-8">
         <div class="mb-6">
           <div class="text-sm opacity-60 mb-1">

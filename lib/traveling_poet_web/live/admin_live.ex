@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.AdminLive do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Repo, Usage}
+  alias TravelingPoet.{Accounts, Credits, Repo, Usage}
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
 
@@ -18,6 +18,19 @@ defmodule TravelingPoetWeb.AdminLive do
   @impl true
   def handle_event("refresh", _params, socket) do
     {:noreply, load_fleet(socket)}
+  end
+
+  @impl true
+  def handle_event("grant", %{"user_id" => user_id, "credits" => credits}, socket) do
+    with {id, ""} <- Integer.parse(user_id),
+         {n, ""} when n != 0 <- Integer.parse(credits),
+         user when not is_nil(user) <- Accounts.get_user(id),
+         {:ok, _} <- Credits.adjust(user, n, metadata: %{"by" => socket.assigns.current_user.id}) do
+      {:noreply,
+       socket |> put_flash(:info, "Adjusted #{user.email} by #{n} credits") |> load_fleet()}
+    else
+      _ -> {:noreply, put_flash(socket, :error, "Could not adjust credits")}
+    end
   end
 
   defp load_fleet(socket) do
@@ -56,7 +69,11 @@ defmodule TravelingPoetWeb.AdminLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+    <Layouts.app
+      flash={@flash}
+      current_user={assigns[:current_user]}
+      credits_low={assigns[:credits_low]}
+    >
       <div class="mx-auto max-w-5xl py-8">
         <div class="flex items-center justify-between mb-4">
           <h1 class="text-2xl font-semibold">Cost dashboard</h1>
@@ -77,6 +94,7 @@ defmodule TravelingPoetWeb.AdminLive do
                 <th>7 days</th>
                 <th>Runs today</th>
                 <th>Daily budget</th>
+                <th>Credits</th>
               </tr>
             </thead>
             <tbody>
@@ -98,6 +116,19 @@ defmodule TravelingPoetWeb.AdminLive do
                 <td>
                   {cents(row.budget)}
                   <span :if={row.user.quota_exempt} class="badge badge-ghost badge-xs">exempt</span>
+                </td>
+                <td>
+                  <form phx-submit="grant" class="flex items-center gap-1">
+                    <span class="tabular-nums">{Credits.format(row.user.credits_balance || 0)}</span>
+                    <input type="hidden" name="user_id" value={row.user.id} />
+                    <input
+                      type="number"
+                      name="credits"
+                      placeholder="±"
+                      class="input input-bordered input-xs w-16"
+                    />
+                    <button type="submit" class="btn btn-xs">Grant</button>
+                  </form>
                 </td>
               </tr>
             </tbody>

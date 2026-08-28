@@ -19,6 +19,17 @@ defmodule TravelingPoetWeb.Router do
     plug TravelingPoetWeb.Plugs.AgentAuth
   end
 
+  # Payment-provider webhooks: signature-verified over the raw body, no session/CSRF.
+  pipeline :webhooks do
+    plug :accepts, ["json"]
+  end
+
+  scope "/webhooks", TravelingPoetWeb do
+    pipe_through :webhooks
+
+    post "/stripe", StripeWebhookController, :handle
+  end
+
   scope "/", TravelingPoetWeb do
     pipe_through :browser
 
@@ -60,6 +71,10 @@ defmodule TravelingPoetWeb.Router do
 
   scope "/", TravelingPoetWeb do
     pipe_through [:browser, :require_authenticated_user]
+
+    post "/credits/checkout", CreditsController, :checkout
+    get "/credits/mock-checkout", CreditsController, :mock_checkout
+    post "/credits/mock-checkout/confirm", CreditsController, :mock_confirm
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do
