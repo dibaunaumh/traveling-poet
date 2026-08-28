@@ -14,24 +14,117 @@
   </header>
 
   <main class="max-w-5xl mx-auto px-4 pb-16">
-    <section class="text-center py-12">
-      <h1 class="text-4xl font-bold mb-4">A poet wanders the world for you</h1>
-      <p class="text-lg opacity-70 max-w-2xl mx-auto">
-        Your virtual delegate travels from town to town, keeps a daily illustrated
-        journal — grounded in real places, with poems and small discoveries — and
-        finds you chances for random acts of kindness along the way.
+    <!-- Hero -->
+    <section class="text-center py-16">
+      <h1 class="text-4xl font-bold mb-4">Your personal travel scout.<br class="hidden sm:block">Your daily window to the world.</h1>
+      <p class="text-lg opacity-70 max-w-2xl mx-auto mb-8">
+        The traveling poet is your spiritual-twin delegate &mdash; an AI that learns
+        what fascinates you, then travels ahead. Planning a trip? Send it to scout your
+        itinerary before you pack. Dreaming from home? Wake up to a new illustrated
+        journal entry from somewhere in the world, every day.
       </p>
-      <a
-        :if={!@conn.assigns[:current_user]}
-        href="/auth/google"
-        class="btn btn-primary btn-lg mt-6"
-      >
-        Send out your poet
-      </a>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a
+          :if={!@conn.assigns[:current_user]}
+          href="/auth/google"
+          class="btn btn-primary btn-lg"
+        >
+          Start exploring
+        </a>
+        <a
+          :if={!@conn.assigns[:current_user]}
+          href="#how-it-works"
+          class="btn btn-ghost btn-sm"
+        >
+          See how it works &darr;
+        </a>
+      </div>
     </section>
 
-    <section>
-      <h2 class="text-xl font-semibold mb-3">Poets on the road right now</h2>
+    <!-- How it works -->
+    <section id="how-it-works" class="py-12 border-t border-base-200">
+      <h2 class="text-2xl font-bold text-center mb-10">How it works</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="text-center px-4">
+          <div class="text-3xl mb-3">1.</div>
+          <h3 class="text-lg font-semibold mb-2">Teach your poet what you love</h3>
+          <p class="opacity-70 text-sm">
+            Tell us about your tastes &mdash; architecture or street food, history or
+            hidden gardens. Your poet learns your kind of discovery.
+          </p>
+        </div>
+        <div class="text-center px-4">
+          <div class="text-3xl mb-3">2.</div>
+          <h3 class="text-lg font-semibold mb-2">Your poet travels &amp; journals daily</h3>
+          <p class="opacity-70 text-sm">
+            Each day a new illustrated entry arrives: what your poet saw, learned, and
+            uncovered. Grounded in real places, written with warmth. You can ask
+            questions anytime.
+          </p>
+        </div>
+        <div class="text-center px-4">
+          <div class="text-3xl mb-3">3.</div>
+          <h3 class="text-lg font-semibold mb-2">Scout any trip before you go</h3>
+          <p class="opacity-70 text-sm">
+            Got a trip coming up? Give your poet the itinerary. It scouts every stop in
+            order &mdash; hidden food stalls, overlooked museums, the view nobody mentions
+            &mdash; so you land knowing exactly where to go.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two ways to travel -->
+    <section class="py-12">
+      <h2 class="text-2xl font-bold text-center mb-8">Two ways to travel</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="card bg-base-200 shadow-sm">
+          <div class="card-body text-center">
+            <div class="text-3xl mb-2">🧭</div>
+            <h3 class="card-title justify-center text-lg">Trips coming up?</h3>
+            <p class="opacity-70 text-sm">
+              Scout your itinerary. Your poet visits each stop before you do and reports
+              what&rsquo;s worth your time &mdash; so you land knowing exactly where to go.
+            </p>
+            <div class="card-actions justify-center mt-2">
+              <a
+                :if={!@conn.assigns[:current_user]}
+                href="/auth/google"
+                class="btn btn-outline btn-sm"
+              >
+                Scout a trip &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="card bg-base-200 shadow-sm">
+          <div class="card-body text-center">
+            <div class="text-3xl mb-2">🏠</div>
+            <h3 class="card-title justify-center text-lg">Traveling from home?</h3>
+            <p class="opacity-70 text-sm">
+              Your poet wanders the world, sending daily illustrated journals from real
+              places. You wake up to discovery without leaving your chair.
+            </p>
+            <div class="card-actions justify-center mt-2">
+              <a
+                :if={!@conn.assigns[:current_user]}
+                href="/auth/google"
+                class="btn btn-outline btn-sm"
+              >
+                Start wandering &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Poets on the road -->
+    <section class="py-8 border-t border-base-200">
+      <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
+      <p class="text-center text-sm opacity-60 mb-6">
+        {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
+      </p>
       <div
         id="landing-map"
         data-static-map
@@ -39,9 +132,56 @@
         data-poets={Jason.encode!(@public_poets)}
       >
       </div>
-      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2">
-        No public journals yet — the first poets are still lacing their boots.
+      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2 text-center">
+        No public journals yet &mdash; the first poets are still lacing their boots.
       </p>
+    </section>
+
+    <!-- Why this isn't another travel app -->
+    <section class="py-12 border-t border-base-200">
+      <h2 class="text-2xl font-bold text-center mb-8">Why this isn&rsquo;t another travel app</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div class="flex gap-3">
+          <div class="text-xl mt-0.5 shrink-0">🔍</div>
+          <div>
+            <h3 class="font-semibold text-sm">It&rsquo;s proactive</h3>
+            <p class="opacity-70 text-sm">You don&rsquo;t search. Your poet finds things you&rsquo;d never think to look for.</p>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <div class="text-xl mt-0.5 shrink-0">🧠</div>
+          <div>
+            <h3 class="font-semibold text-sm">It learns you</h3>
+            <p class="opacity-70 text-sm">Every journal, every question, every &ldquo;tell me more&rdquo; sharpens what it finds.</p>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <div class="text-xl mt-0.5 shrink-0">📍</div>
+          <div>
+            <h3 class="font-semibold text-sm">It&rsquo;s grounded</h3>
+            <p class="opacity-70 text-sm">Real places, real maps, real discoveries. No hallucinations about restaurants that don&rsquo;t exist.</p>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <div class="text-xl mt-0.5 shrink-0">✈️</div>
+          <div>
+            <h3 class="font-semibold text-sm">It scouts ahead</h3>
+            <p class="opacity-70 text-sm">The only tool that pre-visits your itinerary and reports back before you buy a plane ticket.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section class="text-center py-8">
+      <p class="text-sm opacity-60 mb-3">Start exploring &mdash; free for your first destination.</p>
+      <a
+        :if={!@conn.assigns[:current_user]}
+        href="/auth/google"
+        class="btn btn-primary btn-lg"
+      >
+        Send out your poet
+      </a>
     </section>
   </main>
 </div>
