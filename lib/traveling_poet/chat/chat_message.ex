@@ -2,7 +2,7 @@ defmodule TravelingPoet.Chat.ChatMessage do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @channels ~w(web telegram system)
+  @channels ~w(web telegram whatsapp system)
 
   schema "chat_messages" do
     field :role, :string

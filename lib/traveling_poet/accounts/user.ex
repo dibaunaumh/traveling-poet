@@ -15,12 +15,6 @@ defmodule TravelingPoet.Accounts.User do
     field :onboarding_completed, :boolean, default: false
     field :onboarding_step, :string
 
-    field :telegram_chat_id, :integer
-    field :telegram_username, :string
-    field :telegram_paired_at, :utc_datetime
-    field :telegram_pair_token, :string
-    field :telegram_pair_token_expires_at, :utc_datetime
-
     # Sprite/agent fields (same names as alice-in-goals so the ported
     # GatewaySocket stack and Provisioner work unchanged)
     field :sprite_name, :string
@@ -43,6 +37,8 @@ defmodule TravelingPoet.Accounts.User do
     field :low_credits_notified_at, :utc_datetime
 
     has_one :poet, TravelingPoet.Poets.Poet
+    # Telegram/WhatsApp DMs with the owner — see TravelingPoet.Messaging
+    has_many :messaging_channels, TravelingPoet.Messaging.Channel
 
     timestamps()
   end
@@ -59,11 +55,6 @@ defmodule TravelingPoet.Accounts.User do
       :apple_id,
       :onboarding_completed,
       :onboarding_step,
-      :telegram_chat_id,
-      :telegram_username,
-      :telegram_paired_at,
-      :telegram_pair_token,
-      :telegram_pair_token_expires_at,
       :sprite_name,
       :sprite_url,
       :gateway_token,
@@ -85,7 +76,6 @@ defmodule TravelingPoet.Accounts.User do
     |> unique_constraint(:email)
     |> unique_constraint(:google_id)
     |> unique_constraint(:apple_id)
-    |> unique_constraint(:telegram_chat_id)
   end
 
   # A user must be reachable through at least one OAuth identity.

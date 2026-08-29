@@ -18,9 +18,12 @@ defmodule TravelingPoet.Application do
       {DynamicSupervisor, name: TravelingPoet.GatewaySocketSupervisor, strategy: :one_for_one},
       # Daily travel/journal driver (no-op unless JOURNEY_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.DailyJourneyScheduler,
-      # Telegram long-poller + publish notifier (no-op unless TELEGRAM_BOT_TOKEN set)
+      # Telegram long-poller (no-op unless TELEGRAM_BOT_TOKEN set); WhatsApp
+      # arrives by webhook instead, so it needs only the redelivery guard.
       TravelingPoet.Telegram.Poller,
-      TravelingPoet.Telegram.Notifier,
+      TravelingPoet.Messaging.Dedupe,
+      # Publish/credits notes to every paired channel (no-op with none configured)
+      TravelingPoet.Messaging.Notifier,
       # Start to serve requests, typically the last entry
       TravelingPoetWeb.Endpoint
     ]

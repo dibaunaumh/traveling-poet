@@ -460,11 +460,12 @@ defmodule TravelingPoetWeb.JournalLive do
         This usually takes <b>5–10 minutes</b>. The page updates by itself —
         and you can safely close it; the poet keeps working.
       </p>
-      <p :if={@user.telegram_chat_id} class="text-sm opacity-60 mb-6">
-        📱 We'll message you on Telegram the moment the first entry is out.
+      <p :if={TravelingPoet.Messaging.any_paired?(@user)} class="text-sm opacity-60 mb-6">
+        📱 We'll message you the moment the first entry is out.
       </p>
-      <p :if={is_nil(@user.telegram_chat_id)} class="text-sm opacity-60 mb-6">
-        Tip: pair Telegram in <.link navigate={~p"/settings"} class="link">settings</.link>
+      <p :if={not TravelingPoet.Messaging.any_paired?(@user)} class="text-sm opacity-60 mb-6">
+        Tip: pair Telegram or WhatsApp in
+        <.link navigate={~p"/settings"} class="link">settings</.link>
         and your poet will write to you there when it's ready.
       </p>
 

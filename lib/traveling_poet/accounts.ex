@@ -44,16 +44,6 @@ defmodule TravelingPoet.Accounts do
 
   def get_user_by_agent_api_token(_), do: nil
 
-  def get_user_by_telegram_chat_id(chat_id) when is_integer(chat_id) do
-    Repo.get_by(User, telegram_chat_id: chat_id)
-  end
-
-  def get_user_by_telegram_pair_token(token) when is_binary(token) and token != "" do
-    Repo.get_by(User, telegram_pair_token: token)
-  end
-
-  def get_user_by_telegram_pair_token(_), do: nil
-
   def mark_onboarding_complete(user) do
     update_user(user, %{onboarding_completed: true})
   end
