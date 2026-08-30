@@ -70,9 +70,8 @@ defmodule TravelingPoetWeb.AdminLive do
 
   defp health_summary(health) do
     counts = Enum.frequencies_by(health, & &1.status)
-    trouble = Map.get(counts, :failing, 0) + Map.get(counts, :never_published, 0)
 
-    case trouble do
+    case Map.get(counts, :failing, 0) do
       0 -> "#{Map.get(counts, :ok, 0)} publishing, none missed"
       n -> "#{n} poet(s) missing their day"
     end
@@ -81,7 +80,7 @@ defmodule TravelingPoetWeb.AdminLive do
   defp health_badge(:ok), do: "badge-success"
   defp health_badge(:late), do: "badge-warning"
   defp health_badge(:failing), do: "badge-error"
-  defp health_badge(:never_published), do: "badge-error"
+  defp health_badge(:never_published), do: "badge-warning"
   defp health_badge(:inactive), do: "badge-ghost"
 
   defp health_label(:never_published), do: "never published"
@@ -121,7 +120,7 @@ defmodule TravelingPoetWeb.AdminLive do
               </tr>
             </thead>
             <tbody>
-              <tr :for={h <- @health} class={h.status in [:failing, :never_published] && "bg-error/5"}>
+              <tr :for={h <- @health} class={h.status == :failing && "bg-error/5"}>
                 <td>{h.poet.name}</td>
                 <td>
                   <span class={["badge badge-sm", health_badge(h.status)]}>

@@ -19,17 +19,19 @@ defmodule TravelingPoet.FleetHealth do
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
-  # A poet publishes daily, so a gap past this is a missed day rather than a
-  # late one — generous enough to survive publish-hour drift.
-  @stale_hours 30
-
   @doc """
-  Every poet, graded. Statuses:
+  Every poet, graded against ITS OWN publish hour rather than a flat staleness
+  window. A poet due at 16:00 UTC that last published yesterday at 16:48 has
+  missed today by 17:00, even though only 24-odd hours have passed — a flat
+  "stale after 30h" rule calls that healthy for another six hours, which is
+  exactly the window an outage hides in.
 
-    * `:ok` — published within #{@stale_hours}h
-    * `:late` — overdue, but the scheduler still has attempts left today
-    * `:failing` — overdue and out of attempts today: a missed day
-    * `:never_published` — provisioned but has never published anything
+  Statuses:
+
+    * `:ok` — published since today's publish hour, or not due yet
+    * `:late` — due and unpublished, but the scheduler still has attempts left
+    * `:failing` — due, unpublished, and out of attempts: a missed day
+    * `:never_published` — has never published and isn't due yet
     * `:inactive` — paused, or the sprite was never provisioned
   """
   def report(now \\ DateTime.utc_now()) do
@@ -41,7 +43,7 @@ defmodule TravelingPoet.FleetHealth do
 
   @doc "Only the poets in trouble — what an alert should talk about."
   def problems(now \\ DateTime.utc_now()) do
-    report(now) |> Enum.filter(&(&1.status in [:failing, :never_published]))
+    report(now) |> Enum.filter(&(&1.status == :failing))
   end
 
   @doc """
@@ -58,6 +60,7 @@ defmodule TravelingPoet.FleetHealth do
     latest = Journal.latest_published_entry(poet.id)
     hours = latest && DateTime.diff(now, latest.published_at, :second) / 3600
     attempts = attempts_today(poet.user_id, now)
+    attempts_left = max(DailyJourneyScheduler.max_attempts_per_day() - attempts, 0)
 
     %{
       poet: poet,
@@ -67,23 +70,39 @@ defmodule TravelingPoet.FleetHealth do
       entry_place: latest && latest.place_name,
       current_place: poet.current_place_name,
       hours_since_publish: hours && Float.round(hours, 1),
+      due_at: due_at(poet, now),
       attempts_today: attempts,
-      attempts_left: max(DailyJourneyScheduler.max_attempts_per_day() - attempts, 0),
+      attempts_left: attempts_left,
       drifted?: drifted?(poet, latest),
-      status: status(poet, user, hours, attempts)
+      status: status(poet, user, latest, attempts_left, now)
     }
   end
 
-  defp status(poet, user, hours, attempts) do
+  defp status(poet, user, latest, attempts_left, now) do
+    due_at = due_at(poet, now)
+
     cond do
       poet.status != "active" -> :inactive
       user == nil or not user.sprite_provisioned -> :inactive
-      hours == nil -> :never_published
-      hours <= @stale_hours -> :ok
-      attempts < DailyJourneyScheduler.max_attempts_per_day() -> :late
+      published_since?(latest, due_at) -> :ok
+      DateTime.compare(now, due_at) == :lt and latest != nil -> :ok
+      DateTime.compare(now, due_at) == :lt -> :never_published
+      attempts_left > 0 -> :late
       true -> :failing
     end
   end
+
+  # Today's publish slot, in UTC.
+  defp due_at(poet, now) do
+    now
+    |> DateTime.to_date()
+    |> DateTime.new!(Time.new!(DailyJourneyScheduler.publish_hour(poet), 0, 0), "Etc/UTC")
+  end
+
+  defp published_since?(nil, _due_at), do: false
+
+  defp published_since?(entry, due_at),
+    do: DateTime.compare(entry.published_at, due_at) != :lt
 
   # Both places known and different — the symptom a reader actually notices.
   defp drifted?(_poet, nil), do: false

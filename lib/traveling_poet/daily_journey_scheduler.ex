@@ -188,15 +188,15 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   # Each poet gets a stable pseudo-random publish hour (6:00–21:00 UTC by
   # default, or settings["journal_hour_utc"]) so the fleet spreads across the
   # day instead of stampeding at midnight.
-  defp past_publish_hour?(poet, now) do
-    hour =
-      case Map.get(poet.settings || %{}, "journal_hour_utc") do
-        h when is_integer(h) and h in 0..23 -> h
-        _ -> 6 + rem(poet.id * 7, 16)
-      end
-
-    now.hour >= hour
+  @doc "The UTC hour this poet is expected to publish at. Public for FleetHealth."
+  def publish_hour(poet) do
+    case Map.get(poet.settings || %{}, "journal_hour_utc") do
+      h when is_integer(h) and h in 0..23 -> h
+      _ -> 6 + rem(poet.id * 7, 16)
+    end
   end
+
+  defp past_publish_hour?(poet, now), do: now.hour >= publish_hour(poet)
 
   defp ran_recently?(user_id, now) do
     cutoff = DateTime.add(now, -@min_hours_between_runs, :hour)
