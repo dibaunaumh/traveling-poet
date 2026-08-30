@@ -16,6 +16,8 @@ defmodule TravelingPoetWeb.PageController do
 
     poets =
       Enum.map(public, fn p ->
+        entry = Journal.latest_published_entry(p.id)
+
         %{
           lat: p.current_lat,
           lng: p.current_lng,
@@ -23,7 +25,12 @@ defmodule TravelingPoetWeb.PageController do
           place: p.current_place_name,
           slug: p.slug,
           avatar: p.avatar_url,
-          entry_url: latest_entry_url(p)
+          entry_url: entry_url(p, entry),
+          # The pin follows the poet, but the link goes to the newest entry —
+          # which is about wherever they were when they last wrote. Say so
+          # when the two have diverged, rather than letting the popup imply
+          # the entry is about the place under the pin.
+          entry_place: entry_place(p, entry)
         }
       end)
 
@@ -46,10 +53,13 @@ defmodule TravelingPoetWeb.PageController do
 
   # Deep-link straight to the newest published entry when there is one; the
   # journal index (which redirects to the newest) is the fallback.
-  defp latest_entry_url(poet) do
-    case Journal.latest_published_entry(poet.id) do
-      nil -> "/p/#{poet.slug}"
-      entry -> "/p/#{poet.slug}/#{entry.entry_date}"
-    end
-  end
+  defp entry_url(poet, nil), do: "/p/#{poet.slug}"
+  defp entry_url(poet, entry), do: "/p/#{poet.slug}/#{entry.entry_date}"
+
+  # Only when it differs from where the pin sits — otherwise the popup would
+  # repeat itself.
+  defp entry_place(_poet, nil), do: nil
+  defp entry_place(_poet, %{place_name: nil}), do: nil
+  defp entry_place(%{current_place_name: place}, %{place_name: place}), do: nil
+  defp entry_place(_poet, entry), do: entry.place_name
 end

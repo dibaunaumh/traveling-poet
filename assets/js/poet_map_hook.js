@@ -71,6 +71,15 @@ function poetPopup(p) {
   link.textContent = "Read the latest journal entry →"
   body.appendChild(link)
 
+  // The poet has moved since they last wrote: name the place the entry is
+  // actually about, so the link doesn't promise today's location.
+  if (p.entry_place) {
+    const from = document.createElement("div")
+    from.className = "poet-popup-entry-place"
+    from.textContent = `latest entry from ${p.entry_place}`
+    body.appendChild(from)
+  }
+
   el.appendChild(body)
   return el
 }
