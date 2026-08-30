@@ -19,6 +19,18 @@ defmodule TravelingPoet.Poets do
     |> Repo.all()
   end
 
+  @doc """
+  Every poet currently on the road, public or not — for the landing map, where
+  private poets show as anonymous pins. Callers MUST NOT expose anything but
+  coordinates for a poet whose `is_public` is false.
+  """
+  def list_poets_on_the_road do
+    Poet
+    |> where(status: "active")
+    |> where([p], not is_nil(p.current_lat))
+    |> Repo.all()
+  end
+
   def create_poet(attrs) do
     case %Poet{} |> Poet.changeset(attrs) |> Repo.insert() do
       {:error, %{errors: errors} = changeset} ->

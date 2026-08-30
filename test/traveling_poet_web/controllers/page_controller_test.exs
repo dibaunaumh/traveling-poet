@@ -40,6 +40,48 @@ defmodule TravelingPoetWeb.PageControllerTest do
     assert html =~ "1 poet exploring the world"
   end
 
+  test "GET / puts private poets on the map as anonymous pins", %{conn: conn} do
+    poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
+
+    poet_fixture(user_fixture(), %{
+      name: "Hidden Hilda",
+      is_public: false,
+      status: "active",
+      current_lat: 13.7524938,
+      current_lng: 100.4935089,
+      current_place_name: "Bangkok, Thailand"
+    })
+
+    html = conn |> get(~p"/") |> html_response(200)
+
+    assert html =~ "2 poets exploring the world"
+    assert html =~ "journals are private"
+    # the pin is there, blurred to ~10km, but nothing identifying it is
+    refute html =~ "Hidden Hilda"
+    refute html =~ "Bangkok"
+    refute html =~ "hidden-hilda"
+    refute html =~ "13.7524938"
+    assert html =~ "13.8"
+  end
+
+  test "GET / omits poets who are not on the road", %{conn: conn} do
+    poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
+    poet_fixture(user_fixture(), %{name: "Paused Pia", is_public: false, status: "paused"})
+
+    poet_fixture(user_fixture(), %{
+      name: "Nowhere Ned",
+      is_public: false,
+      status: "active",
+      current_lat: nil,
+      current_lng: nil
+    })
+
+    html = conn |> get(~p"/") |> html_response(200)
+
+    assert html =~ "1 poet exploring the world"
+    refute html =~ "journals are private"
+  end
+
   test "GET / signed in hides sign-up CTAs and links to the journal", %{conn: conn} do
     user = user_fixture()
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
