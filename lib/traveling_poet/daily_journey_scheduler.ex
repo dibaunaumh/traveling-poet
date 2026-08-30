@@ -97,6 +97,33 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     end)
   end
 
+  @doc """
+  Runs one poet's day right now, ignoring the per-day attempt cap and the
+  daily-run cap — for catching up after an outage that wasn't the poet's
+  fault. Those caps exist to stop a broken agent burning money in a loop, not
+  to block a deliberate retry, but credits are still checked: no run happens
+  on an empty balance.
+
+  Synchronous, and a full ritual takes minutes — call it from a Task (see
+  `TravelingPoet.FleetHealth.catch_up/1`) rather than blocking a console on it.
+  """
+  def run_now(%Poet{} = poet) do
+    case Accounts.get_user(poet.user_id) do
+      nil ->
+        {:error, :no_user}
+
+      user ->
+        if Credits.can_run?(user, poet) do
+          do_run(user, poet)
+          :ok
+        else
+          {:error, :out_of_credits}
+        end
+    end
+  end
+
+  def run_now(poet_id) when is_integer(poet_id), do: run_now(Repo.get!(Poet, poet_id))
+
   defp run_poet(poet) do
     user = Accounts.get_user(poet.user_id)
 

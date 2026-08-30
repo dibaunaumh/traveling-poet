@@ -47,6 +47,31 @@ defmodule TravelingPoet.FleetHealth do
   end
 
   @doc """
+  Sends every late-or-failing poet out on its day right now, staggered so the
+  fleet doesn't stampede the model provider. For use after an outage the poets
+  had no part in — an exhausted API key, a provider wobble — where the day was
+  lost to infrastructure and the attempt cap has already run out.
+
+  Returns the names it started. Each run takes minutes and reports itself
+  through the usual accounting, so watch /admin rather than the return value.
+  """
+  def catch_up(now \\ DateTime.utc_now()) do
+    stagger_ms = 20_000
+
+    report(now)
+    |> Enum.filter(&(&1.status in [:late, :failing]))
+    |> Enum.with_index()
+    |> Enum.map(fn {row, i} ->
+      Task.start(fn ->
+        Process.sleep(i * stagger_ms)
+        DailyJourneyScheduler.run_now(row.poet)
+      end)
+
+      row.poet.name
+    end)
+  end
+
+  @doc """
   Poets whose map pin has outrun their journal: the location says one place,
   the newest published entry says another. Usually transient (the poet moved
   an hour ago and writes tonight), so it is reported, not alerted on.
