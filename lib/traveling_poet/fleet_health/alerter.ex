@@ -18,7 +18,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   require Logger
 
   alias TravelingPoet.Accounts.User
-  alias TravelingPoet.{FleetHealth, Repo}
+  alias TravelingPoet.{FleetHealth, OpenRouter, Repo}
   alias TravelingPoet.Telegram.Client
 
   import Ecto.Query
@@ -65,8 +65,11 @@ defmodule TravelingPoet.FleetHealth.Alerter do
       FleetHealth.problems()
       |> Enum.reject(fn row -> Map.get(state.alerted, row.poet.id) == today end)
 
-    if fresh != [] do
-      case deliver(message(fresh)) do
+    credits = credit_warning()
+    credits_fresh? = credits != nil and Map.get(state.alerted, :openrouter) != today
+
+    if fresh != [] or credits_fresh? do
+      case deliver(message(fresh, credits_fresh? && credits)) do
         :ok ->
           Logger.warning("FleetHealth.Alerter: alerted on #{length(fresh)} poet(s)")
 
@@ -76,19 +79,45 @@ defmodule TravelingPoet.FleetHealth.Alerter do
     end
 
     alerted = Enum.reduce(fresh, state.alerted, &Map.put(&2, &1.poet.id, today))
+    alerted = if credits_fresh?, do: Map.put(alerted, :openrouter, today), else: alerted
     %{state | alerted: alerted}
   end
 
-  defp message(rows) do
-    lines = Enum.map_join(rows, "\n", &("• " <> FleetHealth.summarize(&1)))
+  # The budget behind every poet. Worth its own line in the alert: when this is
+  # the cause, no amount of retrying helps until someone tops the key up.
+  defp credit_warning do
+    case OpenRouter.key_status() do
+      {:ok, %{exhausted?: true} = s} ->
+        "OpenRouter key is OUT of credit (#{money(s.usage)} of #{money(s.limit)} used) — " <>
+          "every model turn is being rejected with a 402 before it starts."
 
+      {:ok, %{low?: true} = s} ->
+        "OpenRouter key is nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
+
+      _ ->
+        nil
+    end
+  end
+
+  defp money(nil), do: "?"
+  defp money(n), do: "$#{:erlang.float_to_binary(n, decimals: 2)}"
+
+  defp message(rows, credits) do
     header =
       case length(rows) do
+        0 -> "⚠️ Traveling Poet: the fleet's budget needs attention"
         1 -> "⚠️ Traveling Poet: a poet has missed its day"
         n -> "⚠️ Traveling Poet: #{n} poets have missed their day"
       end
 
-    "#{header}\n\n#{lines}\n\nFull status: #{admin_url()}"
+    [
+      header,
+      rows != [] && Enum.map_join(rows, "\n", &("• " <> FleetHealth.summarize(&1))),
+      credits && "💳 #{credits}",
+      "Full status: #{admin_url()}"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join("\n\n")
   end
 
   defp deliver(text) do

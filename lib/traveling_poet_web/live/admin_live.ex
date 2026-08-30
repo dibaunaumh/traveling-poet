@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.AdminLive do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, Credits, FleetHealth, Repo, Usage}
+  alias TravelingPoet.{Accounts, Credits, FleetHealth, OpenRouter, Repo, Usage}
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
 
@@ -66,7 +66,47 @@ defmodule TravelingPoetWeb.AdminLive do
     |> assign(:total_week, total_week)
     |> assign(:health, health)
     |> assign(:health_summary, health_summary(health))
+    |> assign(:openrouter, openrouter_banner())
   end
+
+  # The whole fleet runs on one OpenRouter key. When it is spent every model
+  # turn 402s before it starts, which reaches the app as silent sprites — so
+  # the balance belongs above the table that would otherwise just look broken.
+  defp openrouter_banner do
+    case OpenRouter.key_status() do
+      {:ok, %{exhausted?: true} = s} ->
+        %{
+          class: "alert-error",
+          text:
+            "OpenRouter key is out of credit — #{money(s.usage)} of #{money(s.limit)} used. " <>
+              "Every poet's model turn is being rejected with a 402 until the key is topped up."
+        }
+
+      {:ok, %{low?: true} = s} ->
+        %{
+          class: "alert-warning",
+          text: "OpenRouter key nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
+        }
+
+      {:ok, %{limit: nil}} ->
+        nil
+
+      {:ok, s} ->
+        %{
+          class: "alert-success",
+          text: "OpenRouter key: #{money(s.remaining)} left of #{money(s.limit)}."
+        }
+
+      {:error, :not_configured} ->
+        nil
+
+      {:error, reason} ->
+        %{class: "alert-warning", text: "Could not read OpenRouter balance: #{inspect(reason)}"}
+    end
+  end
+
+  defp money(nil), do: "?"
+  defp money(n), do: "$#{:erlang.float_to_binary(n, decimals: 2)}"
 
   defp health_summary(health) do
     counts = Enum.frequencies_by(health, & &1.status)
@@ -105,6 +145,10 @@ defmodule TravelingPoetWeb.AdminLive do
             </span>
             <button phx-click="refresh" class="btn btn-sm">Refresh</button>
           </div>
+        </div>
+
+        <div :if={@openrouter} class={["alert mb-4", @openrouter.class]}>
+          <span>{@openrouter.text}</span>
         </div>
 
         <div class="overflow-x-auto mb-10">
