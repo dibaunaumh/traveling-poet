@@ -45,8 +45,8 @@
     <!-- Poets on the road -->
     <section class="py-8 border-t border-base-200">
       <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
-      <p :if={@public_poets != []} class="text-center text-sm opacity-60 mb-6">
-        {length(@public_poets)} {ngettext("poet", "poets", length(@public_poets))} exploring the world
+      <p :if={@poets_on_map > 0} class="text-center text-sm opacity-60 mb-6">
+        {@poets_on_map} {ngettext("poet", "poets", @poets_on_map)} exploring the world
       </p>
 
       <div
@@ -54,10 +54,14 @@
         data-static-map
         class="w-full h-96 rounded-2xl border border-base-300 z-0"
         data-poets={Jason.encode!(@public_poets)}
+        data-anonymous-poets={Jason.encode!(@anonymous_poets)}
       >
       </div>
-      <p :if={@public_poets == []} class="text-sm opacity-60 mt-2 text-center">
-        No public journals yet &mdash; the first poets are still lacing their boots.
+      <p :if={@anonymous_poets != []} class="text-xs opacity-50 mt-2 text-center">
+        Grey dots are poets whose journals are private.
+      </p>
+      <p :if={@poets_on_map == 0} class="text-sm opacity-60 mt-2 text-center">
+        No poets on the road yet &mdash; the first ones are still lacing their boots.
       </p>
     </section>
 

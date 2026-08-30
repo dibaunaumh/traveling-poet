@@ -21,6 +21,8 @@ defmodule TravelingPoet.Application do
       # Telegram long-poller + publish notifier (no-op unless TELEGRAM_BOT_TOKEN set)
       TravelingPoet.Telegram.Poller,
       TravelingPoet.Telegram.Notifier,
+      # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
+      TravelingPoet.FleetHealth.Alerter,
       # Start to serve requests, typically the last entry
       TravelingPoetWeb.Endpoint
     ]

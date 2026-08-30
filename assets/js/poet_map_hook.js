@@ -3,7 +3,9 @@
 // on mount; a "map:update" push event with the same shape re-renders.
 // For the landing page, data-poets (JSON: [{lat,lng,name,place,slug,avatar,
 // entry_url}]) renders clickable markers for all public poets instead, and
-// cycles their popups one at a time (see startTour).
+// cycles their popups one at a time (see startTour). data-anonymous-poets
+// (JSON: [{lat,lng}]) adds the private ones as unnamed grey dots -- they are
+// never clickable and never join the tour, since there is nothing to show.
 
 import * as L from "../vendor/leaflet/leaflet.js"
 
@@ -69,6 +71,15 @@ function poetPopup(p) {
   link.textContent = "Read the latest journal entry →"
   body.appendChild(link)
 
+  // The poet has moved since they last wrote: name the place the entry is
+  // actually about, so the link doesn't promise today's location.
+  if (p.entry_place) {
+    const from = document.createElement("div")
+    from.className = "poet-popup-entry-place"
+    from.textContent = `latest entry from ${p.entry_place}`
+    body.appendChild(from)
+  }
+
   el.appendChild(body)
   return el
 }
@@ -90,8 +101,9 @@ const PoetMap = {
   renderData() {
     const points = this.el.dataset.points
     const poets = this.el.dataset.poets
+    const anonymous = this.el.dataset.anonymousPoets
     if (points) this.render(JSON.parse(points))
-    if (poets) this.renderPoets(JSON.parse(poets))
+    if (poets) this.renderPoets(JSON.parse(poets), anonymous ? JSON.parse(anonymous) : [])
   },
 
   render(data) {
@@ -146,7 +158,7 @@ const PoetMap = {
     }
   },
 
-  renderPoets(poets) {
+  renderPoets(poets, anonymous = []) {
     this.stopTour()
     this.layer.clearLayers()
 
@@ -158,8 +170,21 @@ const PoetMap = {
       return m
     })
 
-    if (poets.length > 0) {
-      this.homeBounds = L.latLngBounds(poets.map((p) => [p.lat, p.lng]))
+    anonymous.forEach((p) => {
+      L.circleMarker([p.lat, p.lng], {
+        radius: 6,
+        color: "#9ca3af",
+        fillColor: "#9ca3af",
+        fillOpacity: 0.45,
+        weight: 2,
+        interactive: false,
+      }).addTo(this.layer)
+    })
+
+    const all = [...poets, ...anonymous]
+
+    if (all.length > 0) {
+      this.homeBounds = L.latLngBounds(all.map((p) => [p.lat, p.lng]))
       this.map.fitBounds(this.homeBounds, HOME_VIEW)
     } else {
       this.homeBounds = null

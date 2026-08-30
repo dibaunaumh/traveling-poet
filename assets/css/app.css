@@ -277,6 +277,12 @@
   text-decoration: underline;
 }
 
+.poet-popup-entry-place {
+  font-size: 0.7rem;
+  opacity: 0.55;
+  margin-top: 0.15rem;
+}
+
 .leaflet-popup-content {
   margin: 0.75rem 0.9rem;
 }

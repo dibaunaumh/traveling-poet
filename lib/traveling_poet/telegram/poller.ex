@@ -137,6 +137,22 @@ defmodule TravelingPoet.Telegram.Poller do
                     disable_web_page_preview: true
                   )
 
+                # Stalled mid-turn: send whatever arrived, but say it's partial
+                # rather than pass it off as a finished thought.
+                {:timeout, ""} ->
+                  Client.send_message(
+                    chat_id,
+                    "…the poet seems lost in thought. Try again in a bit?"
+                  )
+
+                {:timeout, partial} ->
+                  Client.send_message(
+                    chat_id,
+                    strip_markdown(partial) <>
+                      "\n\n(…the poet trailed off mid-thought. Ask again to pick up the thread.)",
+                    disable_web_page_preview: true
+                  )
+
                 {:error, _} ->
                   Client.send_message(
                     chat_id,
