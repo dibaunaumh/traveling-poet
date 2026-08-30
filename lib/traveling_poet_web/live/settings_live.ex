@@ -1,9 +1,9 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Credits, Payments, Poets, Provisioner}
+  alias TravelingPoet.{Accounts, Credits, Messaging, Payments, Poets, Provisioner}
+  alias TravelingPoet.Messaging.Notifier
   alias TravelingPoet.Poets.Poet
-  alias TravelingPoet.Telegram
 
   @impl true
   def mount(params, _session, socket) do
@@ -24,8 +24,9 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:page_title, "Settings")
      |> assign(:user, user)
      |> assign(:poet, poet)
-     |> assign(:telegram_configured, Telegram.Client.configured?())
-     |> assign(:telegram_link, nil)
+     |> assign(:providers, Messaging.configured_providers())
+     |> assign(:channels, channels_by_provider(user))
+     |> assign(:pair_links, %{})
      |> assign(:packs, Credits.packs())
      |> assign(:payments_mock, Payments.mock?())
      |> assign_credits()
@@ -42,7 +43,8 @@ defmodule TravelingPoetWeb.SettingsLive do
     settings =
       (poet.settings || %{})
       |> Map.put("stay_duration_days", parse_days(params["stay_duration_days"]))
-      |> Map.put("telegram_notify", params["telegram_notify"] == "on")
+      |> Map.put("notify", params["notify"] == "on")
+      |> Map.delete("telegram_notify")
       |> Map.put("verbosity", parse_verbosity(params["verbosity"]))
 
     attrs = %{
@@ -147,18 +149,25 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
-  def handle_event("telegram_pair_link", _params, socket) do
-    case Telegram.Pairing.mint_pair_link(socket.assigns.user) do
-      {:ok, link} -> {:noreply, assign(socket, :telegram_link, link)}
-      _ -> {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
+  def handle_event("pair_link", %{"provider" => provider}, socket) do
+    case Messaging.mint_pair_link(socket.assigns.user, provider) do
+      {:ok, link} ->
+        {:noreply,
+         assign(socket, :pair_links, Map.put(socket.assigns.pair_links, provider, link))}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
     end
   end
 
   @impl true
-  def handle_event("telegram_unpair", _params, socket) do
-    case Telegram.Pairing.unpair(socket.assigns.user) do
-      {:ok, user} ->
-        {:noreply, socket |> assign(:user, user) |> put_flash(:info, "Telegram unpaired.")}
+  def handle_event("unpair", %{"provider" => provider}, socket) do
+    case Messaging.unpair(socket.assigns.user, provider) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(:channels, channels_by_provider(socket.assigns.user))
+         |> put_flash(:info, "#{Messaging.label(provider)} unpaired.")}
 
       _ ->
         {:noreply, socket}
@@ -166,11 +175,12 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
-  def handle_info({:telegram_paired, _username}, socket) do
+  def handle_info({:messaging_paired, provider, _username}, socket) do
     {:noreply,
      socket
      |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
-     |> put_flash(:info, "Telegram paired ✓")}
+     |> assign(:channels, channels_by_provider(socket.assigns.user))
+     |> put_flash(:info, "#{Messaging.label(provider)} paired ✓")}
   end
 
   @impl true
@@ -196,6 +206,21 @@ defmodule TravelingPoetWeb.SettingsLive do
     |> assign(:credits_exhausted, Credits.exhausted?(user, poet))
     |> assign(:transactions, Credits.list_transactions(user, 10))
   end
+
+  defp channels_by_provider(user) do
+    user.id |> Messaging.list_channels() |> Map.new(&{&1.provider, &1})
+  end
+
+  # nil when the provider isn't paired yet — drives which half of the UI shows.
+  defp paired_label(%{external_id: id, username: username}) when is_binary(id) and id != "" do
+    "Paired#{if username, do: " as #{username}"} ✓"
+  end
+
+  defp paired_label(_), do: nil
+
+  defp pair_hint("telegram"), do: "Open the link and press Start in Telegram."
+  defp pair_hint("whatsapp"), do: "Open the link and send the prefilled message."
+  defp pair_hint(_), do: "Open the link and send the message it prepares."
 
   defp runway_text(nil), do: "Unlimited — this account is exempt from credits."
   defp runway_text(days) when days < 1, do: "Not enough for tomorrow's entry."
@@ -308,11 +333,11 @@ defmodule TravelingPoetWeb.SettingsLive do
             <label class="flex items-center gap-3">
               <input
                 type="checkbox"
-                name="telegram_notify"
+                name="notify"
                 class="toggle"
-                checked={Map.get(@poet.settings || %{}, "telegram_notify", true)}
+                checked={Notifier.notify_enabled?(@poet)}
               />
-              <span>Telegram note when a new entry is published</span>
+              <span>Message me when a new entry is published</span>
             </label>
           </form>
 
@@ -435,25 +460,40 @@ defmodule TravelingPoetWeb.SettingsLive do
 
           <div class="divider"></div>
 
-          <h2 class="font-semibold mb-2">Telegram</h2>
-          <div :if={!@telegram_configured} class="text-sm opacity-60">
-            Telegram isn't configured on this server.
+          <h2 class="font-semibold mb-2">Chat channels</h2>
+          <div :if={@providers == []} class="text-sm opacity-60">
+            No chat channels are configured on this server.
           </div>
-          <div :if={@telegram_configured}>
-            <div :if={@user.telegram_chat_id} class="flex items-center gap-3">
-              <span class="text-sm">
-                Paired{if @user.telegram_username, do: " as @#{@user.telegram_username}"} ✓
-              </span>
-              <button phx-click="telegram_unpair" class="btn btn-outline btn-sm">Unpair</button>
+          <div :for={provider <- @providers} class="mb-4">
+            <h3 class="text-sm font-medium mb-1">{TravelingPoet.Messaging.label(provider)}</h3>
+            <div :if={paired_label(@channels[provider])} class="flex items-center gap-3">
+              <span class="text-sm">{paired_label(@channels[provider])}</span>
+              <button
+                phx-click="unpair"
+                phx-value-provider={provider}
+                class="btn btn-outline btn-sm"
+              >
+                Unpair
+              </button>
             </div>
-            <div :if={is_nil(@user.telegram_chat_id)} class="space-y-2">
-              <button phx-click="telegram_pair_link" class="btn btn-secondary btn-sm">
+            <div :if={is_nil(paired_label(@channels[provider]))} class="space-y-2">
+              <button
+                phx-click="pair_link"
+                phx-value-provider={provider}
+                class="btn btn-secondary btn-sm"
+              >
                 Generate pairing link
               </button>
-              <div :if={@telegram_link}>
-                <a href={@telegram_link} target="_blank" rel="noopener" class="link break-all">
-                  {@telegram_link}
+              <div :if={@pair_links[provider]}>
+                <a
+                  href={@pair_links[provider]}
+                  target="_blank"
+                  rel="noopener"
+                  class="link break-all"
+                >
+                  {@pair_links[provider]}
                 </a>
+                <p class="text-sm opacity-60 mt-1">{pair_hint(provider)}</p>
               </div>
             </div>
           </div>

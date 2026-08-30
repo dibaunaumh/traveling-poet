@@ -1,14 +1,14 @@
 defmodule TravelingPoetWeb.OnboardingLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Geocoder, Poets, Provisioner}
+  alias TravelingPoet.{Accounts, Geocoder, Messaging, Poets, Provisioner}
 
   require Logger
 
   # step list depends on chosen mode (alice-in's conditional-steps lesson:
   # derive one list and use it everywhere)
-  defp steps("scout"), do: [:you, :poet, :mode, :itinerary, :visibility, :telegram, :review]
-  defp steps(_wander), do: [:you, :poet, :mode, :location, :visibility, :telegram, :review]
+  defp steps("scout"), do: [:you, :poet, :mode, :itinerary, :visibility, :chat, :review]
+  defp steps(_wander), do: [:you, :poet, :mode, :location, :visibility, :chat, :review]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -40,9 +40,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
        |> assign(:location_results, [])
        |> assign(:location_error, nil)
        |> assign(:is_public, false)
-       |> assign(:telegram_configured, telegram_configured?())
-       |> assign(:telegram_link, nil)
-       |> assign(:telegram_paired, user.telegram_chat_id != nil)
+       |> assign(:providers, Messaging.configured_providers())
+       |> assign(:pair_links, %{})
+       |> assign(:paired_providers, paired_providers(user))
        |> assign(:provisioning, false)}
     end
   end
@@ -163,13 +163,17 @@ defmodule TravelingPoetWeb.OnboardingLive do
     {:noreply, assign(socket, :is_public, public == "true")}
   end
 
-  ## Step 5: telegram
+  ## Step 5: chat channels
 
   @impl true
-  def handle_event("telegram_pair_link", _params, socket) do
-    case TravelingPoet.Telegram.Pairing.mint_pair_link(socket.assigns.current_user) do
-      {:ok, link} -> {:noreply, assign(socket, :telegram_link, link)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
+  def handle_event("pair_link", %{"provider" => provider}, socket) do
+    case Messaging.mint_pair_link(socket.assigns.current_user, provider) do
+      {:ok, link} ->
+        {:noreply,
+         assign(socket, :pair_links, Map.put(socket.assigns.pair_links, provider, link))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
     end
   end
 
@@ -252,11 +256,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   @impl true
-  def handle_info({:telegram_paired, username}, socket) do
+  def handle_info({:messaging_paired, provider, username}, socket) do
     {:noreply,
      socket
-     |> assign(:telegram_paired, true)
-     |> put_flash(:info, "Telegram connected#{if username, do: " as @#{username}"} ✓")}
+     |> assign(:paired_providers, [provider | socket.assigns.paired_providers] |> Enum.uniq())
+     |> put_flash(
+       :info,
+       "#{Messaging.label(provider)} connected#{if username, do: " as #{username}"} ✓"
+     )}
   end
 
   @impl true
@@ -324,9 +331,17 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
-  defp telegram_configured? do
-    Application.get_env(:traveling_poet, :telegram_bot_token) not in [nil, ""]
+  defp paired_providers(user) do
+    user.id |> Messaging.paired_channels() |> Enum.map(& &1.provider)
   end
+
+  defp pair_hint("telegram"),
+    do: "Open the link, press Start in Telegram, and this page will update."
+
+  defp pair_hint("whatsapp"),
+    do: "Open the link, send the message it prepares, and this page will update."
+
+  defp pair_hint(_), do: "Open the link and send the message it prepares."
 
   ## Render
 
@@ -621,32 +636,46 @@ defmodule TravelingPoetWeb.OnboardingLive do
           </div>
         </div>
 
-        <div :if={@step == :telegram}>
-          <h1 class="text-2xl font-semibold mb-2">Chat on Telegram too?</h1>
+        <div :if={@step == :chat}>
+          <h1 class="text-2xl font-semibold mb-2">Chat on your phone too?</h1>
           <p class="opacity-70 mb-4">
-            Optional: pair a Telegram chat so your poet can reach you on the road.
+            Optional: pair a chat so your poet can reach you on the road.
           </p>
-          <div :if={!@telegram_configured} class="alert mb-4">
-            Telegram isn't configured on this server yet — you can skip this step.
+          <div :if={@providers == []} class="alert mb-4">
+            No chat channels are configured on this server yet — you can skip this step.
           </div>
-          <div :if={@telegram_configured and not @telegram_paired} class="mb-4 space-y-3">
-            <button phx-click="telegram_pair_link" class="btn btn-secondary">
-              Generate pairing link
-            </button>
-            <div :if={@telegram_link}>
-              <a href={@telegram_link} target="_blank" rel="noopener" class="link break-all">
-                {@telegram_link}
-              </a>
-              <p class="text-sm opacity-60 mt-1">
-                Open the link, press <b>Start</b> in Telegram, and this page will update.
-              </p>
+          <div :for={provider <- @providers} class="mb-4">
+            <div
+              :if={provider in @paired_providers}
+              class="alert alert-success"
+            >
+              {Messaging.label(provider)} paired ✓
+            </div>
+            <div :if={provider not in @paired_providers} class="space-y-2">
+              <button
+                phx-click="pair_link"
+                phx-value-provider={provider}
+                class="btn btn-secondary"
+              >
+                Connect {Messaging.label(provider)}
+              </button>
+              <div :if={@pair_links[provider]}>
+                <a
+                  href={@pair_links[provider]}
+                  target="_blank"
+                  rel="noopener"
+                  class="link break-all"
+                >
+                  {@pair_links[provider]}
+                </a>
+                <p class="text-sm opacity-60 mt-1">{pair_hint(provider)}</p>
+              </div>
             </div>
           </div>
-          <div :if={@telegram_paired} class="alert alert-success mb-4">Telegram paired ✓</div>
           <div class="flex gap-2">
             <button phx-click="back" class="btn btn-ghost">Back</button>
             <button phx-click="next" class="btn btn-primary flex-1">
-              {if @telegram_paired, do: "Continue", else: "Skip for now"}
+              {if @paired_providers == [], do: "Skip for now", else: "Continue"}
             </button>
           </div>
         </div>
@@ -666,7 +695,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
               <b>Route:</b> {Enum.map_join(@stops, " → ", & &1.place_name)}
             </li>
             <li><b>Journal:</b> {if @is_public, do: "public", else: "private"}</li>
-            <li><b>Telegram:</b> {if @telegram_paired, do: "paired", else: "not paired"}</li>
+            <li>
+              <b>Chat:</b> {if @paired_providers == [],
+                do: "not paired",
+                else: Enum.map_join(@paired_providers, ", ", &Messaging.label/1)}
+            </li>
           </ul>
           <div class="flex gap-2">
             <button phx-click="back" class="btn btn-ghost">Back</button>

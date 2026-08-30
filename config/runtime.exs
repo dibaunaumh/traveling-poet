@@ -41,6 +41,15 @@ config :traveling_poet,
   telegram_bot_token:
     if(config_env() == :test, do: nil, else: System.get_env("TELEGRAM_BOT_TOKEN")),
   telegram_bot_username: System.get_env("TELEGRAM_BOT_USERNAME"),
+  # WhatsApp Cloud API (Meta). Same test-env rule as Telegram: a live token
+  # here would let a test send a real (billed) message.
+  whatsapp_access_token:
+    if(config_env() == :test, do: nil, else: System.get_env("WHATSAPP_ACCESS_TOKEN")),
+  whatsapp_phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
+  whatsapp_business_number: System.get_env("WHATSAPP_BUSINESS_NUMBER"),
+  whatsapp_verify_token: System.get_env("WHATSAPP_VERIFY_TOKEN"),
+  whatsapp_app_secret: System.get_env("WHATSAPP_APP_SECRET"),
+  whatsapp_template_language: System.get_env("WHATSAPP_TEMPLATE_LANG", "en"),
   tigris_bucket_name: System.get_env("TIGRIS_BUCKET_NAME"),
   journey_check_interval_minutes:
     if(config_env() == :test,

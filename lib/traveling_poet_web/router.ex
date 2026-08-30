@@ -19,7 +19,7 @@ defmodule TravelingPoetWeb.Router do
     plug TravelingPoetWeb.Plugs.AgentAuth
   end
 
-  # Payment-provider webhooks: signature-verified over the raw body, no session/CSRF.
+  # Provider webhooks: signature-verified over the raw body, no session/CSRF.
   pipeline :webhooks do
     plug :accepts, ["json"]
   end
@@ -28,6 +28,9 @@ defmodule TravelingPoetWeb.Router do
     pipe_through :webhooks
 
     post "/stripe", StripeWebhookController, :handle
+    # Meta's subscription handshake, then the inbound message feed.
+    get "/whatsapp", WhatsAppWebhookController, :verify
+    post "/whatsapp", WhatsAppWebhookController, :handle
   end
 
   scope "/", TravelingPoetWeb do

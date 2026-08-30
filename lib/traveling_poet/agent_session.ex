@@ -3,7 +3,8 @@ defmodule TravelingPoet.AgentSession do
   Headless agent exchange: wake the sprite (the inbound WebSocket connect does
   it), send a message, hold the sprite awake through the turn with blocking
   on-sprite execs, collect the streamed reply until :done, and persist both
-  sides to Chat. Used by the Telegram poller and the DailyJourneyScheduler —
+  sides to Chat. Used by the chat channels (Messaging.Inbound) and the
+  DailyJourneyScheduler —
   the same shape alice-in-goals' TpmSyncScheduler proved out.
   """
 
@@ -18,7 +19,8 @@ defmodule TravelingPoet.AgentSession do
   @doc """
   Runs one exchange. Options:
 
-    * `:channel` — chat channel to persist under ("system" | "telegram"), default "system"
+    * `:channel` — chat channel to persist under ("system" | "telegram" |
+      "whatsapp"), default "system"
     * `:hold_awake_rounds` — how many ~90s keepalive execs to chain (default 3)
     * `:reply_timeout_ms` — how long to wait for :done (default 5 min)
     * `:persist` — persist both sides to Chat (default true)
