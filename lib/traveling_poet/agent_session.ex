@@ -25,7 +25,13 @@ defmodule TravelingPoet.AgentSession do
     * `:reply_timeout_ms` — how long to wait for :done (default 5 min)
     * `:persist` — persist both sides to Chat (default true)
 
-  Returns `{:ok, reply_text}` (may be `""` on timeout) or `{:error, reason}`.
+  Returns `{:ok, reply_text}` when the agent finished its turn (`:done`),
+  `{:timeout, partial_text}` when it went silent for `:reply_timeout_ms`
+  before finishing, or `{:error, reason}`.
+
+  A timeout is NOT a success even when `partial_text` is non-empty: the agent
+  may have narrated its way through half the ritual and then stalled, leaving
+  its work unpublished. Callers must treat `{:timeout, _}` as a failed turn.
   """
   def run(user, message, opts \\ []) do
     channel = Keyword.get(opts, :channel, "system")
@@ -50,9 +56,9 @@ defmodule TravelingPoet.AgentSession do
         # Sibling task keeps the sprite awake while this process waits.
         Task.start(fn -> hold_awake(user.sprite_name, rounds) end)
 
-        reply = collect_reply(user, "", timeout, persist?, channel)
+        result = collect_reply(user, "", timeout, persist?, channel)
         GatewaySocket.unsubscribe(pid)
-        {:ok, reply}
+        result
 
       err ->
         Logger.warning(
@@ -92,14 +98,20 @@ defmodule TravelingPoet.AgentSession do
           })
         end
 
-        content
+        {:ok, content}
 
       {:gateway_event, _other} ->
         collect_reply(user, acc, timeout, persist?, channel)
     after
       timeout ->
-        Logger.warning("AgentSession: no agent reply within timeout for user #{user.id}")
-        String.trim(acc)
+        partial = String.trim(acc)
+
+        Logger.warning(
+          "AgentSession: no agent reply within timeout for user #{user.id} " <>
+            "(#{String.length(partial)} chars of partial text)"
+        )
+
+        {:timeout, partial}
     end
   end
 

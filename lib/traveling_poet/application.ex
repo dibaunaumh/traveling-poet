@@ -24,6 +24,8 @@ defmodule TravelingPoet.Application do
       TravelingPoet.Messaging.Dedupe,
       # Publish/credits notes to every paired channel (no-op with none configured)
       TravelingPoet.Messaging.Notifier,
+      # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
+      TravelingPoet.FleetHealth.Alerter,
       # Start to serve requests, typically the last entry
       TravelingPoetWeb.Endpoint
     ]

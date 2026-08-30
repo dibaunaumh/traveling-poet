@@ -103,6 +103,17 @@ defmodule TravelingPoet.Journal do
   defp maybe_filter_status(query, nil), do: query
   defp maybe_filter_status(query, status), do: where(query, status: ^status)
 
+  @doc """
+  Whether this poet published anything at or after `since` — the daily run's
+  real outcome. A run that talked but never published hasn't happened.
+  """
+  def published_since?(poet_id, %DateTime{} = since) do
+    Entry
+    |> where([e], e.poet_id == ^poet_id and e.status == "published")
+    |> where([e], e.published_at >= ^since)
+    |> Repo.exists?()
+  end
+
   def latest_published_entry(poet_id) do
     Entry
     |> where(poet_id: ^poet_id, status: "published")

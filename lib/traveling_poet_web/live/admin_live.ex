@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.AdminLive do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, Credits, Repo, Usage}
+  alias TravelingPoet.{Accounts, Credits, FleetHealth, OpenRouter, Repo, Usage}
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
 
@@ -11,7 +11,7 @@ defmodule TravelingPoetWeb.AdminLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:page_title, "Admin — costs")
+     |> assign(:page_title, "Admin — fleet health & costs")
      |> load_fleet()}
   end
 
@@ -59,10 +59,72 @@ defmodule TravelingPoetWeb.AdminLive do
 
     total_week = rows |> Enum.map(& &1.week_cost) |> Enum.sum()
 
+    health = FleetHealth.report()
+
     socket
     |> assign(:rows, rows)
     |> assign(:total_week, total_week)
+    |> assign(:health, health)
+    |> assign(:health_summary, health_summary(health))
+    |> assign(:openrouter, openrouter_banner())
   end
+
+  # The whole fleet runs on one OpenRouter key. When it is spent every model
+  # turn 402s before it starts, which reaches the app as silent sprites — so
+  # the balance belongs above the table that would otherwise just look broken.
+  defp openrouter_banner do
+    case OpenRouter.key_status() do
+      {:ok, %{exhausted?: true} = s} ->
+        %{
+          class: "alert-error",
+          text:
+            "OpenRouter key is out of credit — #{money(s.usage)} of #{money(s.limit)} used. " <>
+              "Every poet's model turn is being rejected with a 402 until the key is topped up."
+        }
+
+      {:ok, %{low?: true} = s} ->
+        %{
+          class: "alert-warning",
+          text: "OpenRouter key nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
+        }
+
+      {:ok, %{limit: nil}} ->
+        nil
+
+      {:ok, s} ->
+        %{
+          class: "alert-success",
+          text: "OpenRouter key: #{money(s.remaining)} left of #{money(s.limit)}."
+        }
+
+      {:error, :not_configured} ->
+        nil
+
+      {:error, reason} ->
+        %{class: "alert-warning", text: "Could not read OpenRouter balance: #{inspect(reason)}"}
+    end
+  end
+
+  defp money(nil), do: "?"
+  defp money(n), do: "$#{:erlang.float_to_binary(n, decimals: 2)}"
+
+  defp health_summary(health) do
+    counts = Enum.frequencies_by(health, & &1.status)
+
+    case Map.get(counts, :failing, 0) do
+      0 -> "#{Map.get(counts, :ok, 0)} publishing, none missed"
+      n -> "#{n} poet(s) missing their day"
+    end
+  end
+
+  defp health_badge(:ok), do: "badge-success"
+  defp health_badge(:late), do: "badge-warning"
+  defp health_badge(:failing), do: "badge-error"
+  defp health_badge(:never_published), do: "badge-warning"
+  defp health_badge(:inactive), do: "badge-ghost"
+
+  defp health_label(:never_published), do: "never published"
+  defp health_label(status), do: to_string(status)
 
   defp cents(c), do: "$#{:erlang.float_to_binary(c / 100, decimals: 2)}"
 
@@ -75,6 +137,65 @@ defmodule TravelingPoetWeb.AdminLive do
       credits_low={assigns[:credits_low]}
     >
       <div class="mx-auto max-w-5xl py-8">
+        <div class="flex items-center justify-between mb-4">
+          <h1 class="text-2xl font-semibold">Fleet health</h1>
+          <div class="flex items-center gap-3">
+            <span class="text-sm opacity-70">
+              {@health_summary}
+            </span>
+            <button phx-click="refresh" class="btn btn-sm">Refresh</button>
+          </div>
+        </div>
+
+        <div :if={@openrouter} class={["alert mb-4", @openrouter.class]}>
+          <span>{@openrouter.text}</span>
+        </div>
+
+        <div class="overflow-x-auto mb-10">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Poet</th>
+                <th>Health</th>
+                <th>Last published</th>
+                <th>Latest entry</th>
+                <th>Map says</th>
+                <th>Attempts today</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={h <- @health} class={h.status == :failing && "bg-error/5"}>
+                <td>{h.poet.name}</td>
+                <td>
+                  <span class={["badge badge-sm", health_badge(h.status)]}>
+                    {health_label(h.status)}
+                  </span>
+                </td>
+                <td class="tabular-nums">
+                  {if h.hours_since_publish, do: "#{trunc(h.hours_since_publish)}h ago", else: "never"}
+                </td>
+                <td>
+                  {h.entry_place || "—"}
+                  <span :if={h.last_entry_date} class="opacity-50 text-xs">
+                    {h.last_entry_date}
+                  </span>
+                </td>
+                <td>
+                  {h.current_place || "—"}
+                  <span
+                    :if={h.drifted?}
+                    class="badge badge-warning badge-xs"
+                    title="The map has moved on but the journal hasn't caught up"
+                  >
+                    drifted
+                  </span>
+                </td>
+                <td class="tabular-nums">{h.attempts_today}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="flex items-center justify-between mb-4">
           <h1 class="text-2xl font-semibold">Cost dashboard</h1>
           <div class="flex items-center gap-3">

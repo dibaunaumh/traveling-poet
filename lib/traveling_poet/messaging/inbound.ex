@@ -132,6 +132,26 @@ defmodule TravelingPoet.Messaging.Inbound do
           disable_web_page_preview: true
         )
 
+      # Stalled mid-turn: send whatever arrived, but say it's partial rather
+      # than pass it off as a finished thought. Silence here usually means the
+      # model provider refused the call outright (an exhausted key 402s before
+      # generating a token), so the reader gets nothing at all otherwise.
+      {:timeout, ""} ->
+        Messaging.send_raw(
+          provider,
+          external_id,
+          "…the poet seems lost in thought. Try again in a bit?"
+        )
+
+      {:timeout, partial} ->
+        Messaging.send_raw(
+          provider,
+          external_id,
+          strip_markdown(partial) <>
+            "\n\n(…the poet trailed off mid-thought. Ask again to pick up the thread.)",
+          disable_web_page_preview: true
+        )
+
       {:error, _} ->
         Messaging.send_raw(
           provider,

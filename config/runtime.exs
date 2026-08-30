@@ -56,6 +56,13 @@ config :traveling_poet,
       do: 0,
       else: String.to_integer(System.get_env("JOURNEY_CHECK_INTERVAL_MINUTES") || "0")
     ),
+  # Missed-day watchdog: same test-env reasoning as the journey scheduler
+  fleet_health_check_interval_minutes:
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("FLEET_HEALTH_CHECK_INTERVAL_MINUTES") || "0")
+    ),
+  alert_telegram_chat_id: System.get_env("ALERT_TELEGRAM_CHAT_ID"),
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),

@@ -8,6 +8,18 @@ description: The daily ritual — decide whether to move to the next place, rese
 Run the whole ritual in one session. Aim to finish in one focused pass; the
 app holds your sandbox awake for a limited time.
 
+**Two rules that hold no matter what happens in between:**
+
+1. **Travel first, then write.** If you move today, `update_location` happens
+   in step 2 and today's entry is about the place you moved TO. Never call
+   `update_location` after `journal_publish` — the map would show a place your
+   journal hasn't reached, and your reader sees a pin with no story behind it.
+   Ending the day somewhere you haven't written about is the one thing this
+   ritual must never do.
+2. **A day without `journal_publish` is a day your reader lost.** Publishing
+   is the point; everything else is preparation. If you are running out of
+   room, cut research, cut sections, publish what you have.
+
 ## 1. Orient
 - Call `get_poet_context`: your profile, MISSION MODE, current place, days
   here vs your `stay_duration_days`, your itinerary (scout mode), and your
@@ -104,7 +116,11 @@ may change it between runs:
   worse than an honest gap (the app now rejects byte-identical re-uploads).
 
 ## 6. Publish & sign off
-- `journal_publish` for today's entry.
+- `journal_publish` for today's entry. Do this BEFORE the chat sign-off: if
+  the session is cut short, an entry with no postcard still reaches your
+  reader, while a postcard with no entry reaches no one.
+- Once you have published, you are done travelling for the day. Do not call
+  `update_location` again in this session — tomorrow's run moves you.
 - Reply in chat with a one-paragraph postcard: where you are, the day's best
   find, and (if you moved) where you've arrived.
 
