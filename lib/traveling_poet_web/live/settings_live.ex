@@ -1,7 +1,7 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Credits, Payments, Poets, Provisioner}
+  alias TravelingPoet.{Accounts, Credits, Payments, Poets, Preferences, Provisioner}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Telegram
 
@@ -32,21 +32,74 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:stops, (poet && Poets.list_stops(poet.id)) || [])
      |> assign(:stop_query, "")
      |> assign(:stop_results, [])
-     |> assign(:stop_error, nil)}
+     |> assign(:stop_error, nil)
+     |> assign_learned()}
+  end
+
+  defp assign_learned(socket) do
+    case socket.assigns.poet do
+      nil ->
+        socket |> assign(:learned, []) |> assign(:dismissed, [])
+
+      poet ->
+        socket
+        |> assign(:learned, Preferences.list_active(poet.id))
+        |> assign(:dismissed, Preferences.list_dismissed(poet.id))
+    end
+  end
+
+  defp source_label("tap"), do: "you tapped this"
+  defp source_label("chat"), do: "you said this in chat"
+  defp source_label("settings"), do: "you set this"
+  defp source_label("onboarding"), do: "from your setup"
+  defp source_label("reaction"), do: "from your reaction"
+  defp source_label(_), do: "learned"
+
+  @impl true
+  def handle_event("dismiss_preference", %{"id" => id}, socket) do
+    poet = socket.assigns.poet
+
+    with {id, ""} <- Integer.parse(id),
+         pref when not is_nil(pref) <- Preferences.get(poet.id, id),
+         {:ok, _} <- Preferences.dismiss(pref) do
+      {:noreply, assign_learned(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("restore_preference", %{"id" => id}, socket) do
+    poet = socket.assigns.poet
+
+    with {id, ""} <- Integer.parse(id),
+         pref when not is_nil(pref) <- Preferences.get(poet.id, id),
+         {:ok, _} <- Preferences.restore(pref) do
+      {:noreply, assign_learned(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   @impl true
   def handle_event("save_poet", params, socket) do
     poet = socket.assigns.poet
 
+    interests = split_interests(params["interests"])
+
     settings =
       (poet.settings || %{})
       |> Map.put("stay_duration_days", parse_days(params["stay_duration_days"]))
       |> Map.put("telegram_notify", params["telegram_notify"] == "on")
       |> Map.put("verbosity", parse_verbosity(params["verbosity"]))
+      # Kept in step with the column so the two don't drift: the column is
+      # what reaches the agent every run, this copy is what gets baked into
+      # the workspace on the next provision.
+      |> Map.put("user_interests", interests)
 
     attrs = %{
       personality: params["personality"],
+      interests: interests,
       is_public: params["is_public"] == "on",
       settings: settings
     }
@@ -220,6 +273,17 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp dollars(cents),
     do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2) |> String.replace(~r/\.00$/, "")}"
 
+  # Same comma-splitting the onboarding form uses, so an interest list edited
+  # here looks exactly like one set at signup.
+  defp split_interests(nil), do: []
+
+  defp split_interests(text) do
+    text
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
   defp parse_days(str) do
     case Integer.parse(to_string(str)) do
       {n, _} when n in 1..30 -> n
@@ -262,6 +326,21 @@ defmodule TravelingPoetWeb.SettingsLive do
                 phx-debounce="750"
                 class="textarea textarea-bordered w-full mt-1"
               >{@poet.personality}</textarea>
+            </label>
+
+            <label class="block">
+              <span class="text-sm font-medium">What you want {@poet.name} to look for</span>
+              <input
+                type="text"
+                name="interests"
+                phx-debounce="750"
+                value={Enum.join(@poet.interests || [], ", ")}
+                placeholder="street food, bridges, hidden gardens"
+                class="input input-bordered w-full mt-1"
+              />
+              <span class="text-xs opacity-50">
+                Comma separated. Takes effect on tomorrow's entry.
+              </span>
             </label>
 
             <label class="block">
@@ -315,6 +394,65 @@ defmodule TravelingPoetWeb.SettingsLive do
               <span>Telegram note when a new entry is published</span>
             </label>
           </form>
+
+          <div class="divider"></div>
+
+          <section id="learned">
+            <h2 class="text-lg font-semibold mb-1">What {@poet.name} has learned about you</h2>
+            <p class="text-sm opacity-60 mb-3">
+              Picked up from what you tap under an entry and what you say in chat. {@poet.name} applies these on its own — remove anything that isn't right.
+            </p>
+
+            <p :if={@learned == []} class="text-sm opacity-50">
+              Nothing yet. Answer a question under an entry, or just tell {@poet.name} in chat what you'd rather read about.
+            </p>
+
+            <ul class="space-y-2">
+              <li
+                :for={pref <- @learned}
+                class="flex items-start gap-2 p-2 rounded-lg border border-base-200"
+              >
+                <div class="flex-1">
+                  <div class="text-sm">
+                    <span :if={pref.polarity == "avoid"} class="opacity-60">less: </span>{pref.label}
+                  </div>
+                  <div class="text-xs opacity-50">
+                    {source_label(pref.source)}
+                    <span :if={pref.weight > 1}>· mentioned {pref.weight}×</span>
+                    <span :if={pref.evidence["quote"]} class="italic">
+                      · &ldquo;{pref.evidence["quote"]}&rdquo;
+                    </span>
+                  </div>
+                </div>
+                <button
+                  phx-click="dismiss_preference"
+                  phx-value-id={pref.id}
+                  class="btn btn-ghost btn-xs"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </li>
+            </ul>
+
+            <details :if={@dismissed != []} class="mt-3">
+              <summary class="text-xs opacity-50 cursor-pointer">
+                Removed ({length(@dismissed)})
+              </summary>
+              <ul class="mt-2 space-y-1">
+                <li :for={pref <- @dismissed} class="flex items-center gap-2 text-sm opacity-60">
+                  <span class="flex-1">{pref.label}</span>
+                  <button
+                    phx-click="restore_preference"
+                    phx-value-id={pref.id}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    restore
+                  </button>
+                </li>
+              </ul>
+            </details>
+          </section>
 
           <div class="divider"></div>
 

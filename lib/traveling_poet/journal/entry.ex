@@ -14,10 +14,15 @@ defmodule TravelingPoet.Journal.Entry do
     field :published_at, :utc_datetime
     field :weather, :map, default: %{}
     field :sources, :map, default: %{}
+    # Did the poet's own reader actually open this? The only signal a silent
+    # user gives, and the difference between "happy and quiet" and "gone".
+    field :owner_viewed_at, :utc_datetime
+    field :owner_view_count, :integer, default: 0
 
     belongs_to :poet, TravelingPoet.Poets.Poet
     has_many :sections, TravelingPoet.Journal.Section, foreign_key: :journal_entry_id
     has_many :reactions, TravelingPoet.Journal.Reaction, foreign_key: :journal_entry_id
+    has_one :prompt, TravelingPoet.Preferences.EntryPrompt, foreign_key: :journal_entry_id
 
     timestamps()
   end
@@ -35,7 +40,9 @@ defmodule TravelingPoet.Journal.Entry do
       :status,
       :published_at,
       :weather,
-      :sources
+      :sources,
+      :owner_viewed_at,
+      :owner_view_count
     ])
     |> validate_required([:poet_id, :entry_date])
     |> validate_inclusion(:status, @statuses)

@@ -114,6 +114,37 @@ defmodule TravelingPoet.Journal do
     |> Repo.exists?()
   end
 
+  # Re-opening the same entry within this window doesn't count again — the
+  # LiveView re-renders on plenty of unrelated events.
+  @view_debounce_seconds 300
+
+  @doc """
+  Stamps that the poet's own reader opened this entry.
+
+  Until this existed the app could not tell a happy silent reader from someone
+  who had stopped coming back — opposite problems with opposite fixes. Called
+  only for the owner, only from a live (connected) view.
+  """
+  def mark_owner_viewed(%Entry{} = entry, now \\ DateTime.utc_now()) do
+    now = DateTime.truncate(now, :second)
+
+    if recently_viewed?(entry, now) do
+      {:ok, entry}
+    else
+      entry
+      |> Entry.changeset(%{
+        owner_viewed_at: now,
+        owner_view_count: (entry.owner_view_count || 0) + 1
+      })
+      |> Repo.update()
+    end
+  end
+
+  defp recently_viewed?(%{owner_viewed_at: nil}, _now), do: false
+
+  defp recently_viewed?(%{owner_viewed_at: at}, now),
+    do: DateTime.diff(now, at, :second) < @view_debounce_seconds
+
   def latest_published_entry(poet_id) do
     Entry
     |> where(poet_id: ^poet_id, status: "published")
