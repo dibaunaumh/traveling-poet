@@ -5,6 +5,7 @@ defmodule TravelingPoetWeb.JournalLive do
     Accounts,
     Chat,
     Credits,
+    FirstEntry,
     GatewaySocket,
     GatewaySocketSupervisor,
     Journal,
@@ -800,31 +801,21 @@ defmodule TravelingPoetWeb.JournalLive do
     "for i in $(seq 1 #{seconds}); do sleep 1; done"
   end
 
-  # Fires /onboard exactly once per user on first gateway :connected — agents
-  # don't initiate chat on their own. Idempotency via users.agent_onboarded_at.
+  # The fast path for someone watching the setting-up screen: kick the first
+  # entry off the moment the gateway connects. FirstEntry owns the decision
+  # (already published? already in flight? out of attempts?) and the outcome
+  # accounting, and its watchdog covers everyone who closed the tab — which
+  # this screen explicitly invites them to do.
   defp maybe_fire_agent_onboard(socket) do
     user = socket.assigns.user
-    pid = socket.assigns.gateway_socket_pid
 
-    cond do
-      user.agent_onboarded_at != nil ->
+    case FirstEntry.ensure_started(user, socket.assigns.poet) do
+      :started ->
+        Logger.info("Auto-fired /onboard for user #{user.id}")
         socket
 
-      is_nil(pid) ->
+      _ ->
         socket
-
-      true ->
-        GatewaySocket.send_message(pid, "/onboard")
-
-        case Accounts.update_user(user, %{agent_onboarded_at: DateTime.utc_now()}) do
-          {:ok, updated} ->
-            Logger.info("Auto-fired /onboard for user #{user.id}")
-            assign(socket, :user, updated)
-
-          {:error, reason} ->
-            Logger.error("Failed to mark user #{user.id} agent_onboarded: #{inspect(reason)}")
-            socket
-        end
     end
   end
 

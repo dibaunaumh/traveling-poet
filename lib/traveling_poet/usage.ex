@@ -14,6 +14,8 @@ defmodule TravelingPoet.Usage do
   @default_costs %{
     "daily_run" => 15,
     "daily_run_attempt" => 0,
+    # the run itself is what costs; the attempt marker is bookkeeping
+    "first_entry_attempt" => 0,
     "chat_turn" => 2,
     "image_gen" => 4,
     "exec" => 0,

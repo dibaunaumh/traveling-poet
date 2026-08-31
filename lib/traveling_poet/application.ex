@@ -23,6 +23,8 @@ defmodule TravelingPoet.Application do
       TravelingPoet.Telegram.Notifier,
       # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.FleetHealth.Alerter,
+      # Retries first-entry kickoffs so a closed tab can't strand a new poet
+      TravelingPoet.FirstEntry.Watchdog,
       # Start to serve requests, typically the last entry
       TravelingPoetWeb.Endpoint
     ]
