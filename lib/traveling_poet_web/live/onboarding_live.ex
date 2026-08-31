@@ -49,6 +49,16 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   ## Step navigation
 
+  # Keep the server's copy of the step's inputs current on every keystroke.
+  # Without this the answers live only in the browser until "Continue", and
+  # any re-render in between — picking a book, a PubSub message landing —
+  # repaints the fields from assigns that are still empty, silently wiping
+  # everything the person had typed.
+  @impl true
+  def handle_event("capture", params, socket) do
+    {:noreply, capture_step(socket, params)}
+  end
+
   @impl true
   def handle_event("next", params, socket) do
     socket = capture_step(socket, params)
@@ -355,7 +365,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
           <p class="opacity-70 mb-4">
             Your poet writes home to you — tell them who's reading.
           </p>
-          <form phx-submit="next" class="space-y-4">
+          <form id="onboarding-you" phx-submit="next" phx-change="capture" class="space-y-4">
             <label class="block">
               <span class="text-sm font-medium">Your name</span>
               <input
@@ -383,7 +393,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
         <div :if={@step == :poet}>
           <h1 class="text-2xl font-semibold mb-2">Your traveling poet</h1>
           <p class="opacity-70 mb-4">Give them a name, a temperament, and a book for the road.</p>
-          <form phx-submit="next" class="space-y-4">
+          <form id="onboarding-poet" phx-submit="next" phx-change="capture" class="space-y-4">
             <label class="block">
               <span class="text-sm font-medium">Poet's name</span>
               <input
