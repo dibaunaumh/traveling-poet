@@ -51,6 +51,7 @@ defmodule TravelingPoetWeb.Router do
     get "/memory", AgentController, :memory
     get "/context", AgentController, :context
     get "/feedback", AgentController, :feedback
+    post "/preferences", PreferenceController, :create
     post "/location", LocationController, :update
     post "/journal_entries", JournalApiController, :upsert_entry
     put "/journal_entries/:date/sections", JournalApiController, :put_sections

@@ -81,6 +81,101 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert Map.has_key?(body, "prompt_answers")
   end
 
+  test "the poet can persist what its companion said in chat", %{conn: conn, poet: poet} do
+    body =
+      conn
+      |> post(~p"/api/agent/preferences", %{
+        "label" => "american stupid things",
+        "dimension" => "topic",
+        "polarity" => "seek",
+        "quote" => "dont look for delightful culture, look for american stupid things"
+      })
+      |> json_response(200)
+
+    assert body["ok"]
+    assert body["times_heard"] == 1
+
+    assert [pref] = TravelingPoet.Preferences.list_active(poet.id)
+    # the companion's own words are kept so the settings panel can justify itself
+    assert pref.evidence["quote"] =~ "american stupid things"
+  end
+
+  test "the poet cannot claim a preference came from the user's own tap",
+       %{conn: conn, poet: poet} do
+    conn
+    |> post(~p"/api/agent/preferences", %{"label" => "more nightlife", "source" => "tap"})
+    |> json_response(200)
+
+    assert [pref] = TravelingPoet.Preferences.list_active(poet.id)
+    # forced server-side: taps carry authority the agent must not borrow
+    assert pref.source == "chat"
+  end
+
+  test "the poet cannot re-learn what the user removed", %{conn: conn, poet: poet} do
+    alias TravelingPoet.Preferences
+
+    {:ok, pref} =
+      Preferences.record(poet.id, %{label: "more museums", dimension: "topic", source: "tap"})
+
+    {:ok, _} = Preferences.dismiss(pref)
+
+    conn
+    |> post(~p"/api/agent/preferences", %{"label" => "more museums", "dimension" => "topic"})
+    |> json_response(200)
+
+    assert Preferences.list_active(poet.id) == []
+  end
+
+  test "malformed preferences are refused rather than half-stored", %{conn: conn, poet: poet} do
+    assert conn
+           |> post(~p"/api/agent/preferences", %{"label" => "  "})
+           |> json_response(422)
+
+    assert conn
+           |> post(~p"/api/agent/preferences", %{"label" => "x", "dimension" => "vibes"})
+           |> json_response(422)
+
+    assert conn |> post(~p"/api/agent/preferences", %{}) |> json_response(422)
+    assert TravelingPoet.Preferences.list_active(poet.id) == []
+  end
+
+  test "an agent-authored question replaces the app's, and a bad one is dropped",
+       %{conn: conn, poet: poet} do
+    alias TravelingPoet.Preferences
+
+    good = %{
+      "entry_date" => "2026-08-31",
+      "title" => "Nara",
+      "prompt" => %{
+        "question" => "I skipped the temple for the deer park — more of that?",
+        "options" => [
+          %{"label" => "Yes, the odd corners", "dimension" => "topic", "polarity" => "seek"},
+          %{"label" => "No, the famous places", "dimension" => "topic", "polarity" => "avoid"}
+        ]
+      }
+    }
+
+    assert %{"prompt_accepted" => true, "entry_id" => entry_id} =
+             conn |> post(~p"/api/agent/journal_entries", good) |> json_response(200)
+
+    prompt = TravelingPoet.Repo.get_by(Preferences.EntryPrompt, journal_entry_id: entry_id)
+    assert prompt.source == "agent"
+    assert prompt.question =~ "deer park"
+
+    # A malformed prompt must never cost the poet its entry — the entry still
+    # saves, and the app's own question fills the slot instead.
+    bad = %{
+      "entry_date" => "2026-08-30",
+      "title" => "Kyoto",
+      "prompt" => %{"question" => "Well?", "options" => [%{"label" => "only one option"}]}
+    }
+
+    assert %{"prompt_accepted" => false, "ok" => true} =
+             conn |> post(~p"/api/agent/journal_entries", bad) |> json_response(200)
+
+    assert poet.id
+  end
+
   test "entry upsert + sections + publish round-trip", %{conn: conn, poet: poet} do
     date = Date.utc_today() |> Date.to_iso8601()
 

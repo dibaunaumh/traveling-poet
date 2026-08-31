@@ -157,17 +157,51 @@ defmodule TravelingPoet.Provisioner do
     end
   end
 
-  @doc "Re-seed workspace files (skills/AGENTS/scripts) on an existing sprite."
+  @doc """
+  Re-seed workspace files (skills/AGENTS/scripts) AND the tool plugin on an
+  existing sprite.
+
+  The plugin used to be written only by `do_provision_user/2`, so a poet
+  provisioned last week could never gain a new tool — the app would ship an
+  endpoint no agent knew how to call. Rewriting it here makes this the light
+  way to roll changes across the fleet: full re-provisioning re-runs npm
+  checks, device pairing and service teardown, which is a lot of risk to take
+  on eight live sprites just to deliver a skill edit.
+
+  Note skills are compile-time embedded (`@skill_contents`), so editing a
+  SKILL.md needs `mix compile --force` before this will carry the new text.
+  """
   def upgrade_workspace(user) do
     sprite_name = user.sprite_name || default_sprite_name(user.id)
     poet = TravelingPoet.Poets.get_poet_by_user(user.id)
+    phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
 
     with {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
+         {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, user.agent_api_token),
          {:ok, _} <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
          {:ok, _} <- ensure_gateway_service(sprite_name) do
       {:ok, sprite_name}
     end
   end
+
+  @doc """
+  Rolls workspace + plugin changes across every provisioned poet, staggered so
+  the fleet doesn't hammer the sprites API. Returns `{sprite_or_user, result}`
+  per user.
+  """
+  def upgrade_fleet(opts \\ []) do
+    stagger_ms = Keyword.get(opts, :stagger_ms, 3_000)
+
+    TravelingPoet.Accounts.list_provisioned_users()
+    |> Enum.map(fn user ->
+      result = upgrade_workspace(user)
+      Process.sleep(stagger_ms)
+      {user.email, elem_or_error(result)}
+    end)
+  end
+
+  defp elem_or_error({:ok, name}), do: {:ok, name}
+  defp elem_or_error(other), do: other
 
   # -- internal steps --
 
@@ -473,15 +507,30 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_poet_context",
-          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), and recent private feedback digest.",
+          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), recent feedback, and learned_profile — what your companion has actually asked for. Read it every run: it outranks your instincts and the interests baked into your workspace.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/context"); }
         });
         ctx.registerTool({
           name: "get_feedback",
-          description: "Your companion's private reactions to recent journal entries (last 14 days).",
+          description: "The full picture of how your companion is responding: reactions, learned_profile (what they've asked for), dismissed (what they've rejected — never propose these), engagement (are they still opening entries?), and their answers to your questions.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/feedback"); }
+        });
+        ctx.registerTool({
+          name: "record_preference",
+          description: "Remember something lasting your companion told you they want (or don't want) from the journal. Use their own words. For standing tastes only, not one-off requests like today's destination.",
+          parameters: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "The preference in your companion's own words, e.g. 'american stupid things over delightful culture'" },
+              dimension: { type: "string", enum: ["topic", "tone", "pace", "length", "place", "format"], description: "What it is about" },
+              polarity: { type: "string", enum: ["seek", "avoid"], description: "seek = more of this, avoid = less of this" },
+              quote: { type: "string", description: "What they actually said, shown to them so they can see why you believe this" }
+            },
+            required: ["label"]
+          },
+          execute: function(params) { return call("POST", "/api/agent/preferences", params); }
         });
         ctx.registerTool({
           name: "update_location",
