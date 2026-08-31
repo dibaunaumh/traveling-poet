@@ -28,7 +28,7 @@ defmodule TravelingPoet.FleetHealth do
 
   Statuses:
 
-    * `:ok` — published since today's publish hour, or not due yet
+    * `:ok` — published today, or not due yet
     * `:late` — due and unpublished, but the scheduler still has attempts left
     * `:failing` — due, unpublished, and out of attempts: a missed day
     * `:never_published` — has never published and isn't due yet
@@ -105,13 +105,17 @@ defmodule TravelingPoet.FleetHealth do
 
   defp status(poet, user, latest, attempts_left, now) do
     due_at = due_at(poet, now)
+    before_slot? = DateTime.compare(now, due_at) == :lt
 
     cond do
       poet.status != "active" -> :inactive
       user == nil or not user.sprite_provisioned -> :inactive
-      published_since?(latest, due_at) -> :ok
-      DateTime.compare(now, due_at) == :lt and latest != nil -> :ok
-      DateTime.compare(now, due_at) == :lt -> :never_published
+      # Anything published today settles the day, whenever it landed. A
+      # catch-up run publishes hours off the poet's usual slot, and that is
+      # still today's entry.
+      published_today?(latest, now) -> :ok
+      before_slot? and latest != nil -> :ok
+      before_slot? -> :never_published
       attempts_left > 0 -> :late
       true -> :failing
     end
@@ -124,10 +128,12 @@ defmodule TravelingPoet.FleetHealth do
     |> DateTime.new!(Time.new!(DailyJourneyScheduler.publish_hour(poet), 0, 0), "Etc/UTC")
   end
 
-  defp published_since?(nil, _due_at), do: false
+  defp published_today?(nil, _now), do: false
 
-  defp published_since?(entry, due_at),
-    do: DateTime.compare(entry.published_at, due_at) != :lt
+  defp published_today?(entry, now) do
+    start_of_day = now |> DateTime.to_date() |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+    DateTime.compare(entry.published_at, start_of_day) != :lt
+  end
 
   # Both places known and different — the symptom a reader actually notices.
   defp drifted?(_poet, nil), do: false

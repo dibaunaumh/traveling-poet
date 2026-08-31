@@ -61,6 +61,17 @@ defmodule TravelingPoet.FleetHealthTest do
     assert Enum.any?(FleetHealth.problems(noon()), &(&1.poet.id == poet.id))
   end
 
+  test "publishing early still settles the day" do
+    poet = poet_due_at(8)
+
+    # A catch-up run publishes well off the usual slot — 03:00 for a poet due
+    # at 08:00. That is still today's entry, not a missed day.
+    publish(poet, Date.utc_today(), %{place_name: "Lisbon, Portugal"})
+    |> published_at(DateTime.add(noon(), -9, :hour))
+
+    assert row_for(poet, noon()).status == :ok
+  end
+
   test "a poet whose slot hasn't come round yet is ok on yesterday's entry" do
     poet = poet_due_at(20)
 
