@@ -363,6 +363,98 @@ defmodule TravelingPoet.Preferences do
     end)
   end
 
+  @doc """
+  Stores a question the poet wrote for its own entry. Validated strictly and
+  rejected rather than repaired: a half-understood prompt shown to a reader is
+  worse than the app's plain fallback.
+
+  Only ever replaces a prompt the app generated and nobody has answered — once
+  the reader has engaged with a question, it stays put.
+  """
+  def attach_agent_prompt(entry, raw) do
+    with {:ok, question} <- validate_question(raw["question"]),
+         {:ok, options} <- validate_options(raw["options"]) do
+      case Cadence.prompt_for(entry.id) do
+        %EntryPrompt{answered_at: nil, dismissed_at: nil} = existing ->
+          existing
+          |> EntryPrompt.changeset(%{
+            question: question,
+            options: %{"items" => options},
+            source: "agent"
+          })
+          |> Repo.update()
+
+        %EntryPrompt{} ->
+          {:error, :already_answered}
+
+        nil ->
+          %EntryPrompt{}
+          |> EntryPrompt.changeset(%{
+            journal_entry_id: entry.id,
+            question: question,
+            options: %{"items" => options},
+            source: "agent"
+          })
+          |> Repo.insert()
+      end
+    end
+  end
+
+  defp validate_question(question) when is_binary(question) do
+    trimmed = String.trim(question)
+
+    cond do
+      trimmed == "" -> {:error, :blank_question}
+      String.length(trimmed) > 200 -> {:error, :question_too_long}
+      true -> {:ok, trimmed}
+    end
+  end
+
+  defp validate_question(_), do: {:error, :missing_question}
+
+  defp validate_options(options) when is_list(options) and length(options) in 2..3 do
+    validated = Enum.map(options, &validate_option/1)
+
+    if Enum.all?(validated, &match?({:ok, _}, &1)) do
+      {:ok, Enum.map(validated, fn {:ok, option} -> option end)}
+    else
+      {:error, :bad_option}
+    end
+  end
+
+  defp validate_options(_), do: {:error, :bad_options}
+
+  defp validate_option(%{"label" => label} = option) when is_binary(label) do
+    label = String.trim(label)
+    dimension = option["dimension"] || "topic"
+    polarity = option["polarity"] || "seek"
+    subject = option["subject"] || label
+
+    cond do
+      label == "" or String.length(label) > 40 ->
+        {:error, :bad_label}
+
+      dimension not in Preference.dimensions() ->
+        {:error, :bad_dimension}
+
+      polarity not in Preference.polarities() ->
+        {:error, :bad_polarity}
+
+      true ->
+        {:ok,
+         %{
+           "id" => derive_key(dimension, label),
+           "label" => label,
+           "dimension" => dimension,
+           "polarity" => polarity,
+           "key" => derive_key(dimension, subject),
+           "subject" => subject
+         }}
+    end
+  end
+
+  defp validate_option(_), do: {:error, :bad_option}
+
   @doc "The reader waves the question away. Counts as a signal: ask less."
   def dismiss_prompt(%EntryPrompt{} = prompt) do
     prompt |> EntryPrompt.changeset(%{dismissed_at: now()}) |> Repo.update()

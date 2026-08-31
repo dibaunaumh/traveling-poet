@@ -1,7 +1,9 @@
 defmodule TravelingPoetWeb.Api.JournalApiController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Journal, Poets}
+  require Logger
+
+  alias TravelingPoet.{Journal, Poets, Preferences}
 
   def upsert_entry(conn, %{"entry_date" => date_str} = params) do
     with_poet_and_date(conn, date_str, fn poet, date ->
@@ -12,11 +14,14 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
       case Journal.upsert_entry(poet.id, date, attrs) do
         {:ok, entry} ->
+          prompt = maybe_attach_prompt(entry, params["prompt"])
+
           json(conn, %{
             ok: true,
             entry_id: entry.id,
             entry_date: entry.entry_date,
-            status: entry.status
+            status: entry.status,
+            prompt_accepted: prompt
           })
 
         {:error, changeset} ->
@@ -28,6 +33,25 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   def upsert_entry(conn, _params) do
     conn |> put_status(422) |> json(%{error: "entry_date (YYYY-MM-DD) is required"})
   end
+
+  # A question the poet wants to ask under today's entry. Optional, and a
+  # malformed one is dropped rather than rejected: the fleet model fumbles
+  # structured output often enough (see the illustration wiring) that a bad
+  # prompt object must never cost the poet its entry. The app's own rotation
+  # still fills the slot, so a dropped prompt means a duller question, not no
+  # question.
+  defp maybe_attach_prompt(entry, prompt) when is_map(prompt) do
+    case Preferences.attach_agent_prompt(entry, prompt) do
+      {:ok, _} ->
+        true
+
+      {:error, reason} ->
+        Logger.info("Ignoring malformed agent prompt for entry #{entry.id}: #{inspect(reason)}")
+        false
+    end
+  end
+
+  defp maybe_attach_prompt(_entry, _prompt), do: false
 
   def put_sections(conn, %{"date" => date_str, "sections" => sections}) when is_list(sections) do
     with_poet_and_date(conn, date_str, fn poet, date ->
