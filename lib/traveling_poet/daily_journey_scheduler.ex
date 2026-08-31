@@ -92,6 +92,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
       user != nil and user.sprite_provisioned and
         past_publish_hour?(poet, now) and
+        not published_today?(poet, now) and
         not ran_recently?(user.id, now) and
         attempts_today(user.id, now) < @max_attempts_per_day
     end)
@@ -177,39 +178,51 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   defp finish_run(user, poet, attempt, started_at, outcome) do
     published? = Journal.published_since?(poet.id, started_at)
 
-    case {outcome, published?} do
-      {{:ok, _reply}, true} ->
-        Usage.record(user.id, "daily_run")
-
-      {{:ok, _reply}, false} ->
-        Logger.warning(
-          "DailyJourneyScheduler: poet #{poet.id} finished its turn without publishing — " <>
-            "refunding and leaving the day open for a retry"
-        )
-
-        Credits.refund_daily_run(user, attempt.id)
-
-      {{:timeout, partial}, true} ->
-        # Stalled after publishing: the reader got their entry, so the day
-        # counts. Only the chat sign-off was lost.
-        Logger.warning(
-          "DailyJourneyScheduler: poet #{poet.id} published then stalled " <>
-            "(#{String.length(partial)} chars partial) — counting the day"
-        )
-
-        Usage.record(user.id, "daily_run")
-
-      {{:timeout, _partial}, false} ->
-        Logger.warning(
-          "DailyJourneyScheduler: poet #{poet.id} run timed out with nothing published"
-        )
-
-        Credits.refund_daily_run(user, attempt.id)
-
-      {{:error, reason}, _} ->
-        Logger.warning("DailyJourneyScheduler: poet #{poet.id} run failed: #{inspect(reason)}")
-        Credits.refund_daily_run(user, attempt.id)
+    # Publication settles the day, whatever the turn did afterwards. An error
+    # branch that ignored this is what stranded Hilma on 2026-08-31: her entry
+    # published at 21:16, her gateway socket dropped moments later, the run was
+    # written off as failed, and the scheduler then retried a day that was
+    # already done — the third retry moved her to a new city for nothing.
+    if published? do
+      log_published_outcome(poet, outcome)
+      Usage.record(user.id, "daily_run")
+    else
+      log_unpublished_outcome(poet, outcome)
+      Credits.refund_daily_run(user, attempt.id)
     end
+  end
+
+  defp log_published_outcome(_poet, {:ok, _reply}), do: :ok
+
+  defp log_published_outcome(poet, {:timeout, partial}) do
+    # Stalled after publishing: the reader got their entry, so the day counts.
+    # Only the chat sign-off was lost.
+    Logger.warning(
+      "DailyJourneyScheduler: poet #{poet.id} published then stalled " <>
+        "(#{String.length(partial)} chars partial) — counting the day"
+    )
+  end
+
+  defp log_published_outcome(poet, {:error, reason}) do
+    Logger.warning(
+      "DailyJourneyScheduler: poet #{poet.id} published, then the turn failed " <>
+        "(#{inspect(reason)}) — counting the day anyway"
+    )
+  end
+
+  defp log_unpublished_outcome(poet, {:ok, _reply}) do
+    Logger.warning(
+      "DailyJourneyScheduler: poet #{poet.id} finished its turn without publishing — " <>
+        "refunding and leaving the day open for a retry"
+    )
+  end
+
+  defp log_unpublished_outcome(poet, {:timeout, _partial}) do
+    Logger.warning("DailyJourneyScheduler: poet #{poet.id} run timed out with nothing published")
+  end
+
+  defp log_unpublished_outcome(poet, {:error, reason}) do
+    Logger.warning("DailyJourneyScheduler: poet #{poet.id} run failed: #{inspect(reason)}")
   end
 
   # Each poet gets a stable pseudo-random publish hour (6:00–21:00 UTC by
@@ -224,6 +237,18 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   end
 
   defp past_publish_hour?(poet, now), do: now.hour >= publish_hour(poet)
+
+  # The reader having today's entry is the goal, so it is also the stopping
+  # condition — independent of whether the usage ledger managed to record the
+  # run. Re-running a published day doesn't just waste a run: the ritual starts
+  # by travelling, so it moves the poet to a new city, and if it then wrote an
+  # entry it would overwrite the one already published for that date.
+  defp published_today?(poet, now) do
+    case Journal.latest_published_entry(poet.id) do
+      nil -> false
+      entry -> entry.entry_date == DateTime.to_date(now)
+    end
+  end
 
   defp ran_recently?(user_id, now) do
     cutoff = DateTime.add(now, -@min_hours_between_runs, :hour)
