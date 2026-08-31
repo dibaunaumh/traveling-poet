@@ -427,6 +427,20 @@ defmodule TravelingPoetWeb.JournalLive do
     assigns.entries == [] and not assigns.show_anyway
   end
 
+  # Whole minutes since the poet was created. The setup screen re-renders every
+  # @setup_refresh_ms, so this ticks along on its own and the wait shows its own
+  # length instead of a promise the app can't keep: measured across the fleet,
+  # setup ran 1.7–20 minutes and the first entry landed anywhere from 4 minutes
+  # to (twice) the following day's scheduled run.
+  defp setup_minutes(nil), do: 0
+
+  defp setup_minutes(poet) do
+    poet.inserted_at
+    |> NaiveDateTime.diff(NaiveDateTime.utc_now())
+    |> abs()
+    |> div(60)
+  end
+
   attr :poet, :any, required: true
   attr :user, :any, required: true
   attr :sprite_status, :atom, required: true
@@ -457,8 +471,18 @@ defmodule TravelingPoetWeb.JournalLive do
       </ol>
 
       <p class="text-sm opacity-60 mb-2">
-        This usually takes <b>5–10 minutes</b>. The page updates by itself —
-        and you can safely close it; the poet keeps working.
+        <span :if={setup_minutes(@poet) < 20}>
+          Setting up takes a few minutes; the first journal entry usually follows
+          within <b>20</b>.
+        </span>
+        <span :if={setup_minutes(@poet) >= 20}>
+          This one is taking longer than usual — nothing is lost, and the poet is
+          still working.
+        </span>
+        <span :if={setup_minutes(@poet) >= 1}>
+          Yours has been getting ready for <b>{setup_minutes(@poet)} minutes</b>.
+        </span>
+        The page updates by itself — and you can safely close it; the poet keeps working.
       </p>
       <p :if={@user.telegram_chat_id} class="text-sm opacity-60 mb-6">
         📱 We'll message you on Telegram the moment the first entry is out.
