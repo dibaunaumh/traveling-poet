@@ -11,7 +11,7 @@ defmodule TravelingPoetWeb.JournalLive do
     Poets
   }
 
-  alias TravelingPoet.{SpriteUploads, SpritesClient, Usage}
+  alias TravelingPoet.{Preferences, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoet.Journal.Media
   alias TravelingPoetWeb.ChatSidebarComponent
 
@@ -120,6 +120,7 @@ defmodule TravelingPoetWeb.JournalLive do
       end
 
     media_map = entry_media_map(poet, entry)
+    entry = record_view(socket, poet, entry)
 
     socket
     |> assign(:entries, entries)
@@ -128,6 +129,32 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:extra_media, extra_media(entry))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
+    |> assign_prompt(poet, entry)
+  end
+
+  # Only the owner, and only on the live mount — the dead render would double
+  # count every page load.
+  defp record_view(socket, poet, entry) do
+    if connected?(socket) and entry && socket.assigns.current_user.id == poet.user_id do
+      case Journal.mark_owner_viewed(entry) do
+        {:ok, updated} -> %{entry | owner_viewed_at: updated.owner_viewed_at}
+        _ -> entry
+      end
+    else
+      entry
+    end
+  end
+
+  # The question under the entry, if the cadence says there should be one.
+  defp assign_prompt(socket, poet, entry) do
+    prompt =
+      if entry && socket.assigns.current_user.id == poet.user_id do
+        Preferences.prompt_for_entry(poet, entry)
+      end
+
+    socket
+    |> assign(:prompt, prompt)
+    |> assign(:prompt_answer, Preferences.EntryPrompt.answered_option(prompt))
   end
 
   defp extra_media(nil), do: []
@@ -185,6 +212,41 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("cancel_attachment", %{"ref" => ref}, socket) do
     {:noreply, cancel_upload(socket, :chat_attachment, ref)}
+  end
+
+  @impl true
+  def handle_event("prompt_answer", %{"option" => option_id}, socket) do
+    %{prompt: prompt, poet: poet, entry: entry} = socket.assigns
+
+    case Preferences.answer_prompt(prompt, option_id, poet.id, entry) do
+      {:ok, {prompt, _preference}} ->
+        {:noreply,
+         socket
+         |> assign(:prompt, prompt)
+         |> assign(:prompt_answer, Preferences.EntryPrompt.answered_option(prompt))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("prompt_undo", _params, socket) do
+    %{prompt: prompt, poet: poet} = socket.assigns
+
+    case Preferences.undo_answer(prompt, poet.id) do
+      {:ok, prompt} ->
+        {:noreply, socket |> assign(:prompt, prompt) |> assign(:prompt_answer, nil)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("prompt_dismiss", _params, socket) do
+    {:ok, _} = Preferences.dismiss_prompt(socket.assigns.prompt)
+    {:noreply, assign(socket, :prompt, nil)}
   end
 
   @impl true
@@ -596,6 +658,34 @@ defmodule TravelingPoetWeb.JournalLive do
 
             <div :for={media <- @extra_media} class="mb-6">
               <.section section={%{kind: "illustration"}} media={media} />
+            </div>
+
+            <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
+              <div :if={is_nil(@prompt_answer)}>
+                <p class="text-sm font-medium mb-2">{@prompt.question}</p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    :for={option <- Preferences.EntryPrompt.items(@prompt)}
+                    phx-click="prompt_answer"
+                    phx-value-option={option["id"]}
+                    class="btn btn-sm btn-outline"
+                  >
+                    {option["label"]}
+                  </button>
+                  <button phx-click="prompt_dismiss" class="btn btn-ghost btn-xs opacity-50">
+                    not now
+                  </button>
+                </div>
+              </div>
+              <div :if={@prompt_answer} class="flex items-center gap-2 text-sm">
+                <span>
+                  Got it — {@poet.name} will keep that in mind.
+                </span>
+                <button phx-click="prompt_undo" class="btn btn-ghost btn-xs">undo</button>
+                <.link navigate={~p"/settings"} class="link text-xs opacity-60">
+                  what your poet has learned
+                </.link>
+              </div>
             </div>
 
             <div class="flex items-center gap-2 border-t border-base-300 pt-3 mt-4">

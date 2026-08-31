@@ -1,7 +1,8 @@
 defmodule TravelingPoetWeb.Api.AgentController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Chat, Journal, Poets}
+  alias TravelingPoet.{Chat, Journal, Poets, Preferences}
+  alias TravelingPoet.Preferences.Cadence
   alias TravelingPoet.Poets.Poet
 
   @doc """
@@ -67,8 +68,43 @@ defmodule TravelingPoetWeb.Api.AgentController do
           next_stop: next_stop_for(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),
-          recent_private_feedback: feedback
+          recent_private_feedback: feedback,
+          # What the companion has actually asked for, strongest first. This
+          # outranks the poet's own instincts and the interests baked into its
+          # workspace at provision time — those are a starting guess, this is
+          # what they have since said.
+          learned_profile: Preferences.profile_payload(poet.id),
+          # Already tried and rejected. Never propose these again.
+          dismissed: Preferences.dismissed_payload(poet.id),
+          engagement: engagement_for(poet),
+          # The APP decides when to ask, not the poet: an agent told to ask
+          # "sometimes" asks every time.
+          ask_prompt: ask_prompt?(poet)
         })
+    end
+  end
+
+  # Whether the reader is still opening what the poet writes.
+  defp engagement_for(poet) do
+    recent = Journal.list_entries(poet.id, status: "published", limit: 14)
+    opened = Enum.count(recent, & &1.owner_viewed_at)
+
+    %{
+      entries_recent: length(recent),
+      opened_recent: opened,
+      last_opened_at:
+        recent
+        |> Enum.map(& &1.owner_viewed_at)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.max(fn -> nil end),
+      unopened_streak: recent |> Enum.take_while(&is_nil(&1.owner_viewed_at)) |> length()
+    }
+  end
+
+  defp ask_prompt?(poet) do
+    case Journal.latest_published_entry(poet.id) do
+      nil -> false
+      latest -> match?({true, _}, Cadence.ask?(poet, latest))
     end
   end
 
@@ -110,7 +146,19 @@ defmodule TravelingPoetWeb.Api.AgentController do
 
       poet ->
         since = DateTime.add(DateTime.utc_now(), -14, :day)
-        json(conn, %{reactions: Journal.private_feedback_since(poet.id, since)})
+
+        # Widened rather than removed on purpose: every already-provisioned
+        # sprite has this tool baked in, so enriching what it returns is how
+        # existing poets learn about the feedback loop without being
+        # re-provisioned. Deleting the route would fail as a tool error
+        # mid-ritual instead.
+        json(conn, %{
+          reactions: Journal.private_feedback_since(poet.id, since),
+          learned_profile: Preferences.profile_payload(poet.id),
+          dismissed: Preferences.dismissed_payload(poet.id),
+          engagement: engagement_for(poet),
+          prompt_answers: Preferences.recent_answers(poet.id, since)
+        })
     end
   end
 end

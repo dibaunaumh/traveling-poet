@@ -34,6 +34,53 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert body["today"]
   end
 
+  test "context carries what the reader has asked for, and what they rejected",
+       %{conn: conn, poet: poet} do
+    alias TravelingPoet.Preferences
+
+    {:ok, _} =
+      Preferences.record(poet.id, %{
+        label: "american stupid things",
+        dimension: "topic",
+        source: "chat"
+      })
+
+    {:ok, rejected} =
+      Preferences.record(poet.id, %{label: "more museums", dimension: "topic", source: "tap"})
+
+    {:ok, _} = Preferences.dismiss(rejected)
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+
+    assert [%{"label" => "american stupid things", "polarity" => "seek"}] =
+             body["learned_profile"]
+
+    # what they removed is sent too, so the poet doesn't propose it again
+    assert [%{"label" => "more museums"}] = body["dismissed"]
+    assert is_map(body["engagement"])
+    # the app decides when to ask; the agent is told, not trusted to judge
+    assert is_boolean(body["ask_prompt"])
+  end
+
+  test "get_feedback carries the full picture for already-provisioned poets",
+       %{conn: conn, poet: poet} do
+    {:ok, _} =
+      TravelingPoet.Preferences.record(poet.id, %{
+        label: "less history",
+        dimension: "topic",
+        polarity: "avoid",
+        source: "tap"
+      })
+
+    body = conn |> get(~p"/api/agent/feedback") |> json_response(200)
+
+    # the old field is still there — existing sprites call this tool
+    assert Map.has_key?(body, "reactions")
+    assert [%{"label" => "less history", "polarity" => "avoid"}] = body["learned_profile"]
+    assert Map.has_key?(body, "engagement")
+    assert Map.has_key?(body, "prompt_answers")
+  end
+
   test "entry upsert + sections + publish round-trip", %{conn: conn, poet: poet} do
     date = Date.utc_today() |> Date.to_iso8601()
 
