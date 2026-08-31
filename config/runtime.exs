@@ -54,6 +54,14 @@ config :traveling_poet,
       else: String.to_integer(System.get_env("FLEET_HEALTH_CHECK_INTERVAL_MINUTES") || "0")
     ),
   alert_telegram_chat_id: System.get_env("ALERT_TELEGRAM_CHAT_ID"),
+  # First-entry retries. On by default (5m): unlike the schedulers above this
+  # one is the difference between a new poet publishing and sitting silent
+  # until tomorrow, so it should not need a secret set to work.
+  first_entry_check_interval_minutes:
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("FIRST_ENTRY_CHECK_INTERVAL_MINUTES") || "5")
+    ),
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),

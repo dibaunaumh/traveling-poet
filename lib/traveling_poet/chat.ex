@@ -7,9 +7,18 @@ defmodule TravelingPoet.Chat do
   alias TravelingPoet.Repo
   alias TravelingPoet.Chat.ChatMessage
 
+  @doc """
+  The conversation as the user should see it.
+
+  Triggers the app sends on the user's behalf — `/travel-and-journal`,
+  `/onboard` — are persisted on the "system" channel so the agent keeps its
+  context, but showing them back reads as if the user typed a command they
+  never typed. The poet's replies on that channel are real content and stay.
+  """
   def list_messages(user_id) do
     ChatMessage
     |> where(user_id: ^user_id)
+    |> where([m], not (m.role == "user" and m.channel == "system"))
     |> order_by(asc: :inserted_at)
     |> Repo.all()
   end
