@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.AdminLive do
   import Ecto.Query
 
   alias TravelingPoet.{Accounts, Credits, FleetHealth, OpenRouter, Repo, Usage}
+  alias TravelingPoet.Accounts.Purge
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
 
@@ -30,6 +31,42 @@ defmodule TravelingPoetWeb.AdminLive do
        socket |> put_flash(:info, "Adjusted #{user.email} by #{n} credits") |> load_fleet()}
     else
       _ -> {:noreply, put_flash(socket, :error, "Could not adjust credits")}
+    end
+  end
+
+  @impl true
+  def handle_event("purge", %{"user_id" => user_id, "confirm_email" => confirm}, socket) do
+    admin = socket.assigns.current_user
+
+    with {id, ""} <- Integer.parse(user_id),
+         false <- id == admin.id,
+         {:ok, summary} <- Purge.purge(id, confirm) do
+      {:noreply,
+       socket
+       |> put_flash(
+         :info,
+         "Deleted #{summary.email} — poet #{summary.poet || "none"}, " <>
+           "#{summary.media_deleted}/#{summary.media_total} media, sprite #{summary.sprite}. " <>
+           "Sign up again with that address to run onboarding."
+       )
+       |> load_fleet()}
+    else
+      true ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "That's the account you're signed in as — sign in as another admin first."
+         )}
+
+      {:error, :email_mismatch} ->
+        {:noreply, put_flash(socket, :error, "Email didn't match — nothing deleted.")}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "No such user.")}
+
+      other ->
+        {:noreply, put_flash(socket, :error, "Could not delete: #{inspect(other)}")}
     end
   end
 
@@ -216,6 +253,7 @@ defmodule TravelingPoetWeb.AdminLive do
                 <th>Runs today</th>
                 <th>Daily budget</th>
                 <th>Credits</th>
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -250,6 +288,30 @@ defmodule TravelingPoetWeb.AdminLive do
                     />
                     <button type="submit" class="btn btn-xs">Grant</button>
                   </form>
+                </td>
+                <td>
+                  <%!-- Typing the address back is the guard: deletion takes the
+                        poet, the journal and the sprite with it, and there is
+                        nothing to restore from. --%>
+                  <form
+                    :if={row.user.id != @current_user.id}
+                    phx-submit="purge"
+                    class="flex items-center gap-1"
+                    data-confirm={"Permanently delete #{row.user.email}, their poet, journal, illustrations and sprite? This cannot be undone."}
+                  >
+                    <input type="hidden" name="user_id" value={row.user.id} />
+                    <input
+                      type="text"
+                      name="confirm_email"
+                      placeholder="type email"
+                      autocomplete="off"
+                      class="input input-bordered input-xs w-40"
+                    />
+                    <button type="submit" class="btn btn-xs btn-error btn-outline">Delete</button>
+                  </form>
+                  <span :if={row.user.id == @current_user.id} class="text-xs opacity-40">
+                    signed in
+                  </span>
                 </td>
               </tr>
             </tbody>
