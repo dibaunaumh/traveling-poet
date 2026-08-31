@@ -47,6 +47,29 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ "earlier"
   end
 
+  test "a long setup says so, and shows how long it has been", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true})
+    poet = poet_fixture(user)
+
+    # Backdate creation: the fleet's slowest real setup ran 20 minutes, and the
+    # screen used to keep promising "5-10" straight through it.
+    poet
+    |> Ecto.Changeset.change(
+      inserted_at:
+        NaiveDateTime.utc_now()
+        |> NaiveDateTime.add(-25, :minute)
+        |> NaiveDateTime.truncate(:second)
+    )
+    |> TravelingPoet.Repo.update!()
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, _view, html} = live(conn, ~p"/journal")
+
+    assert html =~ "taking longer than usual"
+    assert html =~ "25 minutes"
+    refute html =~ "the first journal entry usually follows"
+  end
+
   test "new poet without entries sees the setting-up screen", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true})
     poet = poet_fixture(user)
@@ -55,7 +78,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     {:ok, view, html} = live(conn, ~p"/journal")
 
     assert html =~ "#{poet.name} is getting ready"
-    assert html =~ "5–10 minutes"
+    assert html =~ "the first journal entry usually follows"
     refute html =~ "poet-map"
 
     # escape hatch reveals the real UI
