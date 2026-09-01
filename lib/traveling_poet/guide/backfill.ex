@@ -21,6 +21,13 @@ defmodule TravelingPoet.Guide.Backfill do
   alias TravelingPoet.Journal.Entry
 
   @default_limit 25
+  # Matches the agent endpoint's cap. An entry that mentions twenty places is
+  # a wall, not a guide, and the two write paths should not disagree about
+  # what a day's list may look like.
+  @max_places_per_entry 8
+
+  @doc "The per-entry place cap, shared with the agent endpoint."
+  def max_places_per_entry, do: @max_places_per_entry
 
   @doc """
   Options: `:poet_id`, `:limit` (default 25), `:commit` (default false —
@@ -70,7 +77,8 @@ defmodule TravelingPoet.Guide.Backfill do
       {:ok, []} ->
         Map.merge(base, %{status: :nothing_named, places: []})
 
-      {:ok, places} ->
+      {:ok, all} ->
+        places = Enum.take(all, @max_places_per_entry)
         names = Enum.map(places, &{&1["name"], &1["category"], &1["address"]})
         if commit?, do: write(entry, places, opts)
         Map.merge(base, %{status: if(commit?, do: :written, else: :dry_run), places: names})
