@@ -77,6 +77,15 @@ config :traveling_poet,
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),
+  # false in test: Nominatim needs no API key, so unlike every other service
+  # here there is nothing to nil out. Without this switch the suite would make
+  # live OSM requests -- slow, flaky, and a good way to get the app's
+  # User-Agent banned, which would break onboarding for real users.
+  geocoding_enabled: config_env() != :test,
+  # OSM policy is 1 req/s for the whole app. The Limiter enforces it.
+  geocode_min_interval_ms: String.to_integer(System.get_env("GEOCODE_MIN_INTERVAL_MS") || "1100"),
+  # How long a "never heard of it" answer stays cached before we ask again.
+  geocode_miss_ttl_days: String.to_integer(System.get_env("GEOCODE_MISS_TTL_DAYS") || "30"),
   # Credits: whole credits per daily run by mission; welcome grant; alert
   # threshold in days of runway
   credit_rates: %{

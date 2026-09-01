@@ -164,7 +164,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply, socket}
 
       q ->
-        case TravelingPoet.Geocoder.search(q) do
+        case TravelingPoet.Geocoder.Limiter.search(q) do
           {:ok, results} ->
             {:noreply,
              socket

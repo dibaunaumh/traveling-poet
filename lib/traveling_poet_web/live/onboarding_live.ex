@@ -126,7 +126,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
     if query == "" do
       {:noreply, socket}
     else
-      case Geocoder.search(query) do
+      case TravelingPoet.Geocoder.Limiter.search(query) do
         {:ok, results} ->
           # Auto-select the top hit: beta testing showed users type a place,
           # press Search, and expect Continue to work without also clicking a

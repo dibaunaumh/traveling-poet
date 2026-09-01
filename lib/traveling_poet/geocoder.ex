@@ -5,6 +5,11 @@ defmodule TravelingPoet.Geocoder do
   onboarding wizard geocodes on submit, not per keystroke).
   """
 
+  require Logger
+
+  alias TravelingPoet.Geocoder.{CacheEntry, Limiter}
+  alias TravelingPoet.Repo
+
   @base_url "https://nominatim.openstreetmap.org/search"
 
   def search(query) when is_binary(query) do
@@ -48,6 +53,94 @@ defmodule TravelingPoet.Geocoder do
 
   defp upcase_or_nil(nil), do: nil
   defp upcase_or_nil(cc), do: String.upcase(cc)
+
+  @doc """
+  Resolves one free-text query to coordinates, through the cache and the
+  rate limiter.
+
+  Returns `{:ok, %{lat:, lng:, country_code:}}`, `:not_found`, or
+  `{:error, reason}`. Callers must treat all three as survivable: a place the
+  geocoder cannot find keeps its listing in the guide, it simply gets no pin.
+
+  Only lat/lng/country_code are taken from the result. Nominatim's
+  `display_name` is deliberately discarded here -- the poet's own name for a
+  place is better than "Tasca do Chico, 39, Rua do Diario de Noticias,
+  Misericordia, Lisboa, ...".
+  """
+  def locate(query) when is_binary(query) do
+    query = String.trim(query)
+
+    cond do
+      query == "" ->
+        :not_found
+
+      cached = fresh_cache_entry(query) ->
+        from_cache(cached)
+
+      not enabled?() ->
+        # Test env, or geocoding deliberately switched off. Nominatim needs no
+        # API key, so there is no credential to nil out -- this is the switch.
+        :not_found
+
+      true ->
+        query |> Limiter.search() |> handle_lookup(query)
+    end
+  end
+
+  def locate(_), do: :not_found
+
+  def enabled?, do: Application.get_env(:traveling_poet, :geocoding_enabled, true)
+
+  defp handle_lookup({:ok, [%{lat: lat, lng: lng} = result | _]}, query)
+       when is_number(lat) and is_number(lng) do
+    remember(query, result, true)
+    {:ok, %{lat: lat, lng: lng, country_code: result[:country_code]}}
+  end
+
+  defp handle_lookup({:ok, _empty_or_unusable}, query) do
+    remember(query, %{}, false)
+    :not_found
+  end
+
+  defp handle_lookup({:error, reason}, _query) do
+    # NOT cached: a transient network failure is not evidence the place does
+    # not exist, and caching it would strand the place forever.
+    Logger.warning("geocode failed: #{inspect(reason)}")
+    {:error, reason}
+  end
+
+  defp fresh_cache_entry(query) do
+    case Repo.get_by(CacheEntry, query_hash: CacheEntry.hash(query)) do
+      nil -> nil
+      %CacheEntry{found: true} = entry -> entry
+      %CacheEntry{} = entry -> if miss_still_fresh?(entry), do: entry, else: nil
+    end
+  end
+
+  defp miss_still_fresh?(%CacheEntry{looked_up_at: at}) do
+    ttl_days = Application.get_env(:traveling_poet, :geocode_miss_ttl_days, 30)
+    DateTime.diff(DateTime.utc_now(), at, :day) < ttl_days
+  end
+
+  defp from_cache(%CacheEntry{found: true} = entry),
+    do: {:ok, %{lat: entry.lat, lng: entry.lng, country_code: entry.country_code}}
+
+  defp from_cache(%CacheEntry{}), do: :not_found
+
+  defp remember(query, result, found?) do
+    %CacheEntry{}
+    |> CacheEntry.changeset(%{
+      query_hash: CacheEntry.hash(query),
+      query: query,
+      lat: result[:lat],
+      lng: result[:lng],
+      place_name: result[:place_name],
+      country_code: result[:country_code],
+      found: found?,
+      looked_up_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.insert(on_conflict: :replace_all, conflict_target: :query_hash)
+  end
 
   @doc "A random curated starting location."
   def random_start_location do
