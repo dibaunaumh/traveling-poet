@@ -23,13 +23,22 @@ defmodule TravelingPoetWeb.GuideState do
 
   def views, do: @views
 
-  @doc "Applies view/filter/stay from the URL, then loads the places."
+  @doc """
+  Applies view/filter/stay from the URL, then loads the places.
+
+  Ends by pushing the pins to the map. That is not optional: the map div is
+  `phx-update="ignore"` (Leaflet owns its DOM), so a changed `data-places`
+  attribute does NOT re-render it. Without this push, switching city or filter
+  while the map is open left the previous stay's pins sitting there -- the
+  list and itinerary updated correctly and only the map lied.
+  """
   def apply_params(socket, params) do
     socket
     |> assign(:view, param(params, "view", @views, @default_view))
     |> assign(:filter, param(params, "filter", Guide.filter_groups(), "all"))
     |> assign_stay(params["stay"])
     |> assign_places()
+    |> push_map()
   end
 
   # Whitelisted, never String.to_atom on user input.
@@ -114,7 +123,13 @@ defmodule TravelingPoetWeb.GuideState do
   map, so filter and geocode changes have to arrive as an event.
   """
   def push_map(socket) do
-    push_event(socket, "map:update", %{places: socket.assigns.map_places})
+    # Only meaningful once the client is connected; on the dead render the
+    # hook has not mounted and reads data-places itself.
+    if Phoenix.LiveView.connected?(socket) do
+      push_event(socket, "map:update", %{places: socket.assigns.map_places})
+    else
+      socket
+    end
   end
 
   @doc "The query string shared by both guides' push_patch targets."

@@ -174,6 +174,54 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     refute html =~ "Ramiro"
   end
 
+  describe "the map is told when the data changes" do
+    # The map div is phx-update="ignore" because Leaflet owns its DOM, so a
+    # changed data-places attribute does NOT re-render it. Switching city used
+    # to leave the previous stay's pins sitting on the map while the list and
+    # itinerary updated correctly -- only the map lied.
+    defp two_stays(user) do
+      poet = poet_fixture(user)
+      today = Date.utc_today()
+
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
+      first = published_entry_fixture(poet, %{entry_date: today})
+      {:ok, [lisbon]} = Guide.replace_places(first, [place("Tasca do Chico")])
+
+      {:ok, _} = Poets.move_to(poet, %{lat: 48.2, lng: 16.37, place_name: "Vienna, Austria"})
+      second = published_entry_fixture(poet, %{entry_date: Date.add(today, 1)})
+
+      {:ok, [vienna]} =
+        Guide.replace_places(second, [place("Cafe Museum", %{"category" => "cafe"})])
+
+      for p <- [lisbon, vienna], do: {:ok, _} = Guide.update_geocode(p, %{lat: 1.0, lng: 2.0})
+
+      {poet, lisbon, vienna}
+    end
+
+    test "switching city pushes the new pins to the map", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      {poet, lisbon, _vienna} = two_stays(user)
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?view=map")
+
+      stay = Enum.find(Guide.list_stays(poet.id), &(&1.place_name == "Lisbon, Portugal"))
+      view |> element("#guide-stay-#{stay.id}") |> render_click()
+
+      assert_push_event(view, "map:update", %{places: [%{id: id, name: "Tasca do Chico"}]})
+      assert id == lisbon.id
+    end
+
+    test "changing the filter pushes the narrowed pins to the map", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      {_poet, _lisbon, _vienna} = two_stays(user)
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?view=map")
+
+      view |> element("#guide-filter-events") |> render_click()
+      assert_push_event(view, "map:update", %{places: []})
+    end
+  end
+
   test "a draft entry's places never appear", %{conn: conn} do
     {user, poet} = guide_poet()
     draft = entry_fixture(poet)
