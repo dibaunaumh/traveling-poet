@@ -98,20 +98,77 @@ defmodule TravelingPoet.Guide do
   Nil is still a valid answer (a poet with no path points yet). It costs only
   the grouping, never the place.
   """
-  def path_point_for(%Entry{poet_id: poet_id, entry_date: date}) do
+  def path_point_for(%Entry{poet_id: poet_id, entry_date: date} = entry) do
     stays =
       PathPoint
       |> where(poet_id: ^poet_id)
       |> order_by(asc: :position)
       |> Repo.all()
 
-    covering = Enum.find(stays, &covers?(&1, date))
     started = stays |> Enum.filter(&started_by?(&1, date)) |> List.last()
+
+    covering =
+      stays
+      |> Enum.filter(&covers?(&1, date))
+      |> best_covering(entry)
 
     case covering || started || List.first(stays) do
       nil -> nil
       pp -> pp.id
     end
+  end
+
+  # On a day the poet travelled, TWO stays cover the date -- covers?/2 compares
+  # dates, not timestamps, so the one departed at 00:32 and the one arrived at
+  # 00:32 both match. Taking the earlier one was wrong: SKILL.md's first rule
+  # is "travel first, then write", so the entry is about the place moved TO.
+  #
+  # Observed on poet E, whose onboarding left a five-minute Fez path point
+  # before it moved to Louisville. A day of Louisville places landed under a
+  # "Fez, Morocco" tab, and the map dutifully showed Louisville pins there.
+  #
+  # The entry's own place_name is the authoritative statement of what it is
+  # about, so it wins when it matches; otherwise the latest arrival does.
+  defp best_covering([], _entry), do: nil
+  defp best_covering([only], _entry), do: only
+
+  defp best_covering(stays, %Entry{place_name: place_name}) do
+    Enum.find(stays, &same_place?(&1.place_name, place_name)) || List.last(stays)
+  end
+
+  defp same_place?(a, b) when is_binary(a) and is_binary(b) do
+    String.downcase(String.trim(a)) == String.downcase(String.trim(b))
+  end
+
+  defp same_place?(_, _), do: false
+
+  @doc """
+  Recomputes which stay each of a poet's places belongs to.
+
+  A repair for places already written under the wrong stay; the attribution is
+  derived, so nothing is lost by recomputing it.
+  """
+  def reassign_stays(poet_id) do
+    Place
+    |> where(poet_id: ^poet_id)
+    |> Repo.all()
+    |> Enum.group_by(& &1.journal_entry_id)
+    |> Enum.reduce(0, fn {entry_id, places}, moved ->
+      case Repo.get(Entry, entry_id) do
+        nil ->
+          moved
+
+        entry ->
+          correct = path_point_for(entry)
+          wrong = Enum.reject(places, &(&1.path_point_id == correct))
+
+          Enum.each(wrong, fn place ->
+            place |> Place.changeset(%{path_point_id: correct}) |> Repo.update()
+          end)
+
+          moved + length(wrong)
+      end
+    end)
   end
 
   defp started_by?(%PathPoint{arrived_at: nil}, _date), do: false

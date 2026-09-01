@@ -110,6 +110,47 @@ defmodule TravelingPoet.GuideTest do
       assert Guide.list_stays(poet.id) != []
     end
 
+    # covers?/2 compares dates, not timestamps, so on a day the poet travelled
+    # BOTH stays cover the date. Taking the earlier one put a day of Louisville
+    # places under a "Fez, Morocco" tab on poet E, whose onboarding left a
+    # five-minute Fez path point before it moved -- and the map dutifully
+    # showed Louisville pins there.
+    test "on a travel day the entry belongs to the place the poet moved TO" do
+      {_user, poet} = setup_poet()
+
+      {:ok, _} = Poets.move_to(poet, %{lat: 34.03, lng: -5.0, place_name: "Fez, Morocco"})
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.25, lng: -85.75, place_name: "Louisville, USA"})
+
+      entry = published_entry_fixture(poet, %{place_name: "Louisville, USA"})
+      {:ok, _} = Guide.replace_places(entry, [attrs("Louisville Slugger Museum")])
+
+      [place] = Guide.list_places_for_entry(entry.id)
+      arrived = Poets.current_path_point(poet.id)
+
+      assert place.path_point_id == arrived.id
+      assert arrived.place_name == "Louisville, USA"
+    end
+
+    test "reassign_stays repairs places already filed under the wrong stay" do
+      {_user, poet} = setup_poet()
+
+      {:ok, _} = Poets.move_to(poet, %{lat: 34.03, lng: -5.0, place_name: "Fez, Morocco"})
+      fez = Poets.current_path_point(poet.id)
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.25, lng: -85.75, place_name: "Louisville, USA"})
+
+      entry = published_entry_fixture(poet, %{place_name: "Louisville, USA"})
+      {:ok, [place]} = Guide.replace_places(entry, [attrs("Louisville Slugger Museum")])
+
+      # Force the old, wrong attribution back on.
+      {:ok, _} = place |> Place.changeset(%{path_point_id: fez.id}) |> Repo.update()
+
+      assert Guide.reassign_stays(poet.id) == 1
+
+      [repaired] = Guide.list_places_for_entry(entry.id)
+      assert repaired.path_point_id == Poets.current_path_point(poet.id).id
+      assert Guide.reassign_stays(poet.id) == 0
+    end
+
     test "a poet with no path points at all still saves its places" do
       {_user, poet} = setup_poet()
       entry = published_entry_fixture(poet)
