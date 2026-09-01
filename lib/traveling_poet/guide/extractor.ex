@@ -184,12 +184,28 @@ defmodule TravelingPoet.Guide.Extractor do
       blurb       one sentence, quoted or closely paraphrased FROM THE ENTRY
       source_url  ONLY a URL that appears literally in the entry; otherwise omit
 
+    A PLACE is somewhere a reader could set as a destination on a map and walk
+    into or stand in: a named venue, site, park, market or district.
+
+    These are NOT places, however specifically the entry names them:
+    - a dish, pastry, drink or product ("Queijadas de Sintra", "Travesseiros")
+    - an artwork or object inside a venue ("Ashura statue from Kofuku-ji")
+    - an architectural style or movement ("Kasuga-zukuri")
+    - a bare street or road ("Mason Street")
+    - infrastructure named only by its type ("Amtrak station",
+      "County Courthouse", "the 375 Depot Street building")
+    - a vague area or feature ("the old town", "a small cafe", "the river",
+      "Chao Phraya")
+
+    If a product is worth keeping, name the SHOP that sells it instead
+    ("Casa Piriquita"), and only when the entry names that shop.
+
     Rules:
     - Do NOT invent places, addresses, or URLs. Do not add well-known places
       the entry does not mention.
-    - "the old town", "a small cafe", "the river" are not places. Skip them.
     - Do NOT rate the places. There is no rating field.
-    - If the entry names nothing specific, return {"places": []}.
+    - Prefer four solid places over eight padded ones.
+    - If the entry names nothing that qualifies, return {"places": []}.
     """
   end
 
