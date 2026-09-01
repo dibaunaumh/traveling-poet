@@ -18,6 +18,10 @@ defmodule TravelingPoet.FirstEntry.Watchdog do
 
   alias TravelingPoet.FirstEntry
 
+  # Someone waiting on their first entry shouldn't have a deploy add another
+  # interval to the wait.
+  @startup_delay_ms 30_000
+
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
   @impl true
@@ -28,7 +32,7 @@ defmodule TravelingPoet.FirstEntry.Watchdog do
 
       interval ->
         Logger.info("FirstEntry.Watchdog: checking every #{div(interval, 60_000)}m")
-        Process.send_after(self(), :check, interval)
+        Process.send_after(self(), :check, min(@startup_delay_ms, interval))
     end
 
     {:ok, %{}}

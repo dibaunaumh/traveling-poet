@@ -23,6 +23,10 @@ defmodule TravelingPoet.FleetHealth.Alerter do
 
   import Ecto.Query
 
+  # First check soon after boot: an interval-later first tick means a deploy
+  # defers the day's alerts by a full hour.
+  @startup_delay_ms 60_000
+
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
   @impl true
@@ -33,7 +37,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
 
       interval ->
         Logger.info("FleetHealth.Alerter: checking every #{div(interval, 60_000)}m")
-        Process.send_after(self(), :check, interval)
+        Process.send_after(self(), :check, min(@startup_delay_ms, interval))
     end
 
     {:ok, %{alerted: %{}}}

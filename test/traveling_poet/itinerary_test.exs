@@ -47,9 +47,15 @@ defmodule TravelingPoet.ItineraryTest do
     scout = %Poet{settings: %{"mode" => "scout"}}
     override = %Poet{settings: %{"mode" => "scout", "model" => "custom/model-x"}}
 
+    scout_model = Application.get_env(:traveling_poet, :scout_model)
+
     assert Provisioner.poet_model(wander) == Provisioner.openrouter_model()
-    assert Provisioner.poet_model(scout) == "anthropic/claude-sonnet-4.6"
+    assert Provisioner.poet_model(scout) == scout_model
     assert Provisioner.poet_model(override) == "custom/model-x"
     assert Provisioner.poet_model(nil) == Provisioner.openrouter_model()
+
+    # The precedence only means something while the two differ — config/runtime
+    # pins them apart in test so this can't quietly become a tautology.
+    refute scout_model == Provisioner.openrouter_model()
   end
 end
