@@ -222,6 +222,62 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     end
   end
 
+  describe "events" do
+    test "an event shows its dates and answers the Events filter", %{conn: conn} do
+      {user, poet} = guide_poet()
+      today = Date.utc_today()
+
+      seed_places(poet, [
+        place("Vermeer at Nakanoshima", %{
+          "category" => "event",
+          "starts_on" => Date.add(today, -2),
+          "ends_on" => Date.add(today, 20)
+        }),
+        place("Cafe Museum", %{"category" => "cafe"})
+      ])
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide")
+
+      assert has_element?(view, "[data-testid=event-dates]")
+
+      view |> element("#guide-filter-events") |> render_click()
+      html = render(view)
+      assert html =~ "Vermeer at Nakanoshima"
+      refute html =~ "Cafe Museum"
+    end
+
+    # The failure mode this guards is a reader travelling for a closed
+    # exhibition. An event that is over stays visible -- the poet did write
+    # about it -- but it must say so and it must not lead.
+    test "an event that has ended is marked, and sinks below live ones", %{conn: conn} do
+      {user, poet} = guide_poet()
+      today = Date.utc_today()
+
+      seed_places(poet, [
+        place("Closed Show", %{"category" => "event", "ends_on" => Date.add(today, -10)}),
+        place("Still Running", %{"category" => "event", "ends_on" => Date.add(today, 10)})
+      ])
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?filter=events")
+
+      html = render(view)
+      assert html =~ "ended"
+
+      # Live event first, ended one after it.
+      assert :binary.match(html, "Still Running") < :binary.match(html, "Closed Show")
+    end
+
+    test "a venue is never marked ended, however old the entry", %{conn: conn} do
+      {user, poet} = guide_poet()
+      seed_places(poet, [place("Cafe Museum", %{"category" => "cafe"})])
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide")
+
+      refute has_element?(view, "[data-testid=event-dates]")
+      refute render(view) =~ "ended"
+    end
+  end
+
   test "a draft entry's places never appear", %{conn: conn} do
     {user, poet} = guide_poet()
     draft = entry_fixture(poet)

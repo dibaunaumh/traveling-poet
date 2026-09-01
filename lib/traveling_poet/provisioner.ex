@@ -608,7 +608,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_places",
-          description: "Record the concrete places you actually recommend from today -- restaurants, cafes, viewpoints, attractions, events, landmarks, shops -- for your companion's trip guide. Replaces the day's whole list, so send them all at once. Each place wants a real postal address (the app geocodes it onto a map) and YOUR OWN 1-5 rating: your take, never a copied review score.",
+          description: "Record the concrete places you actually recommend from today -- restaurants, cafes, viewpoints, attractions, events, landmarks, shops -- for your companion's trip guide. Replaces the day's whole list, so send them all at once. Each place wants a real postal address (the app geocodes it onto a map) and YOUR OWN 1-5 rating: your take, never a copied review score. An exhibition or festival you found with real dates is an `event` -- give its venue as the address and its run in starts_on/ends_on.",
           parameters: {
             type: "object",
             required: ["entry_date", "places"],
@@ -626,7 +626,9 @@ defmodule TravelingPoet.Provisioner do
                     address: { type: "string", description: "street address + city, as you would type it into a map -- this is what gets geocoded" },
                     blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
                     poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" },
-                    source_url: { type: "string", description: "the place's own page, copied from a page you actually fetched" }
+                    source_url: { type: "string", description: "the place's own page, copied from a page you actually fetched" },
+                    starts_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" },
+                    ends_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" }
                   }
                 }
               }

@@ -25,6 +25,9 @@ defmodule TravelingPoet.Guide.Place do
     field :poet_rating, :integer
     field :source_url, :string
     field :media_id, :id
+    # Events only: what the entry said about when it runs.
+    field :starts_on, :date
+    field :ends_on, :date
     field :position, :integer, default: 0
     field :source, :string, default: "agent"
 
@@ -58,6 +61,30 @@ defmodule TravelingPoet.Guide.Place do
 
   def normalize_category(_), do: "attraction"
 
+  @doc """
+  Has this event finished, as of `today`?
+
+  Only ever true for a place with an `ends_on`, so a venue is never "ended".
+  """
+  def ended?(%__MODULE__{ends_on: nil}, _today), do: false
+  def ended?(%__MODULE__{ends_on: ends_on}, today), do: Date.compare(ends_on, today) == :lt
+
+  @doc "A human date range, or nil when the entry gave no dates."
+  def date_range(%__MODULE__{starts_on: nil, ends_on: nil}), do: nil
+
+  def date_range(%__MODULE__{starts_on: nil, ends_on: ends_on}),
+    do: "until " <> fmt(ends_on)
+
+  def date_range(%__MODULE__{starts_on: starts_on, ends_on: nil}),
+    do: "from " <> fmt(starts_on)
+
+  def date_range(%__MODULE__{starts_on: same, ends_on: same}), do: fmt(same)
+
+  def date_range(%__MODULE__{starts_on: starts_on, ends_on: ends_on}),
+    do: fmt(starts_on) <> " – " <> fmt(ends_on)
+
+  defp fmt(date), do: Calendar.strftime(date, "%b %-d")
+
   @doc "Is this place placeable on the map?"
   def mapped?(%__MODULE__{lat: lat, lng: lng}), do: is_number(lat) and is_number(lng)
 
@@ -80,7 +107,9 @@ defmodule TravelingPoet.Guide.Place do
       :source_url,
       :media_id,
       :position,
-      :source
+      :source,
+      :starts_on,
+      :ends_on
     ])
     |> update_change(:category, &normalize_category/1)
     |> update_change(:name, &String.trim/1)
