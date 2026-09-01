@@ -76,14 +76,74 @@ defmodule TravelingPoet.PlaceExtractorTest do
       assert Guide.list_places_for_entry(entry.id) == []
     end
 
-    test "an entry that already has places is skipped unless forced" do
+    test "an entry that already has backfilled places is skipped unless forced" do
       poet = poet_fixture(user_fixture())
       entry = published_entry_fixture(poet)
-      {:ok, _} = Guide.replace_places(entry, [%{"name" => "Existing", "category" => "cafe"}])
+
+      {:ok, _} =
+        Guide.replace_places(entry, [
+          %{"name" => "Existing", "category" => "cafe", "source" => "backfill"}
+        ])
 
       %{entries: [result]} = Backfill.run(poet_id: poet.id)
 
       assert result.status == :skipped_has_places
+    end
+
+    # source defaults to "agent" precisely so that anything written through the
+    # agent endpoint is protected without the endpoint having to remember.
+    test "source defaults to agent, so API-written places are protected by default" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+
+      {:ok, [place]} =
+        Guide.replace_places(entry, [%{"name" => "Whatever", "category" => "cafe"}])
+
+      assert place.source == "agent"
+    end
+
+    # The poet's own places are strictly better than anything extracted from
+    # its prose afterwards -- real addresses, its own rating, a URL it actually
+    # fetched -- and replace_places/2 is wholesale, so there is no partial
+    # overwrite. A force re-run to pick up events cost Matti's three
+    # agent-written Vienna places their ratings and addresses on 2026-09-01.
+    test "agent-written places are never overwritten, even with force" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+
+      {:ok, _} =
+        Guide.replace_places(entry, [
+          %{
+            "name" => "Cafe Museum",
+            "category" => "cafe",
+            "poet_rating" => 5,
+            "source" => "agent"
+          }
+        ])
+
+      %{entries: [result], totals: totals} = Backfill.run(poet_id: poet.id, force: true)
+
+      assert result.status == :skipped_agent_places
+      assert totals.protected == 1
+
+      [untouched] = Guide.list_places_for_entry(entry.id)
+      assert untouched.poet_rating == 5
+      assert untouched.source == "agent"
+    end
+
+    test "backfilled places are still re-extractable with force" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+
+      {:ok, _} =
+        Guide.replace_places(entry, [
+          %{"name" => "Old Guess", "category" => "cafe", "source" => "backfill"}
+        ])
+
+      %{entries: [result]} = Backfill.run(poet_id: poet.id, force: true)
+
+      refute result.status == :skipped_agent_places
+      refute result.status == :skipped_has_places
     end
 
     # Keys are nil in :test, so extraction degrades rather than reaching the

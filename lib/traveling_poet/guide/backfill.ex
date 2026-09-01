@@ -64,11 +64,26 @@ defmodule TravelingPoet.Guide.Backfill do
 
   defp process(entry, opts, commit?) do
     base = %{poet_id: entry.poet_id, date: entry.entry_date, city: entry.place_name}
+    existing = Guide.list_places_for_entry(entry.id)
 
-    if not Keyword.get(opts, :force, false) and Guide.list_places_for_entry(entry.id) != [] do
-      Map.merge(base, %{status: :skipped_has_places, places: []})
-    else
-      extract(entry, base, opts, commit?)
+    cond do
+      # NEVER, not even with force. The poet's own places are strictly better
+      # than anything extracted from its prose afterwards: real postal
+      # addresses, its own rating, a source URL it actually fetched. Because
+      # replace_places/2 is wholesale there is no partial overwrite, so a
+      # forced re-run silently traded all of that for a guess.
+      #
+      # Learned the expensive way on 2026-09-01: a force re-run to pick up
+      # events overwrote Matti's three agent-written Vienna places, and their
+      # ratings and full addresses are simply gone.
+      Enum.any?(existing, &(&1.source == "agent")) ->
+        Map.merge(base, %{status: :skipped_agent_places, places: []})
+
+      existing != [] and not Keyword.get(opts, :force, false) ->
+        Map.merge(base, %{status: :skipped_has_places, places: []})
+
+      true ->
+        extract(entry, base, opts, commit?)
     end
   end
 
@@ -107,7 +122,12 @@ defmodule TravelingPoet.Guide.Backfill do
     %{
       entries: length(results),
       places: results |> Enum.map(&length(&1.places)) |> Enum.sum(),
-      skipped: Enum.count(results, &(&1.status in [:skipped_has_places, :nothing_named])),
+      skipped:
+        Enum.count(
+          results,
+          &(&1.status in [:skipped_has_places, :skipped_agent_places, :nothing_named])
+        ),
+      protected: Enum.count(results, &(&1.status == :skipped_agent_places)),
       failed: Enum.count(results, &match?({:failed, _}, &1.status)),
       committed: commit?
     }
