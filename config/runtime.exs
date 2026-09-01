@@ -47,6 +47,14 @@ config :traveling_poet,
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
+  # Used only by the one-off places backfill. Pinned in test for the same
+  # reason the model slugs above are: .env loads in every env, so whatever the
+  # fleet happens to run today must not decide what the tests assert.
+  extraction_model:
+    if(config_env() == :test,
+      do: "test/extraction-model",
+      else: System.get_env("EXTRACTION_MODEL", "google/gemini-2.5-flash")
+    ),
   # nil in test: runtime.exs loads .env in every env, and a real token here
   # would boot the Telegram Poller/Notifier inside the test run — they'd hit
   # the DB outside the sandbox and lock-jam SQLite (learned the hard way)
