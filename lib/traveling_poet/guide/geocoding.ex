@@ -79,9 +79,14 @@ defmodule TravelingPoet.Guide.Geocoding do
   geocoding failure must never surface as a failed agent tool call.
   """
   def drain_async(poet_id, city) do
-    Task.start(fn ->
-      drain(poet_id, city)
-    end)
+    # Nothing to drain when geocoding is off, and in :test an unsupervised Task
+    # outlives the Ecto sandbox checkout, which surfaces as ownership errors in
+    # unrelated suites.
+    if Geocoder.enabled?() do
+      Task.start(fn -> drain(poet_id, city) end)
+    else
+      :ok
+    end
   end
 
   def drain(poet_id, city, limit \\ 50) do

@@ -174,9 +174,21 @@ defmodule TravelingPoet.Journal do
   def unattached_illustrations(%Entry{} = entry, sections) do
     referenced = sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)
 
+    # Guide place drawings are excluded. They belong to a place, not to the
+    # prose, and this query renders anything it returns as a stray taped photo
+    # on the journal page. The media controller already leaves
+    # journal_entry_id nil for them; this is the second lock, and it also
+    # covers rows the backfill may have linked.
+    claimed_by_places =
+      from(p in TravelingPoet.Guide.Place,
+        where: p.journal_entry_id == ^entry.id and not is_nil(p.media_id),
+        select: p.media_id
+      )
+
     Media
     |> where(journal_entry_id: ^entry.id, kind: "illustration")
     |> where([m], m.id not in ^referenced)
+    |> where([m], m.id not in subquery(claimed_by_places))
     |> Repo.all()
   end
 

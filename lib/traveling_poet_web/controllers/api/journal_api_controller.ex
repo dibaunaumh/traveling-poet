@@ -3,7 +3,16 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   require Logger
 
-  alias TravelingPoet.{Journal, Poets, Preferences}
+  alias TravelingPoet.{Guide, Journal, LinkCheck, Poets, Preferences}
+  alias TravelingPoet.Guide.Geocoding
+
+  # A day's finds, not a directory. The skill asks for 2-4; this is the
+  # backstop against a model that decides to list everything it walked past.
+  @max_places 8
+  # Link checks probe live URLs with a 6s timeout each (LinkCheck), so a
+  # full list run serially could hold the agent's request open for most of a
+  # minute.
+  @link_check_concurrency 6
 
   def upsert_entry(conn, %{"entry_date" => date_str} = params) do
     with_poet_and_date(conn, date_str, fn poet, date ->
@@ -105,6 +114,89 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
       end
     end)
     |> TravelingPoet.LinkCheck.validate_all()
+  end
+
+  @doc """
+  Replaces the day's guide places.
+
+  Its own endpoint rather than a rider on `put_sections` for the same reason
+  entry_prompts are their own table: the skill tells the poet to re-send its
+  full section list after illustrating, so anything carried in that list gets
+  wiped mid-run.
+
+  Deliberately forgiving. A place with a dead link is dropped and named in the
+  response; the rest are saved. Refusing the whole list over one bad URL would
+  cost the reader eight good recommendations to punish one.
+  """
+  def put_places(conn, %{"date" => date_str, "places" => places}) when is_list(places) do
+    with_poet_and_date(conn, date_str, fn poet, date ->
+      case Journal.get_entry(poet.id, date) do
+        nil ->
+          conn
+          |> put_status(404)
+          |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
+
+        entry ->
+          do_put_places(conn, poet, entry, places)
+      end
+    end)
+  end
+
+  def put_places(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "places (list) is required"})
+  end
+
+  defp do_put_places(conn, poet, entry, places) do
+    {kept, over_cap} = Enum.split(places, @max_places)
+    {usable, dropped} = reject_dead_links(kept)
+
+    case Guide.replace_places(entry, usable) do
+      {:ok, saved} ->
+        city = entry.place_name || poet.current_place_name
+        {resolved, not_located} = Geocoding.resolve_within_budget(saved, city)
+        Geocoding.drain_async(poet.id, city)
+
+        json(conn, %{
+          ok: true,
+          place_count: length(resolved),
+          place_ids: Map.new(resolved, &{&1.name, &1.id}),
+          not_located: not_located,
+          dropped: dropped,
+          over_cap: length(over_cap)
+        })
+
+      {:error, reason} ->
+        conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  # Concurrent on purpose: see @link_check_concurrency. A check that times out
+  # counts as a pass -- this is a liveness nicety, and it must never be the
+  # reason a real recommendation is lost.
+  defp reject_dead_links(places) do
+    places
+    |> Task.async_stream(&check_place_link/1,
+      max_concurrency: @link_check_concurrency,
+      timeout: 8_000,
+      on_timeout: :kill_task
+    )
+    |> Enum.zip(places)
+    |> Enum.reduce({[], []}, fn
+      {{:ok, :ok}, place}, {keep, drop} -> {[place | keep], drop}
+      {{:ok, {:dead, name}}, _place}, {keep, drop} -> {keep, [name | drop]}
+      {{:exit, _}, place}, {keep, drop} -> {[place | keep], drop}
+    end)
+    |> then(fn {keep, drop} -> {Enum.reverse(keep), Enum.reverse(drop)} end)
+  end
+
+  defp check_place_link(place) do
+    url = place["source_url"] || place[:source_url]
+
+    if is_binary(url) and url != "" and LinkCheck.check(url) != :ok do
+      {:dead, place["name"] || place[:name]}
+    else
+      :ok
+    end
   end
 
   def publish(conn, %{"date" => date_str}) do

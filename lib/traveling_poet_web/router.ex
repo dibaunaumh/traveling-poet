@@ -55,6 +55,7 @@ defmodule TravelingPoetWeb.Router do
     post "/location", LocationController, :update
     post "/journal_entries", JournalApiController, :upsert_entry
     put "/journal_entries/:date/sections", JournalApiController, :put_sections
+    put "/journal_entries/:date/places", JournalApiController, :put_places
     post "/journal_entries/:date/publish", JournalApiController, :publish
     post "/media", MediaApiController, :create
     post "/illustrations", MediaApiController, :generate

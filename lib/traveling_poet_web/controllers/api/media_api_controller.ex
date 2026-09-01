@@ -76,6 +76,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
     with %Poets.Poet{} = poet <- Poets.get_poet_by_user(user.id),
          {:ok, bytes} <- Base.decode64(b64),
          {:ok, entry} <- resolve_entry(poet, params["entry_date"]),
+         {:ok, place} <- resolve_place(poet, params["place_id"]),
          content_hash = :crypto.hash(:md5, bytes) |> Base.encode16(),
          :ok <- reject_duplicate(poet, content_hash, params["kind"]),
          :ok <- validate_source_links(params["sources"]) do
@@ -86,7 +87,12 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
         {:ok, _} ->
           attrs = %{
             poet_id: poet.id,
-            journal_entry_id: entry && entry.id,
+            # A place drawing is deliberately NOT linked to the entry, even
+            # when entry_date was also sent: unattached_illustrations/2 renders
+            # any entry-linked illustration no section claims, so linking it
+            # would leak the place's picture onto the journal page as a stray
+            # taped photo.
+            journal_entry_id: if(place, do: nil, else: entry && entry.id),
             s3_key: key,
             content_type: content_type,
             byte_size: byte_size(bytes),
@@ -104,6 +110,8 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
               if media.kind == "poet_avatar" do
                 Poets.update_poet(poet, %{avatar_url: "/media/#{media.id}"})
               end
+
+              if place, do: TravelingPoet.Guide.attach_media(place, media.id)
 
               json(conn, %{ok: true, media_id: media.id, url: "/media/#{media.id}"})
 
@@ -126,6 +134,11 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
       {:error, :bad_date} ->
         conn |> put_status(422) |> json(%{error: "invalid entry_date"})
+
+      {:error, :no_place} ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "no such place — call journal_put_places first and use a returned id"})
 
       {:error, {:bad_links, bad_urls}} ->
         conn
@@ -182,6 +195,16 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
     case Date.from_iso8601(to_string(date_str)) do
       {:ok, date} -> {:ok, TravelingPoet.Journal.get_entry(poet.id, date)}
       {:error, _} -> {:error, :bad_date}
+    end
+  end
+
+  defp resolve_place(_poet, nil), do: {:ok, nil}
+
+  # Scoped to the poet: a place id from someone else's guide must not resolve.
+  defp resolve_place(poet, place_id) do
+    case TravelingPoet.Guide.get_place(poet.id, place_id) do
+      nil -> {:error, :no_place}
+      place -> {:ok, place}
     end
   end
 
