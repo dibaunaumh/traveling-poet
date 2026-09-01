@@ -5,7 +5,7 @@ defmodule TravelingPoet.GeocodeCacheTest do
 
   alias TravelingPoet.{Geocoder, Guide, Repo}
   alias TravelingPoet.Geocoder.CacheEntry
-  alias TravelingPoet.Guide.Geocoding
+  alias TravelingPoet.Guide.{Geocoding, Place}
 
   defp cache(query, attrs) do
     {:ok, entry} =
@@ -70,6 +70,56 @@ defmodule TravelingPoet.GeocodeCacheTest do
     assert Geocoder.locate(query) == :not_found
   end
 
+  describe "geocode_queries/2" do
+    # The 2026-09-01 production regression: all three of Matti's Vienna places
+    # failed with perfectly good addresses, because the query joined the venue
+    # name, the full postal address AND the city -- and Nominatim matched
+    # nothing against it. Verified against the live service at the time:
+    #   "Cafe Museum, Operngasse 7, 1010 Vienna, Austria, Vienna, Austria" 0 hits
+    #   "Operngasse 7, 1010 Vienna, Austria"                              3 hits
+    test "an address is queried on its own, never glued to the name" do
+      place = %Place{name: "Cafe Museum", address: "Operngasse 7, 1010 Vienna, Austria"}
+
+      assert ["Operngasse 7, 1010 Vienna, Austria", "Cafe Museum, Vienna, Austria"] =
+               Guide.geocode_queries(place, "Vienna, Austria")
+    end
+
+    test "the city is not appended to an address that already names it" do
+      place = %Place{name: "Cafe Museum", address: "Operngasse 7, 1010 Vienna, Austria"}
+      [primary | _] = Guide.geocode_queries(place, "Vienna, Austria")
+
+      refute primary =~ ~r/Vienna.*Vienna/
+    end
+
+    test "a city IS appended to an address that omits it" do
+      place = %Place{name: "Naschmarkt", address: "Wienzeile"}
+
+      assert ["Wienzeile, Vienna, Austria" | _] =
+               Guide.geocode_queries(place, "Vienna, Austria")
+    end
+
+    test "a place with no address falls back to name and city alone" do
+      place = %Place{name: "Naschmarkt", address: nil}
+
+      assert Guide.geocode_queries(place, "Vienna, Austria") == ["Naschmarkt, Vienna, Austria"]
+    end
+
+    test "a blank address is treated as absent, not joined as an empty segment" do
+      place = %Place{name: "Naschmarkt", address: "   "}
+
+      assert Guide.geocode_queries(place, "Vienna, Austria") == ["Naschmarkt, Vienna, Austria"]
+    end
+
+    # Common shape: the poet gives the market's name as its address. Both
+    # candidates then render identically and it must cost one lookup, not two
+    # against a 1 req/s budget.
+    test "identical candidates collapse to one lookup" do
+      place = %Place{name: "Naschmarkt", address: "Naschmarkt, Vienna, Austria"}
+
+      assert Guide.geocode_queries(place, "Vienna, Austria") == ["Naschmarkt, Vienna, Austria"]
+    end
+  end
+
   describe "resolving places" do
     test "a place that cannot be located is marked failed and still lists" do
       user = user_fixture()
@@ -97,6 +147,52 @@ defmodule TravelingPoet.GeocodeCacheTest do
       {:ok, geocoded} = Guide.update_geocode(place, %{lat: 38.72, lng: -9.13})
 
       assert Geocoding.resolve(geocoded, "Lisbon, Portugal") == geocoded
+    end
+
+    # The address and the name+city forms fail on quite different inputs, so a
+    # place is only failed once BOTH have come back empty.
+    test "the fallback candidate is tried before a place is failed" do
+      user = user_fixture()
+      poet = poet_fixture(user)
+      entry = published_entry_fixture(poet)
+
+      {:ok, _} =
+        Guide.replace_places(entry, [
+          %{"name" => "Cafe Museum", "category" => "cafe", "address" => "Operngasse 7, Vienna"}
+        ])
+
+      [place] = Guide.list_places_for_entry(entry.id)
+      # Only the SECOND candidate is cached; the first must fall through to it.
+      cache("Cafe Museum, Vienna, Austria", %{lat: 48.2014, lng: 16.3676})
+
+      resolved = Geocoding.resolve(place, "Vienna, Austria")
+
+      assert resolved.geocode_status == "ok"
+      assert resolved.lat == 48.2014
+    end
+
+    # A place marked failed by a bug of ours is not a place that does not
+    # exist. Without this, the only record of that is a row nothing will ever
+    # look at again.
+    test "reset_failed_geocodes flips failures back to pending for a retry" do
+      user = user_fixture()
+      poet = poet_fixture(user)
+      entry = published_entry_fixture(poet)
+      {:ok, _} = Guide.replace_places(entry, [%{"name" => "Somewhere", "category" => "cafe"}])
+      [place] = Guide.list_places_for_entry(entry.id)
+      {:ok, _} = Guide.mark_geocode_failed(place)
+
+      assert {1, _} = Guide.reset_failed_geocodes(poet.id)
+      assert Guide.pending_geocodes() |> Enum.map(& &1.id) == [place.id]
+    end
+
+    test "purge_misses forgets cached failures so a fix can take effect" do
+      cache("Nowhere at all", %{found: false})
+      cache("Somewhere real", %{lat: 1.0, lng: 2.0, found: true})
+
+      assert Geocoder.purge_misses() == 1
+      assert Repo.get_by(CacheEntry, query_hash: CacheEntry.hash("Somewhere real")) != nil
+      assert Repo.get_by(CacheEntry, query_hash: CacheEntry.hash("Nowhere at all")) == nil
     end
 
     test "the budget pass reports which places got no pin" do

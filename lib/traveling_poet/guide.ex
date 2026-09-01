@@ -282,11 +282,74 @@ defmodule TravelingPoet.Guide do
     place |> Place.changeset(%{geocode_status: "failed"}) |> Repo.update()
   end
 
-  @doc "The string handed to Nominatim for a place."
-  def geocode_query(%Place{} = place, city) do
-    [place.name, place.address, city]
-    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+  @doc """
+  The queries to try against Nominatim for a place, best first.
+
+  Nominatim's free-text search is over-specification-sensitive: joining the
+  venue name, its full postal address AND the city produces a string it
+  matches nothing against. Observed in production on 2026-09-01, where all
+  three of Matti's Vienna places failed with perfectly good addresses:
+
+      "Cafe Museum, Operngasse 7, 1010 Vienna, Austria, Vienna, Austria" -> 0 hits
+      "Operngasse 7, 1010 Vienna, Austria"                              -> 3 hits
+      "Cafe Museum, Vienna, Austria"                                    -> 2 hits
+
+  So: the address alone is the best query (it already carries the city, and
+  only gets one appended when it doesn't). The name plus city is the fallback,
+  which is also the only option for a place the poet gave no address.
+  """
+  def geocode_queries(%Place{} = place, city) do
+    [address_query(place, city), name_query(place, city)]
+    |> Enum.reject(&(&1 in [nil, ""]))
     |> Enum.uniq()
-    |> Enum.join(", ")
+  end
+
+  defp address_query(%Place{address: address}, city) do
+    case present(address) do
+      nil -> nil
+      address -> if mentions_city?(address, city), do: address, else: join([address, city])
+    end
+  end
+
+  defp name_query(%Place{name: name}, city), do: join([present(name), city])
+
+  # City is typically "Vienna, Austria"; an address that already names the town
+  # must not have it appended again.
+  defp mentions_city?(address, city) do
+    case present(city) do
+      nil ->
+        true
+
+      city ->
+        town = city |> String.split(",") |> hd() |> String.trim() |> String.downcase()
+        town != "" and String.contains?(String.downcase(address), town)
+    end
+  end
+
+  defp join(parts) do
+    parts |> Enum.map(&present/1) |> Enum.reject(&is_nil/1) |> Enum.join(", ")
+  end
+
+  defp present(nil), do: nil
+
+  defp present(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp present(_), do: nil
+
+  @doc """
+  Flips failed geocodes back to pending so the drain retries them.
+
+  For use after a geocoder fix: a place marked failed by a bug of ours is not
+  a place that does not exist, and without this the only record of that is a
+  row nothing will ever look at again.
+  """
+  def reset_failed_geocodes(poet_id) do
+    from(p in Place, where: p.poet_id == ^poet_id and p.geocode_status == "failed")
+    |> Repo.update_all(set: [geocode_status: "pending", updated_at: DateTime.utc_now()])
   end
 end

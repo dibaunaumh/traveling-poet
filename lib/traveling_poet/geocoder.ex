@@ -142,6 +142,20 @@ defmodule TravelingPoet.Geocoder do
     |> Repo.insert(on_conflict: :replace_all, conflict_target: :query_hash)
   end
 
+  @doc """
+  Forgets every cached miss.
+
+  Misses are cached for 30 days, which is right when the miss is real and
+  wrong when it was caused by a bad query on our side -- a geocoder fix would
+  otherwise be invisible until the TTL expired. Run this after changing how
+  queries are built.
+  """
+  def purge_misses do
+    import Ecto.Query, only: [from: 2]
+    {count, _} = Repo.delete_all(from(c in CacheEntry, where: c.found == false))
+    count
+  end
+
   @doc "A random curated starting location."
   def random_start_location do
     :code.priv_dir(:traveling_poet)
