@@ -41,6 +41,8 @@ defmodule TravelingPoetWeb.Router do
     live_session :public,
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do
       live "/p/:slug", PublicJournalLive
+      # Must precede /p/:slug/:date so "guide" isn't swallowed as a date.
+      live "/p/:slug/guide", PublicGuideLive
       live "/p/:slug/:date", PublicJournalLive
     end
   end

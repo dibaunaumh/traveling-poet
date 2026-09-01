@@ -149,6 +149,31 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     assert render(view) =~ "Nameless viewpoint"
   end
 
+  # A detail card left open beside a map that no longer shows its pin is a
+  # small lie about what you are looking at.
+  test "a selected place is dropped when the filter stops showing it", %{conn: conn} do
+    {user, poet} = guide_poet()
+
+    [ramiro, _fado] =
+      seed_places(poet, [
+        place("Ramiro"),
+        place("Fado ao Castelo", %{"category" => "event"})
+      ])
+
+    {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?view=map")
+
+    render_hook(view, "select_place", %{"id" => ramiro.id})
+    assert render(view) =~ "Ramiro"
+
+    # Ramiro is a restaurant, so the events filter excludes it: the detail card
+    # must go back to the placeholder rather than keep showing a place the map
+    # no longer has a pin for.
+    view |> element("#guide-filter-events") |> render_click()
+    html = render(view)
+    assert html =~ "Pick a pin"
+    refute html =~ "Ramiro"
+  end
+
   test "a draft entry's places never appear", %{conn: conn} do
     {user, poet} = guide_poet()
     draft = entry_fixture(poet)
