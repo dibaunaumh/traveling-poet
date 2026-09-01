@@ -469,8 +469,18 @@ defmodule TravelingPoet.Provisioner do
   #   * OpenClaw calls execute(toolCallId, params) — the FIRST argument is
   #     the tool_use id string, params come second and may arrive as a JSON
   #     string, so every handler goes through asParams/2.
-  defp write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token) do
-    plugin_js = ~s"""
+  @doc """
+  The generated plugin source.
+
+  Public so the tool wiring can be asserted on without a sprite. Every handler
+  must take `(_id, raw)` and go through `asParams`; `record_preference` shipped
+  taking one argument and therefore POSTed the tool-call ID as its body, which
+  the preferences endpoint answered with a 422 every single time. That is the
+  kind of thing no integration test was ever going to reach, so it is checked
+  here instead.
+  """
+  def tpoet_plugin_source(phoenix_url, agent_api_token) do
+    ~s"""
     var BASE = #{Jason.encode!(phoenix_url)};
     var TOKEN = #{Jason.encode!(agent_api_token)};
 
@@ -531,7 +541,7 @@ defmodule TravelingPoet.Provisioner do
             },
             required: ["label"]
           },
-          execute: function(params) { return call("POST", "/api/agent/preferences", params); }
+          execute: function(_id, raw) { return call("POST", "/api/agent/preferences", asParams(raw)); }
         });
         ctx.registerTool({
           name: "update_location",
@@ -710,6 +720,10 @@ defmodule TravelingPoet.Provisioner do
       }
     };
     """
+  end
+
+  defp write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token) do
+    plugin_js = tpoet_plugin_source(phoenix_url, agent_api_token)
 
     plugin_manifest =
       Jason.encode!(
