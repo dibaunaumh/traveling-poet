@@ -85,19 +85,39 @@ defmodule TravelingPoet.Guide do
     end)
   end
 
-  # The stay an entry falls inside. Nil is fine -- it only costs the city
-  # grouping, never the place itself.
-  defp path_point_for(%Entry{poet_id: poet_id, entry_date: date}) do
-    PathPoint
-    |> where(poet_id: ^poet_id)
-    |> order_by(desc: :position)
-    |> Repo.all()
-    |> Enum.find(fn pp -> covers?(pp, date) end)
-    |> case do
+  @doc """
+  The stay an entry belongs to.
+
+  Prefers the path point whose arrival/departure window covers the date. Falls
+  back to the most recent stay that had already started, and then to the
+  earliest stay on record -- which is what makes the backfill useful: entries
+  written before the poet's path was being tracked predate every arrived_at,
+  and would otherwise all land outside every stay and give the guide no city
+  grouping at all.
+
+  Nil is still a valid answer (a poet with no path points yet). It costs only
+  the grouping, never the place.
+  """
+  def path_point_for(%Entry{poet_id: poet_id, entry_date: date}) do
+    stays =
+      PathPoint
+      |> where(poet_id: ^poet_id)
+      |> order_by(asc: :position)
+      |> Repo.all()
+
+    covering = Enum.find(stays, &covers?(&1, date))
+    started = stays |> Enum.filter(&started_by?(&1, date)) |> List.last()
+
+    case covering || started || List.first(stays) do
       nil -> nil
       pp -> pp.id
     end
   end
+
+  defp started_by?(%PathPoint{arrived_at: nil}, _date), do: false
+
+  defp started_by?(%PathPoint{arrived_at: arrived}, date),
+    do: Date.compare(DateTime.to_date(arrived), date) != :gt
 
   defp covers?(%PathPoint{arrived_at: nil}, _date), do: false
 

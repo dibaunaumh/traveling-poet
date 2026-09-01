@@ -91,6 +91,35 @@ defmodule TravelingPoet.GuideTest do
       stay = Poets.current_path_point(poet.id)
       assert place.path_point_id == stay.id
     end
+
+    # The backfill's case: entries written before the poet's path was being
+    # tracked predate every arrived_at. Without a fallback they would all land
+    # outside every stay, and the guide would lose its city grouping for
+    # exactly the trips the backfill exists to rescue.
+    test "an entry older than every stay still lands in the earliest one" do
+      {_user, poet} = setup_poet()
+
+      {:ok, _} =
+        Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
+
+      old_entry = published_entry_fixture(poet, %{entry_date: Date.add(Date.utc_today(), -30)})
+      {:ok, _} = Guide.replace_places(old_entry, [attrs("Tasca do Chico")])
+
+      [place] = Guide.list_places_for_entry(old_entry.id)
+      assert place.path_point_id == Poets.current_path_point(poet.id).id
+      assert Guide.list_stays(poet.id) != []
+    end
+
+    test "a poet with no path points at all still saves its places" do
+      {_user, poet} = setup_poet()
+      entry = published_entry_fixture(poet)
+
+      {:ok, _} = Guide.replace_places(entry, [attrs("Tasca do Chico")])
+
+      [place] = Guide.list_places_for_entry(entry.id)
+      assert place.path_point_id == nil
+      assert length(Guide.list_places(poet.id)) == 1
+    end
   end
 
   describe "list_places/2" do
