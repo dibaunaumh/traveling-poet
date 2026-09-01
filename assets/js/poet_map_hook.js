@@ -6,6 +6,10 @@
 // cycles their popups one at a time (see startTour). data-anonymous-poets
 // (JSON: [{lat,lng}]) adds the private ones as unnamed grey dots -- they are
 // never clickable and never join the tour, since there is nothing to show.
+// For the trip guide, data-places (JSON: [{id,n,lat,lng,name,category,group,
+// rating,blurb,url,poet}]) renders numbered pins coloured by group; clicking
+// one pushes select_place back to the LiveView. Only geocoded places appear --
+// the rest are still listed in the List and Itinerary views.
 
 import * as L from "../vendor/leaflet/leaflet.js"
 
@@ -28,6 +32,66 @@ export function initStaticMaps() {
     fake.handleEvent = () => {}
     fake.mounted()
   })
+}
+
+// daisyUI's success is a teal and warning an amber, so the guide's pins match
+// the rest of the app's palette in both themes without new tokens.
+const GROUP_COLORS = { food: "#c0392b", events: "#8e44ad", sights: "#0f766e" }
+
+function placeIcon(p) {
+  const color = GROUP_COLORS[p.group] || GROUP_COLORS.sights
+  return L.divIcon({
+    className: "guide-pin",
+    html:
+      `<span style="background:${color}">` +
+      `<b>${Number(p.n) || ""}</b></span>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -24],
+  })
+}
+
+// Built as DOM nodes, never an HTML string: names, blurbs and URLs here are
+// all agent-supplied (same reason as poetPopup below).
+function placePopup(p) {
+  const el = document.createElement("div")
+  el.className = "poet-popup"
+
+  const body = document.createElement("div")
+
+  const name = document.createElement("div")
+  name.className = "poet-popup-name"
+  name.textContent = p.name || ""
+  body.appendChild(name)
+
+  const meta = document.createElement("div")
+  meta.className = "poet-popup-place"
+  const category = p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : ""
+  // The rating is the poet's own take and has to say whose it is -- a bare
+  // star next to a restaurant reads as a sourced review score.
+  meta.textContent = p.rating
+    ? `${category} · ${"\u2605".repeat(p.rating)} ${p.poet || "the poet"}'s pick`
+    : category
+  body.appendChild(meta)
+
+  if (p.blurb) {
+    const blurb = document.createElement("div")
+    blurb.className = "poet-popup-blurb"
+    blurb.textContent = p.blurb
+    body.appendChild(blurb)
+  }
+
+  if (p.url) {
+    const link = document.createElement("a")
+    link.href = p.url
+    link.target = "_blank"
+    link.rel = "noopener noreferrer nofollow"
+    link.textContent = "View details \u2197"
+    body.appendChild(link)
+  }
+
+  el.appendChild(body)
+  return el
 }
 
 const TOUR_SHOW_MS = 4500
@@ -95,15 +159,21 @@ const PoetMap = {
     this.layer = L.layerGroup().addTo(this.map)
     this.renderData()
 
-    this.handleEvent("map:update", (data) => this.render(data))
+    // phx-update="ignore" means a changed data attribute never re-renders the
+    // map, so filter changes arrive as an event instead.
+    this.handleEvent("map:update", (data) =>
+      data.places ? this.renderPlaces(data.places) : this.render(data)
+    )
   },
 
   renderData() {
     const points = this.el.dataset.points
     const poets = this.el.dataset.poets
     const anonymous = this.el.dataset.anonymousPoets
+    const places = this.el.dataset.places
     if (points) this.render(JSON.parse(points))
     if (poets) this.renderPoets(JSON.parse(poets), anonymous ? JSON.parse(anonymous) : [])
+    if (places) this.renderPlaces(JSON.parse(places))
   },
 
   render(data) {
@@ -153,6 +223,30 @@ const PoetMap = {
       }
     } else if (path.length > 0) {
       this.map.fitBounds(path, { padding: [30, 30] })
+    } else {
+      this.map.setView([30, 10], 2)
+    }
+  },
+
+  // Trip guide pins. Colour carries the filter group so the map agrees with
+  // the chips above it at a glance.
+  renderPlaces(places) {
+    this.stopTour()
+    this.layer.clearLayers()
+
+    const coords = []
+    places.forEach((p) => {
+      coords.push([p.lat, p.lng])
+      L.marker([p.lat, p.lng], { icon: placeIcon(p) })
+        .bindPopup(placePopup(p))
+        .on("click", () => this.pushEvent("select_place", { id: p.id }))
+        .addTo(this.layer)
+    })
+
+    if (coords.length > 1) {
+      this.map.fitBounds(coords, { padding: [40, 40], maxZoom: 15 })
+    } else if (coords.length === 1) {
+      this.map.setView(coords[0], 14)
     } else {
       this.map.setView([30, 10], 2)
     }

@@ -83,6 +83,7 @@ defmodule TravelingPoetWeb.Router do
       live "/onboarding", OnboardingLive
       live "/journal", JournalLive
       live "/journal/:date", JournalLive
+      live "/guide", GuideLive
       live "/settings", SettingsLive
     end
 

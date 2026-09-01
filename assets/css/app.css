@@ -286,3 +286,34 @@
 .leaflet-popup-content {
   margin: 0.75rem 0.9rem;
 }
+
+/* Trip guide map pins: numbered teardrops, coloured by filter group so the map
+   and the chips above it agree at a glance. Leaflet divIcons sit outside
+   Tailwind's reach, same as the poet popups above. */
+.guide-pin span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px 999px 999px 2px;
+  transform: rotate(45deg);
+  border: 2px solid #fff;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.3);
+  color: #fff;
+}
+
+.guide-pin b {
+  transform: rotate(-45deg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.poet-popup-blurb {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  margin-top: 0.3rem;
+  max-width: 15rem;
+  line-height: 1.4;
+}
