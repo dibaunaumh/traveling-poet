@@ -30,8 +30,20 @@ config :traveling_poet,
   # the real OpenRouter API (text or image) and spend money
   openrouter_api_key:
     if(config_env() == :test, do: nil, else: System.get_env("OPENROUTER_API_KEY")),
-  openrouter_model: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"),
-  scout_model: System.get_env("SCOUT_MODEL", "anthropic/claude-sonnet-4.6"),
+  # Pinned in test for the same reason the keys above are: runtime.exs loads
+  # .env in every env, so whatever the fleet happens to run today would
+  # otherwise decide what the model-policy tests assert. Two distinct values so
+  # "scout beats fleet default" is a real assertion rather than a tautology.
+  openrouter_model:
+    if(config_env() == :test,
+      do: "test/fleet-model",
+      else: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
+    ),
+  scout_model:
+    if(config_env() == :test,
+      do: "test/scout-model",
+      else: System.get_env("SCOUT_MODEL", "anthropic/claude-sonnet-4.6")
+    ),
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),

@@ -36,6 +36,13 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   @hold_awake_rounds 8
   @reply_timeout_ms 10 * 60 * 1000
   @max_attempts_per_day 3
+  # The first tick comes shortly after boot, not a full interval later.
+  # Scheduling it an interval out means a deploy postpones every pending run by
+  # the whole interval, so a day of frequent deploys can starve the fleet
+  # indefinitely — and nothing alerts, because the poets only look "late".
+  # Happened on 2026-08-31: three deploys inside 35 minutes pushed three poets'
+  # runs back an hour and a half.
+  @startup_delay_ms 60_000
   # a run "counts" for ~22h so drift doesn't skip days
   @min_hours_between_runs 22
 
@@ -49,7 +56,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
       interval ->
         Logger.info("DailyJourneyScheduler: checking every #{div(interval, 60_000)}m")
-        Process.send_after(self(), :tick, interval)
+        Process.send_after(self(), :tick, min(@startup_delay_ms, interval))
     end
 
     {:ok, %{}}
