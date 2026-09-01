@@ -55,7 +55,18 @@ defmodule TravelingPoet.Guide.Geocoding do
   def resolve(%Place{geocode_status: "ok"} = place, _city), do: place
 
   def resolve(%Place{} = place, city) do
-    case Geocoder.locate(Guide.geocode_query(place, city)) do
+    place
+    |> Guide.geocode_queries(city)
+    |> attempt(place)
+  end
+
+  # Tries each candidate query in turn. A place is only marked failed once
+  # EVERY form has come back empty -- the address alone and the name plus city
+  # fail on quite different inputs, so one miss is not an answer.
+  defp attempt([], place), do: mark_failed(place)
+
+  defp attempt([query | rest], place) do
+    case Geocoder.locate(query) do
       {:ok, coords} ->
         case Guide.update_geocode(place, coords) do
           {:ok, updated} -> updated
@@ -63,11 +74,13 @@ defmodule TravelingPoet.Guide.Geocoding do
         end
 
       :not_found ->
-        mark_failed(place)
+        attempt(rest, place)
 
       {:error, _reason} ->
-        # Left pending on purpose: a network blip is not evidence the place
-        # does not exist, so the drain gets to try again later.
+        # Left pending on purpose, and we stop here: a network blip is not
+        # evidence the place does not exist, and burning the remaining
+        # candidates against a service that is currently unreachable just
+        # spends the rate limit to learn the same thing.
         place
     end
   end
