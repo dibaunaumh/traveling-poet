@@ -143,6 +143,8 @@ defmodule TravelingPoet.Guide.Extractor do
         # Only a URL the entry actually contains. A model asked for a link
         # will happily produce a plausible one.
         "source_url" => verbatim_url(place["source_url"], source_text),
+        "starts_on" => date(place["starts_on"]),
+        "ends_on" => date(place["ends_on"]),
         "source" => "backfill"
       }
     end
@@ -163,6 +165,17 @@ defmodule TravelingPoet.Guide.Extractor do
 
   defp verbatim_url(_, _), do: nil
 
+  # A date the model could not render as ISO-8601 is dropped rather than
+  # guessed at: a wrong "until" on an exhibition is worse than none.
+  defp date(value) when is_binary(value) do
+    case Date.from_iso8601(String.trim(value)) do
+      {:ok, date} -> date
+      {:error, _} -> nil
+    end
+  end
+
+  defp date(_), do: nil
+
   defp prose(sections) do
     sections
     |> Enum.filter(&(&1.kind in @prose_kinds))
@@ -180,12 +193,24 @@ defmodule TravelingPoet.Guide.Extractor do
       name        the place's own name, as the entry gives it
       category    one of: restaurant, cafe, viewpoint, attraction, event,
                   landmark, shop
-      address     ONLY if the entry states one; otherwise omit
+      address     ONLY if the entry states one; otherwise omit. For an event,
+                  the venue it happens at.
       blurb       one sentence, quoted or closely paraphrased FROM THE ENTRY
       source_url  ONLY a URL that appears literally in the entry; otherwise omit
+      starts_on   events only, YYYY-MM-DD, ONLY from dates the entry states
+      ends_on     events only, YYYY-MM-DD, ONLY from dates the entry states
 
-    A PLACE is somewhere a reader could set as a destination on a map and walk
-    into or stand in: a named venue, site, park, market or district.
+    A PLACE is either:
+      (a) somewhere a reader could set as a destination on a map and walk into
+          or stand in -- a named venue, site, park, market or district; or
+      (b) a named EVENT happening at such a place: an exhibition, festival,
+          concert, market or performance the entry names and dates.
+
+    For an event, use category "event", give the venue in `address` if the
+    entry names one, and fill `starts_on`/`ends_on` (YYYY-MM-DD) from the dates
+    the entry states. An exhibition running "August 21 - September 27, 2026" is
+    a real find and belongs in the guide alongside the museum hosting it. Omit
+    the dates only if the entry truly gives none; never guess them.
 
     These are NOT places, however specifically the entry names them:
     - a dish, pastry, drink or product ("Queijadas de Sintra", "Travesseiros")
@@ -196,6 +221,9 @@ defmodule TravelingPoet.Guide.Extractor do
       "County Courthouse", "the 375 Depot Street building")
     - a vague area or feature ("the old town", "a small cafe", "the river",
       "Chao Phraya")
+    - a recurring season with no instance the entry dates ("cherry blossom
+      season"). A festival the entry names and places IS an event; a time of
+      year is not.
 
     If a product is worth keeping, name the SHOP that sells it instead
     ("Casa Piriquita"), and only when the entry names that shop.

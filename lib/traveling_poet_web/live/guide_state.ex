@@ -78,7 +78,11 @@ defmodule TravelingPoetWeb.GuideState do
   def assign_places(socket) do
     %{poet: poet, stay: stay, filter: filter} = socket.assigns
 
-    all = Guide.list_places(poet.id, path_point_id: stay_id(stay))
+    all =
+      poet.id
+      |> Guide.list_places(path_point_id: stay_id(stay))
+      |> sort_ended_last()
+
     shown = if filter == "all", do: all, else: Enum.filter(all, &in_group?(&1, filter))
 
     socket
@@ -89,6 +93,15 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:unmapped, Guide.unmapped_count(shown))
     |> assign(:media, media_for(shown))
     |> keep_selection()
+  end
+
+  # An events tab whose first cards are exhibitions that closed weeks ago is
+  # worse than an empty one. They stay visible -- the poet did write about
+  # them, and hiding them silently would be its own small lie -- but they sink
+  # below everything a reader could still act on.
+  defp sort_ended_last(places) do
+    today = Date.utc_today()
+    Enum.sort_by(places, &Place.ended?(&1, today))
   end
 
   defp stay_id(nil), do: :any

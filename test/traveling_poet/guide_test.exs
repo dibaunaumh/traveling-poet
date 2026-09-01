@@ -232,6 +232,50 @@ defmodule TravelingPoet.GuideTest do
     end
   end
 
+  describe "event dates" do
+    test "a date range reads naturally, however much the entry gave" do
+      assert Place.date_range(%Place{starts_on: ~D[2026-08-21], ends_on: ~D[2026-09-27]}) ==
+               "Aug 21 – Sep 27"
+
+      assert Place.date_range(%Place{starts_on: ~D[2026-08-21], ends_on: nil}) == "from Aug 21"
+      assert Place.date_range(%Place{starts_on: nil, ends_on: ~D[2026-09-27]}) == "until Sep 27"
+
+      assert Place.date_range(%Place{starts_on: ~D[2026-08-21], ends_on: ~D[2026-08-21]}) ==
+               "Aug 21"
+
+      assert Place.date_range(%Place{}) == nil
+    end
+
+    # A venue is never "ended" -- only something with an end date can be over.
+    test "only a dated event can end" do
+      today = ~D[2026-09-01]
+
+      refute Place.ended?(%Place{ends_on: nil}, today)
+      refute Place.ended?(%Place{ends_on: ~D[2026-09-27]}, today)
+      refute Place.ended?(%Place{ends_on: today}, today)
+      assert Place.ended?(%Place{ends_on: ~D[2026-08-30]}, today)
+    end
+
+    test "event dates round-trip through the write path" do
+      {_user, poet} = setup_poet()
+      entry = published_entry_fixture(poet)
+
+      {:ok, _} =
+        Guide.replace_places(entry, [
+          attrs("Vermeer at Nakanoshima", %{
+            "category" => "event",
+            "starts_on" => ~D[2026-08-21],
+            "ends_on" => ~D[2026-09-27]
+          })
+        ])
+
+      [place] = Guide.list_places_for_entry(entry.id)
+      assert place.category == "event"
+      assert Place.date_range(place) == "Aug 21 – Sep 27"
+      assert Place.group_for(place.category) == "events"
+    end
+  end
+
   describe "counts_by_group/1" do
     # If a new category is ever added without touching group_for/1, it must
     # still be counted somewhere rather than silently vanishing from every chip.

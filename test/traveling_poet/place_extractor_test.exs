@@ -134,6 +134,13 @@ defmodule TravelingPoet.PlaceExtractorTest do
                Extractor.parse_response("```json\n{\"places\":[{\"name\":\"Ramiro\"}]}\n```")
     end
 
+    test "event dates survive parsing" do
+      assert [%{"starts_on" => "2026-08-21", "ends_on" => "2026-09-27"}] =
+               Extractor.parse_response(
+                 ~s({"places":[{"name":"Vermeer","starts_on":"2026-08-21","ends_on":"2026-09-27"}]})
+               )
+    end
+
     test "garbage yields an empty list rather than raising" do
       assert Extractor.parse_response("I'm sorry, I can't help with that.") == []
       assert Extractor.parse_response("{not json") == []

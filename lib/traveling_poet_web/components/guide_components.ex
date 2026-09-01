@@ -10,6 +10,8 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   use TravelingPoetWeb, :html
 
+  alias TravelingPoet.Guide.Place
+
   @views [{"map", "Map"}, {"list", "List"}, {"itinerary", "Itinerary"}]
   @filters [{"all", "All"}, {"food", "Food"}, {"sights", "Sights"}, {"events", "Events"}]
 
@@ -177,6 +179,7 @@ defmodule TravelingPoetWeb.GuideComponents do
             <div>
               <div class="font-semibold text-sm">{place.name}</div>
               <div class="text-xs opacity-60">{humanize_category(place.category)}</div>
+              <.event_dates place={place} />
               <.poet_pick :if={place.poet_rating} place={place} poet={@poet} />
             </div>
           </div>
@@ -208,6 +211,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         </div>
 
         <div class="text-xs opacity-60">{humanize_category(@place.category)}</div>
+        <.event_dates place={@place} />
         <.poet_pick :if={@place.poet_rating} place={@place} poet={@poet} />
 
         <p :if={@place.blurb} class="text-sm opacity-80 leading-relaxed">{@place.blurb}</p>
@@ -223,6 +227,27 @@ defmodule TravelingPoetWeb.GuideComponents do
           View details ↗
         </a>
       </div>
+    </div>
+    """
+  end
+
+  # An event with no dates cannot be planned around, and one whose dates have
+  # passed must say so rather than sit in the guide looking current -- the
+  # whole failure mode here is a reader travelling for a closed exhibition.
+  attr :place, :map, required: true
+
+  def event_dates(assigns) do
+    assigns =
+      assign(assigns,
+        range: Place.date_range(assigns.place),
+        ended: Place.ended?(assigns.place, Date.utc_today())
+      )
+
+    ~H"""
+    <div :if={@range} class="text-xs flex items-center gap-1" data-testid="event-dates">
+      <.icon name="hero-calendar-days" class="size-3 opacity-50" />
+      <span class={[@ended && "opacity-50 line-through"]}>{@range}</span>
+      <span :if={@ended} class="badge badge-ghost badge-xs">ended</span>
     </div>
     """
   end

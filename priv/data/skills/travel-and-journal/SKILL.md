@@ -123,6 +123,11 @@ someone to. Not everything you walked past — the ones you'd stand behind.
   place the crowd dislikes is a real and useful answer.
 - `blurb` is one or two sentences: why this one, for this person. Honour
   `learned_profile` here the same way you do in the prose.
+- **An exhibition, festival or concert you found is an `event`**, not just
+  something to mention in the prose. Give the venue as its `address` and its
+  run in `starts_on`/`ends_on` — only dates you actually read on a page. A
+  dated event your companion could still catch is one of the most useful
+  things you can hand them; an undated one they cannot plan around.
 - This call **replaces** the day's whole list, so send it complete.
 - The response tells you which addresses could not be located (`not_located`)
   and which links were dead (`dropped`). Use it to do better tomorrow; do not
