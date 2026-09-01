@@ -64,7 +64,8 @@ defmodule Mix.Tasks.Tpoet.BackfillPlaces do
     Mix.shell().info("""
 
     #{totals.places} places across #{totals.entries} entries \
-    (#{totals.skipped} skipped, #{totals.failed} failed).\
+    (#{totals.skipped} skipped, #{totals.protected} left to the poet, \
+    #{totals.failed} failed).\
     #{unless commit?, do: "\nNothing was written — re-run with --commit.", else: ""}
     """)
   end
@@ -74,6 +75,9 @@ defmodule Mix.Tasks.Tpoet.BackfillPlaces do
 
   defp report(%{status: :skipped_has_places} = e),
     do: Mix.shell().info("· #{e.date} #{e.city} — already has places, skipping")
+
+  defp report(%{status: :skipped_agent_places} = e),
+    do: Mix.shell().info("· #{e.date} #{e.city} — the poet wrote these itself, leaving them")
 
   defp report(%{status: :nothing_named} = e),
     do: Mix.shell().info("· #{e.date} #{e.city} — nothing specific named")
