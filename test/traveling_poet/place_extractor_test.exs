@@ -3,7 +3,8 @@ defmodule TravelingPoet.PlaceExtractorTest do
 
   import TravelingPoet.Fixtures
 
-  alias TravelingPoet.Guide.Extractor
+  alias TravelingPoet.{Guide, Journal}
+  alias TravelingPoet.Guide.{Backfill, Extractor}
 
   # Keys are nil in :test, so the extractor degrades instead of reaching the
   # network -- same convention as the illustrations endpoint asserting 503.
@@ -23,6 +24,64 @@ defmodule TravelingPoet.PlaceExtractorTest do
 
     # Only a poem: no prose kinds, so there is nothing to extract from.
     assert Extractor.extract(entry, [%{kind: "poem", body: "a small blue bird"}]) == {:ok, []}
+  end
+
+  describe "Backfill.run/1" do
+    # The Mix task cannot run where the backfill is actually needed:
+    # production is a release and a release has no Mix. The logic lives in a
+    # plain module so `bin/traveling_poet rpc` can call it.
+    test "is callable without Mix and reports per-entry outcomes" do
+      poet = poet_fixture(user_fixture())
+      published_entry_fixture(poet)
+
+      %{entries: entries, totals: totals} = Backfill.run(poet_id: poet.id)
+
+      assert [%{poet_id: _, date: _, city: _, status: _}] = entries
+      assert totals.entries == 1
+      assert totals.committed == false
+    end
+
+    test "a dry run writes nothing" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+
+      Backfill.run(poet_id: poet.id)
+
+      assert Guide.list_places_for_entry(entry.id) == []
+    end
+
+    test "an entry that already has places is skipped unless forced" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+      {:ok, _} = Guide.replace_places(entry, [%{"name" => "Existing", "category" => "cafe"}])
+
+      %{entries: [result]} = Backfill.run(poet_id: poet.id)
+
+      assert result.status == :skipped_has_places
+    end
+
+    # Keys are nil in :test, so extraction degrades rather than reaching the
+    # network -- and one bad entry must never take the rest of the run down.
+    test "an unextractable entry is recorded as failed, not raised" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet)
+      {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: "Some prose."}])
+
+      %{entries: [result], totals: totals} = Backfill.run(poet_id: poet.id)
+
+      assert {:failed, :not_configured} = result.status
+      assert totals.failed == 1
+    end
+
+    test "the limit bounds how many entries a run can touch" do
+      poet = poet_fixture(user_fixture())
+
+      for offset <- 1..4 do
+        published_entry_fixture(poet, %{entry_date: Date.add(Date.utc_today(), -offset)})
+      end
+
+      assert %{totals: %{entries: 2}} = Backfill.run(poet_id: poet.id, limit: 2)
+    end
   end
 
   # This, not the HTTP call, is where the risk lives: the fleet models fumble
