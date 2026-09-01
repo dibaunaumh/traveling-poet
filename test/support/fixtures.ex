@@ -58,4 +58,68 @@ defmodule TravelingPoet.Fixtures do
 
     poet
   end
+
+  def entry_fixture(poet, attrs \\ %{}) do
+    {:ok, entry} =
+      TravelingPoet.Journal.upsert_entry(
+        poet.id,
+        Map.get(attrs, :entry_date, Date.utc_today()),
+        Map.merge(
+          %{place_name: "Lisbon, Portugal", title: "A day"},
+          Map.delete(attrs, :entry_date)
+        )
+      )
+
+    entry
+  end
+
+  def published_entry_fixture(poet, attrs \\ %{}) do
+    {:ok, entry} = TravelingPoet.Journal.publish_entry(entry_fixture(poet, attrs))
+    entry
+  end
+
+  def place_fixture(poet, entry, attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, place} =
+      %TravelingPoet.Guide.Place{}
+      |> TravelingPoet.Guide.Place.changeset(
+        Map.merge(
+          %{
+            poet_id: poet.id,
+            journal_entry_id: entry.id,
+            entry_date: entry.entry_date,
+            name: "Place #{n}",
+            category: "restaurant",
+            position: 0
+          },
+          attrs
+        )
+      )
+      |> Repo.insert()
+
+    place
+  end
+
+  def media_fixture(poet, attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, media} =
+      %TravelingPoet.Journal.Media{}
+      |> TravelingPoet.Journal.Media.changeset(
+        Map.merge(
+          %{
+            poet_id: poet.id,
+            s3_key: "media/test-#{n}.png",
+            content_type: "image/png",
+            kind: "illustration",
+            sources: %{"items" => [%{"url" => "https://example.com/#{n}", "label" => "ref"}]}
+          },
+          attrs
+        )
+      )
+      |> Repo.insert()
+
+    media
+  end
 end

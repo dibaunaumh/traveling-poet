@@ -17,6 +17,9 @@ defmodule TravelingPoet.Application do
       {Registry, keys: :unique, name: TravelingPoet.GatewayRegistry},
       {DynamicSupervisor, name: TravelingPoet.GatewaySocketSupervisor, strategy: :one_for_one},
       # Daily travel/journal driver (no-op unless JOURNEY_CHECK_INTERVAL_MINUTES > 0)
+      # Serializes every Nominatim call to OSM's 1 req/s policy. Onboarding and
+      # settings geocode on submit too, so a ban would break signup itself.
+      TravelingPoet.Geocoder.Limiter,
       TravelingPoet.DailyJourneyScheduler,
       # Telegram long-poller + publish notifier (no-op unless TELEGRAM_BOT_TOKEN set)
       TravelingPoet.Telegram.Poller,

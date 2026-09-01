@@ -164,7 +164,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply, socket}
 
       q ->
-        case TravelingPoet.Geocoder.search(q) do
+        case TravelingPoet.Geocoder.Limiter.search(q) do
           {:ok, results} ->
             {:noreply,
              socket
@@ -309,6 +309,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       flash={@flash}
       current_user={assigns[:current_user]}
       credits_low={assigns[:credits_low]}
+      active_tab={:settings}
     >
       <div class="mx-auto max-w-xl py-8">
         <div class="flex items-center justify-between mb-6">

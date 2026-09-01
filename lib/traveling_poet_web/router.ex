@@ -41,6 +41,8 @@ defmodule TravelingPoetWeb.Router do
     live_session :public,
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do
       live "/p/:slug", PublicJournalLive
+      # Must precede /p/:slug/:date so "guide" isn't swallowed as a date.
+      live "/p/:slug/guide", PublicGuideLive
       live "/p/:slug/:date", PublicJournalLive
     end
   end
@@ -55,6 +57,7 @@ defmodule TravelingPoetWeb.Router do
     post "/location", LocationController, :update
     post "/journal_entries", JournalApiController, :upsert_entry
     put "/journal_entries/:date/sections", JournalApiController, :put_sections
+    put "/journal_entries/:date/places", JournalApiController, :put_places
     post "/journal_entries/:date/publish", JournalApiController, :publish
     post "/media", MediaApiController, :create
     post "/illustrations", MediaApiController, :generate
@@ -82,6 +85,7 @@ defmodule TravelingPoetWeb.Router do
       live "/onboarding", OnboardingLive
       live "/journal", JournalLive
       live "/journal/:date", JournalLive
+      live "/guide", GuideLive
       live "/settings", SettingsLive
     end
 

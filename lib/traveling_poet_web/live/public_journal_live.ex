@@ -135,7 +135,10 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               <span :if={@poet.current_place_name}>· 📍 {@poet.current_place_name}</span>
             </p>
           </div>
-          <.link navigate={~p"/"} class="btn btn-ghost btn-sm ml-auto">World map</.link>
+          <div class="ml-auto flex gap-1">
+            <.link navigate={~p"/p/#{@poet.slug}/guide"} class="btn btn-ghost btn-sm">Guide</.link>
+            <.link navigate={~p"/"} class="btn btn-ghost btn-sm">World map</.link>
+          </div>
         </div>
 
         <div

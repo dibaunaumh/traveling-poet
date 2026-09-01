@@ -34,6 +34,10 @@ defmodule TravelingPoetWeb.Layouts do
   attr :current_user, :map, default: nil, doc: "the signed-in user, for header nav"
   attr :credits_low, :boolean, default: false, doc: "show the low-credits pill in the header"
 
+  attr :active_tab, :atom,
+    default: nil,
+    doc: "which primary nav item to highlight (:journal, :guide, :settings)"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -47,7 +51,10 @@ defmodule TravelingPoetWeb.Layouts do
       <div class="flex-none">
         <ul class="flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
-            <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">Journal</.link>
+            <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>Journal</.link>
+          </li>
+          <li :if={@current_user}>
+            <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>Guide</.link>
           </li>
           <li :if={@current_user && @credits_low}>
             <.link
@@ -60,7 +67,9 @@ defmodule TravelingPoetWeb.Layouts do
             </.link>
           </li>
           <li :if={@current_user}>
-            <.link navigate={~p"/settings"} class="btn btn-ghost btn-sm">Settings</.link>
+            <.link navigate={~p"/settings"} class={nav_class(@active_tab == :settings)}>
+              Settings
+            </.link>
           </li>
           <li :if={@current_user}>
             <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">Sign out</a>
@@ -84,6 +93,9 @@ defmodule TravelingPoetWeb.Layouts do
     <.flash_group flash={@flash} />
     """
   end
+
+  defp nav_class(true), do: "btn btn-ghost btn-sm btn-active font-semibold"
+  defp nav_class(false), do: "btn btn-ghost btn-sm"
 
   @doc """
   Shows the flash group with standard titles and content.

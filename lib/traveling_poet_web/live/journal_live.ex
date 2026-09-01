@@ -578,6 +578,7 @@ defmodule TravelingPoetWeb.JournalLive do
       flash={@flash}
       current_user={assigns[:current_user]}
       credits_low={assigns[:credits_low]}
+      active_tab={:journal}
     >
       <.setting_up_screen
         :if={setting_up?(assigns)}

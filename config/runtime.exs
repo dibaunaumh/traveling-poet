@@ -47,6 +47,14 @@ config :traveling_poet,
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
+  # Used only by the one-off places backfill. Pinned in test for the same
+  # reason the model slugs above are: .env loads in every env, so whatever the
+  # fleet happens to run today must not decide what the tests assert.
+  extraction_model:
+    if(config_env() == :test,
+      do: "test/extraction-model",
+      else: System.get_env("EXTRACTION_MODEL", "google/gemini-2.5-flash")
+    ),
   # nil in test: runtime.exs loads .env in every env, and a real token here
   # would boot the Telegram Poller/Notifier inside the test run — they'd hit
   # the DB outside the sandbox and lock-jam SQLite (learned the hard way)
@@ -77,6 +85,15 @@ config :traveling_poet,
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),
+  # false in test: Nominatim needs no API key, so unlike every other service
+  # here there is nothing to nil out. Without this switch the suite would make
+  # live OSM requests -- slow, flaky, and a good way to get the app's
+  # User-Agent banned, which would break onboarding for real users.
+  geocoding_enabled: config_env() != :test,
+  # OSM policy is 1 req/s for the whole app. The Limiter enforces it.
+  geocode_min_interval_ms: String.to_integer(System.get_env("GEOCODE_MIN_INTERVAL_MS") || "1100"),
+  # How long a "never heard of it" answer stays cached before we ask again.
+  geocode_miss_ttl_days: String.to_integer(System.get_env("GEOCODE_MISS_TTL_DAYS") || "30"),
   # Credits: whole credits per daily run by mission; welcome grant; alert
   # threshold in days of runway
   credit_rates: %{
