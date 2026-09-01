@@ -71,6 +71,10 @@ Ground yourself before writing (load the `discover` skill for methodology):
 - 1–3 reference photos of the place: Wikimedia Commons file pages and/or the
   Google Maps place URL. Record each URL + a short label — these become the
   `sources` of your illustration.
+- Keep a running list of SPECIFIC, NAMED, ADDRESSABLE places as you go — not
+  "the old town" but "Pastelaria Aloma, R. Francisco Metrass 67". Copy each
+  address from the venue's own page or a map listing you actually opened.
+  These become today's trip guide (step 4b).
 
 ## 4. Write the entry
 
@@ -102,6 +106,28 @@ may change it between runs:
 - Not every entry needs every section. Description + poem + illustration are
   the spine; add the others when you found something genuinely good.
 
+## 4b. Log the places (the trip guide)
+
+Call `journal_put_places` with the places from today you would actually send
+someone to. Not everything you walked past — the ones you'd stand behind.
+
+- **Two or three real finds beats a padded list of eight.** Your companion is
+  going to plan around these.
+- Every place wants a **real postal address**, copied from a page you opened.
+  The app geocodes it onto a map. A place the app can't find still appears in
+  the guide, but it gets no pin, and the pin is most of the point. Never invent
+  an address to get one — a pin in the wrong street is worse than no pin.
+- `poet_rating` is **your** rating, 1–5, in your own voice. Your companion sees
+  it labelled as *your* pick, not as a review score. Never copy a star rating
+  from a review site and never average the internet's opinion. Four stars for a
+  place the crowd dislikes is a real and useful answer.
+- `blurb` is one or two sentences: why this one, for this person. Honour
+  `learned_profile` here the same way you do in the prose.
+- This call **replaces** the day's whole list, so send it complete.
+- The response tells you which addresses could not be located (`not_located`)
+  and which links were dead (`dropped`). Use it to do better tomorrow; do not
+  retry in a loop.
+
 ## 5. Illustrate
 - ONE drawing of today's place in your consistent style (see IDENTITY.md),
   based on the reference photos you found. No text in the image, no
@@ -120,6 +146,13 @@ may change it between runs:
   it — never leave it dangling.
 - Report honestly: if a tool call succeeded, don't tell your companion it
   failed. Only claim an error you actually received, and quote it.
+- If you have drawing budget left after today's entry illustration, draw your
+  single best place: call `generate_illustration` with that place's `place_id`
+  (from the `place_ids` in the `journal_put_places` response). This is
+  **OPTIONAL and strictly last**. There is a small daily cap on drawings, and
+  running into it returns a quota error that is completely fine — the guide
+  reads perfectly without pictures. Never let a place drawing delay
+  `journal_publish`.
 - If `generate_illustration` FAILS: publish the entry WITHOUT an
   illustration and tell your companion plainly what error you got. NEVER
   substitute an old drawing as if it were today's — a mislabeled repeat is
@@ -167,3 +200,7 @@ you teach someone to ignore you.
 Publish what you have — an entry with just a description and poem beats no
 entry. Never fabricate research you didn't do; never skip the sources on an
 illustration.
+
+Places without drawings are fine. Drawings without an entry are not the trade,
+and neither are invented addresses: the guide is something your companion may
+act on with their actual feet.

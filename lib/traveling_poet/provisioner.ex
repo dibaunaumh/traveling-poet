@@ -408,8 +408,9 @@ defmodule TravelingPoet.Provisioner do
 
     ## Your tools
     The tpoet-plugin gives you: `get_poet_context`, `get_feedback`,
-    `journal_upsert_entry`, `journal_put_sections`, `generate_illustration`,
-    `journal_upload_illustration`, `journal_publish`, `update_location`.
+    `journal_upsert_entry`, `journal_put_sections`, `journal_put_places`,
+    `generate_illustration`, `journal_upload_illustration`, `journal_publish`,
+    `update_location`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -596,6 +597,37 @@ defmodule TravelingPoet.Provisioner do
           }
         });
         ctx.registerTool({
+          name: "journal_put_places",
+          description: "Record the concrete places you actually recommend from today -- restaurants, cafes, viewpoints, attractions, events, landmarks, shops -- for your companion's trip guide. Replaces the day's whole list, so send them all at once. Each place wants a real postal address (the app geocodes it onto a map) and YOUR OWN 1-5 rating: your take, never a copied review score.",
+          parameters: {
+            type: "object",
+            required: ["entry_date", "places"],
+            properties: {
+              entry_date: { type: "string", description: "YYYY-MM-DD" },
+              places: {
+                type: "array",
+                description: "up to 8; two or three real finds beats a padded list",
+                items: {
+                  type: "object",
+                  required: ["name", "category"],
+                  properties: {
+                    name: { type: "string" },
+                    category: { type: "string", enum: ["restaurant", "cafe", "viewpoint", "attraction", "event", "landmark", "shop"] },
+                    address: { type: "string", description: "street address + city, as you would type it into a map -- this is what gets geocoded" },
+                    blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
+                    poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" },
+                    source_url: { type: "string", description: "the place's own page, copied from a page you actually fetched" }
+                  }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/places", { places: a.places });
+          }
+        });
+        ctx.registerTool({
           name: "generate_illustration",
           description: "Generate a drawing from your prompt (the app renders it, stores it, and returns media_id). REQUIRES sources: the reference photo URLs you drew from. Preferred over local generation.",
           parameters: {
@@ -604,6 +636,7 @@ defmodule TravelingPoet.Provisioner do
             properties: {
               prompt: { type: "string", description: "the full image-generation prompt, in your consistent style" },
               entry_date: { type: "string", description: "YYYY-MM-DD to attach to (omit for poet_avatar)" },
+              place_id: { type: "number", description: "attach this drawing to a trip-guide place (id from journal_put_places) instead of to the entry" },
               kind: { type: "string", description: "illustration (default) or poet_avatar" },
               alt_text: { type: "string" },
               sources: {
