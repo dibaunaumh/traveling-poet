@@ -18,6 +18,32 @@ defmodule TravelingPoet.PlaceExtractorTest do
     assert Extractor.extract(entry, sections) == {:error, :not_configured}
   end
 
+  # A kindness section carries a charity or a food bank, and the extractor has
+  # no category that fits, so it labelled them "attraction" -- the 2026-09-01
+  # dry run turned a food bank into a tourist attraction. The opportunity
+  # already has its own place in the entry with an official link.
+  test "a kindness section is not mined for places" do
+    poet = poet_fixture(user_fixture())
+    entry = published_entry_fixture(poet)
+
+    sections = [%{kind: "kindness", body: "Banco Alimentar Contra a Fome takes donations."}]
+
+    # No prose kinds present, so it short-circuits before any model call --
+    # which is only true if kindness is excluded.
+    assert Extractor.extract(entry, sections) == {:ok, []}
+  end
+
+  test "description, art_culture and products are still mined" do
+    poet = poet_fixture(user_fixture())
+    entry = published_entry_fixture(poet)
+
+    for kind <- ~w(description art_culture products) do
+      assert {:error, :not_configured} =
+               Extractor.extract(entry, [%{kind: kind, body: "We ate at Tasca do Chico."}]),
+             "#{kind} should have reached the model"
+    end
+  end
+
   test "an entry with no prose never reaches the model" do
     poet = poet_fixture(user_fixture())
     entry = published_entry_fixture(poet)
@@ -71,6 +97,12 @@ defmodule TravelingPoet.PlaceExtractorTest do
 
       assert {:failed, :not_configured} = result.status
       assert totals.failed == 1
+    end
+
+    # Same cap the agent endpoint applies. An entry that mentions twenty places
+    # is a wall, not a guide, and the two write paths must not disagree.
+    test "no more than eight places are taken from a single entry" do
+      assert TravelingPoet.Guide.Backfill.max_places_per_entry() == 8
     end
 
     test "the limit bounds how many entries a run can touch" do

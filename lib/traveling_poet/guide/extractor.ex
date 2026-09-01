@@ -19,8 +19,16 @@ defmodule TravelingPoet.Guide.Extractor do
 
   @api_url "https://openrouter.ai/api/v1/chat/completions"
   @max_chars 8_000
-  # Prose only. A poem is the last place to go looking for a street address.
-  @prose_kinds ~w(description art_culture products kindness)
+  # Prose only -- a poem is the last place to go looking for a street address.
+  #
+  # `kindness` is deliberately EXCLUDED. That section carries a charity or a
+  # food bank, and the extractor has no category that fits, so it labelled them
+  # "attraction": the 2026-09-01 dry run turned "Banco Alimentar Contra a Fome"
+  # and "Santa Casa da Misericordia de Sintra" into tourist attractions. A
+  # kindness opportunity already has its own prominent place in the entry with
+  # an official link; recasting it as somewhere to go sightseeing misrepresents
+  # both the place and the poet.
+  @prose_kinds ~w(description art_culture products)
 
   def configured?,
     do: Application.get_env(:traveling_poet, :openrouter_api_key) not in [nil, ""]
