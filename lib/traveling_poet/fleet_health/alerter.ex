@@ -10,18 +10,13 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   day, not one an hour. Dedup state lives in the process, so a deploy may
   re-send the day's alert; that beats persisting a table for it.
 
-  Recipients: `:alert_telegram_chat_id` (env ALERT_TELEGRAM_CHAT_ID) when set,
-  otherwise every admin who has paired Telegram.
+  Recipients: see `TravelingPoet.Alerts`.
   """
 
   use GenServer
   require Logger
 
-  alias TravelingPoet.Accounts.User
-  alias TravelingPoet.{FleetHealth, OpenRouter, Repo}
-  alias TravelingPoet.Telegram.Client
-
-  import Ecto.Query
+  alias TravelingPoet.{Alerts, FleetHealth, OpenRouter}
 
   # First check soon after boot: an interval-later first tick means a deploy
   # defers the day's alerts by a full hour.
@@ -73,7 +68,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
     credits_fresh? = credits != nil and Map.get(state.alerted, :openrouter) != today
 
     if fresh != [] or credits_fresh? do
-      case deliver(message(fresh, credits_fresh? && credits)) do
+      case Alerts.notify_admins(message(fresh, credits_fresh? && credits)) do
         :ok ->
           Logger.warning("FleetHealth.Alerter: alerted on #{length(fresh)} poet(s)")
 
@@ -118,45 +113,10 @@ defmodule TravelingPoet.FleetHealth.Alerter do
       header,
       rows != [] && Enum.map_join(rows, "\n", &("• " <> FleetHealth.summarize(&1))),
       credits && "💳 #{credits}",
-      "Full status: #{admin_url()}"
+      "Full status: #{Alerts.admin_url()}"
     ]
     |> Enum.filter(& &1)
     |> Enum.join("\n\n")
-  end
-
-  defp deliver(text) do
-    case recipients() do
-      [] ->
-        {:error, :no_recipients}
-
-      chat_ids ->
-        Enum.reduce_while(chat_ids, :ok, fn chat_id, _acc ->
-          case Client.send_message(chat_id, text, disable_web_page_preview: true) do
-            :ok -> {:cont, :ok}
-            err -> {:halt, err}
-          end
-        end)
-    end
-  end
-
-  defp recipients do
-    case Application.get_env(:traveling_poet, :alert_telegram_chat_id) do
-      nil -> admin_chat_ids()
-      "" -> admin_chat_ids()
-      chat_id -> [chat_id]
-    end
-  end
-
-  defp admin_chat_ids do
-    User
-    |> where([u], u.is_admin == true and not is_nil(u.telegram_chat_id))
-    |> select([u], u.telegram_chat_id)
-    |> Repo.all()
-  end
-
-  defp admin_url do
-    base = Application.get_env(:traveling_poet, :phoenix_url, "https://poet.travel")
-    String.trim_trailing(base, "/") <> "/admin"
   end
 
   defp interval_ms do

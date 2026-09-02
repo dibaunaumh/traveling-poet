@@ -51,6 +51,12 @@ kill_signal = 'SIGTERM'
   # for up to ~3 place drawings on top. At 6 the guide got at most five and
   # usually fewer. Roughly +$0.06/poet/day at $0.03 an image.
   DAILY_IMAGE_CAP = '8'
+  # Change stream (webhook mirror). Idle until an endpoint is registered at
+  # /admin/change-stream, so 30s polling costs nothing on a quiet app.
+  CHANGE_STREAM_POLL_SECONDS = '30'
+  CHANGE_STREAM_BATCH_SIZE = '100'
+  CHANGE_STREAM_MAX_BATCH_WAIT_SECONDS = '60'
+  CHANGE_STREAM_FAILURE_THRESHOLD = '5'
 
 [[mounts]]
   source = 'traveling_poet_data'
