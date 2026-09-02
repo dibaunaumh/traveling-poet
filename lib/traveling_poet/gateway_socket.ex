@@ -4,10 +4,18 @@ defmodule TravelingPoet.GatewaySocket do
   Handles Ed25519 device identity auth, chat messages, and streaming events.
   """
 
-  use WebSockex
+  # :temporary — never restarted by GatewaySocketSupervisor. Sockets are started on
+  # demand by `GatewaySocketSupervisor.ensure_connected/1` and must be able to go
+  # away for good once idle: a held-open WebSocket into the sprite is precisely what
+  # keeps the sprite from suspending (and billing 24/7), so an idle socket that gets
+  # resurrected by its supervisor — the previous :permanent default — pinned every
+  # sprite awake forever.
+  use WebSockex, restart: :temporary
 
   require Logger
 
+  # Close the socket after this long with no subscribers. Without an open socket the
+  # sprite suspends ~20s later; a socket left open with nobody listening is pure cost.
   @idle_timeout_ms 5 * 60 * 1000
   # Give up reconnecting after this many consecutive failures (reset on a successful
   # connect). Stops an endless tight reconnect loop when the target is permanently
@@ -114,7 +122,11 @@ defmodule TravelingPoet.GatewaySocket do
   @impl true
   def handle_connect(_conn, state) do
     Logger.info("GatewaySocket connected for user #{state.user_id}")
-    {:ok, %{state | status: :connected, reconnect_attempts: 0}}
+    # (Re)arm the idle timer whenever a connection lands with nobody subscribed —
+    # covers a fresh socket whose caller never subscribes and a reconnect after the
+    # subscribers already dropped. Subscribing cancels it again.
+    state = maybe_start_idle_timer(%{state | status: :connected, reconnect_attempts: 0})
+    {:ok, state}
   end
 
   @impl true
@@ -149,8 +161,9 @@ defmodule TravelingPoet.GatewaySocket do
           }
         })
 
-      reset_idle_timer(state)
-
+      # The idle timer is gated on subscribers only (see maybe_start_idle_timer);
+      # cancelling it here without restarting it used to leave a subscriber-less
+      # socket open forever.
       {:reply, {:text, frame},
        %{state | pending_requests: Map.put(state.pending_requests, req_id, :chat_send)}}
     else
@@ -218,7 +231,19 @@ defmodule TravelingPoet.GatewaySocket do
 
   def handle_info(_msg, state), do: {:ok, state}
 
+  # Our own idle close (`{:close, state}` from :idle_timeout) comes back through this
+  # callback as `{:local, :normal}`. It is deliberate, not a drop: let the process
+  # terminate (WebSockex exits :normal; :temporary means no restart) so the sprite can
+  # suspend. Treating it as a drop reconnected within a second — and queued a
+  # "please resend your last reply" prompt to the agent — which held every sprite
+  # awake around the clock.
   @impl true
+  def handle_disconnect(%{reason: {:local, :normal} = reason}, state) do
+    Logger.info("GatewaySocket closed (idle) for user #{state.user_id}: #{inspect(reason)}")
+    notify_subscribers(state, {:gateway_event, :disconnected})
+    {:ok, %{state | status: :disconnected}}
+  end
+
   def handle_disconnect(%{reason: reason}, state) do
     Logger.info("GatewaySocket disconnected for user #{state.user_id}: #{inspect(reason)}")
     notify_subscribers(state, {:gateway_event, :disconnected})
@@ -226,8 +251,8 @@ defmodule TravelingPoet.GatewaySocket do
 
     if attempts > @max_reconnect_attempts do
       # Target is persistently unreachable (e.g. user/sprite deleted → 302 forever).
-      # Stop reconnecting rather than tight-looping; the process goes idle and is
-      # reaped by the idle timeout once its subscribers drop.
+      # Stop reconnecting rather than tight-looping; `{:ok, _}` lets WebSockex
+      # terminate the process, and `ensure_connected/1` starts a fresh one on demand.
       Logger.warning(
         "GatewaySocket for user #{state.user_id} giving up after " <>
           "#{@max_reconnect_attempts} reconnect attempts: #{inspect(reason)}"
