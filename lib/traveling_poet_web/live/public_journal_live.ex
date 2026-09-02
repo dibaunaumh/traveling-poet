@@ -41,7 +41,22 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             _ -> nil
           end
 
-        {:noreply, assign_journal(socket, poet, date)}
+        {:noreply, socket |> assign_journal(poet, date) |> push_map()}
+    end
+  end
+
+  # The map div is phx-update="ignore" (Leaflet owns its DOM), so a changed
+  # data-points attribute does NOT re-render it. Paging between entries has to
+  # tell the hook directly or the map silently keeps the previous day's view.
+  defp push_map(socket) do
+    if connected?(socket) do
+      push_event(
+        socket,
+        "map:update",
+        map_points(socket.assigns.path_points, socket.assigns.poet, socket.assigns.entry)
+      )
+    else
+      socket
     end
   end
 
@@ -146,7 +161,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
           phx-hook="PoetMap"
           phx-update="ignore"
           class="w-full h-56 rounded-xl border border-base-300 z-0"
-          data-points={Jason.encode!(map_points(@path_points, @poet))}
+          data-points={Jason.encode!(map_points(@path_points, @poet, @entry))}
         >
         </div>
 
@@ -258,7 +273,11 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     [{"love", "❤️"}, {"inspiring", "✨"}, {"want_more", "➕"}]
   end
 
-  defp map_points(path_points, poet) do
+  # `entry` focuses the map on the day you are actually reading. Without it the
+  # map only ever knew the poet's path and where it is NOW, so paging back
+  # through the journal left it sitting on the current city while the page
+  # talked about somewhere else entirely.
+  defp map_points(path_points, poet, entry) do
     points = Enum.map(path_points, fn p -> %{lat: p.lat, lng: p.lng, name: p.place_name} end)
 
     current =
@@ -275,8 +294,20 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         []
       end
 
-    %{path: points, current: current, planned: planned, poet: poet.name}
+    %{
+      path: points,
+      current: current,
+      planned: planned,
+      poet: poet.name,
+      focus: focus_point(entry)
+    }
   end
+
+  defp focus_point(%{lat: lat, lng: lng} = entry) when is_number(lat) and is_number(lng) do
+    %{lat: lat, lng: lng, name: entry.place_name, date: Date.to_iso8601(entry.entry_date)}
+  end
+
+  defp focus_point(_), do: nil
 
   defp entry_nav(entries, current) do
     dates = Enum.map(entries, & &1.entry_date) |> Enum.sort(Date)

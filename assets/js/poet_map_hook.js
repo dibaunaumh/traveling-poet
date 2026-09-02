@@ -1,5 +1,8 @@
 // Leaflet map showing a poet's journey path + current location.
-// Reads data-points (JSON: {path: [{lat,lng,name}], current: {lat,lng,name}, poet})
+// Reads data-points (JSON: {path: [{lat,lng,name}], current: {lat,lng,name},
+// focus: {lat,lng,name,date}, poet}) -- focus is the entry being read, and it
+// wins the viewport over `current` so paging back through the journal moves
+// the map to the day you are looking at
 // on mount; a "map:update" push event with the same shape re-renders.
 // For the landing page, data-poets (JSON: [{lat,lng,name,place,slug,avatar,
 // entry_url}]) renders clickable markers for all public poets instead, and
@@ -88,6 +91,29 @@ function placePopup(p) {
     link.rel = "noopener noreferrer nofollow"
     link.textContent = "View details \u2197"
     body.appendChild(link)
+  }
+
+  el.appendChild(body)
+  return el
+}
+
+// DOM nodes, not an HTML string: place names are agent-supplied.
+function entryPopup(focus) {
+  const el = document.createElement("div")
+  el.className = "poet-popup"
+
+  const body = document.createElement("div")
+
+  const name = document.createElement("div")
+  name.className = "poet-popup-name"
+  name.textContent = focus.name || ""
+  body.appendChild(name)
+
+  if (focus.date) {
+    const date = document.createElement("div")
+    date.className = "poet-popup-place"
+    date.textContent = focus.date
+    body.appendChild(date)
   }
 
   el.appendChild(body)
@@ -216,11 +242,30 @@ const PoetMap = {
     if (data.current) {
       const m = L.marker([data.current.lat, data.current.lng]).addTo(this.layer)
       m.bindPopup(`<b>${data.poet || "Your poet"}</b><br/>${data.current.name || ""}`)
-      if (planned.length > 0) {
-        this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
-      } else {
-        this.map.setView([data.current.lat, data.current.lng], 9)
-      }
+    }
+
+    // The entry being read, ringed so it is distinguishable from the path dots
+    // it sits on top of.
+    if (data.focus) {
+      L.circleMarker([data.focus.lat, data.focus.lng], {
+        radius: 9,
+        color: "#c0392b",
+        fillColor: "#c0392b",
+        fillOpacity: 0.85,
+        weight: 3,
+      })
+        .bindPopup(entryPopup(data.focus))
+        .addTo(this.layer)
+    }
+
+    // Focus wins the viewport: the reader is looking at that day, not at
+    // wherever the poet happens to be now.
+    if (data.focus) {
+      this.map.setView([data.focus.lat, data.focus.lng], 9)
+    } else if (data.current && planned.length > 0) {
+      this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
+    } else if (data.current) {
+      this.map.setView([data.current.lat, data.current.lng], 9)
     } else if (path.length > 0) {
       this.map.fitBounds(path, { padding: [30, 30] })
     } else {
