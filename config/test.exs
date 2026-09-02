@@ -30,3 +30,8 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Every change-stream POST goes through Req.Test; an unstubbed call raises
+# instead of reaching a network. There is no other seam — the app has no
+# HTTP mocking library.
+config :traveling_poet, change_stream_req_options: [plug: {Req.Test, TravelingPoet.ChangeStream}]

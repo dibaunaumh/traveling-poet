@@ -82,6 +82,20 @@ config :traveling_poet,
       do: 0,
       else: String.to_integer(System.get_env("FIRST_ENTRY_CHECK_INTERVAL_MINUTES") || "5")
     ),
+  # Change stream (webhook mirror for external operator agents). Poll 0 in
+  # test: the suite drives Capture.tick/1 and Delivery.deliver_pending/1
+  # directly, and a live Worker would race the sandbox.
+  change_stream_poll_seconds:
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("CHANGE_STREAM_POLL_SECONDS") || "30")
+    ),
+  change_stream_batch_size:
+    String.to_integer(System.get_env("CHANGE_STREAM_BATCH_SIZE") || "100"),
+  change_stream_max_batch_wait_seconds:
+    String.to_integer(System.get_env("CHANGE_STREAM_MAX_BATCH_WAIT_SECONDS") || "60"),
+  change_stream_failure_threshold:
+    String.to_integer(System.get_env("CHANGE_STREAM_FAILURE_THRESHOLD") || "5"),
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),

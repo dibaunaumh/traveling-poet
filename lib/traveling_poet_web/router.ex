@@ -92,6 +92,7 @@ defmodule TravelingPoetWeb.Router do
     live_session :admin,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_admin}] do
       live "/admin", AdminLive
+      live "/admin/change-stream", ChangeStreamAdminLive
     end
   end
 
