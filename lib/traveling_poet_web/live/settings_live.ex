@@ -1,8 +1,10 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
-  alias TravelingPoet.{Accounts, Credits, Payments, Poets, Preferences, Provisioner}
-  alias TravelingPoet.Poets.Poet
+  import TravelingPoetWeb.PoetComponents
+
+  alias TravelingPoet.{Accounts, Credits, Geocoder, Payments, Poets, Preferences, Provisioner}
+  alias TravelingPoet.Poets.{Poet, Presets}
   alias TravelingPoet.Telegram
 
   @impl true
@@ -27,6 +29,7 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:telegram_configured, Telegram.Client.configured?())
      |> assign(:telegram_link, nil)
      |> assign(:packs, Credits.packs())
+     |> assign(:reading_list, Geocoder.reading_list())
      |> assign(:payments_mock, Payments.mock?())
      |> assign_credits()
      |> assign(:stops, (poet && Poets.list_stops(poet.id)) || [])
@@ -82,10 +85,35 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("save_user", params, socket) do
+    user = socket.assigns.user
+
+    case String.trim(params["name"] || "") do
+      "" ->
+        {:noreply, socket}
+
+      name ->
+        case Accounts.update_user(user, %{name: name}) do
+          {:ok, updated} -> {:noreply, socket |> assign(:user, updated) |> assign_credits()}
+          {:error, _} -> {:noreply, put_flash(socket, :error, "Could not save your name.")}
+        end
+    end
+  end
+
+  @impl true
   def handle_event("save_poet", params, socket) do
     poet = socket.assigns.poet
 
-    interests = split_interests(params["interests"])
+    interests = Presets.split_interests(params["interests"])
+
+    # The form auto-saves on every keystroke and the changeset requires a
+    # name, so a half-retyped (blank) name keeps the current one instead of
+    # flashing an error mid-edit.
+    name =
+      case String.trim(params["poet_name"] || "") do
+        "" -> poet.name
+        trimmed -> trimmed
+      end
 
     settings =
       (poet.settings || %{})
@@ -98,6 +126,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       |> Map.put("user_interests", interests)
 
     attrs = %{
+      name: name,
       personality: params["personality"],
       interests: interests,
       is_public: params["is_public"] == "on",
@@ -111,6 +140,47 @@ defmodule TravelingPoetWeb.SettingsLive do
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not save settings.")}
     end
+  end
+
+  ## Currently reading
+
+  @impl true
+  def handle_event("toggle_book", %{"idx" => idx}, socket) do
+    case Enum.at(socket.assigns.reading_list, String.to_integer(idx)) do
+      nil ->
+        {:noreply, socket}
+
+      book ->
+        items = reading_items(socket.assigns.poet)
+
+        items =
+          if Enum.any?(items, &(&1["title"] == book["title"])),
+            do: Enum.reject(items, &(&1["title"] == book["title"])),
+            else: items ++ [book]
+
+        {:noreply, save_reading(socket, items)}
+    end
+  end
+
+  @impl true
+  def handle_event("add_book", %{"title" => title}, socket) do
+    case String.trim(title) do
+      "" ->
+        {:noreply, socket}
+
+      title ->
+        items = reading_items(socket.assigns.poet)
+
+        if Enum.any?(items, &(&1["title"] == title)),
+          do: {:noreply, socket},
+          else: {:noreply, save_reading(socket, items ++ [%{"title" => title, "author" => ""}])}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_book", %{"title" => title}, socket) do
+    items = socket.assigns.poet |> reading_items() |> Enum.reject(&(&1["title"] == title))
+    {:noreply, save_reading(socket, items)}
   end
 
   @impl true
@@ -137,18 +207,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         # The mission (and its model) is baked into the sprite at provision
         # time — repack in the background; keys/tokens are reused so nothing
         # else is disturbed.
-        user = socket.assigns.user
-
-        Task.start(fn ->
-          case Provisioner.provision_user(user) do
-            {:ok, _} ->
-              :ok
-
-            {:error, reason} ->
-              require Logger
-              Logger.error("Mode-switch re-provision failed: #{inspect(reason)}")
-          end
-        end)
+        Provisioner.provision_in_background(socket.assigns.user)
 
         {:noreply,
          socket
@@ -273,15 +332,29 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp dollars(cents),
     do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2) |> String.replace(~r/\.00$/, "")}"
 
-  # Same comma-splitting the onboarding form uses, so an interest list edited
-  # here looks exactly like one set at signup.
-  defp split_interests(nil), do: []
+  defp reading_items(poet), do: get_in(poet.currently_reading || %{}, ["items"]) || []
 
-  defp split_interests(text) do
-    text
-    |> String.split(",")
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
+  defp save_reading(socket, items) do
+    case Poets.update_poet(socket.assigns.poet, %{currently_reading: %{"items" => items}}) do
+      {:ok, updated} -> assign(socket, :poet, updated)
+      {:error, _} -> put_flash(socket, :error, "Could not save the reading list.")
+    end
+  end
+
+  # Indices of the curated books the poet is reading (for the chips) and the
+  # free-text ones that aren't on the curated list.
+  defp selected_book_indices(poet, reading_list) do
+    titles = poet |> reading_items() |> MapSet.new(& &1["title"])
+
+    reading_list
+    |> Enum.with_index()
+    |> Enum.filter(fn {book, _} -> MapSet.member?(titles, book["title"]) end)
+    |> MapSet.new(fn {_, idx} -> idx end)
+  end
+
+  defp custom_books(poet, reading_list) do
+    curated = MapSet.new(reading_list, & &1["title"])
+    poet |> reading_items() |> Enum.reject(&MapSet.member?(curated, &1["title"]))
   end
 
   defp parse_days(str) do
@@ -319,7 +392,37 @@ defmodule TravelingPoetWeb.SettingsLive do
 
         <div :if={@poet}>
           <p class="text-xs opacity-60 -mt-4 mb-4">Changes save automatically.</p>
+
+          <form id="user-settings-form" phx-change="save_user" class="mb-4">
+            <label class="block">
+              <span class="text-sm font-medium">Your name</span>
+              <input
+                type="text"
+                name="name"
+                phx-debounce="750"
+                value={@user.name}
+                class="input input-bordered w-full mt-1"
+              />
+              <span class="text-xs opacity-50">How {@poet.name} addresses you.</span>
+            </label>
+          </form>
+
           <form id="poet-settings-form" phx-change="save_poet" class="space-y-4">
+            <label class="block">
+              <span class="text-sm font-medium">Poet's name</span>
+              <input
+                type="text"
+                name="poet_name"
+                phx-debounce="750"
+                value={@poet.name}
+                class="input input-bordered w-full mt-1"
+              />
+              <span class="text-xs opacity-50">
+                Shows in the journal right away; the poet's own introduction updates on
+                the next repack, and the journal link keeps its current address.
+              </span>
+            </label>
+
             <label class="block">
               <span class="text-sm font-medium">{@poet.name}'s personality</span>
               <textarea
@@ -343,6 +446,34 @@ defmodule TravelingPoetWeb.SettingsLive do
                 Comma separated. Takes effect on tomorrow's entry.
               </span>
             </label>
+
+            <div>
+              <span class="text-sm font-medium">What {@poet.name} is reading</span>
+              <div class="mt-2">
+                <.book_chips
+                  books={@reading_list}
+                  selected={selected_book_indices(@poet, @reading_list)}
+                  event="toggle_book"
+                />
+              </div>
+              <ul :if={custom_books(@poet, @reading_list) != []} class="mt-2 space-y-1">
+                <li
+                  :for={book <- custom_books(@poet, @reading_list)}
+                  class="flex items-center gap-2 text-sm"
+                >
+                  <span class="flex-1">{book["title"]}</span>
+                  <button
+                    type="button"
+                    phx-click="remove_book"
+                    phx-value-title={book["title"]}
+                    class="btn btn-ghost btn-xs"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </li>
+              </ul>
+            </div>
 
             <label class="block">
               <span class="text-sm font-medium">Days to stay in each place</span>
@@ -394,6 +525,16 @@ defmodule TravelingPoetWeb.SettingsLive do
               />
               <span>Telegram note when a new entry is published</span>
             </label>
+          </form>
+
+          <form id="add-book-form" phx-submit="add_book" class="flex gap-2 mt-3">
+            <input
+              type="text"
+              name="title"
+              class="input input-bordered input-sm flex-1"
+              placeholder="Add another book for the road…"
+            />
+            <button type="submit" class="btn btn-sm">Add</button>
           </form>
 
           <div class="divider"></div>

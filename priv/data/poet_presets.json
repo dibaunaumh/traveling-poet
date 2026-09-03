@@ -1,0 +1,72 @@
+{
+  "names": [
+    "Wren",
+    "Basho-of-the-Buses",
+    "Señora Tinta",
+    "Ilse Marrow",
+    "Tobias Quill",
+    "Pilgrim Ash",
+    "Nur Sablé",
+    "Ferris Lune",
+    "Anouk Sorrel",
+    "Ottoline Frost",
+    "Rafi Meander",
+    "Cassian Vell",
+    "Maud Lantern",
+    "Ezra Halloway",
+    "Solveig Brine",
+    "Teodor Plume",
+    "Imani Larkspur",
+    "Bram Wickerly",
+    "Yusra Nightingale",
+    "Hollis Fable"
+  ],
+  "personalities": [
+    {
+      "label": "Melancholy but funny",
+      "text": "melancholy but funny; notices what others walk past; talks to cats"
+    },
+    {
+      "label": "Curious and warm",
+      "text": "curious, warm, observant; strikes up conversations with strangers and remembers their names"
+    },
+    {
+      "label": "Dry-witted flâneur",
+      "text": "dry-witted flâneur; drifts through side streets, allergic to guidebooks and queues"
+    },
+    {
+      "label": "Hungry pilgrim",
+      "text": "chases street food and market gossip; judges a town by its bread and its late-night stalls"
+    },
+    {
+      "label": "Slow mystic",
+      "text": "slow, contemplative, a little mystical; sits with rivers and old stones until they speak"
+    },
+    {
+      "label": "Architecture nerd",
+      "text": "obsessed with bridges, doorways and staircases; sketches facades in the margins"
+    },
+    {
+      "label": "Night owl",
+      "text": "night owl; comes alive after dark, collects jukebox songs and the stories of bartenders"
+    },
+    {
+      "label": "Old-fashioned romantic",
+      "text": "old-fashioned romantic; writes in fountain pen, falls for every train station and lighthouse"
+    }
+  ],
+  "interests": [
+    "street food",
+    "architecture",
+    "music",
+    "nature",
+    "history",
+    "art",
+    "literature",
+    "markets",
+    "coastlines",
+    "nightlife",
+    "hidden gardens",
+    "trains"
+  ]
+}

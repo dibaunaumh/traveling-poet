@@ -68,6 +68,25 @@ defmodule TravelingPoet.Provisioner do
         do: env
   end
 
+  @doc """
+  Provisions (or re-provisions) the user's sprite in a background task and
+  returns immediately. LiveViews call this after onboarding and mode switches;
+  `config :traveling_poet, provision_in_background: false` (test) makes it a
+  no-op so the suite never reaches a real sprite.
+  """
+  def provision_in_background(user) do
+    if Application.get_env(:traveling_poet, :provision_in_background, true) do
+      Task.start(fn ->
+        case provision_user(user) do
+          {:ok, _} -> :ok
+          {:error, reason} -> Logger.error("Provisioning failed: #{inspect(reason)}")
+        end
+      end)
+    end
+
+    :ok
+  end
+
   def provision_user(user, opts \\ []) do
     case missing_prerequisites() do
       [] -> do_provision_user(user, opts)
