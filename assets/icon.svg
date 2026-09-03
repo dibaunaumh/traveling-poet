@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Source for the PWA / home-screen icons in priv/static/images.
+       Render: qlmanage -t -s 1024 -o <dir> assets/icon.svg, then sips -z N N. -->
+  <defs>
+    <pattern id="rule" width="1024" height="72" patternUnits="userSpaceOnUse">
+      <rect x="0" y="70" width="1024" height="2" fill="rgba(140,120,90,0.22)"/>
+    </pattern>
+  </defs>
+  <rect width="1024" height="1024" fill="#fdf8ec"/>
+  <rect width="1024" height="1024" fill="url(#rule)"/>
+  <rect x="150" y="0" width="5" height="1024" fill="rgba(214,96,96,0.45)"/>
+  <g transform="rotate(-28 512 512)" fill="#3a3226">
+    <!-- nib -->
+    <path d="M512 850 C 400 700, 330 560, 330 430 C 330 310, 410 230, 512 230 C 614 230, 694 310, 694 430 C 694 560, 624 700, 512 850 Z"/>
+    <!-- slit and breather hole, cut out in paper colour -->
+    <rect x="503" y="500" width="18" height="330" rx="9" fill="#fdf8ec"/>
+    <circle cx="512" cy="500" r="36" fill="#fdf8ec"/>
+    <!-- collar -->
+    <rect x="382" y="150" width="260" height="110" rx="34"/>
+  </g>
+</svg>

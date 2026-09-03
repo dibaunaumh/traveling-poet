@@ -747,7 +747,7 @@ defmodule TravelingPoetWeb.JournalLive do
         <button
           :if={!@mobile_chat_open}
           phx-click="toggle_mobile_chat"
-          class="lg:hidden fixed bottom-5 right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
+          class="lg:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
           aria-label="Open chat"
         >
           💬
