@@ -54,10 +54,6 @@ defmodule TravelingPoet.Accounts do
 
   def get_user_by_telegram_pair_token(_), do: nil
 
-  def mark_onboarding_complete(user) do
-    update_user(user, %{onboarding_completed: true})
-  end
-
   def update_user(user, attrs) do
     user
     |> User.changeset(attrs)

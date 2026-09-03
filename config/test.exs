@@ -35,3 +35,9 @@ config :phoenix,
 # instead of reaching a network. There is no other seam — the app has no
 # HTTP mocking library.
 config :traveling_poet, change_stream_req_options: [plug: {Req.Test, TravelingPoet.ChangeStream}]
+
+# Onboarding and mode switches provision the sprite in a background task.
+# Never do that from the test suite: with SPRITES_TOKEN/OPENROUTER_API_KEY in
+# the shell it would create a real sprite, and the task runs outside the
+# sandbox owner anyway.
+config :traveling_poet, provision_in_background: false
