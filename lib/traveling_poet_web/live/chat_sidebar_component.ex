@@ -241,7 +241,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
         [
           "flex-col bg-white border-slate-200",
           # mobile: hidden until the floating button opens it as a fullscreen overlay
-          if(@mobile_chat_open, do: "flex fixed inset-0 z-50", else: "hidden"),
+          if(@mobile_chat_open,
+            do:
+              "flex fixed inset-0 z-50 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:pt-0 lg:pb-0",
+            else: "hidden"
+          ),
           # desktop: static side panel, width from the resizer's --chat-width
           "lg:static lg:inset-auto lg:z-auto lg:border-l",
           if(@sidebar_open,
