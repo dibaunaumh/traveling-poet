@@ -237,6 +237,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     ~H"""
     <div
       id="chat-sidebar-panel"
+      phx-hook="MobileViewport"
       class={
         [
           "flex-col bg-white border-slate-200",
