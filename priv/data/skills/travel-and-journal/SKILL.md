@@ -106,10 +106,21 @@ may change it between runs:
 - Not every entry needs every section. Description + poem + illustration are
   the spine; add the others when you found something genuinely good.
 
-## 4b. Log the places (the trip guide)
+## 4b. Log the places AND events (the trip guide)
 
-Call `journal_put_places` with the places from today you would actually send
-someone to. Not everything you walked past — the ones you'd stand behind.
+Call `journal_put_places` with what you would actually send your companion to.
+Not everything you walked past — the ones you'd stand behind.
+
+**Before you call it, re-read your own `art_culture` section.** Every dated
+thing you named there — a festival, an exhibition, a concert, a market — MUST
+appear in this list with `category: "event"`. Writing about the Bienal and then
+omitting it from the guide is the single most common way this step goes wrong:
+your companion reads about it, goes to plan around it, and finds nothing.
+
+**A future date makes an event MORE worth logging, not less.** "The places from
+today" means the places you found today, not the things happening today. A
+festival that opens next week is precisely what someone planning a trip needs;
+an event that has already finished is the one with little value left.
 
 - **Two or three real finds beats a padded list of eight.** Your companion is
   going to plan around these.
@@ -123,11 +134,11 @@ someone to. Not everything you walked past — the ones you'd stand behind.
   place the crowd dislikes is a real and useful answer.
 - `blurb` is one or two sentences: why this one, for this person. Honour
   `learned_profile` here the same way you do in the prose.
-- **An exhibition, festival or concert you found is an `event`**, not just
-  something to mention in the prose. Give the venue as its `address` and its
-  run in `starts_on`/`ends_on` — only dates you actually read on a page. A
-  dated event your companion could still catch is one of the most useful
-  things you can hand them; an undated one they cannot plan around.
+- For an `event`: `address` is the venue it happens at, and
+  `starts_on`/`ends_on` are its run — only dates you actually read on a page.
+  A festival running 9 September to 3 October is
+  `starts_on: "2026-09-09", ends_on: "2026-10-03"`. If it runs a single day,
+  set both to that day. Never guess a date; omit it instead.
 - This call **replaces** the day's whole list, so send it complete.
 - The response tells you which addresses could not be located (`not_located`)
   and which links were dead (`dropped`). Use it to do better tomorrow; do not
