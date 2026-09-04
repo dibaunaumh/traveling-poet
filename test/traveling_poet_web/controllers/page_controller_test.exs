@@ -92,4 +92,73 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ "Scout a trip"
     refute html =~ "/auth/google"
   end
+
+  describe "the open notebook under the map" do
+    defp publish(poet, date, title, sections) do
+      {:ok, entry} =
+        TravelingPoet.Journal.upsert_entry(poet.id, date, %{
+          title: title,
+          place_name: "Ronda, Spain"
+        })
+
+      {:ok, _} = TravelingPoet.Journal.replace_sections(entry, sections)
+      {:ok, _} = TravelingPoet.Journal.publish_entry(entry)
+      entry
+    end
+
+    test "shows the first poet's latest page, words left and drawing right, others hidden", %{
+      conn: conn
+    } do
+      nam = poet_fixture(user_fixture(), %{name: "Nam", is_public: true, status: "active"})
+      media = media_fixture(nam, %{alt_text: "Puente Nuevo in wash"})
+
+      publish(nam, ~D[2026-09-03], "The town on the edge", [
+        %{
+          kind: "description",
+          title: "First light",
+          body: "I left Seville this morning on a bus."
+        },
+        %{kind: "illustration", title: "Sketch", body: "", media_id: media.id},
+        %{kind: "poem", title: "Gorge", body: "The river carved a question mark"},
+        %{kind: "products", title: "Worth carrying home", body: "Olive oil from the almazaras."}
+      ])
+
+      hilma = poet_fixture(user_fixture(), %{name: "Hilma", is_public: true, status: "active"})
+      publish(hilma, ~D[2026-09-03], "Layers", [%{kind: "description", body: "Tokyo, at last."}])
+
+      # a public poet with nothing published gets a pin but no page
+      poet_fixture(user_fixture(), %{name: "Quiet Q", is_public: true, status: "active"})
+
+      html = conn |> get(~p"/") |> html_response(200)
+
+      assert html =~ ~s(data-spread="landing-spread")
+      assert html =~ "pick one and read this morning"
+      assert html =~ "The town on the edge"
+      assert html =~ "I left Seville this morning"
+      assert html =~ "The river carved a question mark"
+      assert html =~ "Olive oil from the almazaras"
+      assert html =~ "/media/#{media.id}"
+      assert html =~ "Puente Nuevo in wash"
+      assert html =~ "Read the whole page"
+      assert html =~ "Show on the map"
+      assert html =~ "/p/#{nam.slug}/2026-09-03"
+
+      # one article per poet with a page; the first is open, the rest closed
+      assert html =~ ~s(data-spread-poet="#{nam.slug}")
+      assert html =~ ~s(data-spread-poet="#{hilma.slug}" hidden)
+      refute html =~ ~s(data-spread-poet="#{nam.slug}" hidden)
+      refute html =~ ~s(data-spread-poet="quiet-q")
+
+      # the picker names both poets, marks the first
+      assert html =~ ~s(data-spread-pick="#{nam.slug}" aria-selected="true")
+      assert html =~ ~s(data-spread-pick="#{hilma.slug}" aria-selected="false")
+    end
+
+    test "no published pages means a map without a spread", %{conn: conn} do
+      poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
+      html = conn |> get(~p"/") |> html_response(200)
+      refute html =~ ~s(id="landing-spread")
+      refute html =~ ~s(data-spread=)
+    end
+  end
 end

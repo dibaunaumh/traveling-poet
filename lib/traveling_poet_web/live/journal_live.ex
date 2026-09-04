@@ -1,6 +1,8 @@
 defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
+  import TravelingPoetWeb.NotebookComponents
+
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1]
 
   alias TravelingPoet.{
@@ -15,7 +17,6 @@ defmodule TravelingPoetWeb.JournalLive do
   }
 
   alias TravelingPoet.{Preferences, SpriteUploads, SpritesClient, Usage}
-  alias TravelingPoet.Journal.Media
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
@@ -765,71 +766,6 @@ defmodule TravelingPoetWeb.JournalLive do
     </Layouts.app>
     """
   end
-
-  attr :section, :any, required: true
-  attr :media, :any, default: nil
-
-  defp section(%{section: %{kind: "illustration"}} = assigns) do
-    ~H"""
-    <figure :if={@media} class="taped-photo my-4">
-      <img
-        src={~p"/media/#{@media.id}"}
-        alt={@media.alt_text || "illustration"}
-        class="rounded-xl max-w-full shadow"
-      />
-      <figcaption class="text-xs opacity-60 mt-1 flex flex-wrap gap-x-3">
-        <span :if={@media.alt_text}>{@media.alt_text}</span>
-        <a
-          :for={src <- Media.source_items(@media)}
-          href={src["url"]}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          class="link"
-        >
-          {src["label"] || "see the real place"} ↗
-        </a>
-      </figcaption>
-    </figure>
-    """
-  end
-
-  defp section(assigns) do
-    ~H"""
-    <div class={@section.kind == "poem" && "notebook-poem"}>
-      <h3 :if={@section.title} class="notebook-section-title mb-1">
-        {section_icon(@section.kind)} {@section.title}
-      </h3>
-      <div class="prose prose-sm max-w-none">
-        {raw_markdown(@section.body)}
-      </div>
-      <a
-        :if={@section.metadata["source_url"]}
-        href={@section.metadata["source_url"]}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        class="link text-sm"
-      >
-        {@section.metadata["source_label"] || @section.metadata["source_url"]} ↗
-      </a>
-    </div>
-    """
-  end
-
-  defp raw_markdown(nil), do: ""
-
-  defp raw_markdown(text) do
-    case MDEx.to_html(text) do
-      {:ok, html} -> Phoenix.HTML.raw(html)
-      _ -> text
-    end
-  end
-
-  defp section_icon("poem"), do: "✒️"
-  defp section_icon("description"), do: "🗺️"
-  defp section_icon("art_culture"), do: "🎭"
-  defp section_icon("products"), do: "🧺"
-  defp section_icon("kindness"), do: "💛"
-  defp section_icon(_), do: ""
 
   defp reaction_kinds do
     [{"love", "❤️"}, {"inspiring", "✨"}, {"want_more", "➕"}, {"not_for_me", "🤷"}]

@@ -44,16 +44,18 @@
       </div>
     </section>
 
-    <!-- Poets on the road -->
-    <section class="py-8 border-t border-base-200">
+    <!-- Poets on the road: the map turns the pages of the open notebook below it -->
+    <section class="py-8 border-t border-base-200" id="road">
       <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
       <p :if={@poets_on_map > 0} class="text-center text-sm opacity-60 mb-6">
         {@poets_on_map} {ngettext("poet", "poets", @poets_on_map)} exploring the world
+        <span :if={@spreads != []}>&mdash; pick one and read this morning&rsquo;s page</span>
       </p>
 
       <div
         id="landing-map"
         data-static-map
+        data-spread={@spreads != [] && "landing-spread"}
         class="w-full h-96 rounded-2xl border border-base-300 z-0"
         data-poets={Jason.encode!(@public_poets)}
         data-anonymous-poets={Jason.encode!(@anonymous_poets)}
@@ -65,6 +67,81 @@
       <p :if={@poets_on_map == 0} class="text-sm opacity-60 mt-2 text-center">
         No poets on the road yet &mdash; the first ones are still lacing their boots.
       </p>
+
+      <div :if={@spreads != []} id="landing-spread" class="mt-6">
+        <div class="spread-picker" data-spread-picker role="tablist" aria-label="Poets">
+          <button
+            :for={{s, idx} <- Enum.with_index(@spreads)}
+            type="button"
+            role="tab"
+            class="spread-chip"
+            data-spread-pick={s.poet.slug}
+            aria-selected={to_string(idx == 0)}
+          >
+            <img
+              :if={s.poet.avatar_url}
+              src={s.poet.avatar_url}
+              alt=""
+              class="spread-chip-avatar"
+            />
+            <span :if={!s.poet.avatar_url} class="spread-chip-avatar spread-chip-initial">
+              {String.first(s.poet.name)}
+            </span>
+            <span class="spread-chip-text">
+              <b>{s.poet.name}</b>
+              <small>{s.entry.place_name || s.poet.current_place_name}</small>
+            </span>
+          </button>
+        </div>
+
+        <article
+          :for={{s, idx} <- Enum.with_index(@spreads)}
+          data-spread-poet={s.poet.slug}
+          hidden={idx != 0}
+          class="spread"
+          aria-label={"#{s.poet.name}'s latest page"}
+        >
+          <div class="notebook-page spread-page spread-left">
+            <div class="spread-meta">
+              <span>
+                <b>{s.poet.name}</b>, a traveling poet
+                <span :if={s.entry.place_name}>&middot; {s.entry.place_name}</span>
+              </span>
+              <span class="notebook-date">
+                {Calendar.strftime(s.entry.entry_date, "%B %-d, %Y")}
+              </span>
+            </div>
+            <h3 class="notebook-title mb-3">
+              {s.entry.title || s.entry.place_name || "Journal"}
+            </h3>
+            <div :for={section <- s.words} class="mb-5">
+              <.section section={section} clamp={section.kind == "description"} />
+            </div>
+            <p :if={s.words == []} class="prose text-sm opacity-60">
+              A quiet page &mdash; the drawing says it all today.
+            </p>
+          </div>
+          <div class="notebook-page spread-page spread-right">
+            <div :for={d <- s.drawings} class="mb-4">
+              <.section
+                section={%{kind: "illustration"}}
+                media={
+                  if is_struct(d, TravelingPoet.Journal.Section), do: s.media[d.media_id], else: d
+                }
+              />
+            </div>
+            <div :for={section <- s.notes} class="mb-4">
+              <.section section={section} clamp={true} />
+            </div>
+            <div class="spread-actions">
+              <a href={s.url} class="link">Read the whole page &rarr;</a>
+              <button type="button" class="spread-locate" data-spread-locate>
+                📍 Show on the map
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
     <!-- How it works -->
