@@ -44,7 +44,7 @@ defmodule TravelingPoetWeb.Layouts do
     ~H"""
     <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-200">
       <div class="flex-1">
-        <a href="/" class="flex w-fit items-center gap-2 text-lg font-semibold">
+        <a href="/" class="flex w-fit items-center gap-2 text-lg home-brand">
           🖋 <span>Traveling Poet</span>
         </a>
       </div>
