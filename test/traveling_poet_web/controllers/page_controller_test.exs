@@ -18,6 +18,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
     assert html =~ "Two ways to travel. Both end up in the same notebook."
     assert html =~ "Somewhere in the world, a page is being written for you."
     assert html =~ "Trips scouted, not sold."
+    assert html =~ "Why this isn&rsquo;t another travel app."
     # no poets yet: the empty-state line, not a "0 poets" count
     assert html =~ "still lacing their boots"
     refute html =~ "0 poets exploring"

@@ -744,17 +744,46 @@
 }
 .home-steps p { margin: 0; opacity: 0.8; line-height: 1.55; }
 
-/* Why it isn't another travel app: four short claims, no ornament. */
+/* Why it isn't another travel app: one banded strip of four claims, each
+   opened by a short teal rule, so the block reads as a composed object rather
+   than four stray paragraphs. */
 .home-trust {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem 2.5rem;
   margin-top: 3.5rem;
-  padding-top: 2.5rem;
+  padding: 3rem 0 3.5rem;
   border-top: 1px solid var(--color-base-200);
 }
-.home-trust h3 { font-weight: 600; font-size: 1rem; margin: 0 0 0.25rem; }
-.home-trust p { margin: 0; opacity: 0.75; font-size: 0.95rem; line-height: 1.5; }
+.home-trust-strip {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--color-base-200);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.home-trust-strip li {
+  padding: 1.6rem 1.5rem 1.8rem;
+  border-left: 1px solid var(--color-base-100);
+}
+.home-trust-strip li:first-child { border-left: 0; }
+.home-trust-strip li::before {
+  content: "";
+  display: block;
+  width: 2rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--home-accent);
+  margin-bottom: 1rem;
+}
+.home-trust-strip h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  margin: 0 0 0.45rem;
+}
+.home-trust-strip p { margin: 0; opacity: 0.78; font-size: 0.95rem; line-height: 1.5; }
 
 .home-closing {
   text-align: center;
@@ -784,7 +813,15 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 1023px) {
+  .home-trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-trust-strip li:nth-child(3) { border-left: 0; }
+  .home-trust-strip li:nth-child(n + 3) { border-top: 1px solid var(--color-base-100); }
+}
+
 @media (max-width: 767px) {
   .home-steps { grid-template-columns: 1fr; gap: 2rem; }
-  .home-trust { grid-template-columns: 1fr; }
+  .home-trust-strip { grid-template-columns: 1fr; }
+  .home-trust-strip li { border-left: 0; }
+  .home-trust-strip li:nth-child(n + 2) { border-top: 1px solid var(--color-base-100); }
 }
