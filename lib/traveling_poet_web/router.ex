@@ -34,6 +34,8 @@ defmodule TravelingPoetWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    # The hero's destination box: remembers the place across Google sign-in
+    get "/start", PageController, :start
     get "/media/:id", MediaController, :show
     # Files the agent produced in its sprite workspace (chat attachments etc.)
     get "/api/artifacts", Api.ArtifactController, :show

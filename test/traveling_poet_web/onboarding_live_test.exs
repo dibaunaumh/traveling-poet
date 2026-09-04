@@ -227,4 +227,28 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert Accounts.get_user!(user.id).onboarding_step == "journey"
     end
   end
+
+  describe "?place= from the home page" do
+    # Geocoding is off in test, so every lookup comes back empty: the wizard
+    # must keep the visitor's words and hand them the search box.
+    test "an unknown place keeps what was typed and opens the search", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=Atlantis")
+
+      # the starting city lives on step 2
+      html = view |> element("#onboarding-poet") |> render_submit()
+      assert html =~ "Couldn’t find “Atlantis”"
+      assert html =~ ~s(name="query" value="Atlantis")
+      # the default city is still there to fall back on
+      assert html =~ "Setting out from <b>"
+    end
+
+    test "no place means the ordinary pre-filled start", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=")
+      html = view |> element("#onboarding-poet") |> render_submit()
+      assert html =~ "Setting out from <b>"
+      refute html =~ "Couldn’t find"
+    end
+  end
 end

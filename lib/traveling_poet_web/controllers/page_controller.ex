@@ -55,6 +55,38 @@ defmodule TravelingPoetWeb.PageController do
     )
   end
 
+  @doc """
+  The hero's "Where should your poet set out from?" box. A signed-out visitor
+  goes through Google sign-in first, so the place is parked in the session
+  and picked up by `AuthController` on the way back; someone already signed in
+  lands on onboarding with the place pre-filled, or on their journal if their
+  poet is already on the road.
+  """
+  def start(conn, params) do
+    place = params |> Map.get("place", "") |> String.trim() |> String.slice(0, 120)
+
+    case conn.assigns[:current_user] do
+      nil ->
+        conn
+        |> maybe_park_place(place)
+        |> redirect(to: ~p"/auth/google")
+
+      user ->
+        if user.onboarding_completed and Poets.get_poet_by_user(user.id) do
+          redirect(conn, to: ~p"/journal")
+        else
+          redirect(conn, to: onboarding_path(place))
+        end
+    end
+  end
+
+  defp maybe_park_place(conn, ""), do: conn
+  defp maybe_park_place(conn, place), do: put_session(conn, :start_place, place)
+
+  @doc "Onboarding, with the requested starting place when there is one."
+  def onboarding_path(place) when place in [nil, ""], do: ~p"/onboarding"
+  def onboarding_path(place), do: ~p"/onboarding?#{[place: place]}"
+
   # Left page: the words (title, description, poem). Right page: the drawing
   # and the practical notes. A page with no drawing of its own borrows the
   # entry's first unattached illustration, as the journal does.
