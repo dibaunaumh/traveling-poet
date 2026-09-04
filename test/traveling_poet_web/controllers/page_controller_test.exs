@@ -11,7 +11,13 @@ defmodule TravelingPoetWeb.PageControllerTest do
     assert html =~ ~s(action="/start")
     assert html =~ ~s(name="place")
     assert html =~ "/images/hero-notebook.jpg"
+    # the "on us" line lives with the closing call to action, not in the hero
     assert html =~ "first days of travel are on us"
+    [above_the_map | _] = String.split(html, "Poets on the road right now")
+    refute above_the_map =~ "first days of travel"
+    assert html =~ "Two ways to travel. Both end up in the same notebook."
+    assert html =~ "Somewhere in the world, a page is being written for you."
+    assert html =~ "Trips scouted, not sold."
     # no poets yet: the empty-state line, not a "0 poets" count
     assert html =~ "still lacing their boots"
     refute html =~ "0 poets exploring"
@@ -91,8 +97,11 @@ defmodule TravelingPoetWeb.PageControllerTest do
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
     html = conn |> get(~p"/") |> html_response(200)
     # no poet yet: the box still leads into onboarding
+    # no poet yet: the box and the mode buttons still lead into onboarding
     assert html =~ ~s(action="/start")
+    assert html =~ "Scout a trip"
     refute html =~ "Open your journal"
+    refute html =~ "/auth/google"
 
     poet_fixture(user)
     html = conn |> get(~p"/") |> html_response(200)
@@ -100,6 +109,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ ~s(action="/start")
     refute html =~ "Send out your poet"
     refute html =~ "Scout a trip"
+    refute html =~ "first days of travel are on us"
     refute html =~ "/auth/google"
   end
 

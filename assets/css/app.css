@@ -634,3 +634,157 @@
   z-index: 1000 !important;
 }
 .leaflet-marker-icon.poet-pin-dim { opacity: 0.55; }
+
+/* ---- Home page: type and palette --------------------------------------- */
+/* The home page speaks in the notebook's voice: Fraunces for the ledes, a
+   slate teal for every button, marigold only for the step numbers. The rest
+   of the app keeps its own theme; these tokens live on `.home` alone. */
+
+.home {
+  --home-accent: #2f5d62;
+  --home-accent-hover: #26494d;
+  --home-accent-ink: #ffffff;
+  --home-number: #b8791a;
+}
+
+[data-theme="dark"] .home {
+  --home-accent: #8fc1c5;
+  --home-accent-hover: #a7d1d4;
+  --home-accent-ink: #12262a;
+  --home-number: #e4b660;
+}
+
+.home-brand {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+}
+
+.home-lede {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  line-height: 1.2;
+  text-wrap: balance;
+  max-width: 26ch;
+  margin: 0;
+}
+
+.home-btn {
+  display: inline-block;
+  background: var(--home-accent);
+  color: var(--home-accent-ink);
+  font-weight: 500;
+  padding: 0.7rem 1.3rem;
+  border-radius: 0.6rem;
+  text-decoration: none;
+  transition: background-color 120ms ease;
+}
+.home-btn:hover { background: var(--home-accent-hover); }
+.home-btn:focus-visible { outline: 3px solid var(--home-accent); outline-offset: 3px; }
+.home-btn-sm { padding: 0.45rem 0.9rem; font-size: 0.9rem; }
+.home-btn-lg { padding: 0.85rem 1.6rem; font-size: 1.05rem; }
+.home-btn-quiet {
+  background: transparent;
+  color: var(--home-accent);
+  border: 1.5px solid var(--home-accent);
+}
+.home-btn-quiet:hover { background: color-mix(in srgb, var(--home-accent) 10%, transparent); }
+
+/* Two ways to travel: two equal cards, the example a quoted brief. */
+.home-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.6rem;
+  border-radius: 1rem;
+  background: var(--color-base-200);
+}
+.home-mode h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  font-size: 1.45rem;
+  margin: 0;
+}
+.home-mode p { margin: 0; opacity: 0.8; line-height: 1.55; }
+.home-mode .home-btn { align-self: flex-start; margin-top: auto; }
+
+.home-example {
+  margin: 0;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--home-number);
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  opacity: 0.85;
+}
+
+/* How it works: a real sequence, so the numbers carry meaning. */
+.home-steps {
+  list-style: none;
+  margin: 3.5rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem;
+}
+.home-step-n {
+  display: block;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--home-number);
+}
+.home-steps h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  margin: 0.8rem 0 0.5rem;
+}
+.home-steps p { margin: 0; opacity: 0.8; line-height: 1.55; }
+
+/* Why it isn't another travel app: four short claims, no ornament. */
+.home-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 2.5rem;
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--color-base-200);
+}
+.home-trust h3 { font-weight: 600; font-size: 1rem; margin: 0 0 0.25rem; }
+.home-trust p { margin: 0; opacity: 0.75; font-size: 0.95rem; line-height: 1.5; }
+
+.home-closing {
+  text-align: center;
+  padding: 4rem 0 3rem;
+  border-top: 1px solid var(--color-base-200);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+.home-closing .home-lede { margin: 0 auto; }
+.home-closing-note { margin: 0; font-size: 0.9rem; opacity: 0.65; }
+
+.home-footer {
+  border-top: 1px solid var(--color-base-200);
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+.home-footer-inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .home-steps { grid-template-columns: 1fr; gap: 2rem; }
+  .home-trust { grid-template-columns: 1fr; }
+}
