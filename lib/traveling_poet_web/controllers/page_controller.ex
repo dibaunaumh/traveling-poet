@@ -14,9 +14,11 @@ defmodule TravelingPoetWeb.PageController do
     {public, private} =
       Poets.list_poets_on_the_road() |> Enum.split_with(& &1.is_public)
 
+    latest = Map.new(public, fn p -> {p.id, Journal.latest_published_entry(p.id)} end)
+
     poets =
       Enum.map(public, fn p ->
-        entry = Journal.latest_published_entry(p.id)
+        entry = latest[p.id]
 
         %{
           lat: p.current_lat,
@@ -34,14 +36,54 @@ defmodule TravelingPoetWeb.PageController do
         }
       end)
 
+    # The open notebook under the map: every public poet's newest page, in the
+    # same order as the pins, so the map can turn the pages.
+    spreads =
+      public
+      |> Enum.map(fn p -> {p, latest[p.id]} end)
+      |> Enum.reject(fn {_p, entry} -> is_nil(entry) end)
+      |> Enum.map(fn {p, entry} -> spread(p, Journal.preload_entry(entry)) end)
+
     render(conn, :home,
       public_poets: poets,
+      spreads: spreads,
       anonymous_poets: Enum.map(private, &blurred_point/1),
       poets_on_map: length(public) + length(private),
       my_poet: my_poet,
       signed_out?: is_nil(conn.assigns[:current_user]),
       layout: false
     )
+  end
+
+  # Left page: the words (title, description, poem). Right page: the drawing
+  # and the practical notes. A page with no drawing of its own borrows the
+  # entry's first unattached illustration, as the journal does.
+  defp spread(poet, entry) do
+    media =
+      entry.sections
+      |> Enum.map(& &1.media_id)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&Journal.get_media/1)
+      |> Enum.reject(&is_nil/1)
+      |> Map.new(&{&1.id, &1})
+
+    {words, rest} = Enum.split_with(entry.sections, &(&1.kind in ["description", "poem"]))
+    {drawings, notes} = Enum.split_with(rest, &(&1.kind == "illustration"))
+
+    drawings =
+      if Enum.any?(drawings, &media[&1.media_id]),
+        do: Enum.filter(drawings, &media[&1.media_id]),
+        else: Enum.take(Journal.unattached_illustrations(entry, entry.sections), 1)
+
+    %{
+      poet: poet,
+      entry: entry,
+      media: media,
+      words: words,
+      drawings: drawings,
+      notes: notes,
+      url: entry_url(poet, entry)
+    }
   end
 
   # A private poet contributes a pin and nothing else: no name, slug, avatar or

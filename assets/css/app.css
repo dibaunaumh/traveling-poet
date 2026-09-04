@@ -424,3 +424,164 @@
     object-position: 74% 50%;
   }
 }
+
+/* ---- Home page: the open notebook under the map ------------------------- */
+/* Two facing pages of the selected poet's newest entry. Same paper as the
+   journals; only the binding gutter and the picker are new. */
+
+.spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-top: 1rem;
+  filter: drop-shadow(0 14px 28px rgba(60, 45, 20, 0.18));
+}
+
+.spread .spread-page {
+  box-shadow: none;
+  margin: 0;
+}
+
+.spread .spread-left {
+  border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
+  padding-right: 1.75rem;
+}
+
+.spread .spread-right {
+  border-radius: 0.15rem 0.75rem 0.75rem 0.15rem;
+  /* the right-hand page has no margin line; the gutter is its left edge */
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent calc(2rem - 1px),
+    rgba(140, 120, 90, 0.16) calc(2rem - 1px),
+    rgba(140, 120, 90, 0.16) 2rem
+  );
+  padding-left: 2.25rem;
+  box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
+}
+
+.spread-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #6b5b40;
+  line-height: 2rem;
+}
+
+.spread-meta b {
+  color: #2f5d62;
+  font-weight: 600;
+}
+
+/* Prose that would run off the page is cut to a few ruled lines; the whole
+   entry is one link away. */
+.spread-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  overflow: hidden;
+}
+
+.spread-right .spread-clamp {
+  -webkit-line-clamp: 4;
+}
+
+.spread-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.spread-locate {
+  background: none;
+  border: 1px solid rgba(47, 93, 98, 0.35);
+  color: #2f5d62;
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.spread-locate:hover { background: rgba(47, 93, 98, 0.08); }
+.spread-locate:focus-visible { outline: 3px solid #2f5d62; outline-offset: 2px; }
+
+@media (max-width: 767px) {
+  .spread { grid-template-columns: 1fr; }
+  .spread .spread-left { border-radius: 0.75rem 0.75rem 0 0; padding-right: 2rem; }
+  .spread .spread-right {
+    border-radius: 0 0 0.75rem 0.75rem;
+    padding-left: 2rem;
+    box-shadow: inset 0 14px 18px -14px rgba(60, 45, 20, 0.35);
+  }
+}
+
+/* The row of poets: who is on the page, and a way to turn to another one
+   without hunting for a pin. */
+.spread-picker {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 0.5rem;
+  scrollbar-width: thin;
+}
+
+.spread-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem 0.25rem 0.3rem;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  text-align: left;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+.spread-chip:hover { opacity: 1; }
+.spread-chip[aria-selected="true"] {
+  opacity: 1;
+  background: rgba(47, 93, 98, 0.1);
+  border-color: rgba(47, 93, 98, 0.35);
+}
+.spread-chip:focus-visible { outline: 3px solid #2f5d62; outline-offset: 2px; }
+
+.spread-chip-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.spread-chip-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(47, 93, 98, 0.15);
+  color: #2f5d62;
+  font-weight: 700;
+}
+
+.spread-chip-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  font-size: 0.85rem;
+}
+.spread-chip-text small { opacity: 0.65; font-size: 0.75rem; }
+
+/* The pin whose page is open, and the ones that aren't. Leaflet positions
+   markers with an inline transform, so highlight with filter, not scale. */
+.leaflet-marker-icon.poet-pin-selected {
+  filter: drop-shadow(0 0 5px rgba(47, 93, 98, 0.95)) saturate(1.5);
+  z-index: 1000 !important;
+}
+.leaflet-marker-icon.poet-pin-dim { opacity: 0.55; }

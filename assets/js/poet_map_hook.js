@@ -122,6 +122,8 @@ function entryPopup(focus) {
 
 const TOUR_SHOW_MS = 4500
 const TOUR_GAP_MS = 1300
+// Time a page of the spread stays open before the tour turns to the next poet.
+const TOUR_PAGE_MS = 12_000
 const TOUR_RESUME_MS = 20000
 const HOME_VIEW = { padding: [40, 40], maxZoom: 6, animate: false }
 
@@ -301,13 +303,48 @@ const PoetMap = {
     this.stopTour()
     this.layer.clearLayers()
 
-    this.markers = poets.map((p) => {
+    // With a spread below the map, pins turn its pages instead of opening
+    // popups, and the tour turns them on its own until the visitor takes over.
+    this.spread = this.el.dataset.spread ? document.getElementById(this.el.dataset.spread) : null
+    this.poets = poets
+
+    this.markers = poets.map((p, i) => {
       const m = L.marker([p.lat, p.lng]).addTo(this.layer)
-      m.bindPopup(poetPopup(p), { minWidth: 200, maxWidth: 240, autoPanPadding: [50, 40] })
-      // A click means the visitor is driving; back off for a while.
-      m.on("click", () => this.engage())
+      if (this.spread) {
+        m.bindTooltip(p.name, { direction: "top", offset: [-14, -10] })
+        m.on("click", () => this.select(i, { user: true }))
+      } else {
+        m.bindPopup(poetPopup(p), { minWidth: 200, maxWidth: 240, autoPanPadding: [50, 40] })
+        // A click means the visitor is driving; back off for a while.
+        m.on("click", () => this.engage())
+      }
       return m
     })
+
+    if (this.spread && !this.spreadBound) {
+      this.spreadBound = true
+      this.spread.addEventListener("click", (e) => {
+        const pick = e.target.closest("[data-spread-pick]")
+        if (pick) {
+          const i = this.poets.findIndex((p) => p.slug === pick.dataset.spreadPick)
+          if (i >= 0) this.select(i, { user: true })
+          return
+        }
+        if (e.target.closest("[data-spread-locate]")) this.locate()
+      })
+      // Reading is interacting: hold the page while the pointer is on it.
+      this.spread.addEventListener("mouseenter", () => {
+        this.hovering = true
+        this.clearTourTimer()
+      })
+      this.spread.addEventListener("mouseleave", () => {
+        this.hovering = false
+        this.resumeTour()
+      })
+      const firstShown = this.spread.querySelector("[data-spread-poet]:not([hidden])")
+      const i = firstShown ? this.poets.findIndex((p) => p.slug === firstShown.dataset.spreadPoet) : 0
+      this.select(Math.max(i, 0))
+    }
 
     anonymous.forEach((p) => {
       L.circleMarker([p.lat, p.lng], {
@@ -346,12 +383,60 @@ const PoetMap = {
     this.startTour()
   },
 
-  // Opens each poet's popup in turn -- show, close, brief pause, next one --
-  // looping back to the first. Paused while the visitor hovers or interacts.
+  // Turns the spread to poet `i`: shows their page, marks their chip and pin.
+  // A user-driven turn ends the tour for good; nobody wants the page they are
+  // reading swapped out from under them.
+  select(i, { user = false } = {}) {
+    if (!this.spread || !this.poets[i]) return
+    const slug = this.poets[i].slug
+    this.selected = i
+
+    this.spread.querySelectorAll("[data-spread-poet]").forEach((el) => {
+      el.hidden = el.dataset.spreadPoet !== slug
+    })
+    this.spread.querySelectorAll("[data-spread-pick]").forEach((el) => {
+      el.setAttribute("aria-selected", String(el.dataset.spreadPick === slug))
+    })
+    this.markers.forEach((m, j) => {
+      const el = m.getElement()
+      if (!el) return
+      el.classList.toggle("poet-pin-selected", j === i)
+      el.classList.toggle("poet-pin-dim", j !== i)
+    })
+
+    if (user) {
+      this.userDriving = true
+      this.stopTour()
+    }
+  },
+
+  // "Show on the map": bring the selected poet's pin into view and name it.
+  locate() {
+    if (!this.markers || this.selected == null) return
+    const m = this.markers[this.selected]
+    this.userDriving = true
+    this.stopTour()
+    this.el.scrollIntoView({ behavior: "smooth", block: "center" })
+    this.map.flyTo(m.getLatLng(), Math.max(this.map.getZoom(), 4), { duration: 0.8 })
+    m.openTooltip()
+    setTimeout(() => m.closeTooltip(), 2500)
+  },
+
+  // Cycles through the poets -- popups when the map stands alone, pages of
+  // the spread when there is one -- looping back to the first. Paused while
+  // the visitor hovers or interacts.
   startTour() {
     this.clearTourTimer()
     if (!this.markers || this.markers.length === 0) return
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (this.userDriving) return
+
+    if (this.spread) {
+      if (this.markers.length < 2) return
+      this.tourIndex = this.selected ?? 0
+      this.scheduleTour(TOUR_PAGE_MS)
+      return
+    }
 
     if (this.markers.length === 1) {
       this.tourTimer = setTimeout(() => this.markers[0].openPopup(), TOUR_GAP_MS)
@@ -368,6 +453,13 @@ const PoetMap = {
   },
 
   tourStep() {
+    if (this.spread) {
+      this.tourIndex = (this.tourIndex + 1) % this.markers.length
+      this.select(this.tourIndex)
+      this.scheduleTour(TOUR_PAGE_MS)
+      return
+    }
+
     this.tourIndex = (this.tourIndex + 1) % this.markers.length
     this.markers[this.tourIndex].openPopup()
 
@@ -381,7 +473,7 @@ const PoetMap = {
   },
 
   resumeTour() {
-    if (this.hovering || this.userEngaged) return
+    if (this.hovering || this.userEngaged || this.userDriving) return
     if (!this.markers || this.markers.length < 2) return
     this.scheduleTour(TOUR_GAP_MS)
   },
