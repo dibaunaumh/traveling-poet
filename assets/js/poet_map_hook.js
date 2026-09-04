@@ -209,11 +209,11 @@ const PoetMap = {
     const path = (data.path || []).map((p) => [p.lat, p.lng])
 
     if (path.length > 1) {
-      L.polyline(path, { color: "#7c3aed", weight: 3, opacity: 0.7, dashArray: "6 8" }).addTo(this.layer)
+      L.polyline(path, { color: "#2f5d62", weight: 3, opacity: 0.7, dashArray: "6 8" }).addTo(this.layer)
     }
 
     ;(data.path || []).forEach((p) => {
-      L.circleMarker([p.lat, p.lng], { radius: 4, color: "#7c3aed", fillOpacity: 0.8 })
+      L.circleMarker([p.lat, p.lng], { radius: 4, color: "#2f5d62", fillOpacity: 0.8 })
         .bindPopup(p.name || "")
         .addTo(this.layer)
     })
