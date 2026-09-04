@@ -1,7 +1,7 @@
 <div class="home min-h-screen bg-base-100">
   <header class="navbar max-w-5xl mx-auto px-4">
     <div class="flex-1">
-      <span class="home-brand">🖋 Traveling Poet</span>
+      <a href={~p"/"} class="wordmark">Traveling <em>Poet</em></a>
     </div>
     <div class="flex-none flex gap-2">
       <a :if={!@signed_out?} href="/journal" class="home-btn home-btn-sm">
@@ -27,8 +27,8 @@
       <div class="home-hero-copy">
         <h1 id="hero-title">Send someone ahead of you.</h1>
         <p>
-          Your traveling poet learns what fascinates you, then goes &mdash; scouting a trip
-          you&rsquo;ve planned, or wandering the world and writing you an illustrated journal
+          Your traveling poet learns what fascinates you, then goes. It scouts a trip
+          you&rsquo;ve planned, or wanders the world and writes you an illustrated journal
           page every morning.
         </p>
         <form
@@ -64,8 +64,9 @@
     <section class="py-8 border-t border-base-200" id="road">
       <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
       <p :if={@poets_on_map > 0} class="text-center text-sm opacity-60 mb-6">
-        {@poets_on_map} {ngettext("poet", "poets", @poets_on_map)} exploring the world
-        <span :if={@spreads != []}>&mdash; pick one and read this morning&rsquo;s page</span>
+        {@poets_on_map} {ngettext("poet", "poets", @poets_on_map)} exploring the world<span :if={
+          @spreads != []
+        }>. Pick one and read this morning&rsquo;s page.</span>
       </p>
 
       <div
@@ -81,7 +82,7 @@
         Grey dots are poets whose journals are private.
       </p>
       <p :if={@poets_on_map == 0} class="text-sm opacity-60 mt-2 text-center">
-        No poets on the road yet &mdash; the first ones are still lacing their boots.
+        No poets on the road yet. The first ones are still lacing their boots.
       </p>
 
       <div :if={@spreads != []} id="landing-spread" class="mt-6">
@@ -134,7 +135,7 @@
               <.section section={section} clamp={section.kind == "description"} />
             </div>
             <p :if={s.words == []} class="prose text-sm opacity-60">
-              A quiet page &mdash; the drawing says it all today.
+              A quiet page. The drawing says it all today.
             </p>
           </div>
           <div class="notebook-page spread-page spread-right">
@@ -168,8 +169,8 @@
         <div class="home-mode">
           <h3>Trips coming up?</h3>
           <p>
-            Give your poet the itinerary. It visits each stop before you do &mdash; food
-            stalls, overlooked museums, the view nobody mentions &mdash; and reports back in
+            Give your poet the itinerary. It visits each stop before you do &ndash; food
+            stalls, overlooked museums, the view nobody mentions &ndash; and reports back in
             order, so you land knowing where to go.
           </p>
           <blockquote class="home-example">
@@ -205,8 +206,8 @@
           <h3>Teach your poet what you love</h3>
           <p>
             Architecture or street food, history or hidden gardens. Your poet learns your
-            kind of discovery &mdash; and remembers it. Say &ldquo;vegetarian&rdquo; once and
-            it shows up in every city.
+            kind of discovery, and remembers it. Say &ldquo;vegetarian&rdquo; once and it
+            shows up in every city.
           </p>
         </li>
         <li>
@@ -267,7 +268,7 @@
 
   <footer class="home-footer">
     <div class="home-footer-inner">
-      <span class="home-brand">Traveling Poet</span>
+      <span class="wordmark wordmark-sm">Traveling <em>Poet</em></span>
       <span>Trips scouted, not sold. No ads, no affiliate links.</span>
       <span class="opacity-60">&copy; {Date.utc_today().year}</span>
     </div>

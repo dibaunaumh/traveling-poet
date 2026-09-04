@@ -153,7 +153,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
       html = conn |> get(~p"/") |> html_response(200)
 
       assert html =~ ~s(data-spread="landing-spread")
-      assert html =~ "pick one and read this morning"
+      assert html =~ "Pick one and read this morning"
       assert html =~ "The town on the edge"
       assert html =~ "I left Seville this morning"
       assert html =~ "The river carved a question mark"
