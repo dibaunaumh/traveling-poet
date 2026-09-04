@@ -66,6 +66,51 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
+  # `?place=Lisbon` comes from the home page's destination box. Geocode it once
+  # on the connected mount (the dead render keeps the pre-picked city for a
+  # moment); if nothing matches, keep the default and open the search box
+  # with the visitor's words in it, so nothing they typed is lost.
+  @impl true
+  def handle_params(%{"place" => place}, _uri, socket) when is_binary(place) do
+    place = String.trim(place)
+
+    if place == "" or not connected?(socket) do
+      {:noreply, socket}
+    else
+      {:noreply, adopt_requested_place(socket, place)}
+    end
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+
+  defp adopt_requested_place(socket, place) do
+    case Geocoder.Limiter.search(place) do
+      {:ok, [top | _]} ->
+        socket
+        |> assign(:location, top)
+        |> assign(:location_query, place)
+        |> assign(:show_location_search, false)
+
+      {:ok, []} ->
+        socket
+        |> assign(:location_query, place)
+        |> assign(:show_location_search, true)
+        |> assign(
+          :location_error,
+          "Couldn’t find “#{place}” — try another spelling or pick a nearby city."
+        )
+
+      {:error, _reason} ->
+        socket
+        |> assign(:location_query, place)
+        |> assign(:show_location_search, true)
+        |> assign(
+          :location_error,
+          "Couldn’t look up “#{place}” right now — search again or pick a city."
+        )
+    end
+  end
+
   ## Step navigation
 
   # Keep the server's copy of the step's inputs current on every keystroke.

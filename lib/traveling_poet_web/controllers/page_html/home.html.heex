@@ -31,16 +31,35 @@
           you&rsquo;ve planned, or wandering the world and writing you an illustrated journal
           page every morning.
         </p>
+        <form
+          :if={@signed_out? || is_nil(@my_poet)}
+          action={~p"/start"}
+          method="get"
+          class="home-hero-ask"
+          role="search"
+        >
+          <label for="hero-place" class="home-hero-ask-label">Where should your poet set out from?</label>
+          <div class="home-hero-ask-row">
+            <input
+              id="hero-place"
+              type="text"
+              name="place"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Lisbon, Kyoto, Oaxaca…"
+            />
+            <button type="submit" class="home-hero-cta">Send out your poet</button>
+          </div>
+        </form>
         <div class="home-hero-actions">
-          <a :if={@signed_out?} href="/auth/google" class="home-hero-cta">
-            Send out your poet
-          </a>
-          <a :if={!@signed_out?} href="/journal" class="home-hero-cta">
+          <a :if={!@signed_out? && @my_poet} href="/journal" class="home-hero-cta">
             Open your journal
           </a>
           <a href="#how-it-works" class="home-hero-more">See how it works &darr;</a>
         </div>
-        <small :if={@signed_out?}>Your first days of travel are on us. Sign in with Google.</small>
+        <small :if={@signed_out?}>
+          Your first days of travel are on us. Sign in with Google to send it off.
+        </small>
       </div>
     </section>
 

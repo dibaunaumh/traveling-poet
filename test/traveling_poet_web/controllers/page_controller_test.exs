@@ -7,6 +7,9 @@ defmodule TravelingPoetWeb.PageControllerTest do
     html = conn |> get(~p"/") |> html_response(200)
     assert html =~ "Send someone ahead of you."
     assert html =~ "Send out your poet"
+    # the destination box posts to /start, which parks the place across sign-in
+    assert html =~ ~s(action="/start")
+    assert html =~ ~s(name="place")
     assert html =~ "/images/hero-notebook.jpg"
     assert html =~ "first days of travel are on us"
     # no poets yet: the empty-state line, not a "0 poets" count
@@ -87,7 +90,14 @@ defmodule TravelingPoetWeb.PageControllerTest do
     user = user_fixture()
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
     html = conn |> get(~p"/") |> html_response(200)
+    # no poet yet: the box still leads into onboarding
+    assert html =~ ~s(action="/start")
+    refute html =~ "Open your journal"
+
+    poet_fixture(user)
+    html = conn |> get(~p"/") |> html_response(200)
     assert html =~ "Open your journal"
+    refute html =~ ~s(action="/start")
     refute html =~ "Send out your poet"
     refute html =~ "Scout a trip"
     refute html =~ "/auth/google"
@@ -159,6 +169,43 @@ defmodule TravelingPoetWeb.PageControllerTest do
       html = conn |> get(~p"/") |> html_response(200)
       refute html =~ ~s(id="landing-spread")
       refute html =~ ~s(data-spread=)
+    end
+  end
+
+  describe "GET /start (the hero's destination box)" do
+    test "signed out: parks the place in the session and goes to Google sign-in", %{conn: conn} do
+      conn = get(conn, ~p"/start", place: "  Lisbon ")
+      assert redirected_to(conn) == "/auth/google"
+      assert get_session(conn, :start_place) == "Lisbon"
+    end
+
+    test "signed out with nothing typed: plain sign-in, nothing parked", %{conn: conn} do
+      conn = get(conn, ~p"/start", place: "")
+      assert redirected_to(conn) == "/auth/google"
+      assert get_session(conn, :start_place) == nil
+    end
+
+    test "signed in without a poet: straight to onboarding with the place", %{conn: conn} do
+      user = user_fixture()
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{user_id: user.id})
+        |> get(~p"/start", place: "Kyoto")
+
+      assert redirected_to(conn) == "/onboarding?place=Kyoto"
+    end
+
+    test "signed in with a poet on the road: the journal", %{conn: conn} do
+      user = user_fixture(%{onboarding_completed: true})
+      poet_fixture(user)
+
+      conn =
+        conn
+        |> Plug.Test.init_test_session(%{user_id: user.id})
+        |> get(~p"/start", place: "Kyoto")
+
+      assert redirected_to(conn) == "/journal"
     end
   end
 end

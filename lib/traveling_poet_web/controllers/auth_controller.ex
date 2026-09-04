@@ -24,6 +24,10 @@ defmodule TravelingPoetWeb.AuthController do
       "name" => auth.info.name
     }
 
+    # Parked by the home page's destination box; log_in_user clears the
+    # session, so read it first.
+    start_place = get_session(conn, :start_place)
+
     case Accounts.find_or_create_from_oauth(:google, user_info) do
       {:ok, user} ->
         name = user_info["name"] || user.name || "there"
@@ -31,7 +35,7 @@ defmodule TravelingPoetWeb.AuthController do
         conn
         |> UserAuth.log_in_user(user)
         |> put_flash(:info, "Welcome, #{name}!")
-        |> redirect_after_login(user)
+        |> redirect_after_login(user, start_place)
 
       {:error, _changeset} ->
         conn
@@ -53,11 +57,11 @@ defmodule TravelingPoetWeb.AuthController do
     UserAuth.log_out_user(conn)
   end
 
-  defp redirect_after_login(conn, user) do
+  defp redirect_after_login(conn, user, start_place) do
     if user.onboarding_completed do
       redirect(conn, to: ~p"/journal")
     else
-      redirect(conn, to: ~p"/onboarding")
+      redirect(conn, to: TravelingPoetWeb.PageController.onboarding_path(start_place))
     end
   end
 end
