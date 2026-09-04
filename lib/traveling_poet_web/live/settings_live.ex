@@ -1,6 +1,8 @@
 defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
+  import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_settings: 1]
+
   import TravelingPoetWeb.PoetComponents
 
   alias TravelingPoet.{Accounts, Credits, Geocoder, Payments, Poets, Preferences, Provisioner}
@@ -26,6 +28,7 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:page_title, "Settings")
      |> assign(:user, user)
      |> assign(:poet, poet)
+     |> assign_push()
      |> assign(:telegram_configured, Telegram.Client.configured?())
      |> assign(:telegram_link, nil)
      |> assign(:packs, Credits.packs())
@@ -57,6 +60,10 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp source_label("onboarding"), do: "from your setup"
   defp source_label("reaction"), do: "from your reaction"
   defp source_label(_), do: "learned"
+
+  @impl true
+  def handle_event("push_" <> _ = event, params, socket),
+    do: TravelingPoetWeb.PushNotifications.handle_event(event, params, socket)
 
   @impl true
   def handle_event("dismiss_preference", %{"id" => id}, socket) do
@@ -712,6 +719,10 @@ defmodule TravelingPoetWeb.SettingsLive do
             </li>
           </ol>
           <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
+
+          <div class="divider"></div>
+
+          <.push_settings push={@push} poet={@poet} />
 
           <div class="divider"></div>
 

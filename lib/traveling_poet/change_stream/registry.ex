@@ -41,9 +41,12 @@ defmodule TravelingPoet.ChangeStream.Registry do
 
   # geocode_cache: shared infrastructure holding raw address text typed by
   # any user; not domain state. The stream's own tables are not domain state
-  # either.
+  # either. push_subscriptions: per-device push-service credentials (endpoint
+  # + encryption keys) — anyone holding a row can notify that phone, so they
+  # never leave this database.
   @excluded [
     Geocoder.CacheEntry,
+    TravelingPoet.WebPush.Subscription,
     TravelingPoet.ChangeStream.Endpoint,
     TravelingPoet.ChangeStream.Event,
     TravelingPoet.ChangeStream.Fingerprint

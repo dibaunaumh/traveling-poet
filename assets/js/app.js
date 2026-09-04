@@ -29,12 +29,13 @@ import ScrollBottom from "./scroll_bottom_hook"
 import ChatInput from "./chat_input_hook"
 import ChatResizer from "./chat_resizer_hook"
 import MobileViewport from "./mobile_viewport_hook"
+import WebPush from "./web_push_hook"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport},
+  hooks: {...colocatedHooks, PoetMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush},
 })
 
 // Show progress bar on live navigation and form submits

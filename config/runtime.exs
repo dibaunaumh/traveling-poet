@@ -61,6 +61,23 @@ config :traveling_poet,
   telegram_bot_token:
     if(config_env() == :test, do: nil, else: System.get_env("TELEGRAM_BOT_TOKEN")),
   telegram_bot_username: System.get_env("TELEGRAM_BOT_USERNAME"),
+  # Web Push (installed PWA / desktop notifications). Pinned in test so the
+  # UI can be exercised whatever .env holds; the Notifier itself is switched
+  # off in test (below) so a publish in the suite never leaves the sandbox.
+  vapid_public_key:
+    if(config_env() == :test,
+      do:
+        "BMLBb4sHn_gvlf8Tjjb3s67P6sEpq3lmwcNxGaM_ybj797EP8LK1omJUwB7an81116-exLbP_cNFqq0DuFwfPgg",
+      else: System.get_env("VAPID_PUBLIC_KEY")
+    ),
+  vapid_private_key:
+    if(config_env() == :test,
+      do: "xqbjScFfhUpMTyfRYyABdl90i2cCwBTii1E7Cz2XHWY",
+      else: System.get_env("VAPID_PRIVATE_KEY")
+    ),
+  # Contact the push services may use about our traffic; a URL is valid too.
+  vapid_subject: System.get_env("VAPID_SUBJECT"),
+  web_push_notifier: config_env() != :test,
   tigris_bucket_name: System.get_env("TIGRIS_BUCKET_NAME"),
   journey_check_interval_minutes:
     if(config_env() == :test,

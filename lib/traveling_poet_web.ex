@@ -17,7 +17,8 @@ defmodule TravelingPoetWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets css fonts images favicon.ico manifest.webmanifest robots.txt)
+  def static_paths,
+    do: ~w(assets css fonts images favicon.ico manifest.webmanifest robots.txt sw.js)
 
   def router do
     quote do
