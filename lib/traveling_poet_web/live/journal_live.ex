@@ -1,6 +1,8 @@
 defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
+  import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1]
+
   alias TravelingPoet.{
     Accounts,
     Chat,
@@ -72,6 +74,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:page_title, "#{poet.name}'s Journal")
           |> assign(:user, user)
           |> assign(:poet, poet)
+          |> assign_push()
           |> assign(:sidebar_open, true)
           |> assign(:keepalive_ref, nil)
           |> assign(:last_activity_at, nil)
@@ -204,6 +207,10 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   ## Events
+
+  @impl true
+  def handle_event("push_" <> _ = event, params, socket),
+    do: TravelingPoetWeb.PushNotifications.handle_event(event, params, socket)
 
   @impl true
   def handle_event("toggle_chat", _params, socket) do
@@ -649,6 +656,8 @@ defmodule TravelingPoetWeb.JournalLive do
             data-points={Jason.encode!(map_points(@path_points, @poet, @entry))}
           >
           </div>
+
+          <.push_nudge push={@push} poet={@poet} entry={@entry} />
 
           <article :if={@entry} class="notebook-page mt-6">
             <div class="flex items-center justify-between mb-2">
