@@ -38,6 +38,39 @@ defmodule TravelingPoet.Accounts do
   def get_user!(id), do: Repo.get!(User, id)
   def get_user(id), do: Repo.get(User, id)
 
+  # Sessions are long-lived cookies, so the OAuth callback fires rarely and
+  # says little about whether someone still opens the app. Instead every
+  # authenticated page load stamps the user — debounced, since LiveView mounts
+  # twice per visit and navigations remount.
+  @seen_debounce_seconds 300
+
+  @doc """
+  Records that the user is looking at the app right now.
+
+  Cheap no-op inside the debounce window; otherwise a single UPDATE with no
+  changeset round-trip. Returns the user with `last_seen_at` refreshed.
+  """
+  def touch_last_seen(user, now \\ DateTime.utc_now())
+  def touch_last_seen(nil, _now), do: nil
+
+  def touch_last_seen(%User{} = user, now) do
+    now = DateTime.truncate(now, :second)
+
+    if recently_seen?(user, now) do
+      user
+    else
+      from(u in User, where: u.id == ^user.id)
+      |> Repo.update_all(set: [last_seen_at: now])
+
+      %{user | last_seen_at: now}
+    end
+  end
+
+  defp recently_seen?(%{last_seen_at: nil}, _now), do: false
+
+  defp recently_seen?(%{last_seen_at: at}, now),
+    do: DateTime.diff(now, at, :second) < @seen_debounce_seconds
+
   def get_user_by_agent_api_token(token) when is_binary(token) and token != "" do
     Repo.get_by(User, agent_api_token: token)
   end
