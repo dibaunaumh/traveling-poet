@@ -45,7 +45,7 @@ defmodule TravelingPoetWeb.UserAuth do
   """
   def fetch_current_user(conn, _opts) do
     user_id = get_session(conn, :user_id)
-    user = user_id && Accounts.get_user(user_id)
+    user = user_id && user_id |> Accounts.get_user() |> Accounts.touch_last_seen()
     assign(conn, :current_user, user)
   end
 
@@ -111,7 +111,7 @@ defmodule TravelingPoetWeb.UserAuth do
     socket =
       Phoenix.Component.assign_new(socket, :current_user, fn ->
         if user_id = session["user_id"] do
-          Accounts.get_user(user_id)
+          user_id |> Accounts.get_user() |> Accounts.touch_last_seen()
         end
       end)
 

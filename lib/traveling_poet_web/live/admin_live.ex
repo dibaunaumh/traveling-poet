@@ -165,6 +165,21 @@ defmodule TravelingPoetWeb.AdminLive do
 
   defp cents(c), do: "$#{:erlang.float_to_binary(c / 100, decimals: 2)}"
 
+  # Coarse on purpose: the question is "is this person still around", and
+  # minutes vs hours vs days is the whole answer.
+  defp ago(nil), do: "never"
+
+  defp ago(%DateTime{} = at) do
+    seconds = DateTime.diff(DateTime.utc_now(), at, :second)
+
+    cond do
+      seconds < 60 -> "just now"
+      seconds < 3600 -> "#{div(seconds, 60)}m ago"
+      seconds < 86_400 -> "#{div(seconds, 3600)}h ago"
+      true -> "#{div(seconds, 86_400)}d ago"
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -249,6 +264,7 @@ defmodule TravelingPoetWeb.AdminLive do
             <thead>
               <tr>
                 <th>User</th>
+                <th>Last seen</th>
                 <th>Poet</th>
                 <th>Status</th>
                 <th>Today</th>
@@ -262,6 +278,12 @@ defmodule TravelingPoetWeb.AdminLive do
             <tbody>
               <tr :for={row <- @rows}>
                 <td>{row.user.email}</td>
+                <td
+                  class="tabular-nums"
+                  title={row.user.last_seen_at && to_string(row.user.last_seen_at)}
+                >
+                  {ago(row.user.last_seen_at)}
+                </td>
                 <td>{(row.poet && row.poet.name) || "—"}</td>
                 <td>
                   <span class={[

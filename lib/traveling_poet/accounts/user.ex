@@ -14,6 +14,9 @@ defmodule TravelingPoet.Accounts.User do
 
     field :onboarding_completed, :boolean, default: false
     field :onboarding_step, :string
+    # Stamped (debounced) on every authenticated page load, so the admin
+    # report can tell "quiet but here" from "gone".
+    field :last_seen_at, :utc_datetime
 
     field :telegram_chat_id, :integer
     field :telegram_username, :string
@@ -59,6 +62,7 @@ defmodule TravelingPoet.Accounts.User do
       :apple_id,
       :onboarding_completed,
       :onboarding_step,
+      :last_seen_at,
       :telegram_chat_id,
       :telegram_username,
       :telegram_paired_at,
