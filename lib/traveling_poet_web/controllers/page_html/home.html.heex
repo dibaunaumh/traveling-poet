@@ -14,31 +14,33 @@
   </header>
 
   <main class="max-w-5xl mx-auto px-4 pb-16">
-    <!-- Hero -->
-    <section class="text-center py-16">
-      <h1 class="text-4xl font-bold mb-4">
-        Your personal travel scout.<br class="hidden sm:block" />Your daily window to the world.
-      </h1>
-      <p class="text-lg opacity-70 max-w-2xl mx-auto mb-8">
-        The traveling poet is your spiritual-twin delegate &mdash; an AI that learns
-        what fascinates you, then travels ahead. Planning a trip? Send it to scout your
-        itinerary before you pack. Dreaming from home? Wake up to a new illustrated
-        journal entry from somewhere in the world, every day.
-      </p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <a
-          :if={@signed_out?}
-          href="/auth/google"
-          class="btn btn-primary btn-lg"
-        >
-          Start exploring
-        </a>
-        <a :if={!@signed_out?} href="/journal" class="btn btn-primary btn-lg">
-          Open your journal
-        </a>
-        <a href="#how-it-works" class="btn btn-ghost btn-sm">
-          See how it works &darr;
-        </a>
+    <!-- Hero: the poet's own open sketchbook; the headline sits on its blank page -->
+    <section class="home-hero" aria-labelledby="hero-title">
+      <img
+        src={~p"/images/hero-notebook.jpg"}
+        alt="An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+        class="home-hero-art"
+        width="1344"
+        height="768"
+        fetchpriority="high"
+      />
+      <div class="home-hero-copy">
+        <h1 id="hero-title">Send someone ahead of you.</h1>
+        <p>
+          Your traveling poet learns what fascinates you, then goes &mdash; scouting a trip
+          you&rsquo;ve planned, or wandering the world and writing you an illustrated journal
+          page every morning.
+        </p>
+        <div class="home-hero-actions">
+          <a :if={@signed_out?} href="/auth/google" class="home-hero-cta">
+            Send out your poet
+          </a>
+          <a :if={!@signed_out?} href="/journal" class="home-hero-cta">
+            Open your journal
+          </a>
+          <a href="#how-it-works" class="home-hero-more">See how it works &darr;</a>
+        </div>
+        <small :if={@signed_out?}>Your first days of travel are on us. Sign in with Google.</small>
       </div>
     </section>
 
