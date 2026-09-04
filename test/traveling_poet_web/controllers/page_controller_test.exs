@@ -5,9 +5,10 @@ defmodule TravelingPoetWeb.PageControllerTest do
 
   test "GET / signed out shows the hero and sign-up CTAs", %{conn: conn} do
     html = conn |> get(~p"/") |> html_response(200)
-    assert html =~ "Your personal travel scout."
-    assert html =~ "Start exploring"
+    assert html =~ "Send someone ahead of you."
     assert html =~ "Send out your poet"
+    assert html =~ "/images/hero-notebook.jpg"
+    assert html =~ "first days of travel are on us"
     # no poets yet: the empty-state line, not a "0 poets" count
     assert html =~ "still lacing their boots"
     refute html =~ "0 poets exploring"
