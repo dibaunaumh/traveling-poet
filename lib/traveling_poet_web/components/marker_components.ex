@@ -42,7 +42,7 @@ defmodule TravelingPoetWeb.MarkerComponents do
     ~H"""
     <div class="marker-menu-wrap">
       <span :if={@active} class="marker-menu-hint">
-        Select text or tap a paragraph to mark it {Marker.label(@active)}.
+        Highlight text or tap a paragraph to mark it {Marker.label(@active)}.
       </span>
       <details id="marker-menu" class="dropdown dropdown-end marker-menu">
         <summary
@@ -54,7 +54,9 @@ defmodule TravelingPoetWeb.MarkerComponents do
           <span :if={@active}>{Marker.label(@active)}</span>
         </summary>
         <ul class="dropdown-content marker-menu-list">
-          <li class="marker-menu-title">Mark what you want to change</li>
+          <li class="marker-menu-title">
+            Select a marker &amp; highlight text to provide feedback to the poet
+          </li>
           <li :for={{kind, spec} <- @specs}>
             <button
               type="button"

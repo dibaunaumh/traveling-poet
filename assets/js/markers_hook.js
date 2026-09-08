@@ -17,12 +17,22 @@ const Markers = {
     this.icons = parse(this.el.dataset.markerIcons, {})
     this.busy = false
     this.selectedAt = 0
+    this.popover = null
     this.onPointerUp = () => this.captureSelection()
     this.onClick = (e) => this.handleClick(e)
     this.onSelectionChange = debounce(() => this.captureSelection(), 350)
+    // Tapping anywhere else, or Escape, puts the options popover away.
+    this.onDocClick = (e) => {
+      if (this.popover && !e.target.closest(".marker-popover, mark.marker, .marker-pin")) {
+        this.closePopover()
+      }
+    }
+    this.onKey = (e) => { if (e.key === "Escape") this.closePopover() }
     this.el.addEventListener("pointerup", this.onPointerUp)
     this.el.addEventListener("click", this.onClick)
     document.addEventListener("selectionchange", this.onSelectionChange)
+    document.addEventListener("click", this.onDocClick)
+    document.addEventListener("keydown", this.onKey)
     this.render()
   },
 
@@ -32,9 +42,12 @@ const Markers = {
 
   destroyed() {
     document.removeEventListener("selectionchange", this.onSelectionChange)
+    document.removeEventListener("click", this.onDocClick)
+    document.removeEventListener("keydown", this.onKey)
   },
 
   render() {
+    this.closePopover()
     this.markers = parse(this.el.dataset.markers, [])
     this.active = this.el.dataset.activeMarker || null
     this.el.classList.toggle("marking", !!this.active)
@@ -102,10 +115,22 @@ const Markers = {
   },
 
   handleClick(e) {
+    // Inside the options popover: only its Remove button does anything.
+    const inPopover = e.target.closest(".marker-popover")
+    if (inPopover) {
+      const remove = e.target.closest(".marker-popover-remove")
+      if (remove) {
+        this.pushEvent("marker_remove", {id: inPopover.dataset.markerId})
+        this.closePopover()
+      }
+      return
+    }
+
+    // Tapping a highlight or pin shows its options; it never removes outright.
     const existing = e.target.closest("mark.marker, .marker-pin")
     if (existing && this.el.contains(existing)) {
       e.preventDefault()
-      this.pushEvent("marker_remove", {id: existing.dataset.markerId})
+      this.openPopover(existing)
       return
     }
     if (!this.active) return
@@ -130,6 +155,46 @@ const Markers = {
       payload.target = "section"
     }
     this.pushEvent("marker_add", payload)
+  },
+
+  // A small card under the tapped mark: which marker it is, whether the poet
+  // has it yet, and a Remove button.
+  openPopover(target) {
+    this.closePopover()
+    const id = target.dataset.markerId
+    const m = this.markers.find((x) => String(x.id) === String(id))
+    if (!m) return
+
+    const pop = document.createElement("div")
+    pop.className = "marker-popover marker-" + m.kind
+    pop.dataset.markerId = id
+
+    const label = document.createElement("span")
+    label.className = "marker-popover-label"
+    label.textContent = m.label
+    const note = document.createElement("span")
+    note.className = "marker-popover-note"
+    note.textContent = m.sent ? "sent to your poet" : "waiting to be sent"
+    const remove = document.createElement("button")
+    remove.type = "button"
+    remove.className = "marker-popover-remove"
+    remove.textContent = "Remove"
+    pop.append(label, note, remove)
+    this.el.appendChild(pop)
+
+    const art = this.el.getBoundingClientRect()
+    const box = target.getBoundingClientRect()
+    const left = Math.max(0, Math.min(box.left - art.left, art.width - pop.offsetWidth - 8))
+    pop.style.top = (box.bottom - art.top + 6) + "px"
+    pop.style.left = left + "px"
+    this.popover = pop
+  },
+
+  closePopover() {
+    if (this.popover) {
+      this.popover.remove()
+      this.popover = null
+    }
   },
 }
 
@@ -168,7 +233,7 @@ function highlight(prose, m) {
     const mark = document.createElement("mark")
     mark.className = "marker marker-" + m.kind + (m.sent ? " marker-sent" : "")
     mark.dataset.markerId = m.id
-    mark.title = m.label + " (tap to remove)"
+    mark.title = m.label + " (tap for options)"
     target.parentNode.insertBefore(mark, target)
     mark.appendChild(target)
   })
@@ -239,7 +304,7 @@ function renderPins(wrapper, pins, icons) {
       (m.sent ? " marker-sent" : "") +
       (m.orphan ? " marker-orphan" : "")
     pin.dataset.markerId = m.id
-    pin.title = m.label + (m.orphan ? " (this passage has since changed)" : "") + ". Tap to remove."
+    pin.title = m.label + (m.orphan ? " (this passage has since changed)" : "") + ". Tap for options."
     const icon = document.createElement("span")
     icon.className = (icons[m.kind] || "hero-bookmark-mini") + " marker-pin-icon"
     pin.appendChild(icon)

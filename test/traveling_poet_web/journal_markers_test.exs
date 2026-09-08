@@ -43,6 +43,7 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
     assert html =~ ~s(phx-hook="Markers")
     assert html =~ ~s(id="marker-menu")
     assert html =~ "Mark what you want to change"
+    assert html =~ "Select a marker &amp; highlight text to provide feedback to the poet"
     assert length(Regex.scan(~r/marker-menu-item marker-[a-z_]+"/, html)) == 7
     assert html =~ ~s(id="section-#{entry.id}-0")
     assert html =~ ~s(data-section-kind="description")
