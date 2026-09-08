@@ -367,6 +367,55 @@ h1, h2, h3 {
   --marker-c: #6b5b40;
 }
 
+/* Options card shown under a tapped highlight or pin. Positioned against
+   the notebook page, so the page is the containing block. */
+.notebook-page {
+  position: relative;
+}
+
+.marker-popover {
+  position: absolute;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+  background: #fdf8ec;
+  border: 1px solid rgba(58, 50, 38, 0.2);
+  border-left: 3px solid var(--marker-c);
+  border-radius: 0.6rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.95rem;
+  color: #3a3226;
+  white-space: nowrap;
+}
+
+.marker-popover-label {
+  color: var(--marker-c);
+  font-weight: 600;
+}
+
+.marker-popover-note {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.marker-popover-remove {
+  padding: 0.05rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(58, 50, 38, 0.3);
+  background: transparent;
+  color: #3a3226;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.marker-popover-remove:hover {
+  background: rgba(58, 50, 38, 0.08);
+}
+
 .marking .prose,
 .marking .taped-photo {
   cursor: crosshair;
