@@ -41,8 +41,9 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
     {:ok, _view, html} = live(conn, ~p"/journal")
 
     assert html =~ ~s(phx-hook="Markers")
-    assert html =~ ~s(id="marker-tray")
-    assert length(Regex.scan(~r/phx-click="pick_marker"/, html)) == 7
+    assert html =~ ~s(id="marker-menu")
+    assert html =~ "Mark what you want to change"
+    assert length(Regex.scan(~r/marker-menu-item marker-[a-z_]+"/, html)) == 7
     assert html =~ ~s(id="section-#{entry.id}-0")
     assert html =~ ~s(data-section-kind="description")
     assert html =~ ~s(data-section-position="0")
@@ -57,8 +58,10 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
 
     refute render_click(view, "pick_marker", %{"kind" => "boring"}) =~ "data-active-marker=\""
 
-    render_click(view, "pick_marker", %{"kind" => "beautiful"})
-    refute render_click(view, "pick_marker", %{"kind" => "nope"}) =~ "data-active-marker=\""
+    html = render_click(view, "pick_marker", %{"kind" => "beautiful"})
+    assert html =~ "Put the marker down"
+    assert html =~ "to mark it Beautiful"
+    refute render_click(view, "pick_marker", %{"kind" => "none"}) =~ "data-active-marker=\""
   end
 
   test "a text selection becomes a marker the page carries", %{conn: conn} do
@@ -124,7 +127,7 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
     {conn, _user, poet, _entry} = owner(conn, %{is_public: true})
     {:ok, _view, html} = live(conn, ~p"/p/#{poet.slug}")
 
-    refute html =~ "marker-tray"
+    refute html =~ "marker-menu"
     refute html =~ ~s(phx-hook="Markers")
   end
 end
