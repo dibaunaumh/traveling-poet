@@ -2,7 +2,7 @@ defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents
-  import TravelingPoetWeb.MarkerComponents, only: [marker_tray: 1, icons_json: 0]
+  import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1]
 
@@ -750,7 +750,8 @@ defmodule TravelingPoetWeb.JournalLive do
                   {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
                 </span>
               </h2>
-              <div class="flex gap-1">
+              <div class="flex items-center gap-1">
+                <.marker_menu active={@active_marker} />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
                   navigate={~p"/journal/#{date}"}
@@ -760,8 +761,6 @@ defmodule TravelingPoetWeb.JournalLive do
                 </.link>
               </div>
             </div>
-
-            <.marker_tray active={@active_marker} />
 
             <div
               :for={{section, i} <- Enum.with_index(@entry.sections)}
