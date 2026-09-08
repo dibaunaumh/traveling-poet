@@ -3,8 +3,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   require Logger
 
-  alias TravelingPoet.{Guide, Journal, LinkCheck, Poets, Preferences}
+  alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences}
   alias TravelingPoet.Guide.Geocoding
+  alias TravelingPoet.Journal.Marker
 
   # A day's finds, not a directory. The skill asks for 2-4; this is the
   # backstop against a model that decides to list everything it walked past.
@@ -197,6 +198,69 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
     else
       :ok
     end
+  end
+
+  @doc """
+  Reads an entry back: sections, media, and the feedback markers on it.
+
+  The agent's only way to see its own prose in a fresh session. A revision
+  must start from what is actually on the page, and `put_sections` replaces
+  the whole list, so rewriting from memory would quietly drop sections.
+  """
+  def show(conn, %{"date" => date_str}) do
+    with_poet_and_date(conn, date_str, fn poet, date ->
+      case Journal.get_entry_preloaded(poet.id, date) do
+        nil ->
+          conn |> put_status(404) |> json(%{error: "no entry for #{date_str}"})
+
+        entry ->
+          sections = entry.sections
+
+          media =
+            sections
+            |> Enum.map(& &1.media_id)
+            |> Enum.reject(&is_nil/1)
+            |> Enum.map(&Journal.get_media/1)
+            |> Enum.reject(&is_nil/1)
+            |> Kernel.++(Journal.unattached_illustrations(entry, sections))
+            |> Enum.uniq_by(& &1.id)
+            |> Enum.map(&%{id: &1.id, kind: &1.kind, alt_text: &1.alt_text})
+
+          markers =
+            entry.id
+            |> Markers.list_markers()
+            |> Markers.payload()
+            |> Enum.map(fn m ->
+              spec = Marker.spec(m.kind) || %{meaning: nil, ask: nil}
+              Map.merge(m, %{meaning: spec.meaning, ask: spec.ask})
+            end)
+
+          json(conn, %{
+            entry: %{
+              entry_date: entry.entry_date,
+              title: entry.title,
+              place_name: entry.place_name,
+              status: entry.status,
+              published_at: entry.published_at,
+              weather: entry.weather,
+              sources: entry.sources
+            },
+            sections:
+              Enum.map(sections, fn s ->
+                %{
+                  position: s.position,
+                  kind: s.kind,
+                  title: s.title,
+                  body: s.body,
+                  media_id: s.media_id,
+                  metadata: s.metadata
+                }
+              end),
+            media: media,
+            markers: markers
+          })
+      end
+    end)
   end
 
   def publish(conn, %{"date" => date_str}) do

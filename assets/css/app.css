@@ -247,6 +247,148 @@ h1, h2, h3 {
   text-decoration-thickness: 1px;
 }
 
+/* Feedback markers. The paper stays cream in both themes, so these are fixed
+   inks chosen to read on it, not theme tokens. */
+.notebook-page {
+  --marker-interesting: #d97706;
+  --marker-boring: #6b7280;
+  --marker-more_details: #2563eb;
+  --marker-drawing_needed: #7c3aed;
+  --marker-link_needed: #0d9488;
+  --marker-beautiful: #db2777;
+  --marker-not_creative: #c2410c;
+}
+
+.marker-interesting { --marker-c: var(--marker-interesting); }
+.marker-boring { --marker-c: var(--marker-boring); }
+.marker-more_details { --marker-c: var(--marker-more_details); }
+.marker-drawing_needed { --marker-c: var(--marker-drawing_needed); }
+.marker-link_needed { --marker-c: var(--marker-link_needed); }
+.marker-beautiful { --marker-c: var(--marker-beautiful); }
+.marker-not_creative { --marker-c: var(--marker-not_creative); }
+
+.marker-tray {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 1rem -0.25rem;
+  padding: 0.5rem 0.25rem;
+  background: #fdf8ec;
+  border-bottom: 1px solid rgba(58, 50, 38, 0.12);
+}
+
+.marker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  border: 1.5px solid color-mix(in srgb, var(--marker-c) 55%, transparent);
+  color: var(--marker-c);
+  background: transparent;
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.marker-btn:hover {
+  background: color-mix(in srgb, var(--marker-c) 12%, transparent);
+}
+
+.marker-btn.is-active {
+  background: var(--marker-c);
+  color: #fdf8ec;
+  border-color: var(--marker-c);
+  transform: translateY(-1px);
+}
+
+.marker-tray-hint {
+  flex-basis: 100%;
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.9rem;
+  color: #6b5b40;
+  opacity: 0.8;
+}
+
+.marking .prose,
+.marking .taped-photo {
+  cursor: crosshair;
+}
+
+mark.marker {
+  background: color-mix(in srgb, var(--marker-c) 30%, transparent);
+  border-bottom: 2px solid var(--marker-c);
+  color: inherit;
+  padding: 0 0.05em;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+mark.marker.marker-sent {
+  background: color-mix(in srgb, var(--marker-c) 14%, transparent);
+  border-bottom-style: dotted;
+}
+
+.marker-target {
+  position: relative;
+}
+
+.marker-pins {
+  position: absolute;
+  left: -3.4rem;
+  top: 0.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.marker-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--marker-c);
+  background: color-mix(in srgb, var(--marker-c) 18%, #fdf8ec);
+  color: var(--marker-c);
+  cursor: pointer;
+}
+
+.marker-pin .marker-pin-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.marker-pin.marker-sent {
+  opacity: 0.5;
+}
+
+.marker-pin.marker-orphan {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+@media (max-width: 1023px) {
+  .marker-tray {
+    padding-right: 4rem;
+  }
+
+  .marker-btn span {
+    display: none;
+  }
+
+  .marker-btn.is-active span {
+    display: inline;
+  }
+}
+
 /* Landing-page map popups: poet avatar + place + link to the latest entry.
    Leaflet's popup chrome lives outside Tailwind's reach, so plain CSS here. */
 .poet-popup {

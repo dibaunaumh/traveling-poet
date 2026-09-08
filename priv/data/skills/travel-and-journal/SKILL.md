@@ -38,8 +38,12 @@ app holds your sandbox awake for a limited time.
 - `engagement` tells you whether they are still opening what you write. If
   `unopened_streak` is climbing, write for someone who needs a reason to come
   back, not for someone reading every word.
-- Call `get_feedback` for the fuller digest: reactions, the same profile, and
-  how they answered your recent questions.
+- Call `get_feedback` for the fuller digest: reactions, the same profile, how
+  they answered your recent questions, and `markers`: the passages they
+  flagged on recent entries with a colored marker (Boring, More details,
+  Drawing needed, Link needed, Interesting, Beautiful, Not creative enough).
+  A kind that recurs across days in `marker_counts` is a taste: honour it
+  today the way you honour `learned_profile`.
 
 ## 2a. Travel — wander mode (only when it's time)
 - If you've been here at least `stay_duration_days` days — or the place feels

@@ -59,6 +59,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp source_label("settings"), do: "you set this"
   defp source_label("onboarding"), do: "from your setup"
   defp source_label("reaction"), do: "from your reaction"
+  defp source_label("marker"), do: "from your markers"
   defp source_label(_), do: "learned"
 
   @impl true

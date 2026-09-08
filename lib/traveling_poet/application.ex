@@ -33,6 +33,9 @@ defmodule TravelingPoet.Application do
       TravelingPoet.ChangeStream.Worker,
       # Retries first-entry kickoffs so a closed tab can't strand a new poet
       TravelingPoet.FirstEntry.Watchdog,
+      # Sends feedback markers to the poet once the reader has gone quiet
+      # (no-op unless MARKER_DELIVERY_INTERVAL_MINUTES > 0)
+      TravelingPoet.Markers.Watchdog,
       # Start to serve requests, typically the last entry
       TravelingPoetWeb.Endpoint
     ]

@@ -61,6 +61,21 @@ defmodule TravelingPoet.Journal do
     end)
   end
 
+  # Publishing an already-published entry is a REVISION: the poet re-put its
+  # sections after feedback (markers, or a request in chat). `published_at`
+  # stays, so FleetHealth still knows which day it was written for and the
+  # Telegram/web-push notifiers are not fired a second time; only the pages
+  # showing the entry are told to reload.
+  def publish_entry(%Entry{status: "published"} = entry) do
+    Phoenix.PubSub.broadcast(
+      TravelingPoet.PubSub,
+      "poet:#{entry.poet_id}",
+      {:journal_revised, entry.id}
+    )
+
+    {:ok, entry}
+  end
+
   def publish_entry(%Entry{} = entry) do
     result =
       entry

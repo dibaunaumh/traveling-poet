@@ -39,9 +39,9 @@ defmodule TravelingPoet.AgentPluginTest do
   test "the write tools the trip guide depends on are registered" do
     names = tool_names()
 
-    for expected <- ~w(journal_upsert_entry journal_put_sections journal_put_places
-                       journal_publish generate_illustration record_preference
-                       update_location) do
+    for expected <- ~w(journal_upsert_entry journal_get_entry journal_put_sections
+                       journal_put_places journal_publish generate_illustration
+                       record_preference update_location) do
       assert expected in names, "#{expected} is not registered in the plugin"
     end
   end

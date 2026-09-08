@@ -80,6 +80,14 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     {:noreply, socket |> assign(:poet, poet) |> assign_journal(poet, nil)}
   end
 
+  # The poet revised an entry after feedback: reload whatever is on screen.
+  @impl true
+  def handle_info({:journal_revised, _entry_id}, socket) do
+    poet = Poets.get_poet(socket.assigns.poet.id)
+    date = socket.assigns.entry && socket.assigns.entry.entry_date
+    {:noreply, socket |> assign(:poet, poet) |> assign_journal(poet, date)}
+  end
+
   @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
 

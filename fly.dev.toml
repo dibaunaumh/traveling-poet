@@ -45,6 +45,10 @@ kill_signal = 'SIGTERM'
   AWS_REGION = 'auto'
   # Daily journey scheduler tick (minutes); 0 disables
   JOURNEY_CHECK_INTERVAL_MINUTES = '30'
+  # Feedback markers go to the poet once the reader has been quiet this long
+  MARKER_DELIVERY_INTERVAL_MINUTES = '5'
+  MARKER_QUIET_MINUTES = '15'
+  DAILY_MARKER_REVISIONS_CAP = '4'
   DAILY_RUNS_CAP = '1'
   DAILY_CHAT_TURNS_CAP = '50'
   # 8, not 6: the daily entry illustration takes one, and the trip guide asks

@@ -101,6 +101,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
         past_publish_hour?(poet, now) and
         not published_today?(poet, now) and
         not ran_recently?(user.id, now) and
+        not revising?(user.id, now) and
         attempts_today(user.id, now) < @max_attempts_per_day
     end)
   end
@@ -262,6 +263,19 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
     UsageEvent
     |> where(user_id: ^user_id, kind: "daily_run")
+    |> where([e], e.occurred_at >= ^cutoff)
+    |> Repo.exists?()
+  end
+
+  # A feedback revision holds the sprite in a turn for minutes; stacking the
+  # daily run on top would interleave the two streams and burn an attempt.
+  @revision_window_minutes 15
+
+  defp revising?(user_id, now) do
+    cutoff = DateTime.add(now, -@revision_window_minutes, :minute)
+
+    UsageEvent
+    |> where(user_id: ^user_id, kind: "marker_revision_attempt")
     |> where([e], e.occurred_at >= ^cutoff)
     |> Repo.exists?()
   end
