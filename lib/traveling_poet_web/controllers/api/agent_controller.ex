@@ -1,7 +1,7 @@
 defmodule TravelingPoetWeb.Api.AgentController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Chat, Journal, Poets, Preferences}
+  alias TravelingPoet.{Chat, Journal, Markers, Poets, Preferences}
   alias TravelingPoet.Preferences.Cadence
   alias TravelingPoet.Poets.Poet
 
@@ -157,7 +157,12 @@ defmodule TravelingPoetWeb.Api.AgentController do
           learned_profile: Preferences.profile_payload(poet.id),
           dismissed: Preferences.dismissed_payload(poet.id),
           engagement: engagement_for(poet),
-          prompt_answers: Preferences.recent_answers(poet.id, since)
+          prompt_answers: Preferences.recent_answers(poet.id, since),
+          # Passages the companion marked on recent entries (kind, section,
+          # quote, whether already delivered). A kind that keeps recurring
+          # across days is a taste, not a note about one paragraph.
+          markers: Markers.recent_payload(poet.id, since),
+          marker_counts: Markers.counts_since(poet.id, since)
         })
     end
   end

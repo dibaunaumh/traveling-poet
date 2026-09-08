@@ -79,6 +79,80 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert [%{"label" => "less history", "polarity" => "avoid"}] = body["learned_profile"]
     assert Map.has_key?(body, "engagement")
     assert Map.has_key?(body, "prompt_answers")
+    assert body["markers"] == []
+    assert body["marker_counts"] == %{}
+  end
+
+  test "get_feedback carries the companion's markers", %{conn: conn, user: user, poet: poet} do
+    entry = published_entry_fixture(poet)
+
+    {:ok, _} =
+      TravelingPoet.Markers.add_marker(user, entry, %{
+        "kind" => "boring",
+        "target" => "text",
+        "quote" => "the usual",
+        "section_kind" => "description",
+        "section_position" => 0
+      })
+
+    body = conn |> get(~p"/api/agent/feedback") |> json_response(200)
+
+    assert [%{"kind" => "boring", "quote" => "the usual", "sent_at" => nil}] = body["markers"]
+    assert body["marker_counts"] == %{"boring" => 1}
+  end
+
+  test "GET /journal_entries/:date reads an entry back with its markers",
+       %{conn: conn, user: user, poet: poet} do
+    entry = published_entry_fixture(poet)
+
+    {:ok, _} =
+      Journal.replace_sections(entry, [
+        %{
+          kind: "description",
+          body: "Steep streets.",
+          metadata: %{"source_url" => "https://x.y"}
+        },
+        %{kind: "poem", body: "a verse"}
+      ])
+
+    {:ok, _} =
+      TravelingPoet.Markers.add_marker(user, entry, %{
+        "kind" => "more_details",
+        "target" => "section",
+        "section_kind" => "poem",
+        "section_position" => 1
+      })
+
+    body =
+      conn
+      |> get(~p"/api/agent/journal_entries/#{Date.to_iso8601(entry.entry_date)}")
+      |> json_response(200)
+
+    assert body["entry"]["status"] == "published"
+
+    assert [
+             %{
+               "kind" => "description",
+               "position" => 0,
+               "metadata" => %{"source_url" => "https://x.y"}
+             },
+             %{"kind" => "poem", "position" => 1, "body" => "a verse"}
+           ] = body["sections"]
+
+    assert [%{"kind" => "more_details", "ask" => ask}] = body["markers"]
+    assert ask =~ "expand"
+
+    assert conn |> get(~p"/api/agent/journal_entries/2020-01-01") |> json_response(404)
+    assert conn |> get(~p"/api/agent/journal_entries/not-a-date") |> json_response(422)
+  end
+
+  test "a preference may be attributed to markers, but never to a tap",
+       %{conn: conn, poet: poet} do
+    conn
+    |> post(~p"/api/agent/preferences", %{"label" => "more drawings", "source" => "marker"})
+    |> json_response(200)
+
+    assert [%{source: "marker"}] = TravelingPoet.Preferences.list_active(poet.id)
   end
 
   test "the poet can persist what its companion said in chat", %{conn: conn, poet: poet} do

@@ -2,6 +2,7 @@ defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents
+  import TravelingPoetWeb.MarkerComponents, only: [marker_tray: 1, icons_json: 0]
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1]
 
@@ -13,9 +14,11 @@ defmodule TravelingPoetWeb.JournalLive do
     GatewaySocket,
     GatewaySocketSupervisor,
     Journal,
+    Markers,
     Poets
   }
 
+  alias TravelingPoet.Journal.Marker
   alias TravelingPoet.{Preferences, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoetWeb.ChatSidebarComponent
 
@@ -83,6 +86,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:show_anyway, false)
           |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
+          |> assign(:active_marker, nil)
           |> assign_journal(poet, nil)
           |> allow_upload(:chat_attachment,
             accept: :any,
@@ -149,7 +153,22 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:extra_media, extra_media(entry))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
+    |> assign_markers(entry)
     |> assign_prompt(poet, entry)
+  end
+
+  # Feedback markers on the entry, and their JSON for the Markers hook. Runs on
+  # every reload path so a revision or a date change never shows stale marks.
+  defp assign_markers(socket, nil) do
+    socket |> assign(:markers, []) |> assign(:markers_json, "[]")
+  end
+
+  defp assign_markers(socket, entry) do
+    markers = Markers.list_markers(entry.id)
+
+    socket
+    |> assign(:markers, markers)
+    |> assign(:markers_json, Jason.encode!(Markers.payload(markers)))
   end
 
   # Only the owner, and only on the live mount — the dead render would double
@@ -286,6 +305,35 @@ defmodule TravelingPoetWeb.JournalLive do
     else
       {:noreply, socket}
     end
+  end
+
+  ## Feedback markers
+
+  @impl true
+  def handle_event("pick_marker", %{"kind" => kind}, socket) do
+    active =
+      if kind != socket.assigns.active_marker and kind in Marker.kinds(), do: kind, else: nil
+
+    {:noreply, assign(socket, :active_marker, active)}
+  end
+
+  # The hook's payload is whatever the browser sent; a malformed one is
+  # dropped, never a crash. The marker stays in hand so several can be
+  # dropped in a row.
+  @impl true
+  def handle_event("marker_add", params, socket) do
+    with %{} = entry <- socket.assigns.entry,
+         {:ok, _marker} <- Markers.add_marker(socket.assigns.user, entry, params) do
+      {:noreply, assign_markers(socket, entry)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("marker_remove", %{"id" => id}, socket) do
+    Markers.remove_marker(socket.assigns.user.id, id)
+    {:noreply, assign_markers(socket, socket.assigns.entry)}
   end
 
   ## Chat wiring (ported from alice-in-goals DashboardLive)
@@ -440,14 +488,40 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   @impl true
-  def handle_info({:journal_published, _entry_id}, socket) do
+  def handle_info({:journal_published, entry_id}, socket) do
     poet = Poets.get_poet_by_user(socket.assigns.user.id)
+    current = socket.assigns.entry
 
-    {:noreply,
-     socket
-     |> assign(:poet, poet)
-     |> assign_journal(poet, nil)
-     |> put_flash(:info, "#{poet.name} published a new journal entry!")}
+    if current && current.id == entry_id do
+      {:noreply,
+       socket
+       |> assign(:poet, poet)
+       |> assign_journal(poet, current.entry_date)
+       |> put_flash(:info, "#{poet.name} revised this entry.")}
+    else
+      {:noreply,
+       socket
+       |> assign(:poet, poet)
+       |> assign_journal(poet, nil)
+       |> put_flash(:info, "#{poet.name} published a new journal entry!")}
+    end
+  end
+
+  # The poet re-put an entry after feedback. Stay on the page being read.
+  @impl true
+  def handle_info({:journal_revised, entry_id}, socket) do
+    poet = Poets.get_poet_by_user(socket.assigns.user.id)
+    current = socket.assigns.entry
+    socket = assign(socket, :poet, poet)
+
+    if current && current.id == entry_id do
+      {:noreply,
+       socket
+       |> assign_journal(poet, current.entry_date)
+       |> put_flash(:info, "#{poet.name} revised this entry.")}
+    else
+      {:noreply, assign_journal(socket, poet, current && current.entry_date)}
+    end
   end
 
   @impl true
@@ -660,7 +734,15 @@ defmodule TravelingPoetWeb.JournalLive do
 
           <.push_nudge push={@push} poet={@poet} entry={@entry} />
 
-          <article :if={@entry} class="notebook-page mt-6">
+          <article
+            :if={@entry}
+            id={"entry-#{@entry.id}"}
+            class="notebook-page mt-6"
+            phx-hook="Markers"
+            data-active-marker={@active_marker}
+            data-markers={@markers_json}
+            data-marker-icons={icons_json()}
+          >
             <div class="flex items-center justify-between mb-2">
               <h2 class="notebook-title">
                 {@entry.title || @entry.place_name || "Journal"}
@@ -679,11 +761,26 @@ defmodule TravelingPoetWeb.JournalLive do
               </div>
             </div>
 
-            <div :for={section <- @entry.sections} class="mb-6">
+            <.marker_tray active={@active_marker} />
+
+            <div
+              :for={{section, i} <- Enum.with_index(@entry.sections)}
+              id={"section-#{@entry.id}-#{i}"}
+              class="mb-6 marker-target"
+              data-section-kind={section.kind}
+              data-section-position={section.position}
+              data-media-id={section.media_id}
+            >
               <.section section={section} media={@entry_media[section.media_id]} />
             </div>
 
-            <div :for={media <- @extra_media} class="mb-6">
+            <div
+              :for={media <- @extra_media}
+              id={"media-#{@entry.id}-#{media.id}"}
+              class="mb-6 marker-target"
+              data-section-kind="illustration"
+              data-media-id={media.id}
+            >
               <.section section={%{kind: "illustration"}} media={media} />
             </div>
 

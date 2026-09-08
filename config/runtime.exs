@@ -99,6 +99,18 @@ config :traveling_poet,
       do: 0,
       else: String.to_integer(System.get_env("FIRST_ENTRY_CHECK_INTERVAL_MINUTES") || "5")
     ),
+  # Feedback markers: the poet is told about marked passages once the reader
+  # has been quiet for MARKER_QUIET_MINUTES. 0 in test: the suite drives
+  # Markers.Delivery.due/1 and claim/2 directly.
+  marker_delivery_interval_minutes:
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("MARKER_DELIVERY_INTERVAL_MINUTES") || "5")
+    ),
+  marker_quiet_minutes: String.to_integer(System.get_env("MARKER_QUIET_MINUTES") || "15"),
+  # Revision turns are not credit-billed, so this cap is the only brake
+  daily_marker_revisions_cap:
+    String.to_integer(System.get_env("DAILY_MARKER_REVISIONS_CAP") || "4"),
   # Change stream (webhook mirror for external operator agents). Poll 0 in
   # test: the suite drives Capture.tick/1 and Delivery.deliver_pending/1
   # directly, and a live Worker would race the sandbox.

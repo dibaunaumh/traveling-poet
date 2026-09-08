@@ -75,6 +75,25 @@ defmodule TravelingPoet.JournalTest do
     assert_receive {:journal_published, _poet_id, ^entry_id}
   end
 
+  test "publishing again is a revision: published_at kept, no second notification",
+       %{poet: poet} do
+    Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "poet:#{poet.id}")
+    Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
+
+    {:ok, entry} = Journal.upsert_entry(poet.id, Date.utc_today(), %{title: "T"})
+    {:ok, published} = Journal.publish_entry(entry)
+    assert_receive {:journal_published, _}
+    assert_receive {:journal_published, _, _}
+
+    {:ok, revised} = Journal.publish_entry(published)
+
+    assert revised.published_at == published.published_at
+    assert_receive {:journal_revised, id}
+    assert id == published.id
+    refute_receive {:journal_published, _}
+    refute_receive {:journal_published, _, _}
+  end
+
   test "private feedback digest only includes private reactions", %{poet: poet, user: user} do
     {:ok, entry} = Journal.upsert_entry(poet.id, Date.utc_today(), %{})
     {:ok, _} = Journal.toggle_reaction(entry.id, user.id, "love", "private", "more like this")

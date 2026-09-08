@@ -16,6 +16,8 @@ defmodule TravelingPoet.Usage do
     "daily_run_attempt" => 0,
     # the run itself is what costs; the attempt marker is bookkeeping
     "first_entry_attempt" => 0,
+    # a revision turn after feedback markers; not credit-billed, capped per day
+    "marker_revision_attempt" => 0,
     "chat_turn" => 2,
     "image_gen" => 4,
     "exec" => 0,
@@ -75,6 +77,10 @@ defmodule TravelingPoet.Usage do
   defp cap("daily_run"), do: Application.get_env(:traveling_poet, :daily_runs_cap, 1)
   defp cap("chat_turn"), do: Application.get_env(:traveling_poet, :daily_chat_turns_cap, 50)
   defp cap("image_gen"), do: Application.get_env(:traveling_poet, :daily_image_cap, 6)
+
+  defp cap("marker_revision_attempt"),
+    do: Application.get_env(:traveling_poet, :daily_marker_revisions_cap, 4)
+
   defp cap(_), do: 1_000_000
 
   @doc "Usage rollup rows for the admin dashboard: {user, today, last 7 days}."

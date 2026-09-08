@@ -30,7 +30,7 @@ defmodule TravelingPoet.Provisioner do
   @external_resource @heartbeat_path
   @heartbeat_md File.read!(@heartbeat_path)
 
-  @skill_names ~w(travel-and-journal discover poem chat-companion onboard)
+  @skill_names ~w(travel-and-journal discover poem chat-companion onboard revise-entry)
   @skill_contents (for skill <- @skill_names, into: %{} do
                      path = "priv/data/skills/#{skill}/SKILL.md"
                      Module.put_attribute(__MODULE__, :external_resource, path)
@@ -427,16 +427,19 @@ defmodule TravelingPoet.Provisioner do
 
     ## Your tools
     The tpoet-plugin gives you: `get_poet_context`, `get_feedback`,
-    `journal_upsert_entry`, `journal_put_sections`, `journal_put_places`,
-    `generate_illustration`, `journal_upload_illustration`, `journal_publish`,
-    `update_location`.
+    `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
+    `journal_put_places`, `generate_illustration`,
+    `journal_upload_illustration`, `journal_publish`, `update_location`,
+    `record_preference`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
     ## Skills
     Skills live under #{@workspace}/skills/ — scan the SKILL.md descriptions
     and load the matching one before acting. `/travel-and-journal` triggers the
-    daily ritual; `/onboard` triggers your first-session bootstrap.
+    daily ritual; `/onboard` triggers your first-session bootstrap;
+    `/revise-entry` brings the feedback markers your companion left on an
+    entry, for you to act on.
 
     ## Uploaded files
     Files your companion attaches in chat arrive at #{@workspace}/uploads/.
@@ -543,7 +546,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_feedback",
-          description: "The full picture of how your companion is responding: reactions, learned_profile (what they've asked for), dismissed (what they've rejected — never propose these), engagement (are they still opening entries?), and their answers to your questions.",
+          description: "The full picture of how your companion is responding: reactions, learned_profile (what they've asked for), dismissed (what they've rejected — never propose these), engagement (are they still opening entries?), their answers to your questions, and markers: passages they flagged on recent entries (kind, section, quote, whether already revised) with marker_counts by kind. A kind that recurs across days is a taste.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/feedback"); }
         });
@@ -556,7 +559,8 @@ defmodule TravelingPoet.Provisioner do
               label: { type: "string", description: "The preference in your companion's own words, e.g. 'american stupid things over delightful culture'" },
               dimension: { type: "string", enum: ["topic", "tone", "pace", "length", "place", "format"], description: "What it is about" },
               polarity: { type: "string", enum: ["seek", "avoid"], description: "seek = more of this, avoid = less of this" },
-              quote: { type: "string", description: "What they actually said, shown to them so they can see why you believe this" }
+              quote: { type: "string", description: "What they actually said, shown to them so they can see why you believe this" },
+              source: { type: "string", enum: ["chat", "marker"], description: "chat (default) when they told you; marker when you generalised it from the markers they left on entries" }
             },
             required: ["label"]
           },
@@ -736,6 +740,18 @@ defmodule TravelingPoet.Provisioner do
           },
           execute: function(_id, raw) {
             return call("POST", "/api/agent/journal_entries/" + asParams(raw).entry_date + "/publish", {});
+          }
+        });
+        ctx.registerTool({
+          name: "journal_get_entry",
+          description: "Read back an entry you wrote: its sections (position, kind, title, body, media_id, metadata), its media, and any feedback markers your companion left on it, each with what it asks of you. Call this before revising an entry, so you rewrite what is actually on the page and not what you remember.",
+          parameters: {
+            type: "object",
+            required: ["entry_date"],
+            properties: { entry_date: { type: "string" } }
+          },
+          execute: function(_id, raw) {
+            return call("GET", "/api/agent/journal_entries/" + asParams(raw).entry_date);
           }
         });
       }

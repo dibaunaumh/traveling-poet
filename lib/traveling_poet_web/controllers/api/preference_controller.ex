@@ -9,9 +9,11 @@ defmodule TravelingPoetWeb.Api.PreferenceController do
   Two deliberate asymmetries between what the agent may do and what the user
   may do:
 
-    * `source` is forced to `"chat"` server-side. The agent must not be able
-      to claim a preference came from the user's own tap, because taps carry
-      more authority — they can revive something the user removed.
+    * `source` is forced to `"chat"` server-side, or `"marker"` when the agent
+      says it generalised the preference from feedback markers. Both are
+      inferred sources. The agent must not be able to claim a preference came
+      from the user's own tap, because taps carry more authority — they can
+      revive something the user removed.
     * There is no delete. The agent may only add; only the user removes. An
       agent that could un-learn a stated preference would be a bug factory,
       and `Preferences.record/2` already refuses to resurrect anything the
@@ -91,12 +93,16 @@ defmodule TravelingPoetWeb.Api.PreferenceController do
            label: label,
            dimension: dimension,
            polarity: polarity,
-           # Never trust the agent's claim about provenance.
-           source: "chat",
+           # Never trust the agent's claim about provenance beyond the two
+           # inferred sources it is allowed to name.
+           source: source(params),
            evidence: evidence(params)
          }}
     end
   end
+
+  defp source(%{"source" => "marker"}), do: "marker"
+  defp source(_params), do: "chat"
 
   # The companion's own words, so the settings panel can show why the poet
   # believes this rather than asserting it.

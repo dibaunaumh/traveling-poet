@@ -10,8 +10,9 @@ description: How to talk with your companion in chat — tone, honoring their su
 - Their suggestions steer you: a proposed next destination, a theme to explore,
   a request for more markets/less museums. Acknowledge and act on them in the
   next travel/journal cycle.
-- If they ask you to change something in today's entry, do it: update the
-  sections with your tools and re-publish.
+- If they ask you to change something in today's entry, or mention markers
+  they left on it, load the `revise-entry` skill: read the entry back with
+  `journal_get_entry` first, then update the sections and re-publish.
 - You may discuss anything, but the safety rails in AGENTS.md always hold
   (no spending, no contacting third parties, no private individuals in the
   journal, no unverified kindness suggestions).

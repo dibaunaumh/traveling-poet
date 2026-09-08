@@ -16,9 +16,11 @@ defmodule TravelingPoet.Preferences.Preference do
   @dimensions ~w(topic tone pace length place format)
   @polarities ~w(seek avoid)
   # Where it came from. `tap` and `settings` are the user's own words or
-  # deliberate choice; `chat` and `reaction` are inferred, and inferred sources
-  # are not allowed to resurrect something the user has removed.
-  @sources ~w(tap chat settings onboarding reaction)
+  # deliberate choice; `chat`, `reaction` and `marker` are inferred, and
+  # inferred sources are not allowed to resurrect something the user has
+  # removed. `marker` is what the poet generalised from the markers left on
+  # entries.
+  @sources ~w(tap chat settings onboarding reaction marker)
   @statuses ~w(active dismissed)
 
   schema "poet_preferences" do

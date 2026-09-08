@@ -31,6 +31,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Journal.Section,
     Journal.Media,
     Journal.Reaction,
+    Journal.Marker,
     Chat.ChatMessage,
     Credits.CreditTransaction,
     Usage.UsageEvent,

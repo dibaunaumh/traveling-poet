@@ -1,0 +1,269 @@
+// Feedback markers on a journal entry. One hook on the <article>.
+//
+// The server owns the state: which marker is "in hand" (data-active-marker)
+// and the markers on this entry (data-markers, JSON). This hook turns a text
+// selection or a tap into a `marker_add` event, and paints the markers back
+// onto the page: text markers as <mark> wraps re-found by their quoted text,
+// section and illustration markers (and text markers whose quote is gone) as
+// pins in the left margin. Everything it adds is stripped and redrawn on every
+// update, so a revised entry never keeps stale marks.
+
+const MAX_QUOTE = 500
+const CONTEXT = 64
+const CLICK_AFTER_SELECT_MS = 500
+
+const Markers = {
+  mounted() {
+    this.icons = parse(this.el.dataset.markerIcons, {})
+    this.busy = false
+    this.selectedAt = 0
+    this.onPointerUp = () => this.captureSelection()
+    this.onClick = (e) => this.handleClick(e)
+    this.onSelectionChange = debounce(() => this.captureSelection(), 350)
+    this.el.addEventListener("pointerup", this.onPointerUp)
+    this.el.addEventListener("click", this.onClick)
+    document.addEventListener("selectionchange", this.onSelectionChange)
+    this.render()
+  },
+
+  updated() {
+    this.render()
+  },
+
+  destroyed() {
+    document.removeEventListener("selectionchange", this.onSelectionChange)
+  },
+
+  render() {
+    this.markers = parse(this.el.dataset.markers, [])
+    this.active = this.el.dataset.activeMarker || null
+    this.el.classList.toggle("marking", !!this.active)
+
+    this.el.querySelectorAll(".marker-target").forEach((wrapper) => {
+      strip(wrapper)
+      const prose = wrapper.querySelector(".prose")
+      const pins = []
+      this.markers.filter((m) => belongs(m, wrapper)).forEach((m) => {
+        if (m.target === "text" && prose) {
+          if (!highlight(prose, m)) pins.push({...m, orphan: true})
+        } else {
+          pins.push(m)
+        }
+      })
+      renderPins(wrapper, pins, this.icons)
+    })
+  },
+
+  // A non-collapsed selection inside one section's prose, with a marker in
+  // hand, becomes a text marker.
+  captureSelection() {
+    if (!this.active || this.busy) return
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return
+
+    const range = sel.getRangeAt(0)
+    const node = range.commonAncestorContainer
+    const el = node.nodeType === 1 ? node : node.parentElement
+    const prose = el && el.closest(".prose")
+    if (!prose || !this.el.contains(prose)) return
+    const wrapper = prose.closest(".marker-target")
+    if (!wrapper) return
+
+    // Offset of the selection start within the section's text. Range.toString
+    // and textContent concatenate the same text nodes, so they agree.
+    const pre = range.cloneRange()
+    pre.selectNodeContents(prose)
+    pre.setEnd(range.startContainer, range.startOffset)
+    let start = pre.toString().length
+    let quote = range.toString()
+    start += quote.length - quote.trimStart().length
+    quote = quote.trim()
+    if (!quote) return
+    if (quote.length > MAX_QUOTE) quote = quote.slice(0, MAX_QUOTE)
+
+    const text = prose.textContent
+    const end = start + quote.length
+    const payload = {
+      kind: this.active,
+      target: "text",
+      quote,
+      prefix: text.slice(Math.max(0, start - CONTEXT), start),
+      suffix: text.slice(end, end + CONTEXT),
+      section_kind: wrapper.dataset.sectionKind,
+      section_position: wrapper.dataset.sectionPosition,
+    }
+
+    this.busy = true
+    this.selectedAt = Date.now()
+    const release = () => { this.busy = false }
+    this.pushEvent("marker_add", payload, release)
+    setTimeout(release, 2000)
+    sel.removeAllRanges()
+  },
+
+  handleClick(e) {
+    const existing = e.target.closest("mark.marker, .marker-pin")
+    if (existing && this.el.contains(existing)) {
+      e.preventDefault()
+      this.pushEvent("marker_remove", {id: existing.dataset.markerId})
+      return
+    }
+    if (!this.active) return
+    if (Date.now() - this.selectedAt < CLICK_AFTER_SELECT_MS) return
+    const sel = window.getSelection()
+    if (sel && !sel.isCollapsed) return
+    if (e.target.closest("a, button, .marker-tray")) return
+
+    const wrapper = e.target.closest(".marker-target")
+    if (!wrapper || !this.el.contains(wrapper)) return
+
+    const payload = {
+      kind: this.active,
+      section_kind: wrapper.dataset.sectionKind,
+      section_position: wrapper.dataset.sectionPosition,
+    }
+    const onFigure = !!e.target.closest("figure")
+    if (wrapper.dataset.mediaId && (wrapper.dataset.sectionKind === "illustration" || onFigure)) {
+      payload.target = "illustration"
+      payload.media_id = wrapper.dataset.mediaId
+    } else {
+      payload.target = "section"
+    }
+    this.pushEvent("marker_add", payload)
+  },
+}
+
+// -- matching markers to wrappers --
+
+function belongs(m, wrapper) {
+  const d = wrapper.dataset
+  if (m.target === "illustration") return d.mediaId != null && d.mediaId === String(m.media_id)
+  if (d.sectionPosition == null) return false
+  return d.sectionKind === m.section_kind && d.sectionPosition === String(m.section_position)
+}
+
+// -- painting --
+
+function strip(wrapper) {
+  wrapper.querySelectorAll("mark.marker").forEach((mark) => {
+    mark.replaceWith(...mark.childNodes)
+  })
+  wrapper.querySelectorAll(".marker-pins").forEach((pins) => pins.remove())
+  wrapper.normalize()
+}
+
+// Wraps the marker's quote in <mark>s. Returns false when the quote is no
+// longer in the text (the poet revised it away).
+function highlight(prose, m) {
+  if (!m.quote) return false
+  const text = prose.textContent
+  const start = locate(text, m)
+  if (start < 0) return false
+  const end = start + m.quote.length
+
+  segmentsFor(prose, start, end).reverse().forEach(({node, a, b}) => {
+    if (b < node.length) node.splitText(b)
+    let target = node
+    if (a > 0) target = node.splitText(a)
+    const mark = document.createElement("mark")
+    mark.className = "marker marker-" + m.kind + (m.sent ? " marker-sent" : "")
+    mark.dataset.markerId = m.id
+    mark.title = m.label + " (tap to remove)"
+    target.parentNode.insertBefore(mark, target)
+    mark.appendChild(target)
+  })
+  return true
+}
+
+// Where the quote sits in the text. Several hits are told apart by how much of
+// the remembered context around them still matches.
+function locate(text, m) {
+  const hits = []
+  let i = text.indexOf(m.quote)
+  while (i >= 0) {
+    hits.push(i)
+    i = text.indexOf(m.quote, i + 1)
+  }
+  if (hits.length === 0) return -1
+  if (hits.length === 1) return hits[0]
+  let best = hits[0]
+  let bestScore = -1
+  hits.forEach((h) => {
+    const score =
+      commonSuffix(text.slice(0, h), m.prefix || "") +
+      commonPrefix(text.slice(h + m.quote.length), m.suffix || "")
+    if (score > bestScore) { best = h; bestScore = score }
+  })
+  return best
+}
+
+function commonPrefix(a, b) {
+  let n = 0
+  while (n < a.length && n < b.length && a[n] === b[n]) n++
+  return n
+}
+
+function commonSuffix(a, b) {
+  let n = 0
+  while (n < a.length && n < b.length && a[a.length - 1 - n] === b[b.length - 1 - n]) n++
+  return n
+}
+
+// The text nodes overlapping [start, end) with local slice bounds.
+function segmentsFor(root, start, end) {
+  const out = []
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let pos = 0
+  let node
+  while ((node = walker.nextNode())) {
+    const len = node.length
+    const nStart = pos
+    const nEnd = pos + len
+    if (nEnd > start && nStart < end) {
+      out.push({node, a: Math.max(0, start - nStart), b: Math.min(len, end - nStart)})
+    }
+    pos = nEnd
+  }
+  return out
+}
+
+function renderPins(wrapper, pins, icons) {
+  if (pins.length === 0) return
+  const box = document.createElement("span")
+  box.className = "marker-pins"
+  pins.forEach((m) => {
+    const pin = document.createElement("button")
+    pin.type = "button"
+    pin.className =
+      "marker-pin marker-" + m.kind +
+      (m.sent ? " marker-sent" : "") +
+      (m.orphan ? " marker-orphan" : "")
+    pin.dataset.markerId = m.id
+    pin.title = m.label + (m.orphan ? " (this passage has since changed)" : "") + ". Tap to remove."
+    const icon = document.createElement("span")
+    icon.className = (icons[m.kind] || "hero-bookmark-mini") + " marker-pin-icon"
+    pin.appendChild(icon)
+    box.appendChild(pin)
+  })
+  wrapper.appendChild(box)
+}
+
+// -- utils --
+
+function parse(json, fallback) {
+  try {
+    return json ? JSON.parse(json) : fallback
+  } catch (_e) {
+    return fallback
+  }
+}
+
+function debounce(fn, ms) {
+  let t
+  return () => {
+    clearTimeout(t)
+    t = setTimeout(fn, ms)
+  }
+}
+
+export default Markers
