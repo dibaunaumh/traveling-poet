@@ -158,6 +158,12 @@ defmodule TravelingPoet.Markers.Delivery do
     )
   end
 
+  # "Other feedback" carries the companion's own words; quote them verbatim.
+  defp marker_line(%Marker{kind: "other"} = m) do
+    note = if m.note in [nil, ""], do: "(they left no note)", else: ~s("#{m.note}")
+    "- [#{Marker.label("other")}] #{where(m)} -> your companion wrote: #{note}"
+  end
+
   defp marker_line(%Marker{} = m) do
     spec = Marker.spec(m.kind)
     "- [#{spec.label}] #{where(m)} -> #{spec.ask}"

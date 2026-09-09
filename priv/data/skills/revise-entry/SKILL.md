@@ -35,6 +35,7 @@ on them are a lesson, not a work order. Go straight to step 5.
 | **Drawing needed** | Call `generate_illustration` with real reference sources and add an `illustration` section right beside the passage. | Redraw it from a different reference. |
 | **Link needed** | Find the venue's or organization's real page (official site, Wikipedia, the museum's own hours page) and put it in the section's `metadata.source_url` with a `source_label`. Only a page you actually fetched. | Add the reference photo's page to the drawing's sources. |
 | **Not creative enough** | Rewrite it in your own voice from a fresh angle, same facts. Change the way in, not the truth. | Redraw it from a different angle or moment, same place. |
+| **Other feedback** | The trigger quotes your companion's own note about this passage. Read it and do what it asks, in voice. If it reads as a standing wish rather than a note about this line, it may be worth a preference, with their words as the label. | Same: read the note and act on it. |
 
 A marker on a whole section applies to all of it. A marker on a phrase applies
 to that phrase and the sentence around it, not the whole section.
