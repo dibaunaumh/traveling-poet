@@ -323,11 +323,19 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("marker_add", params, socket) do
     with %{} = entry <- socket.assigns.entry,
-         {:ok, _marker} <- Markers.add_marker(socket.assigns.user, entry, params) do
-      {:noreply, assign_markers(socket, entry)}
+         {:ok, marker} <- Markers.add_marker(socket.assigns.user, entry, params) do
+      # The id goes back so the hook can open the note box on an "Other
+      # feedback" marker it just placed.
+      {:reply, %{id: marker.id}, assign_markers(socket, entry)}
     else
       _ -> {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_event("marker_note", %{"id" => id, "note" => note}, socket) do
+    Markers.update_note(socket.assigns.user.id, id, note)
+    {:noreply, assign_markers(socket, socket.assigns.entry)}
   end
 
   @impl true

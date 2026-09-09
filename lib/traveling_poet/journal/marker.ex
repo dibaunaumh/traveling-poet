@@ -16,10 +16,11 @@ defmodule TravelingPoet.Journal.Marker do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(interesting boring more_details drawing_needed link_needed beautiful not_creative)
+  @kinds ~w(interesting boring more_details drawing_needed link_needed beautiful not_creative other)
   @targets ~w(text section illustration)
   @quote_max 500
   @context_max 64
+  @note_max 500
 
   @specs %{
     "interesting" => %{
@@ -56,6 +57,12 @@ defmodule TravelingPoet.Journal.Marker do
       label: "Not creative enough",
       meaning: "This reads like anyone could have written it",
       ask: "rewrite it in your own voice from a fresh angle, same facts"
+    },
+    # Carries a free-text note; the digest quotes the note instead of `ask`.
+    "other" => %{
+      label: "Other feedback",
+      meaning: "Something else I want to tell you about this",
+      ask: "read what your companion wrote and act on it"
     }
   }
 
@@ -68,6 +75,7 @@ defmodule TravelingPoet.Journal.Marker do
     field :quote, :string
     field :prefix, :string
     field :suffix, :string
+    field :note, :string
     field :sent_at, :utc_datetime
 
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
@@ -80,6 +88,7 @@ defmodule TravelingPoet.Journal.Marker do
   def targets, do: @targets
   def quote_max, do: @quote_max
   def context_max, do: @context_max
+  def note_max, do: @note_max
 
   @doc "`%{label:, meaning:, ask:}` for a kind; nil for an unknown one."
   def spec(kind), do: Map.get(@specs, kind)
@@ -103,6 +112,7 @@ defmodule TravelingPoet.Journal.Marker do
       :quote,
       :prefix,
       :suffix,
+      :note,
       :sent_at
     ])
     |> validate_required([:journal_entry_id, :user_id, :kind, :target])
@@ -112,6 +122,7 @@ defmodule TravelingPoet.Journal.Marker do
     |> validate_length(:quote, max: @quote_max)
     |> validate_length(:prefix, max: @context_max)
     |> validate_length(:suffix, max: @context_max)
+    |> validate_length(:note, max: @note_max)
     |> validate_target()
   end
 

@@ -23,11 +23,21 @@ const Markers = {
     this.onSelectionChange = debounce(() => this.captureSelection(), 350)
     // Tapping anywhere else, or Escape, puts the options popover away.
     this.onDocClick = (e) => {
+      // The click that ends a drag-select lands right after the editor opens;
+      // it is not a tap away.
+      if (Date.now() - this.popoverOpenedAt < CLICK_AFTER_SELECT_MS) return
       if (this.popover && !e.target.closest(".marker-popover, mark.marker, .marker-pin")) {
-        this.closePopover()
+        if (this.popover.dataset.editor) this.finishEditor()
+        else this.closePopover()
       }
     }
-    this.onKey = (e) => { if (e.key === "Escape") this.closePopover() }
+    this.onKey = (e) => {
+      if (e.key !== "Escape" || !this.popover) return
+      if (this.popover.dataset.editor) this.cancelEditor()
+      else this.closePopover()
+    }
+    this.pendingNote = null
+    this.popoverOpenedAt = 0
     this.el.addEventListener("pointerup", this.onPointerUp)
     this.el.addEventListener("click", this.onClick)
     document.addEventListener("selectionchange", this.onSelectionChange)
@@ -65,6 +75,7 @@ const Markers = {
       })
       renderPins(wrapper, pins, this.icons)
     })
+    this.tryOpenPendingNote()
   },
 
   // A non-collapsed selection inside one section's prose, with a marker in
@@ -109,7 +120,10 @@ const Markers = {
     this.busy = true
     this.selectedAt = Date.now()
     const release = () => { this.busy = false }
-    this.pushEvent("marker_add", payload, release)
+    this.pushEvent("marker_add", payload, (reply) => {
+      release()
+      this.afterAdd(payload, reply)
+    })
     setTimeout(release, 2000)
     sel.removeAllRanges()
   },
@@ -118,8 +132,16 @@ const Markers = {
     // Inside the options popover: only its Remove button does anything.
     const inPopover = e.target.closest(".marker-popover")
     if (inPopover) {
-      const remove = e.target.closest(".marker-popover-remove")
-      if (remove) {
+      if (e.target.closest(".marker-note-save")) {
+        this.saveNote()
+      } else if (e.target.closest(".marker-note-cancel")) {
+        this.cancelEditor()
+      } else if (e.target.closest(".marker-popover-edit")) {
+        const id = inPopover.dataset.markerId
+        const m = this.markers.find((x) => String(x.id) === String(id))
+        const target = this.findMark(id)
+        if (m && target) this.openNoteEditor(target, m)
+      } else if (e.target.closest(".marker-popover-remove")) {
         this.pushEvent("marker_remove", {id: inPopover.dataset.markerId})
         this.closePopover()
       }
@@ -154,40 +176,145 @@ const Markers = {
     } else {
       payload.target = "section"
     }
-    this.pushEvent("marker_add", payload)
+    this.pushEvent("marker_add", payload, (reply) => this.afterAdd(payload, reply))
+  },
+
+  // An "Other feedback" marker asks for its note as soon as it is placed. The
+  // server replies with the id; the mark itself arrives with the next render,
+  // so the editor opens from whichever of the two comes last.
+  afterAdd(payload, reply) {
+    if (payload.kind === "other" && reply && reply.id) {
+      this.pendingNote = reply.id
+      this.tryOpenPendingNote()
+    }
+  },
+
+  tryOpenPendingNote() {
+    if (!this.pendingNote) return
+    const id = this.pendingNote
+    const target = this.findMark(id)
+    const m = this.markers.find((x) => String(x.id) === String(id))
+    if (!target || !m) return
+    this.pendingNote = null
+    this.openNoteEditor(target, m)
+  },
+
+  findMark(id) {
+    return this.el.querySelector(
+      'mark.marker[data-marker-id="' + id + '"], .marker-pin[data-marker-id="' + id + '"]'
+    )
   },
 
   // A small card under the tapped mark: which marker it is, whether the poet
-  // has it yet, and a Remove button.
+  // has it yet, the note if it has one, and a Remove button.
   openPopover(target) {
     this.closePopover()
     const id = target.dataset.markerId
     const m = this.markers.find((x) => String(x.id) === String(id))
     if (!m) return
 
-    const pop = document.createElement("div")
-    pop.className = "marker-popover marker-" + m.kind
-    pop.dataset.markerId = id
-
+    const pop = this.newPopover(m)
     const label = document.createElement("span")
     label.className = "marker-popover-label"
     label.textContent = m.label
-    const note = document.createElement("span")
-    note.className = "marker-popover-note"
-    note.textContent = m.sent ? "sent to your poet" : "waiting to be sent"
+    const status = document.createElement("span")
+    status.className = "marker-popover-note"
+    status.textContent = m.sent ? "sent to your poet" : "waiting to be sent"
+    pop.append(label, status)
+
+    if (m.kind === "other") {
+      const text = document.createElement("span")
+      text.className = "marker-popover-note-text"
+      text.textContent = m.note ? "“" + m.note + "”" : "no note yet"
+      const edit = document.createElement("button")
+      edit.type = "button"
+      edit.className = "marker-popover-edit"
+      edit.textContent = m.note ? "Edit" : "Write it"
+      pop.append(text, edit)
+    }
+
     const remove = document.createElement("button")
     remove.type = "button"
     remove.className = "marker-popover-remove"
     remove.textContent = "Remove"
-    pop.append(label, note, remove)
-    this.el.appendChild(pop)
+    pop.append(remove)
+    this.showPopover(pop, target)
+  },
 
+  // Text box for the note on an "Other feedback" marker.
+  openNoteEditor(target, m) {
+    this.closePopover()
+    const pop = this.newPopover(m)
+    pop.dataset.editor = "1"
+
+    const label = document.createElement("span")
+    label.className = "marker-popover-label"
+    label.textContent = "Tell your poet"
+    const input = document.createElement("input")
+    input.type = "text"
+    input.className = "marker-note-input"
+    input.maxLength = 500
+    input.placeholder = "What would you change, or want more of?"
+    input.value = m.note || ""
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); this.saveNote() }
+    })
+    const save = document.createElement("button")
+    save.type = "button"
+    save.className = "marker-note-save"
+    save.textContent = "Save"
+    const cancel = document.createElement("button")
+    cancel.type = "button"
+    cancel.className = "marker-popover-remove marker-note-cancel"
+    cancel.textContent = "Cancel"
+    pop.append(label, input, save, cancel)
+    this.showPopover(pop, target)
+    input.focus()
+  },
+
+  saveNote() {
+    const pop = this.popover
+    if (!pop || !pop.dataset.editor) return
+    const note = pop.querySelector(".marker-note-input").value.trim()
+    if (!note) return this.cancelEditor()
+    this.pushEvent("marker_note", {id: pop.dataset.markerId, note})
+    this.closePopover()
+  },
+
+  // Backing out of a note that was never written removes the marker: an
+  // "Other feedback" mark with nothing to say is not feedback.
+  cancelEditor() {
+    const pop = this.popover
+    if (!pop || !pop.dataset.editor) return
+    const m = this.markers.find((x) => String(x.id) === String(pop.dataset.markerId))
+    if (m && !m.note) this.pushEvent("marker_remove", {id: pop.dataset.markerId})
+    this.closePopover()
+  },
+
+  // Tapping away from the editor keeps what was typed.
+  finishEditor() {
+    const pop = this.popover
+    if (!pop || !pop.dataset.editor) return
+    if (pop.querySelector(".marker-note-input").value.trim()) this.saveNote()
+    else this.cancelEditor()
+  },
+
+  newPopover(m) {
+    const pop = document.createElement("div")
+    pop.className = "marker-popover marker-" + m.kind
+    pop.dataset.markerId = m.id
+    return pop
+  },
+
+  showPopover(pop, target) {
+    this.el.appendChild(pop)
     const art = this.el.getBoundingClientRect()
     const box = target.getBoundingClientRect()
     const left = Math.max(0, Math.min(box.left - art.left, art.width - pop.offsetWidth - 8))
     pop.style.top = (box.bottom - art.top + 6) + "px"
     pop.style.left = left + "px"
     this.popover = pop
+    this.popoverOpenedAt = Date.now()
   },
 
   closePopover() {

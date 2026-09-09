@@ -44,7 +44,7 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
     assert html =~ ~s(id="marker-menu")
     assert html =~ "Mark what you want to change"
     assert html =~ "Select a marker &amp; highlight text to provide feedback to the poet"
-    assert length(Regex.scan(~r/marker-menu-item marker-[a-z_]+"/, html)) == 7
+    assert length(Regex.scan(~r/marker-menu-item marker-[a-z_]+"/, html)) == 8
     assert html =~ ~s(id="section-#{entry.id}-0")
     assert html =~ ~s(data-section-kind="description")
     assert html =~ ~s(data-section-position="0")
@@ -99,6 +99,23 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
 
     assert [%{target: "illustration", media_id: media_id}] = Markers.list_markers(entry.id)
     assert media_id == media.id
+  end
+
+  test "an Other feedback marker takes a note after it is placed", %{conn: conn} do
+    {conn, _user, _poet, entry} = owner(conn)
+    {:ok, view, _html} = live(conn, ~p"/journal")
+
+    render_hook(view, "marker_add", text_payload(%{"kind" => "other"}))
+    assert [%{kind: "other", note: nil} = marker] = Markers.list_markers(entry.id)
+
+    html =
+      render_hook(view, "marker_note", %{
+        "id" => to_string(marker.id),
+        "note" => "Tell me about the bakery"
+      })
+
+    assert [%{note: "Tell me about the bakery"}] = Markers.list_markers(entry.id)
+    assert html =~ "Tell me about the bakery"
   end
 
   test "a malformed payload is ignored", %{conn: conn} do

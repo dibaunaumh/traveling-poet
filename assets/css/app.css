@@ -257,7 +257,10 @@ h1, h2, h3 {
   --marker-link_needed: #0d9488;
   --marker-beautiful: #db2777;
   --marker-not_creative: #c2410c;
+  --marker-other: #4a5f8c;
 }
+
+.marker-other { --marker-c: var(--marker-other); }
 
 .marker-interesting { --marker-c: var(--marker-interesting); }
 .marker-boring { --marker-c: var(--marker-boring); }
@@ -414,6 +417,53 @@ h1, h2, h3 {
 
 .marker-popover-remove:hover {
   background: rgba(58, 50, 38, 0.08);
+}
+
+/* The note on an "Other feedback" marker: shown in the card, typed in the
+   editor that opens right after the mark is placed. */
+.marker-popover-note-text {
+  max-width: 18rem;
+  white-space: normal;
+  opacity: 0.85;
+}
+
+.marker-popover-edit {
+  padding: 0.05rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(58, 50, 38, 0.3);
+  background: transparent;
+  color: #3a3226;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.marker-note-input {
+  width: 16rem;
+  max-width: 60vw;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(58, 50, 38, 0.3);
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.55);
+  color: #3a3226;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.marker-note-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--marker-c) 50%, transparent);
+  outline-offset: 1px;
+}
+
+.marker-note-save {
+  padding: 0.05rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid var(--marker-c);
+  background: var(--marker-c);
+  color: #fdf8ec;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .marking .prose,

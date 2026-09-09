@@ -23,7 +23,8 @@ defmodule TravelingPoetWeb.MarkerComponents do
     "drawing_needed" => "hero-paint-brush-mini",
     "link_needed" => "hero-link-mini",
     "beautiful" => "hero-heart-mini",
-    "not_creative" => "hero-arrow-path-mini"
+    "not_creative" => "hero-arrow-path-mini",
+    "other" => "hero-chat-bubble-bottom-center-text-mini"
   }
 
   @idle_icon "hero-pencil-square-mini"

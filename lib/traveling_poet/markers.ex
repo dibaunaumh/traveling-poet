@@ -52,6 +52,21 @@ defmodule TravelingPoet.Markers do
     end
   end
 
+  @doc """
+  Sets the free-text note on one of the user's own markers (the "Other
+  feedback" kind asks for one right after the mark is placed).
+  """
+  def update_note(user_id, id, note) do
+    with id when not is_nil(id) <- to_int(id),
+         %Marker{} = marker <- Repo.get_by(Marker, id: id, user_id: user_id) do
+      marker
+      |> Marker.changeset(%{note: note |> presence() |> trim()})
+      |> Repo.update()
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
   def list_markers(entry_id) do
     Marker
     |> where(journal_entry_id: ^entry_id)
@@ -73,6 +88,7 @@ defmodule TravelingPoet.Markers do
         quote: m.quote,
         prefix: m.prefix,
         suffix: m.suffix,
+        note: m.note,
         sent: not is_nil(m.sent_at)
       }
     end)
@@ -162,7 +178,8 @@ defmodule TravelingPoet.Markers do
       media_id: to_int(attrs["media_id"]),
       quote: attrs["quote"] |> presence() |> trim(),
       prefix: attrs["prefix"] |> presence() |> clip(Marker.context_max()),
-      suffix: attrs["suffix"] |> presence() |> clip(Marker.context_max())
+      suffix: attrs["suffix"] |> presence() |> clip(Marker.context_max()),
+      note: attrs["note"] |> presence() |> trim()
     }
   end
 

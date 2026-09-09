@@ -143,6 +143,26 @@ defmodule TravelingPoet.MarkersTest do
       assert Markers.counts_since(poet.id, since) == %{"boring" => 1, "beautiful" => 1}
     end
 
+    test "an Other feedback marker carries the reader's note into the digest" do
+      {user, _poet, entry} = ready_poet()
+      other = text_marker(user, entry, %{"kind" => "other", "note" => "  first draft  "})
+      assert other.note == "first draft"
+
+      assert {:ok, updated} = Markers.update_note(user.id, other.id, "Tell me about the bakery")
+      assert updated.note == "Tell me about the bakery"
+      assert [%{kind: "other", note: "Tell me about the bakery"}] = Markers.payload([updated])
+
+      stranger = user_fixture()
+      assert {:error, :not_found} = Markers.update_note(stranger.id, other.id, "nope")
+
+      backdate(entry, Delivery.quiet_minutes() + 1)
+      [due] = Delivery.due()
+      {:ok, message} = Delivery.claim(due)
+
+      assert message =~
+               ~s([Other feedback] the description section: "a long day" -> your companion wrote: "Tell me about the bakery")
+    end
+
     test "mark_sent takes markers out of the pending set" do
       {user, _poet, entry} = ready_poet()
       marker = text_marker(user, entry)
