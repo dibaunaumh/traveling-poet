@@ -152,6 +152,152 @@ defmodule TravelingPoet.Poets do
     end
   end
 
+  ## Route requests from chat
+
+  @max_hold_days 30
+
+  @doc """
+  Keeps the poet where it is for `days` more days beyond `today`. "Stay one
+  more day" said on the 9th means the run on the 10th stays; the 11th moves.
+  """
+  def hold(%Poet{} = poet, days, today \\ Date.utc_today()) when is_integer(days) do
+    days = days |> max(1) |> min(@max_hold_days)
+    update_poet(poet, %{hold_until: Date.add(today, days)})
+  end
+
+  def release_hold(%Poet{} = poet), do: update_poet(poet, %{hold_until: nil})
+
+  def held?(%Poet{hold_until: nil}, _today), do: false
+  def held?(%Poet{hold_until: until}, today), do: Date.compare(today, until) != :gt
+
+  @doc """
+  Inserts a stop AHEAD of the next pending one: a detour the companion asked
+  for in chat. Later pending stops shift back one place; visited stops keep
+  their positions.
+  """
+  def insert_stop_next(poet_id, attrs) do
+    Repo.transaction(fn ->
+      position =
+        case next_pending_stop(poet_id) do
+          nil -> next_position(poet_id)
+          stop -> stop.position
+        end
+
+      # One at a time, last first, so a unique (poet, position) index could
+      # never see two rows on the same number mid-shift.
+      ItineraryStop
+      |> where([s], s.poet_id == ^poet_id and s.position >= ^position)
+      |> order_by(desc: :position)
+      |> Repo.all()
+      |> Enum.each(fn s ->
+        s |> Ecto.Changeset.change(position: s.position + 1) |> Repo.update!()
+      end)
+
+      %ItineraryStop{}
+      |> ItineraryStop.changeset(
+        attrs
+        |> Map.new(fn {k, v} -> {to_string(k), v} end)
+        |> Map.put("poet_id", poet_id)
+        |> Map.put("position", position)
+        |> Map.put_new("source", "chat")
+      )
+      |> Repo.insert()
+      |> case do
+        {:ok, stop} -> stop
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
+
+  defp next_position(poet_id) do
+    ItineraryStop
+    |> where(poet_id: ^poet_id)
+    |> select([s], max(s.position))
+    |> Repo.one()
+    |> case do
+      nil -> 0
+      max -> max + 1
+    end
+  end
+
+  @doc """
+  The app's decision on whether the poet moves today, and where to.
+
+  The daily run used to decide this itself from the day count, which meant a
+  request made in chat ("stay one more day", "see Catalina first") lived only
+  in the model's memory of a previous conversation and lost to the itinerary
+  data the next morning. Now the request is data (a hold, a detour stop) and
+  the decision is made here, once, for the poet to obey.
+
+  Returns `%{travel_today, reason, destination, days_here, stay_duration_days,
+  hold_until}`. `destination` is the next pending stop (scout mode), or a
+  stop the companion asked for in chat (either mode); nil means the wanderer
+  picks somewhere itself.
+  """
+  def travel_plan(%Poet{} = poet, today \\ Date.utc_today()) do
+    days_here = Poet.days_at_location(poet)
+    stay = Poet.stay_duration_days(poet)
+    scout? = Poet.mode(poet) == "scout"
+    next = if scout?, do: next_pending_stop(poet.id), else: next_requested_stop(poet.id)
+
+    base = %{
+      days_here: days_here,
+      stay_duration_days: stay,
+      hold_until: poet.hold_until,
+      destination: next && stop_payload(next)
+    }
+
+    cond do
+      held?(poet, today) ->
+        decide(base, false, "your companion asked you to stay here through #{poet.hold_until}")
+
+      next && next.source == "chat" ->
+        decide(base, true, "your companion asked for this stop in chat; go there today")
+
+      days_here < stay ->
+        decide(base, false, "day #{days_here + 1} of #{stay} here; not yet time to move")
+
+      scout? and is_nil(next) ->
+        decide(
+          base,
+          false,
+          "itinerary complete: stay at this final stop and go deeper; ask whether to add stops"
+        )
+
+      scout? ->
+        decide(base, true, "your stay here is done; advance to the next planned stop")
+
+      true ->
+        decide(base, true, "your stay here is done; pick somewhere real and nearby")
+    end
+  end
+
+  defp decide(base, travel?, reason),
+    do: Map.merge(base, %{travel_today: travel?, reason: reason})
+
+  defp stop_payload(stop) do
+    %{
+      id: stop.id,
+      position: stop.position,
+      place_name: stop.place_name,
+      lat: stop.lat,
+      lng: stop.lng,
+      country_code: stop.country_code,
+      source: stop.source
+    }
+  end
+
+  # A wandering poet ignores the Settings itinerary (it is for a future scout
+  # trip) but does go where the companion sent it in chat.
+  defp next_requested_stop(poet_id) do
+    ItineraryStop
+    |> where(poet_id: ^poet_id, source: "chat")
+    |> where([s], is_nil(s.visited_at))
+    |> order_by(asc: :position)
+    |> limit(1)
+    |> Repo.one()
+  end
+
   def next_pending_stop(poet_id) do
     ItineraryStop
     |> where(poet_id: ^poet_id)

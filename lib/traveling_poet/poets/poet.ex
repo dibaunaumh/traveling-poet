@@ -18,6 +18,9 @@ defmodule TravelingPoet.Poets.Poet do
     field :current_place_name, :string
     field :current_country_code, :string
     field :arrived_at, :utc_datetime
+    # "Stay here through this date", asked for in chat. The daily run will
+    # not move the poet while today <= hold_until.
+    field :hold_until, :date
     field :settings, :map, default: %{}
     field :status, :string, default: "provisioning"
 
@@ -46,6 +49,7 @@ defmodule TravelingPoet.Poets.Poet do
       :current_place_name,
       :current_country_code,
       :arrived_at,
+      :hold_until,
       :settings,
       :status
     ])

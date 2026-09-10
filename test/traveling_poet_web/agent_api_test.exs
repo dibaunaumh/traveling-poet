@@ -383,6 +383,43 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert TravelingPoet.Poets.next_pending_stop(poet.id).place_name == "Coimbra"
   end
 
+  test "context carries the app's travel decision", %{conn: conn} do
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert %{"travel_today" => false, "reason" => reason, "destination" => nil} = body["travel"]
+    assert reason =~ "day 1 of"
+  end
+
+  test "the poet can hold and add a detour from chat", %{conn: conn, poet: poet} do
+    body = conn |> post(~p"/api/agent/hold", %{"days" => 2}) |> json_response(200)
+    assert body["ok"]
+    assert body["hold_until"] == Date.to_iso8601(Date.add(Date.utc_today(), 2))
+    assert body["travel"]["travel_today"] == false
+
+    body =
+      conn
+      |> post(~p"/api/agent/itinerary_stops", %{
+        "place_name" => "Catalina Island",
+        "lat" => 33.39,
+        "lng" => -118.42
+      })
+      |> json_response(200)
+
+    assert body["stop"]["place_name"] == "Catalina Island"
+
+    assert [%{place_name: "Catalina Island", source: "chat"}] =
+             TravelingPoet.Poets.list_stops(poet.id)
+
+    # still held, so the detour waits
+    assert body["travel"]["travel_today"] == false
+
+    # geocoding is switched off in test, so a bare name cannot be resolved
+    assert conn
+           |> post(~p"/api/agent/itinerary_stops", %{"place_name" => "Nowhere"})
+           |> json_response(422)
+
+    assert conn |> post(~p"/api/agent/itinerary_stops", %{}) |> json_response(422)
+  end
+
   test "wander context has empty itinerary", %{conn: conn} do
     body = conn |> get(~p"/api/agent/context") |> json_response(200)
     assert body["poet"]["mode"] == "wander"
