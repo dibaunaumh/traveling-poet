@@ -19,12 +19,16 @@ defmodule TravelingPoetWeb.JournalLive do
   }
 
   alias TravelingPoet.Journal.Marker
-  alias TravelingPoet.{Preferences, SpriteUploads, SpritesClient, Usage}
+  alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
 
-  @keepalive_interval_ms 20_000
+  # While the reader is active the sprite is held awake with a Sprites task:
+  # a 5 min expiry refreshed every minute (the docs' heartbeat pattern), and
+  # deleted once the reader has been quiet for the active window.
+  @keepalive_interval_ms 60_000
+  @keepalive_task_expire "5m"
   @keepalive_active_window_ms 5 * 60 * 1000
   @wake_timeout_ms 30_000
   @wake_poll_ms 2_000
@@ -80,7 +84,8 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:poet, poet)
           |> assign_push()
           |> assign(:sidebar_open, true)
-          |> assign(:keepalive_ref, nil)
+          |> assign(:keepalive_task, SpriteHold.task_name("chat"))
+          |> assign(:hold_live, false)
           |> assign(:last_activity_at, nil)
           |> assign(:sprite_status, initial_sprite_status)
           |> assign(:show_anyway, false)
@@ -423,7 +428,6 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_info({:gateway_event, {:done, response_id}}, socket) do
     send_update(ChatSidebarComponent, id: "chat-sidebar", stream_done: response_id)
-    keepalive_after_agent_turn(socket.assigns.user)
     {:noreply, mark_activity(socket)}
   end
 
@@ -534,13 +538,8 @@ defmodule TravelingPoetWeb.JournalLive do
 
   @impl true
   def handle_info(:keepalive, socket) do
-    user = socket.assigns.user
-
-    if user.sprite_name && recently_active?(socket) do
-      Task.start(fn ->
-        SpritesClient.exec(user.sprite_name, hold_awake_cmd(25))
-      end)
-    end
+    socket =
+      if recently_active?(socket), do: refresh_hold(socket), else: release_hold(socket)
 
     Process.send_after(self(), :keepalive, @keepalive_interval_ms)
     {:noreply, socket}
@@ -932,18 +931,37 @@ defmodule TravelingPoetWeb.JournalLive do
     prev ++ next
   end
 
-  ## Chat helpers (ported from alice-in DashboardLive)
-
-  defp keepalive_after_agent_turn(%{sprite_name: name}) when is_binary(name) and name != "" do
-    Task.start(fn -> SpritesClient.exec(name, hold_awake_cmd(90)) end)
+  # Closing the tab releases the sprite within seconds instead of leaving the
+  # task to run out its expiry.
+  @impl true
+  def terminate(_reason, socket) do
+    release_hold(socket)
     :ok
   end
 
-  defp keepalive_after_agent_turn(_), do: :ok
+  ## Chat helpers (ported from alice-in DashboardLive)
 
+  # Activity starts the hold right away rather than waiting for the next
+  # keepalive tick; the tick then keeps it refreshed for the active window.
   defp mark_activity(socket) do
-    assign(socket, :last_activity_at, System.monotonic_time(:millisecond))
+    socket = assign(socket, :last_activity_at, System.monotonic_time(:millisecond))
+    if socket.assigns.hold_live, do: socket, else: refresh_hold(socket)
   end
+
+  defp refresh_hold(%{assigns: %{user: %{sprite_name: name}, keepalive_task: task}} = socket)
+       when is_binary(name) and name != "" do
+    Task.start(fn -> SpriteHold.put(name, task, @keepalive_task_expire) end)
+    assign(socket, :hold_live, true)
+  end
+
+  defp refresh_hold(socket), do: socket
+
+  defp release_hold(%{assigns: %{hold_live: true, user: user, keepalive_task: task}} = socket) do
+    Task.start(fn -> SpriteHold.delete(user.sprite_name, task) end)
+    assign(socket, :hold_live, false)
+  end
+
+  defp release_hold(socket), do: socket
 
   # The gateway rejects a chat.send while another turn is running (e.g. the
   # auto-fired /onboard right after provisioning) with a bare "Chat error" —
@@ -965,11 +983,6 @@ defmodule TravelingPoetWeb.JournalLive do
       nil -> false
       t -> System.monotonic_time(:millisecond) - t < @keepalive_active_window_ms
     end
-  end
-
-  # A held-open exec is what keeps a sprite "running" — a quick ping doesn't.
-  defp hold_awake_cmd(seconds) do
-    "for i in $(seq 1 #{seconds}); do sleep 1; done"
   end
 
   # The fast path for someone watching the setting-up screen: kick the first

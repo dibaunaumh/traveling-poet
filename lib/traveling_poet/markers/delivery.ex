@@ -37,8 +37,6 @@ defmodule TravelingPoet.Markers.Delivery do
   @busy_kinds ~w(daily_run_attempt first_entry_attempt marker_revision_attempt)
   @busy_window_minutes 15
   @chat_window_minutes 5
-  # Revising may research and redraw: same budget as a daily run.
-  @hold_awake_rounds 8
   @reply_timeout_ms 10 * 60 * 1000
 
   def attempt_kind, do: @attempt_kind
@@ -100,7 +98,6 @@ defmodule TravelingPoet.Markers.Delivery do
 
       case AgentSession.run(user, message,
              channel: "system",
-             hold_awake_rounds: @hold_awake_rounds,
              reply_timeout_ms: @reply_timeout_ms
            ) do
         {:ok, _reply} ->

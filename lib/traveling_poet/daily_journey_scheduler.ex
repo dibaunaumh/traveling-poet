@@ -32,8 +32,6 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   @trigger "/travel-and-journal"
   @stagger_ms 20_000
-  # journal generation + illustration takes minutes: 8 rounds ≈ 12 min held awake
-  @hold_awake_rounds 8
   @reply_timeout_ms 10 * 60 * 1000
   @max_attempts_per_day 3
   # The first tick comes shortly after boot, not a full interval later.
@@ -166,7 +164,6 @@ defmodule TravelingPoet.DailyJourneyScheduler do
         outcome =
           AgentSession.run(user, @trigger,
             channel: "system",
-            hold_awake_rounds: @hold_awake_rounds,
             reply_timeout_ms: @reply_timeout_ms
           )
 

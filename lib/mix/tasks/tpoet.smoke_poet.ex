@@ -14,7 +14,16 @@ defmodule Mix.Tasks.Tpoet.SmokePoet do
 
   use Mix.Task
 
-  alias TravelingPoet.{Accounts, GatewaySocket, GatewaySocketSupervisor, Poets, Provisioner, Repo}
+  alias TravelingPoet.{
+    Accounts,
+    GatewaySocket,
+    GatewaySocketSupervisor,
+    Poets,
+    Provisioner,
+    Repo,
+    SpriteHold
+  }
+
   alias TravelingPoet.Accounts.User
 
   @smoke_email "smoke-poet@example.com"
@@ -71,6 +80,8 @@ defmodule Mix.Tasks.Tpoet.SmokePoet do
 
     GatewaySocket.subscribe(pid)
 
+    check_sprite_hold(user.sprite_name)
+
     IO.puts("== Sending hello...")
     GatewaySocket.send_message(pid, "Hello! Reply with one short sentence about where you are.")
 
@@ -83,6 +94,45 @@ defmodule Mix.Tasks.Tpoet.SmokePoet do
         Mix.raise("No agent reply: #{inspect(reason)}")
     end
   end
+
+  # Round-trips the Sprites Tasks API through exec: the hold every turn relies
+  # on, and proof that `curl` and the management socket exist in the image.
+  defp check_sprite_hold(sprite_name) do
+    IO.puts("== Sprite hold: put/list/delete tpoet-smoke task...")
+    task = "tpoet-smoke"
+
+    :ok = SpriteHold.put(sprite_name, task, "2m")
+
+    case SpriteHold.list(sprite_name) do
+      {:ok, listed} ->
+        names = task_names(listed)
+
+        unless task in names do
+          Mix.raise("Sprite hold: task #{task} not listed after put: #{inspect(listed)}")
+        end
+
+      other ->
+        Mix.raise("Sprite hold: list failed: #{inspect(other)}")
+    end
+
+    :ok = SpriteHold.delete(sprite_name, task)
+
+    case SpriteHold.list(sprite_name) do
+      {:ok, listed} ->
+        if task in task_names(listed) do
+          Mix.raise("Sprite hold: task #{task} still listed after delete: #{inspect(listed)}")
+        end
+
+      other ->
+        Mix.raise("Sprite hold: list after delete failed: #{inspect(other)}")
+    end
+
+    IO.puts("== Sprite hold OK")
+  end
+
+  defp task_names(%{"tasks" => tasks}) when is_list(tasks), do: task_names(tasks)
+  defp task_names(tasks) when is_list(tasks), do: Enum.map(tasks, & &1["name"])
+  defp task_names(_), do: []
 
   defp collect_reply(acc, t_start) do
     receive do

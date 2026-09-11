@@ -1,26 +1,26 @@
 defmodule TravelingPoet.AgentSession do
   @moduledoc """
   Headless agent exchange: wake the sprite (the inbound WebSocket connect does
-  it), send a message, hold the sprite awake through the turn with blocking
-  on-sprite execs, collect the streamed reply until :done, and persist both
-  sides to Chat. Used by the Telegram poller and the DailyJourneyScheduler —
+  it), send a message, hold the sprite awake through the turn with a Sprites
+  task (see `SpriteHold`), collect the streamed reply until :done, and persist
+  both sides to Chat. Used by the Telegram poller and the DailyJourneyScheduler —
   the same shape alice-in-goals' TpmSyncScheduler proved out.
   """
 
   require Logger
 
-  alias TravelingPoet.{Chat, GatewaySocket, GatewaySocketSupervisor, SpritesClient}
+  alias TravelingPoet.{Chat, GatewaySocket, GatewaySocketSupervisor, SpriteHold}
 
   @default_reply_timeout_ms 5 * 60 * 1000
-  # ~90s per blocking exec stays inside SpritesClient's 120s window
-  @hold_awake_exec_seconds 90
 
   @doc """
   Runs one exchange. Options:
 
     * `:channel` — chat channel to persist under ("system" | "telegram"), default "system"
-    * `:hold_awake_rounds` — how many ~90s keepalive execs to chain (default 3)
     * `:reply_timeout_ms` — how long to wait for :done (default 5 min)
+
+  The sprite is held awake for exactly as long as the turn runs (bounded by
+  `:reply_timeout_ms`) and released when it finishes.
     * `:persist` — persist both sides to Chat (default true)
 
   Returns `{:ok, reply_text}` when the agent finished its turn (`:done`),
@@ -33,7 +33,6 @@ defmodule TravelingPoet.AgentSession do
   """
   def run(user, message, opts \\ []) do
     channel = Keyword.get(opts, :channel, "system")
-    rounds = Keyword.get(opts, :hold_awake_rounds, 3)
     timeout = Keyword.get(opts, :reply_timeout_ms, @default_reply_timeout_ms)
     persist? = Keyword.get(opts, :persist, true)
 
@@ -51,10 +50,11 @@ defmodule TravelingPoet.AgentSession do
           })
         end
 
-        # Sibling task keeps the sprite awake while this process waits.
-        Task.start(fn -> hold_awake(user.sprite_name, rounds) end)
+        result =
+          SpriteHold.with_hold(user.sprite_name, "turn", fn ->
+            collect_reply(user, "", timeout, persist?, channel)
+          end)
 
-        result = collect_reply(user, "", timeout, persist?, channel)
         GatewaySocket.unsubscribe(pid)
         result
 
@@ -111,17 +111,5 @@ defmodule TravelingPoet.AgentSession do
 
         {:timeout, partial}
     end
-  end
-
-  def hold_awake(nil, _rounds), do: :ok
-  def hold_awake(_sprite_name, 0), do: :ok
-
-  def hold_awake(sprite_name, rounds) do
-    SpritesClient.exec(
-      sprite_name,
-      "for i in $(seq 1 #{@hold_awake_exec_seconds}); do sleep 1; done; echo held"
-    )
-
-    hold_awake(sprite_name, rounds - 1)
   end
 end
