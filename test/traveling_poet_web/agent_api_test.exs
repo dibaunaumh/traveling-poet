@@ -340,6 +340,18 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert %{"journey_day" => 1} = conn |> get(~p"/api/agent/context") |> json_response(200)
   end
 
+  test "reading an entry back lists its spot drawings with the markdown that places them",
+       %{conn: conn, poet: poet} do
+    entry = entry_fixture(poet, %{entry_date: ~D[2026-09-01]})
+    spot = media_fixture(poet, %{journal_entry_id: entry.id, kind: "spot", alt_text: "a cup"})
+
+    assert %{"media" => [%{"id" => id, "kind" => "spot", "markdown" => markdown}]} =
+             conn |> get(~p"/api/agent/journal_entries/2026-09-01") |> json_response(200)
+
+    assert id == spot.id
+    assert markdown == "![a cup](/media/#{spot.id})"
+  end
+
   test "entry upsert + sections + publish round-trip", %{conn: conn, poet: poet} do
     date = Date.utc_today() |> Date.to_iso8601()
 

@@ -41,6 +41,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :media, :map, default: %{}, doc: "media by id, for illustration sections"
   attr :clamp, :boolean, default: false, doc: "cut prose to a few lines (home page)"
   attr :place_links, :list, default: [], doc: "see place_links/2"
+  attr :spot_media, :map, default: %{}, doc: "the entry's spot drawings by id"
   attr :heading_tag, :string, default: "h2"
   attr :show_date, :boolean, default: true
   attr :rest, :global, doc: "id, hooks and data attributes for the article"
@@ -74,6 +75,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           media={@media}
           clamp={@clamp}
           links={@place_links}
+          spot_media={@spot_media}
         />
         <p :if={@spread.left == []} class="prose text-sm opacity-60">
           A quiet page. The drawing says it all today.
@@ -91,6 +93,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           media={@media}
           clamp={@clamp}
           links={@place_links}
+          spot_media={@spot_media}
         />
         {render_slot(@right_footer)}
       </div>
@@ -103,6 +106,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :media, :map, required: true
   attr :clamp, :boolean, default: false
   attr :links, :list, default: []
+  attr :spot_media, :map, default: %{}
 
   # The id and data attributes come from the section's stored position, not
   # its place on the page: the Markers hook matches marks by (kind, position)
@@ -123,6 +127,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         media={@media[@section.media_id]}
         clamp={@clamp and @section.kind != "illustration"}
         links={@links}
+        spot_media={@spot_media}
       />
     </div>
     """
@@ -342,6 +347,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :clamp, :boolean, default: false, doc: "cap the prose at a few lines (home page spread)"
   attr :links, :list, default: [], doc: "place links to weave into the prose, see place_links/2"
 
+  attr :spot_media, :map,
+    default: %{},
+    doc: "the entry's spot drawings by id: the only images a body may embed"
+
   @doc "One journal section: a taped-on illustration, or a titled block of the poet's prose."
   def section(%{section: %{kind: "illustration"}} = assigns) do
     ~H"""
@@ -369,13 +378,31 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   def section(assigns) do
+    assigns = assign(assigns, :spots, embedded_spots(assigns.section.body, assigns.spot_media))
+
     ~H"""
     <div class={@section.kind == "poem" && "notebook-poem"}>
       <h3 :if={@section.title} class="notebook-section-title mb-1">
         {section_icon(@section.kind)} {@section.title}
       </h3>
       <div class={["prose prose-sm max-w-none", @clamp && "spread-clamp"]}>
-        {raw_markdown(@section.body, [], @links)}
+        {raw_markdown(@section.body, Map.keys(@spot_media), @links)}
+      </div>
+      <%!-- every drawing cites what it was drawn from, the small ones too;
+            outside .prose so the markers' text offsets are untouched --%>
+      <div :if={@spots != []} class="spot-sources">
+        <span :for={spot <- @spots}>
+          {spot.alt_text || "drawing"}, drawn from
+          <a
+            :for={src <- Media.source_items(spot)}
+            href={src["url"]}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            class="link"
+          >
+            {src["label"] || "the real place"} ↗
+          </a>
+        </span>
       </div>
       <a
         :if={@section.metadata["source_url"]}
@@ -417,6 +444,19 @@ defmodule TravelingPoetWeb.NotebookComponents do
     else
       _ -> text
     end
+  end
+
+  # The spot drawings a body actually embeds, in order, so their sources can
+  # be listed under it.
+  defp embedded_spots(nil, _spot_media), do: []
+  defp embedded_spots(_body, spot_media) when map_size(spot_media) == 0, do: []
+
+  defp embedded_spots(body, spot_media) do
+    ~r{\]\(/media/(\d+)\)}
+    |> Regex.scan(body)
+    |> Enum.map(fn [_, id] -> Map.get(spot_media, String.to_integer(id)) end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq_by(& &1.id)
   end
 
   @doc """

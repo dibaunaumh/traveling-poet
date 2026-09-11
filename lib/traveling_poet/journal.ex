@@ -252,6 +252,24 @@ defmodule TravelingPoet.Journal do
     |> Repo.all()
   end
 
+  @doc """
+  The entry's spot drawings: small ink vignettes the poet embeds inside the
+  prose as `![alt](/media/:id)`. They never render as taped photos (the
+  unattached query is illustration-only); the renderer lets a body embed
+  exactly these ids and nothing else.
+  """
+  def spot_media(%Entry{id: entry_id}) do
+    Media
+    |> where(journal_entry_id: ^entry_id, kind: "spot")
+    |> order_by(asc: :id)
+    |> Repo.all()
+  end
+
+  @doc "The markdown the poet pastes into the prose to place a spot drawing."
+  def spot_markdown(%Media{id: id, alt_text: alt}) do
+    "![#{String.replace(alt || "drawing", ~r/[\[\]]/, "")}](/media/#{id})"
+  end
+
   def create_media(attrs) do
     %Media{}
     |> Media.changeset(attrs)

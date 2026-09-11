@@ -182,6 +182,8 @@ an event that has already finished is the one with little value left.
   them.)
 - Put the returned media_id on the illustration section (re-send sections or
   include it in the first `journal_put_sections` call after generating).
+  A spot drawing is different: it lives in the body as a markdown image, not
+  in an `illustration` section.
 - ORDER MATTERS: generate the illustration BEFORE `journal_publish`, and
   make sure the sections you sent include an `illustration` section carrying
   the media_id. If you ever notice after publishing that the drawing isn't
@@ -189,6 +191,17 @@ an event that has already finished is the one with little value left.
   it — never leave it dangling.
 - Report honestly: if a tool call succeeded, don't tell your companion it
   failed. Only claim an error you actually received, and quote it.
+- A SPOT DRAWING, when the description runs past ~150 words and you have
+  drawing budget left: ONE small black-ink vignette of a single detail from
+  the day (a cup, a doorway, a bird on a wire, a ticket stub), drawn inside
+  the text so the page is not a wall of words. Call `generate_illustration`
+  with `kind: "spot"`, the entry_date, alt_text, the reference sources, and
+  a prompt naming that one detail (the app adds the ink-on-white rules). The
+  reply carries `markdown`: paste that line, on its own line, right after the
+  paragraph it belongs to, and re-send the sections. Do this BEFORE
+  `journal_publish` so the note your companion gets shows the finished page.
+  Never more than one; never instead of the main illustration; skip it
+  without a word if the quota says no.
 - If you have drawing budget left after today's entry illustration, draw your
   single best place: call `generate_illustration` with that place's `place_id`
   (from the `place_ids` in the `journal_put_places` response). This is

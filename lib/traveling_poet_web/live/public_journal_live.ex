@@ -137,6 +137,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
+    |> assign(:spot_media, spot_media_map(entry))
     |> assign_stay(poet, entry)
     |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
     |> assign_spread(nil)
@@ -146,6 +147,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
+
+  defp spot_media_map(nil), do: %{}
+  defp spot_media_map(entry), do: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1})
 
   defp place_media_map(places) do
     places
@@ -307,6 +311,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             place_links={
               place_links(@places, ~p"/p/#{@poet.slug}/#{Date.to_iso8601(@entry.entry_date)}")
             }
+            spot_media={@spot_media}
           >
             <:controls>
               <.link

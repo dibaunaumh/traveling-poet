@@ -119,6 +119,42 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert_push_event(view, "map:update", %{places: []})
   end
 
+  test "a spot drawing embedded in the prose renders on the page with its sources; foreign media does not",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user)
+    other = poet_fixture(user_fixture())
+
+    {:ok, entry} =
+      Journal.upsert_entry(poet.id, ~D[2026-08-25], %{title: "Ink", place_name: "Ronda"})
+
+    spot =
+      media_fixture(poet, %{
+        journal_entry_id: entry.id,
+        kind: "spot",
+        alt_text: "a cup of cafe con leche",
+        sources: %{"items" => [%{"url" => "https://example.com/cup", "label" => "the cafe"}]}
+      })
+
+    foreign = media_fixture(other, %{journal_entry_id: nil})
+
+    body =
+      "The morning started slow.\n\n![a cup of cafe con leche](/media/#{spot.id})\n\n" <>
+        "Then the bridge. ![stolen](/media/#{foreign.id}) ![online](https://photos.example/x.jpg)"
+
+    {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: body}])
+    {:ok, _} = Journal.publish_entry(entry)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, _view, html} = live(conn, ~p"/journal/2026-08-25")
+
+    assert html =~ ~s(<img src="/media/#{spot.id}" alt="a cup of cafe con leche")
+    refute html =~ ~s(src="/media/#{foreign.id}")
+    refute html =~ "photos.example"
+    assert html =~ "a cup of cafe con leche, drawn from"
+    assert html =~ ~s(href="https://example.com/cup")
+  end
+
   test "an entry without places still has the tab, and says so", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user)
