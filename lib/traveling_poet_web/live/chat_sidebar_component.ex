@@ -46,6 +46,9 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
      |> assign(:current_response, "")
      |> assign(:error, nil)
      |> assign(:mobile_chat_open, false)
+     |> assign(:external_turn, false)
+     |> assign(:held, false)
+     |> assign(:first_entry, nil)
      |> assign(:sprite_status, :unknown)}
   end
 
@@ -71,6 +74,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     socket =
       if assigns[:chat_attachment_upload],
         do: assign(socket, :chat_attachment_upload, assigns.chat_attachment_upload),
+        else: socket
+
+    socket =
+      if Map.has_key?(assigns, :first_entry),
+        do: assign(socket, :first_entry, assigns.first_entry),
         else: socket
 
     # Load messages from DB on first render
@@ -105,11 +113,16 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     assign(socket, :sprite_status, status)
   end
 
+  # Text arriving with no send of ours in flight is a turn the app started
+  # (the first-entry ritual, a daily run the reader happens to be watching).
+  # Show it as it streams rather than dropping it on the floor until :done.
   defp handle_forwarded_event(%{stream_delta: delta}, socket) do
+    socket = if socket.assigns.streaming, do: socket, else: begin_external_turn(socket)
     assign(socket, :current_response, socket.assigns.current_response <> delta)
   end
 
   defp handle_forwarded_event(%{stream_replace: text}, socket) do
+    socket = if socket.assigns.streaming, do: socket, else: begin_external_turn(socket)
     assign(socket, :current_response, text)
   end
 
@@ -117,9 +130,10 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     content = socket.assigns.current_response
     user = socket.assigns.user
 
-    # Save agent message to DB (skip if content is empty, e.g. tool-only responses)
+    # Save the agent message unless it is empty (tool-only turn) or
+    # AgentSession already persisted this same reply for a turn it drove.
     socket =
-      if content != "" do
+      if content != "" and not Chat.recent_agent_message_exists?(user.id, content) do
         {:ok, msg} =
           Chat.create_message(%{
             user_id: user.id,
@@ -135,12 +149,29 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
 
     socket
     |> assign(:streaming, false)
+    |> assign(:external_turn, false)
+    |> assign(:held, false)
     |> assign(:current_response, "")
     |> assign(:error, nil)
   end
 
   defp handle_forwarded_event(%{stream_error: reason}, socket) do
-    assign(socket, streaming: false, error: "Agent error: #{reason}")
+    assign(socket,
+      streaming: false,
+      external_turn: false,
+      held: false,
+      error: "Agent error: #{reason}"
+    )
+  end
+
+  # The gateway turned our message away because another turn was running;
+  # the parent keeps the text and resends it when that turn ends.
+  defp handle_forwarded_event(%{stream_held: true}, socket) do
+    assign(socket, streaming: true, held: true, error: nil)
+  end
+
+  defp handle_forwarded_event(%{stream_resent: true}, socket) do
+    assign(socket, streaming: true, external_turn: false, held: false, current_response: "")
   end
 
   defp handle_forwarded_event(%{sprite_waking: true}, socket) do
@@ -170,13 +201,26 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp handle_forwarded_event(%{append_user_message: msg}, socket) do
     socket
     |> assign(:messages, socket.assigns.messages ++ [msg])
-    |> assign(:input, "")
-    |> assign(:streaming, true)
-    |> assign(:current_response, "")
-    |> assign(:error, nil)
+    |> begin_own_turn()
   end
 
   defp handle_forwarded_event(_assigns, socket), do: socket
+
+  defp begin_external_turn(socket) do
+    assign(socket, streaming: true, external_turn: true, error: nil, current_response: "")
+  end
+
+  # Sending during a turn the app started must not wipe the narration bubble
+  # mid-sentence; the reply to our message comes after that turn anyway.
+  defp begin_own_turn(socket) do
+    socket
+    |> assign(:input, "")
+    |> assign(:streaming, true)
+    |> assign(:error, nil)
+    |> then(fn s ->
+      if s.assigns.external_turn, do: s, else: assign(s, :current_response, "")
+    end)
+  end
 
   @impl true
   def handle_event("update_input", %{"message" => value}, socket) do
@@ -192,13 +236,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
       has_attachment? ->
         # Parent owns the upload + persistence + send when an attachment is present.
         send(self(), {:chat_send, message, true})
-
-        {:noreply,
-         socket
-         |> assign(:input, "")
-         |> assign(:streaming, true)
-         |> assign(:current_response, "")
-         |> assign(:error, nil)}
+        {:noreply, begin_own_turn(socket)}
 
       message != "" ->
         user = socket.assigns.user
@@ -215,10 +253,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
         {:noreply,
          socket
          |> assign(:messages, socket.assigns.messages ++ [msg])
-         |> assign(:input, "")
-         |> assign(:streaming, true)
-         |> assign(:current_response, "")
-         |> assign(:error, nil)}
+         |> begin_own_turn()}
 
       true ->
         {:noreply, socket}
@@ -280,8 +315,8 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
           <!-- Not provisioned message -->
           <div class="flex-1 flex items-center justify-center p-4">
             <div class="text-center text-slate-500 text-sm">
-              <p class="mb-2">Agent not yet provisioned.</p>
-              <p>Add your API key during onboarding or contact support to set up your agent.</p>
+              <p class="mb-2">Your poet is still being set up.</p>
+              <p>The chat opens the moment it is reachable.</p>
             </div>
           </div>
         <% else %>
@@ -337,6 +372,15 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
               </div>
             <% end %>
 
+            <%= if @held do %>
+              <div
+                id="chat-held-note"
+                class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 text-xs"
+              >
+                Held until {@user.agent_name || "your poet"} finishes the page. It goes out on its own.
+              </div>
+            <% end %>
+
             <%= if @error do %>
               <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-600 text-xs">
                 {@error}
@@ -346,6 +390,14 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
 
           <!-- Input -->
           <div class="border-t border-slate-200 p-3" phx-drop-target={attachment_ref(assigns)}>
+            <p
+              :if={@first_entry == :in_flight and not @held}
+              id="chat-first-entry-hint"
+              class="mb-2 text-xs text-slate-500"
+            >
+              {@user.agent_name || "Your poet"} is writing the first entry. A message sent now waits
+              until the page is done.
+            </p>
             <%= for entry <- attachment_entries(assigns) do %>
               <div class="mb-2 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs">
                 <svg
@@ -423,7 +475,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                 <textarea
                   name="message"
                   placeholder="Type a message..."
-                  disabled={@streaming}
+                  disabled={composer_locked?(assigns)}
                   rows="1"
                   class="flex-1 px-3 py-2 text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 focus:outline-none disabled:opacity-50 resize-none overflow-y-auto max-h-40 leading-5"
                   autocomplete="off"
@@ -432,10 +484,10 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                 ></textarea>
                 <button
                   type="submit"
-                  disabled={@streaming or attachment_uploading?(assigns)}
+                  disabled={composer_locked?(assigns) or attachment_uploading?(assigns)}
                   class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors"
                 >
-                  {if @streaming, do: "...", else: "Send"}
+                  {send_label(assigns)}
                 </button>
               </div>
             </form>
@@ -448,6 +500,17 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
 
   # -- helpers --
 
+  # Our own turn locks the composer until the reply lands, and so does a held
+  # message (one at a time). A turn the app started does not: the reader may
+  # still say hello, and the parent holds it if the gateway is busy.
+  defp composer_locked?(%{streaming: true, held: true}), do: true
+  defp composer_locked?(%{streaming: true, external_turn: false}), do: true
+  defp composer_locked?(_), do: false
+
+  defp send_label(%{held: true}), do: "Held"
+  defp send_label(%{streaming: true, external_turn: false}), do: "..."
+  defp send_label(_), do: "Send"
+
   defp status_class(:running), do: "bg-green-100 text-green-700"
   defp status_class(:waking), do: "bg-yellow-100 text-yellow-700"
   defp status_class(:reconnecting), do: "bg-yellow-100 text-yellow-700"
@@ -459,7 +522,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp status_label(:waking), do: "Waking..."
   defp status_label(:reconnecting), do: "Reconnecting..."
   defp status_label(:provisioned), do: "Ready"
-  defp status_label(:not_provisioned), do: "Not provisioned"
+  defp status_label(:not_provisioned), do: "Setting up"
   defp status_label(:unknown), do: "Checking..."
 
   defp msg_class("user"), do: "bg-blue-100 text-blue-900"

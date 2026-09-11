@@ -143,6 +143,56 @@ defmodule TravelingPoetWeb.PushNotifications do
   attr :push, :map, required: true
   attr :poet, :any, required: true
 
+  @doc """
+  The tip on the journal while the first entry is still on its way. Unlike
+  the nudge it needs no entry, and it carries the promise of what a
+  notification is ever for. Never render it alongside the nudge: two
+  WebPush hooks on one page would both register the service worker.
+  """
+  def push_tip(assigns) do
+    ~H"""
+    <div
+      :if={@push.configured?}
+      id="push-tip"
+      phx-hook="WebPush"
+      data-vapid-key={TravelingPoet.WebPush.public_key()}
+      class="text-sm space-y-2"
+    >
+      <p :if={@push.state == :unknown} class="opacity-60">Checking this device for notifications.</p>
+      <div :if={@push.state == :available} class="space-y-2">
+        <p class="font-medium">Get a nudge on this device when {@poet.name} publishes.</p>
+        <button type="button" data-push-action="subscribe" class="btn btn-secondary btn-sm">
+          Turn on notifications
+        </button>
+      </div>
+      <div :if={@push.state == :needs_install} class="space-y-1">
+        <p class="font-medium">Add Traveling Poet to your Home Screen.</p>
+        <p class="opacity-70">
+          On iPhone or iPad, notifications work once the app is on your Home Screen: tap Share,
+          then Add to Home Screen, open it from there, and turn on notifications.
+        </p>
+      </div>
+      <p :if={@push.state == :subscribed} class="font-medium">
+        This device will get a nudge when the first entry is out.
+      </p>
+      <p :if={@push.state == :denied} class="opacity-70">
+        Notifications are blocked for this site. Allow them in your browser or system settings
+        to get a nudge when {@poet.name} publishes.
+      </p>
+      <p :if={@push.state == :unsupported} class="opacity-70">
+        This browser can't receive push notifications. Telegram works everywhere.
+      </p>
+      <p class="opacity-60 text-xs" id="notification-promise">
+        Notifications are only for new entries and notes about your account, such as credits
+        running low. Never marketing.
+      </p>
+    </div>
+    """
+  end
+
+  attr :push, :map, required: true
+  attr :poet, :any, required: true
+
   @doc "The settings section: this device's switch plus how many devices are on."
   def push_settings(assigns) do
     ~H"""

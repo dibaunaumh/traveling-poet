@@ -27,6 +27,8 @@ mix tpoet.backfill_places [--commit]   # extract trip-guide places from old entr
 mix tpoet.gen_vapid_keys               # generate once, keep forever (rotation kills every push subscription)
 ```
 
+Dev-only sign-in without Google: `GET /dev/login/:user_id` (`DevSessionController`, routed only under `dev_routes`) starts a session for that user and lands on `/journal`. Handy for owner pages such as the pre-first-entry journal, which needs a signed-in owner with a poet.
+
 Deploy and prod ops:
 
 ```bash

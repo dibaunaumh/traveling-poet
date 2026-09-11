@@ -48,29 +48,45 @@ defmodule TravelingPoet.FirstEntry do
 
   Returns `:started | :done | :in_flight | :exhausted | :not_ready`.
   """
-  def ensure_started(user, poet, now \\ DateTime.utc_now())
-
-  def ensure_started(nil, _poet, _now), do: :not_ready
-  def ensure_started(_user, nil, _now), do: :not_ready
-
-  def ensure_started(user, poet, now) do
-    cond do
-      not user.sprite_provisioned ->
+  def ensure_started(user, poet, now \\ DateTime.utc_now()) do
+    case status(user, poet, now) do
+      :waiting_for_sprite ->
         :not_ready
 
-      published?(poet) ->
-        :done
-
-      recent_attempt?(user.id, now) ->
-        :in_flight
-
-      attempts(user.id) >= @max_attempts ->
-        :exhausted
-
-      true ->
+      state when state in [:starting, :retry_pending] ->
         {:ok, _} = Usage.record(user.id, @attempt_kind)
         Task.start(fn -> run(user, poet) end)
         :started
+
+      state ->
+        state
+    end
+  end
+
+  @doc """
+  Where the first entry stands, for the journal placeholder. A pure read of
+  the same facts `ensure_started/3` decides on, so the two can never disagree:
+
+    * `:waiting_for_sprite` - no sprite yet, nothing can run
+    * `:starting` - sprite ready, no attempt made yet
+    * `:in_flight` - an attempt started in the last `retry_after_minutes/0`
+    * `:retry_pending` - the last attempt produced no page; the watchdog will retry
+    * `:exhausted` - out of attempts; the daily run is the next chance
+    * `:done` - a published entry exists
+  """
+  def status(user, poet, now \\ DateTime.utc_now())
+
+  def status(nil, _poet, _now), do: :waiting_for_sprite
+  def status(_user, nil, _now), do: :waiting_for_sprite
+
+  def status(user, poet, now) do
+    cond do
+      not user.sprite_provisioned -> :waiting_for_sprite
+      published?(poet) -> :done
+      recent_attempt?(user.id, now) -> :in_flight
+      attempts(user.id) >= @max_attempts -> :exhausted
+      attempts(user.id) == 0 -> :starting
+      true -> :retry_pending
     end
   end
 

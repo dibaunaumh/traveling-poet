@@ -2,12 +2,12 @@ defmodule TravelingPoetWeb.SettingsLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_settings: 1]
+  import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_settings: 1]
 
   import TravelingPoetWeb.PoetComponents
 
   alias TravelingPoet.{Accounts, Credits, Geocoder, Payments, Poets, Preferences, Provisioner}
   alias TravelingPoet.Poets.{Poet, Presets}
-  alias TravelingPoet.Telegram
 
   @impl true
   def mount(params, _session, socket) do
@@ -29,8 +29,7 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:user, user)
      |> assign(:poet, poet)
      |> assign_push()
-     |> assign(:telegram_configured, Telegram.Client.configured?())
-     |> assign(:telegram_link, nil)
+     |> assign_telegram()
      |> assign(:packs, Credits.packs())
      |> assign(:reading_list, Geocoder.reading_list())
      |> assign(:payments_mock, Payments.mock?())
@@ -65,6 +64,10 @@ defmodule TravelingPoetWeb.SettingsLive do
   @impl true
   def handle_event("push_" <> _ = event, params, socket),
     do: TravelingPoetWeb.PushNotifications.handle_event(event, params, socket)
+
+  @impl true
+  def handle_event("telegram_" <> _ = event, params, socket),
+    do: TravelingPoetWeb.TelegramPairing.handle_event(event, params, socket)
 
   @impl true
   def handle_event("dismiss_preference", %{"id" => id}, socket) do
@@ -277,31 +280,8 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
-  def handle_event("telegram_pair_link", _params, socket) do
-    case Telegram.Pairing.mint_pair_link(socket.assigns.user) do
-      {:ok, link} -> {:noreply, assign(socket, :telegram_link, link)}
-      _ -> {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
-    end
-  end
-
-  @impl true
-  def handle_event("telegram_unpair", _params, socket) do
-    case Telegram.Pairing.unpair(socket.assigns.user) do
-      {:ok, user} ->
-        {:noreply, socket |> assign(:user, user) |> put_flash(:info, "Telegram unpaired.")}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:telegram_paired, _username}, socket) do
-    {:noreply,
-     socket
-     |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
-     |> put_flash(:info, "Telegram paired ✓")}
-  end
+  def handle_info({:telegram_paired, _} = msg, socket),
+    do: TravelingPoetWeb.TelegramPairing.handle_info(msg, socket)
 
   @impl true
   def handle_info({:credits_updated, _balance}, socket) do
@@ -749,28 +729,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
           <div class="divider"></div>
 
-          <h2 class="font-semibold mb-2">Telegram</h2>
-          <div :if={!@telegram_configured} class="text-sm opacity-60">
-            Telegram isn't configured on this server.
-          </div>
-          <div :if={@telegram_configured}>
-            <div :if={@user.telegram_chat_id} class="flex items-center gap-3">
-              <span class="text-sm">
-                Paired{if @user.telegram_username, do: " as @#{@user.telegram_username}"} ✓
-              </span>
-              <button phx-click="telegram_unpair" class="btn btn-outline btn-sm">Unpair</button>
-            </div>
-            <div :if={is_nil(@user.telegram_chat_id)} class="space-y-2">
-              <button phx-click="telegram_pair_link" class="btn btn-secondary btn-sm">
-                Generate pairing link
-              </button>
-              <div :if={@telegram_link}>
-                <a href={@telegram_link} target="_blank" rel="noopener" class="link break-all">
-                  {@telegram_link}
-                </a>
-              </div>
-            </div>
-          </div>
+          <.telegram_settings telegram={@telegram} user={@user} />
 
           <div class="divider"></div>
 

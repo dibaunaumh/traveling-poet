@@ -78,6 +78,46 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
       {:ok, _view, html} = live(sign_in(conn, user), ~p"/journal")
       refute html =~ ~s(id="push-nudge")
     end
+  end
+
+  describe "waiting tip" do
+    test "offers notifications before any entry, with the promise", %{conn: conn} do
+      {user, _poet} = owner()
+      {:ok, view, html} = live(sign_in(conn, user), ~p"/journal")
+      assert html =~ ~s(id="push-tip")
+      assert html =~ "Never marketing"
+      refute html =~ "Turn on notifications"
+
+      html = render_hook(view, "push_state", %{"state" => "available", "dismissed" => false})
+      assert html =~ "Get a nudge on this device when Solveig publishes."
+      assert html =~ "Turn on notifications"
+      assert html =~ ~s(data-push-action="subscribe")
+    end
+
+    test "on an iPhone browser tab it explains Home Screen", %{conn: conn} do
+      {user, _poet} = owner()
+      {:ok, view, _} = live(sign_in(conn, user), ~p"/journal")
+
+      html = render_hook(view, "push_state", %{"state" => "needs_install", "dismissed" => false})
+      assert html =~ "Add to Home Screen"
+      refute html =~ ~s(data-push-action="subscribe")
+    end
+
+    test "a subscribed device is told what it will get", %{conn: conn} do
+      {user, _poet} = owner()
+      {:ok, view, _} = live(sign_in(conn, user), ~p"/journal")
+
+      html = render_hook(view, "push_state", %{"state" => "subscribed", "dismissed" => false})
+      assert html =~ "will get a nudge when the first entry is out"
+    end
+
+    test "the tip makes way for the nudge once an entry exists", %{conn: conn} do
+      {user, poet} = owner()
+      publish_entry(poet)
+      {:ok, _view, html} = live(sign_in(conn, user), ~p"/journal")
+      refute html =~ ~s(id="push-tip")
+      assert html =~ ~s(id="push-nudge")
+    end
 
     test "a successful subscribe is stored and acknowledged", %{conn: conn} do
       {user, poet} = owner()
