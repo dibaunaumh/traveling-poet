@@ -304,6 +304,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             day={Journal.journey_day(@entry, @journey_start)}
             spread={@spread}
             media={@entry_media}
+            place_links={
+              place_links(@places, ~p"/p/#{@poet.slug}/#{Date.to_iso8601(@entry.entry_date)}")
+            }
           >
             <:controls>
               <.link

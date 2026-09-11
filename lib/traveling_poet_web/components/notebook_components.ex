@@ -40,6 +40,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :day, :integer, default: nil
   attr :media, :map, default: %{}, doc: "media by id, for illustration sections"
   attr :clamp, :boolean, default: false, doc: "cut prose to a few lines (home page)"
+  attr :place_links, :list, default: [], doc: "see place_links/2"
   attr :heading_tag, :string, default: "h2"
   attr :show_date, :boolean, default: true
   attr :rest, :global, doc: "id, hooks and data attributes for the article"
@@ -72,6 +73,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           entry={@entry}
           media={@media}
           clamp={@clamp}
+          links={@place_links}
         />
         <p :if={@spread.left == []} class="prose text-sm opacity-60">
           A quiet page. The drawing says it all today.
@@ -88,6 +90,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           entry={@entry}
           media={@media}
           clamp={@clamp}
+          links={@place_links}
         />
         {render_slot(@right_footer)}
       </div>
@@ -99,6 +102,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :entry, :map, required: true
   attr :media, :map, required: true
   attr :clamp, :boolean, default: false
+  attr :links, :list, default: []
 
   # The id and data attributes come from the section's stored position, not
   # its place on the page: the Markers hook matches marks by (kind, position)
@@ -118,6 +122,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         section={@section}
         media={@media[@section.media_id]}
         clamp={@clamp and @section.kind != "illustration"}
+        links={@links}
       />
     </div>
     """
@@ -335,6 +340,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :section, :any, required: true
   attr :media, :any, default: nil
   attr :clamp, :boolean, default: false, doc: "cap the prose at a few lines (home page spread)"
+  attr :links, :list, default: [], doc: "place links to weave into the prose, see place_links/2"
 
   @doc "One journal section: a taped-on illustration, or a titled block of the poet's prose."
   def section(%{section: %{kind: "illustration"}} = assigns) do
@@ -369,7 +375,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         {section_icon(@section.kind)} {@section.title}
       </h3>
       <div class={["prose prose-sm max-w-none", @clamp && "spread-clamp"]}>
-        {raw_markdown(@section.body)}
+        {raw_markdown(@section.body, [], @links)}
       </div>
       <a
         :if={@section.metadata["source_url"]}
@@ -396,20 +402,127 @@ defmodule TravelingPoetWeb.NotebookComponents do
   the "never embed photos you find online" rule in `priv/data/AGENTS.md`
   enforced here rather than only in the prompt.
   """
-  def raw_markdown(text, allowed_media_ids \\ [])
+  def raw_markdown(text, allowed_media_ids \\ [], place_links \\ [])
 
-  def raw_markdown(nil, _allowed), do: ""
+  def raw_markdown(nil, _allowed, _links), do: ""
 
-  def raw_markdown(text, allowed_media_ids) do
+  def raw_markdown(text, allowed_media_ids, place_links) do
     allowed = MapSet.new(allowed_media_ids, &to_string/1)
 
     with {:ok, doc} <- MDEx.parse_document(text),
          doc = MDEx.traverse_and_update(doc, &own_images_only(&1, allowed)),
+         doc = %{doc | nodes: link_places(doc.nodes, place_links)},
          {:ok, html} <- MDEx.to_html(doc, sanitize: MDEx.Document.default_sanitize_options()) do
       Phoenix.HTML.raw(html)
     else
       _ -> text
     end
+  end
+
+  @doc """
+  The links `raw_markdown/3` weaves into the prose: the first mention of each
+  of the entry's places becomes a link to its stop on the Places spread, so
+  a name in the text is a way into the guide. Built by the journals, since
+  the path differs between the owner's and a public one.
+  """
+  # Below this a name is a word ("Bar", "Sur") that would link half the prose.
+  @min_name 4
+
+  def place_links(places, base_path) do
+    places
+    |> Enum.filter(&(is_binary(&1.name) and String.length(String.trim(&1.name)) >= @min_name))
+    |> Enum.map(&%{name: String.trim(&1.name), href: "#{base_path}?spread=places#stop-#{&1.id}"})
+  end
+
+  # Walks the AST once, threading the places still unlinked, so each name
+  # links exactly once: at its first mention anywhere in the body. Text
+  # already inside a link (the poet's own) is left alone, as are images and
+  # code. Only text nodes are split, so the visible text is unchanged and the
+  # feedback markers' offsets still hold.
+  defp link_places(nodes, []), do: nodes
+
+  defp link_places(nodes, links) do
+    links = Enum.sort_by(links, &(-String.length(&1.name)))
+    {nodes, _left} = walk(nodes, links, Enum.map(links, & &1.name))
+    nodes
+  end
+
+  # `all` is every name, linked or not: a shorter name never matches inside
+  # a mention of a longer one ("Cafe" inside "Cafe Museum"), even once the
+  # longer one has had its link, or the reader would be sent to the wrong stop.
+  defp walk(nodes, links, all) do
+    {rev, links} =
+      Enum.reduce(nodes, {[], links}, fn node, {acc, links} ->
+        {replaced, links} = walk_node(node, links, all)
+        {Enum.reverse(replaced, acc), links}
+      end)
+
+    {Enum.reverse(rev), links}
+  end
+
+  defp walk_node(node, [], _all), do: {[node], []}
+  defp walk_node(%MDEx.Text{literal: text}, links, all), do: link_text(text, links, all)
+  defp walk_node(%MDEx.Link{} = node, links, _all), do: {[node], links}
+  defp walk_node(%MDEx.Image{} = node, links, _all), do: {[node], links}
+  defp walk_node(%MDEx.Code{} = node, links, _all), do: {[node], links}
+
+  defp walk_node(%{nodes: children} = node, links, all) do
+    {children, links} = walk(children, links, all)
+    {[%{node | nodes: children}], links}
+  end
+
+  defp walk_node(node, links, _all), do: {[node], links}
+
+  # The earliest mention of any still-unlinked place wins; a tie goes to the
+  # longer name. Both sides of the cut are walked again with what is left.
+  defp link_text(text, links, all) do
+    links
+    |> Enum.map(&{&1, first_mention(text, &1.name, longer_than(&1.name, all))})
+    |> Enum.reject(fn {_, at} -> is_nil(at) end)
+    |> Enum.min_by(fn {_, {start, len}} -> {start, -len} end, fn -> nil end)
+    |> case do
+      nil ->
+        {text_nodes(text), links}
+
+      {link, {start, len}} ->
+        before = binary_part(text, 0, start)
+        mention = binary_part(text, start, len)
+        rest = binary_part(text, start + len, byte_size(text) - start - len)
+        remaining = List.delete(links, link)
+
+        {before_nodes, remaining} = link_text(before, remaining, all)
+        {rest_nodes, remaining} = link_text(rest, remaining, all)
+
+        anchor = %MDEx.Link{
+          url: link.href,
+          # "" not nil: MDEx cannot encode a link with a nil title
+          title: "",
+          nodes: [%MDEx.Text{literal: mention}]
+        }
+
+        {before_nodes ++ [anchor] ++ rest_nodes, remaining}
+    end
+  end
+
+  defp text_nodes(""), do: []
+  defp text_nodes(text), do: [%MDEx.Text{literal: text}]
+
+  defp longer_than(name, all), do: Enum.filter(all, &(String.length(&1) > String.length(name)))
+
+  # The first whole-word, case-insensitive mention that does not sit inside
+  # a mention of a longer name. Byte offsets, so binary_part cuts cleanly.
+  defp first_mention(text, name, shadows) do
+    covered = Enum.flat_map(shadows, &mentions(text, &1))
+
+    Enum.find(mentions(text, name), fn {start, len} ->
+      not Enum.any?(covered, fn {s, l} -> start >= s and start + len <= s + l end)
+    end)
+  end
+
+  defp mentions(text, name) do
+    ~r/(?<![\p{L}\p{N}])#{Regex.escape(name)}(?![\p{L}\p{N}])/iu
+    |> Regex.scan(text, return: :index)
+    |> Enum.map(&hd/1)
   end
 
   defp own_images_only(%MDEx.Image{url: "/media/" <> id} = image, allowed) do

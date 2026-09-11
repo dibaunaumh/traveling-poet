@@ -92,3 +92,26 @@ if (process.env.NODE_ENV === "development") {
 
 // Initialize Leaflet maps on static (non-LiveView) pages like the landing page
 window.addEventListener("DOMContentLoaded", initStaticMaps)
+
+// Place names inside the poet's prose link to the Places spread. They are
+// rendered from sanitized markdown, which strips the data-phx-link attributes
+// a <.link patch> would carry, so the patch is wired here instead: a full
+// page load would drop the chat and remount the map for a one-tab turn.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest('.notebook-page .prose a[href*="spread=places"]')
+  if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+  e.preventDefault()
+  liveSocket.pushHistoryPatch(e, a.getAttribute("href"), "push", a)
+})
+
+// After the patch lands, light the stop the link pointed at for a moment.
+// CSS :target would do this on a real navigation, but browsers do not
+// re-evaluate it after pushState, which is how LiveView patches.
+window.addEventListener("phx:page-loading-stop", () => {
+  const hash = window.location.hash
+  if (!hash.startsWith("#stop-")) return
+  const stop = document.getElementById(hash.slice(1))
+  if (!stop) return
+  stop.classList.add("stop-lit")
+  setTimeout(() => stop.classList.remove("stop-lit"), 4000)
+})

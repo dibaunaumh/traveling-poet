@@ -1,7 +1,8 @@
 defmodule TravelingPoetWeb.NotebookComponentsTest do
   use ExUnit.Case, async: true
 
-  import TravelingPoetWeb.NotebookComponents, only: [raw_markdown: 1, raw_markdown: 2]
+  import TravelingPoetWeb.NotebookComponents,
+    only: [raw_markdown: 1, raw_markdown: 2, raw_markdown: 3, place_links: 2]
 
   defp html(safe), do: safe |> Phoenix.HTML.safe_to_string()
   defp text(safe), do: safe |> html() |> LazyHTML.from_fragment() |> LazyHTML.text()
@@ -57,5 +58,71 @@ defmodule TravelingPoetWeb.NotebookComponentsTest do
   test "nil and unparsable input do not crash" do
     assert raw_markdown(nil) == ""
     assert is_binary(html(raw_markdown("just text")))
+  end
+
+  describe "place links in the prose" do
+    @links [
+      %{name: "Cafe Museum", href: "/journal/2026-09-11?spread=places#stop-1"},
+      %{name: "Cafe", href: "/journal/2026-09-11?spread=places#stop-2"},
+      %{name: "Puente Nuevo", href: "/journal/2026-09-11?spread=places#stop-3"}
+    ]
+
+    test "the first mention of each place becomes a link; later mentions stay plain" do
+      md =
+        "Morning at Cafe Museum, then Puente Nuevo. Back to Cafe Museum at dusk, over Puente Nuevo."
+
+      out = html(raw_markdown(md, [], @links))
+
+      assert out =~
+               ~s(<a href="/journal/2026-09-11?spread=places#stop-1" rel="noopener noreferrer">Cafe Museum</a>)
+
+      assert out =~ ~s(#stop-3" rel="noopener noreferrer">Puente Nuevo</a>)
+      assert length(Regex.scan(~r/<a /, out)) == 2
+    end
+
+    test "the longer name wins where names nest, and the short one still gets its own first mention" do
+      out = html(raw_markdown("Cafe Museum first, the Cafe second.", [], @links))
+
+      assert out =~ ~s(#stop-1" rel="noopener noreferrer">Cafe Museum</a>)
+      assert out =~ ~s(#stop-2" rel="noopener noreferrer">Cafe</a>)
+      assert length(Regex.scan(~r/<a /, out)) == 2
+    end
+
+    test "matches whole words only, case-insensitively, across paragraphs and emphasis" do
+      md = "The cafes were shut.\n\nWe found *cafe museum* open, and a **Puente** nearby."
+      out = html(raw_markdown(md, [], @links))
+
+      assert out =~
+               ~s(<em><a href="/journal/2026-09-11?spread=places#stop-1" rel="noopener noreferrer">cafe museum</a></em>)
+
+      refute out =~ ~s(>cafes</a>)
+      refute out =~ ~s(Puente</a>)
+    end
+
+    test "text the poet already linked, and code, are left alone" do
+      md = "See [Cafe Museum](https://example.com/cm) and `Puente Nuevo` and then Puente Nuevo."
+      out = html(raw_markdown(md, [], @links))
+
+      assert out =~ ~s(<a href="https://example.com/cm" rel="noopener noreferrer">Cafe Museum</a>)
+      assert out =~ "<code>Puente Nuevo</code>"
+      assert out =~ ~s(#stop-3" rel="noopener noreferrer">Puente Nuevo</a>)
+      assert length(Regex.scan(~r/<a /, out)) == 2
+    end
+
+    test "linking never changes the visible text, so marker offsets hold" do
+      md = "Morning at Cafe Museum (C&M), then *Puente Nuevo*; back to Cafe Museum."
+      assert text(raw_markdown(md, [], @links)) == text(raw_markdown(md))
+    end
+
+    test "regex specials in a name are literal, and short names are not linked at all" do
+      links =
+        place_links([%{id: 9, name: "Bar (Sur)"}, %{id: 10, name: "Sur"}], "/p/nam/2026-09-11")
+
+      assert links == [%{name: "Bar (Sur)", href: "/p/nam/2026-09-11?spread=places#stop-9"}]
+
+      out = html(raw_markdown("Drinks at Bar (Sur), by the Sur.", [], links))
+      assert out =~ ~s|#stop-9" rel="noopener noreferrer">Bar (Sur)</a>|
+      assert length(Regex.scan(~r/<a /, out)) == 1
+    end
   end
 end
