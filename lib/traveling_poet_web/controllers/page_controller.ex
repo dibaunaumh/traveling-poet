@@ -107,6 +107,7 @@ defmodule TravelingPoetWeb.PageController do
       day: Journal.journey_day(entry),
       media: media,
       spread: hd(Spreads.pack(entry, media, extra)),
+      spot_media: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1}),
       url: entry_url(poet, entry)
     }
   end

@@ -261,8 +261,15 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
             |> Enum.map(&Journal.get_media/1)
             |> Enum.reject(&is_nil/1)
             |> Kernel.++(Journal.unattached_illustrations(entry, sections))
+            |> Kernel.++(Journal.spot_media(entry))
             |> Enum.uniq_by(& &1.id)
-            |> Enum.map(&%{id: &1.id, kind: &1.kind, alt_text: &1.alt_text})
+            |> Enum.map(fn m ->
+              base = %{id: m.id, kind: m.kind, alt_text: m.alt_text}
+
+              if m.kind == "spot",
+                do: Map.put(base, :markdown, Journal.spot_markdown(m)),
+                else: base
+            end)
 
           markers =
             entry.id

@@ -2,7 +2,11 @@ defmodule TravelingPoet.Journal.Media do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(illustration poet_avatar)
+  # illustration: the day's drawing, taped onto the page
+  # spot: a small black-ink vignette embedded inside the prose (Phase 5)
+  # poet_avatar: the self-portrait
+  @kinds ~w(illustration spot poet_avatar)
+  @drawn_from_references ~w(illustration spot)
 
   schema "media" do
     field :s3_key, :string
@@ -44,13 +48,14 @@ defmodule TravelingPoet.Journal.Media do
     |> validate_sources()
   end
 
-  # Illustrations must cite the real photos they were drawn from.
+  # Drawings must cite the real photos they were drawn from; spot drawings
+  # are drawings too, however small.
   defp validate_sources(changeset) do
     kind = get_field(changeset, :kind)
     items = get_field(changeset, :sources) |> Kernel.||(%{}) |> Map.get("items", [])
 
     cond do
-      kind != "illustration" ->
+      kind not in @drawn_from_references ->
         changeset
 
       items == [] ->

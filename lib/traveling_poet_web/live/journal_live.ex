@@ -197,6 +197,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
+    |> assign(:spot_media, spot_media_map(entry))
     |> assign_stay(poet, entry)
     |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
@@ -262,6 +263,9 @@ defmodule TravelingPoetWeb.JournalLive do
   # how many the whole stay has so the page can point at the guide.
   defp entry_places(nil), do: []
   defp entry_places(entry), do: Guide.list_places_for_entry(entry.id)
+
+  defp spot_media_map(nil), do: %{}
+  defp spot_media_map(entry), do: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1})
 
   defp place_media_map(places) do
     places
@@ -1169,6 +1173,7 @@ defmodule TravelingPoetWeb.JournalLive do
               spread={@spread}
               media={@entry_media}
               place_links={place_links(@places, ~p"/journal/#{Date.to_iso8601(@entry.entry_date)}")}
+              spot_media={@spot_media}
               phx-hook="Markers"
               data-active-marker={@active_marker}
               data-markers={@markers_json}

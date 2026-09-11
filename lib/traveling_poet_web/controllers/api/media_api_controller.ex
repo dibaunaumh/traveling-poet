@@ -45,6 +45,14 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   @framing " The image is the scene itself, filling the frame edge to edge:" <>
              " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
 
+  # A spot drawing sits inside the prose, blended onto the paper with CSS
+  # multiply, which makes pure white vanish. So: ink on white, nothing else.
+  # The model cannot be trusted to keep the background clean from the poet's
+  # prompt alone; the app says it every time.
+  @ink " A small black ink line drawing of one detail, on a pure white background:" <>
+         " no wash, no colour, no shading fill, no vignette, no border, no text." <>
+         " The white must stay pure white."
+
   def generate(conn, %{"prompt" => prompt} = params) when is_binary(prompt) do
     user = conn.assigns.agent_user
 
@@ -59,7 +67,9 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
         conn |> put_status(429) |> json(%{error: "daily image quota reached"})
 
       true ->
-        case TravelingPoet.Illustrations.generate(String.trim(prompt) <> @framing) do
+        case TravelingPoet.Illustrations.generate(
+               String.trim(prompt) <> style_rules(params["kind"])
+             ) do
           {:ok, bytes, content_type} ->
             do_create(
               conn,
@@ -78,6 +88,9 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   def generate(conn, _params) do
     conn |> put_status(422) |> json(%{error: "prompt is required"})
   end
+
+  defp style_rules("spot"), do: @ink <> @framing
+  defp style_rules(_kind), do: @framing
 
   defp do_create(conn, user, b64, content_type, params) do
     with %Poets.Poet{} = poet <- Poets.get_poet_by_user(user.id),
@@ -120,7 +133,16 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
               if place, do: TravelingPoet.Guide.attach_media(place, media.id)
 
-              json(conn, %{ok: true, media_id: media.id, url: "/media/#{media.id}"})
+              reply = %{ok: true, media_id: media.id, url: "/media/#{media.id}"}
+
+              # The line the poet pastes into the description; handing it over
+              # ready-made beats trusting the model to spell the path.
+              reply =
+                if media.kind == "spot",
+                  do: Map.put(reply, :markdown, Journal.spot_markdown(media)),
+                  else: reply
+
+              json(conn, reply)
 
             {:error, changeset} ->
               errors =

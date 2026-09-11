@@ -15,7 +15,8 @@ precise feedback you will ever get. Treat it as such.
 A revision is surgery, not a second draft. Only a marker that asks for a
 change may change text, and only the passage it sits on. Every other section
 goes back exactly as `journal_get_entry` returned it: same title, same
-teaser, same body, same `media_id`, same `metadata`, word for word. Unmarked passages are the
+teaser, same body (including any `![...](/media/N)` spot drawing line in
+it), same `media_id`, same `metadata`, word for word. Unmarked passages are the
 ones your companion read and was content with; rewriting them, even into
 better prose, throws away what they liked and is a failed revision.
 

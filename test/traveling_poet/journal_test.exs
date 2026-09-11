@@ -151,4 +151,30 @@ defmodule TravelingPoet.JournalTest do
       assert Journal.entry_illustration(entry).id == chosen.id
     end
   end
+
+  describe "spot drawings" do
+    test "a spot drawing needs sources like any other drawing, and never renders as a taped photo",
+         %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-01]})
+
+      assert {:error, changeset} =
+               Journal.create_media(%{
+                 poet_id: poet.id,
+                 journal_entry_id: entry.id,
+                 s3_key: "media/spot.png",
+                 content_type: "image/png",
+                 kind: "spot",
+                 sources: %{"items" => []}
+               })
+
+      assert %{sources: [_]} = errors_on(changeset)
+
+      spot = media_fixture(poet, %{journal_entry_id: entry.id, kind: "spot", alt_text: "a [cup]"})
+      taped = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      assert Enum.map(Journal.spot_media(entry), & &1.id) == [spot.id]
+      assert Enum.map(Journal.unattached_illustrations(entry, []), & &1.id) == [taped.id]
+      assert Journal.spot_markdown(spot) == "![a cup](/media/#{spot.id})"
+    end
+  end
 end

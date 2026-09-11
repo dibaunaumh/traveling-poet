@@ -836,6 +836,28 @@ mark.marker.marker-sent {
   display: none;
 }
 
+/* A spot drawing inside the prose: black ink on white, blended onto the
+   paper with multiply so the white vanishes and the ruled lines show
+   through, as if drawn straight onto the page. The sanitizer strips
+   classes, so this targets the bare img the markdown produces. */
+.notebook-page .prose img {
+  float: right;
+  max-width: 42%;
+  height: auto;
+  margin: 0.25rem 0 0.5rem 1.25rem;
+  mix-blend-mode: multiply;
+  transform: rotate(1.5deg);
+}
+
+.spot-sources {
+  clear: both;
+  font-family: "Caveat", cursive;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: #8c7454;
+  margin-top: 0.25rem;
+}
+
 /* A place named in the prose is a way into the Places page: stamped ink,
    not the blue of an outbound link. The stop it lands on lights up. */
 .notebook-page .prose a[href*="spread=places"] {
