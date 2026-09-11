@@ -430,7 +430,7 @@ defmodule TravelingPoet.Provisioner do
     `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
     `journal_put_places`, `generate_illustration`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
-    `record_preference`.
+    `record_preference`, `hold_here`, `insert_stop`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -581,6 +581,33 @@ defmodule TravelingPoet.Provisioner do
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/location", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "hold_here",
+          description: "Your companion asked you to stay where you are for a while ('stay longer', 'one more day here'). Keeps you at the current place for `days` more days beyond today; the daily run will not move you until then. Call it the moment they ask, then confirm in one line. Never promise to stay without calling this.",
+          parameters: {
+            type: "object",
+            required: ["days"],
+            properties: {
+              days: { type: "number", description: "How many more days to stay beyond today, 1-30" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/hold", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "insert_stop",
+          description: "Your companion asked you to visit a place before your next planned stop (a detour), or named where to go next. Adds it to your route ahead of the next stop; the daily run takes you there as soon as you are free to move. Pass lat/lng if you know them, otherwise the app geocodes the name. Never promise a detour without calling this.",
+          parameters: {
+            type: "object",
+            required: ["place_name"],
+            properties: {
+              place_name: { type: "string", description: "The place as your companion named it" },
+              lat: { type: "number" },
+              lng: { type: "number" },
+              country_code: { type: "string", description: "ISO 3166-1 alpha-2, e.g. US" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/itinerary_stops", asParams(raw)); }
         });
         ctx.registerTool({
           name: "journal_upsert_entry",

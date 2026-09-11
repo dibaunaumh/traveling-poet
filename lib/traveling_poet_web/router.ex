@@ -57,6 +57,8 @@ defmodule TravelingPoetWeb.Router do
     get "/feedback", AgentController, :feedback
     post "/preferences", PreferenceController, :create
     post "/location", LocationController, :update
+    post "/hold", RouteController, :hold
+    post "/itinerary_stops", RouteController, :insert_stop
     post "/journal_entries", JournalApiController, :upsert_entry
     get "/journal_entries/:date", JournalApiController, :show
     put "/journal_entries/:date/sections", JournalApiController, :put_sections

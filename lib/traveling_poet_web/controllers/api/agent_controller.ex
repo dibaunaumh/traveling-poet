@@ -66,6 +66,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
           },
           itinerary: itinerary_for(poet),
           next_stop: next_stop_for(poet),
+          # The APP decides whether you move today and where: it already
+          # weighs your stay length, any hold your companion asked for in
+          # chat, and any detour they added. Obey travel_today.
+          travel: Poets.travel_plan(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),
           recent_private_feedback: feedback,

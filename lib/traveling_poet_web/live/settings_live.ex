@@ -261,6 +261,16 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("release_hold", _params, socket) do
+    {:ok, poet} = Poets.release_hold(socket.assigns.poet)
+
+    {:noreply,
+     socket
+     |> assign(:poet, poet)
+     |> put_flash(:info, "#{poet.name} is free to move on with the next run.")}
+  end
+
+  @impl true
   def handle_event("remove_stop", %{"id" => id}, socket) do
     Poets.remove_stop(socket.assigns.poet.id, String.to_integer(id))
     {:noreply, assign(socket, :stops, Poets.list_stops(socket.assigns.poet.id))}
@@ -496,6 +506,15 @@ defmodule TravelingPoetWeb.SettingsLive do
               />
             </label>
 
+            <p :if={@poet.hold_until} class="text-sm flex items-center gap-2">
+              <span>
+                Staying put through {Calendar.strftime(@poet.hold_until, "%B %-d")}, as you asked in chat.
+              </span>
+              <button type="button" phx-click="release_hold" class="btn btn-ghost btn-xs">
+                Let it move on
+              </button>
+            </p>
+
             <label class="block">
               <span class="text-sm font-medium">Journal chattiness</span>
               <select name="verbosity" class="select select-bordered w-full mt-1">
@@ -708,6 +727,9 @@ defmodule TravelingPoetWeb.SettingsLive do
               <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
               <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
                 {stop.place_name}
+                <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
+                  asked in chat
+                </span>
               </span>
               <button
                 :if={is_nil(stop.visited_at)}
