@@ -85,18 +85,15 @@ defmodule TravelingPoet.AgentSession do
       {:gateway_event, {:done, response_id}} ->
         content = String.trim(acc)
 
-        if persist? and content != "" and
-             not Chat.recent_agent_message_exists?(user.id, content) do
-          Chat.create_message(%{
-            user_id: user.id,
-            role: "agent",
-            content: content,
-            response_id: response_id,
-            channel: channel
-          })
+        if heartbeat_reply?(content) do
+          # An OpenClaw heartbeat that ran on the main session ahead of our
+          # message; the real reply is still coming. Heartbeats are disabled
+          # in the config we write, but a stale sprite may still run one.
+          Logger.info("AgentSession: ignoring heartbeat reply for user #{user.id}")
+          collect_reply(user, "", timeout, persist?, channel)
+        else
+          finish_reply(user, content, response_id, persist?, channel)
         end
-
-        {:ok, content}
 
       {:gateway_event, _other} ->
         collect_reply(user, acc, timeout, persist?, channel)
@@ -111,5 +108,23 @@ defmodule TravelingPoet.AgentSession do
 
         {:timeout, partial}
     end
+  end
+
+  @doc "True for the acknowledgements an OpenClaw heartbeat run emits when it has nothing to do."
+  def heartbeat_reply?(content), do: content in ["HEARTBEAT_OK", "NO_REPLY"]
+
+  defp finish_reply(user, content, response_id, persist?, channel) do
+    if persist? and content != "" and
+         not Chat.recent_agent_message_exists?(user.id, content) do
+      Chat.create_message(%{
+        user_id: user.id,
+        role: "agent",
+        content: content,
+        response_id: response_id,
+        channel: channel
+      })
+    end
+
+    {:ok, content}
   end
 end

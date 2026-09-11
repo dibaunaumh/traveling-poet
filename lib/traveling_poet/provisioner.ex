@@ -195,7 +195,8 @@ defmodule TravelingPoet.Provisioner do
     poet = TravelingPoet.Poets.get_poet_by_user(user.id)
     phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
 
-    with {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
+    with {:ok, _} <- refresh_config(sprite_name, user, phoenix_url, poet),
+         {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
          {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, user.agent_api_token),
          {:ok, _} <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
          {:ok, _} <- ensure_gateway_service(sprite_name) do
@@ -217,6 +218,21 @@ defmodule TravelingPoet.Provisioner do
       Process.sleep(stagger_ms)
       {user.email, elem_or_error(result)}
     end)
+  end
+
+  # The gateway token is the sprite's auth secret; never rewrite the config
+  # without it (a half-provisioned user would lock its own socket out).
+  defp refresh_config(sprite_name, %{gateway_token: token}, phoenix_url, poet)
+       when is_binary(token) and token != "" do
+    write_config(sprite_name, token, phoenix_url, poet_model(poet))
+  end
+
+  defp refresh_config(sprite_name, _user, _phoenix_url, _poet) do
+    Logger.warning(
+      "Provisioner: #{sprite_name} has no gateway token, leaving openclaw.json as is"
+    )
+
+    {:ok, :skipped}
   end
 
   defp elem_or_error({:ok, name}), do: {:ok, name}
@@ -297,14 +313,22 @@ defmodule TravelingPoet.Provisioner do
     end
   end
 
-  defp write_config(name, gateway_token, phoenix_url, model) do
-    config = %{
+  @doc """
+  The `~/.openclaw/openclaw.json` a poet runs with.
+
+  The heartbeat is off (`every: "0m"`): a paused sprite has no clock, so it
+  could only ever fire while the app is already driving a turn, where it
+  costs a model call and its `HEARTBEAT_OK` races the real reply
+  (`AgentSession`). Every cadence in this product lives app-side.
+  """
+  def openclaw_config(gateway_token, phoenix_url, model) do
+    %{
       gateway: %{
         controlUi: %{allowedOrigins: ["*", phoenix_url]},
         http: %{endpoints: %{responses: %{enabled: true}}},
         auth: %{token: gateway_token}
       },
-      agents: %{defaults: %{model: "openrouter/#{model}"}},
+      agents: %{defaults: %{model: "openrouter/#{model}", heartbeat: %{every: "0m"}}},
       plugins: %{allow: ["tpoet-plugin"]},
       models: %{
         providers: %{
@@ -330,8 +354,10 @@ defmodule TravelingPoet.Provisioner do
         }
       }
     }
+  end
 
-    config_json = Jason.encode!(config, pretty: true)
+  defp write_config(name, gateway_token, phoenix_url, model) do
+    config_json = Jason.encode!(openclaw_config(gateway_token, phoenix_url, model), pretty: true)
 
     cmd =
       "mkdir -p ~/.openclaw && cat > ~/.openclaw/openclaw.json << 'CONFIGEOF'\n#{config_json}\nCONFIGEOF"
