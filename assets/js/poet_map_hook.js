@@ -178,6 +178,16 @@ const PoetMap = {
     this.layer = L.layerGroup().addTo(this.map)
     this.renderData()
 
+    // The same #poet-map node is MOVED between the top of the page and the
+    // Places spread's left page (LiveView matches elements by id), and the
+    // column changes width when the chat opens. Leaflet keeps whatever size
+    // it last measured, so a fit computed after a move lands off-centre.
+    // Re-measure and re-apply the viewport whenever the box changes.
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.refit())
+      this.resizeObserver.observe(this.el)
+    }
+
     // phx-update="ignore" means a changed data attribute never re-renders the
     // map, so filter changes arrive as an event instead.
     // A journey payload always has a path (possibly empty); the guide's has
@@ -185,6 +195,22 @@ const PoetMap = {
     this.handleEvent("map:update", (data) =>
       data.path !== undefined ? this.render(data) : this.renderPlaces(data.places)
     )
+  },
+
+  // Re-measure the container and re-apply the last viewport the data asked
+  // for. `this.viewport` is set by each render; nothing to do before one.
+  refit() {
+    if (!this.map) return
+    this.map.invalidateSize()
+    if (this.viewport) this.viewport()
+  },
+
+  // Every render ends by describing its viewport as a closure, run once now
+  // (after a size check) and again on every resize.
+  fit(viewport) {
+    this.viewport = viewport
+    this.map.invalidateSize()
+    viewport()
   },
 
   renderData() {
@@ -262,21 +288,23 @@ const PoetMap = {
 
     // Stops win the viewport (that page is about them), then focus: the
     // reader is looking at that day, not at wherever the poet happens to be.
-    if (stops.length > 1) {
-      this.map.fitBounds(stops, { padding: [40, 40], maxZoom: 15 })
-    } else if (stops.length === 1) {
-      this.map.setView(stops[0], 14)
-    } else if (data.focus) {
-      this.map.setView([data.focus.lat, data.focus.lng], 9)
-    } else if (data.current && planned.length > 0) {
-      this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
-    } else if (data.current) {
-      this.map.setView([data.current.lat, data.current.lng], 9)
-    } else if (path.length > 0) {
-      this.map.fitBounds(path, { padding: [30, 30] })
-    } else {
-      this.map.setView([30, 10], 2)
-    }
+    this.fit(() => {
+      if (stops.length > 1) {
+        this.map.fitBounds(stops, { padding: [40, 40], maxZoom: 15 })
+      } else if (stops.length === 1) {
+        this.map.setView(stops[0], 14)
+      } else if (data.focus) {
+        this.map.setView([data.focus.lat, data.focus.lng], 9)
+      } else if (data.current && planned.length > 0) {
+        this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
+      } else if (data.current) {
+        this.map.setView([data.current.lat, data.current.lng], 9)
+      } else if (path.length > 0) {
+        this.map.fitBounds(path, { padding: [30, 30] })
+      } else {
+        this.map.setView([30, 10], 2)
+      }
+    })
   },
 
   // Trip guide pins. Colour carries the filter group so the map agrees with
@@ -294,13 +322,15 @@ const PoetMap = {
         .addTo(this.layer)
     })
 
-    if (coords.length > 1) {
-      this.map.fitBounds(coords, { padding: [40, 40], maxZoom: 15 })
-    } else if (coords.length === 1) {
-      this.map.setView(coords[0], 14)
-    } else {
-      this.map.setView([30, 10], 2)
-    }
+    this.fit(() => {
+      if (coords.length > 1) {
+        this.map.fitBounds(coords, { padding: [40, 40], maxZoom: 15 })
+      } else if (coords.length === 1) {
+        this.map.setView(coords[0], 14)
+      } else {
+        this.map.setView([30, 10], 2)
+      }
+    })
   },
 
   renderPoets(poets, anonymous = []) {
@@ -504,6 +534,7 @@ const PoetMap = {
 
   destroyed() {
     this.stopTour()
+    if (this.resizeObserver) this.resizeObserver.disconnect()
     if (this.map) this.map.remove()
   },
 }
