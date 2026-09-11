@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   import TravelingPoetWeb.NotebookComponents
 
   alias TravelingPoet.{Journal, Poets}
+  alias TravelingPoet.Journal.Spreads
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -42,9 +43,25 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             _ -> nil
           end
 
-        {:noreply, socket |> assign_journal(poet, date) |> push_map()}
+        socket =
+          if same_entry?(socket, date),
+            do: socket,
+            else: assign_journal(socket, poet, date)
+
+        {:noreply, socket |> assign_spread(params["spread"]) |> push_map()}
     end
   end
+
+  defp same_entry?(%{assigns: %{entry: %{entry_date: shown}}}, %Date{} = date), do: shown == date
+  defp same_entry?(_socket, _date), do: false
+
+  defp assign_spread(socket, requested) do
+    requested = requested || (socket.assigns[:spread] && socket.assigns.spread.key)
+    assign(socket, :spread, Spreads.pick(socket.assigns.spreads, requested))
+  end
+
+  defp spread_path(poet, entry, key),
+    do: ~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}?spread=#{key}"
 
   # The map div is phx-update="ignore" (Leaflet owns its DOM), so a changed
   # data-points attribute does NOT re-render it. Paging between entries has to
@@ -102,14 +119,18 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       end
 
     journey_start = Journal.first_published_date(poet.id)
+    media_map = entry_media_map(entry)
+    extra = extra_media(entry)
 
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
     |> assign(:journey_start, journey_start)
     |> assign(:og, open_graph(poet, entry, journey_start))
-    |> assign(:entry_media, entry_media_map(entry))
-    |> assign(:extra_media, extra_media(entry))
+    |> assign(:entry_media, media_map)
+    |> assign(:extra_media, extra)
+    |> assign(:spreads, Spreads.pack(entry, media_map, extra))
+    |> assign_spread(nil)
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
     |> assign(:path_points, Poets.list_path_points(poet.id))
   end
@@ -166,7 +187,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       current_user={assigns[:current_user]}
       credits_low={assigns[:credits_low]}
     >
-      <div class="mx-auto max-w-3xl">
+      <div class="journal-column mx-auto max-w-5xl">
         <div class="flex items-center gap-3 mb-3">
           <img
             :if={@poet.avatar_url}
@@ -196,10 +217,20 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         >
         </div>
 
-        <article :if={@entry} class="notebook-page mt-6">
-          <div class="flex items-center justify-between mb-2">
-            <.entry_heading entry={@entry} day={Journal.journey_day(@entry, @journey_start)} />
-            <div class="flex gap-1">
+        <div :if={@entry} class="spread-wrap">
+          <.spread_tabs
+            spreads={@spreads}
+            active={@spread.key}
+            patch={&spread_path(@poet, @entry, &1)}
+          />
+          <.entry_spread
+            id={"entry-#{@entry.id}"}
+            entry={@entry}
+            day={Journal.journey_day(@entry, @journey_start)}
+            spread={@spread}
+            media={@entry_media}
+          >
+            <:controls>
               <.link
                 :for={{label, date} <- entry_nav(@entries, @entry)}
                 navigate={~p"/p/#{@poet.slug}/#{date}"}
@@ -207,29 +238,22 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               >
                 {label}
               </.link>
-            </div>
-          </div>
-
-          <div :for={section <- @entry.sections} class="mb-6">
-            <.section section={section} media={@entry_media[section.media_id]} />
-          </div>
-
-          <div :for={media <- @extra_media} class="mb-6">
-            <.section section={%{kind: "illustration"}} media={media} />
-          </div>
-
-          <div class="flex items-center gap-2 border-t border-base-300 pt-3 mt-4">
-            <button
-              :for={{kind, emoji} <- reaction_kinds()}
-              phx-click="react"
-              phx-value-kind={kind}
-              class="btn btn-ghost btn-sm"
-            >
-              {emoji}
-              <span :if={@public_reactions[kind]} class="text-xs">{@public_reactions[kind]}</span>
-            </button>
-          </div>
-        </article>
+            </:controls>
+            <:right_footer>
+              <div class="flex items-center gap-2 border-t border-base-300 pt-3 mt-4">
+                <button
+                  :for={{kind, emoji} <- reaction_kinds()}
+                  phx-click="react"
+                  phx-value-kind={kind}
+                  class="btn btn-ghost btn-sm"
+                >
+                  {emoji}
+                  <span :if={@public_reactions[kind]} class="text-xs">{@public_reactions[kind]}</span>
+                </button>
+              </div>
+            </:right_footer>
+          </.entry_spread>
+        </div>
 
         <div :if={is_nil(@entry)} class="mt-10 text-center opacity-70">
           <p>No published entries yet — check back soon.</p>
@@ -278,22 +302,4 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   end
 
   defp focus_point(_), do: nil
-
-  defp entry_nav(entries, current) do
-    dates = Enum.map(entries, & &1.entry_date) |> Enum.sort(Date)
-    idx = Enum.find_index(dates, &(&1 == current.entry_date))
-
-    # ISO strings, not Date structs — Date has no Phoenix.Param impl, and a
-    # bare struct in ~p"/journal/#{date}" crashes the render (only once a poet
-    # has 2+ entries, which is why day one didn't catch it)
-    prev =
-      if idx && idx > 0, do: [{"← earlier", Date.to_iso8601(Enum.at(dates, idx - 1))}], else: []
-
-    next =
-      if idx && idx < length(dates) - 1,
-        do: [{"later →", Date.to_iso8601(Enum.at(dates, idx + 1))}],
-        else: []
-
-    prev ++ next
-  end
 end

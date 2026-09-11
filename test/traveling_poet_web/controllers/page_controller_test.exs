@@ -165,10 +165,15 @@ defmodule TravelingPoetWeb.PageControllerTest do
       assert html =~ "/p/#{nam.slug}/2026-09-03"
 
       # one article per poet with a page; the first is open, the rest closed
-      assert html =~ ~s(data-spread-poet="#{nam.slug}")
-      assert html =~ ~s(data-spread-poet="#{hilma.slug}" hidden)
-      refute html =~ ~s(data-spread-poet="#{nam.slug}" hidden)
-      refute html =~ ~s(data-spread-poet="quiet-q")
+      doc = LazyHTML.from_document(html)
+
+      assert LazyHTML.query(doc, ~s|article[data-spread-poet="#{nam.slug}"]:not([hidden])|)
+             |> Enum.count() == 1
+
+      assert LazyHTML.query(doc, ~s|article[data-spread-poet="#{hilma.slug}"][hidden]|)
+             |> Enum.count() == 1
+
+      assert LazyHTML.query(doc, ~s|[data-spread-poet="quiet-q"]|) |> Enum.count() == 0
 
       # the picker names both poets, marks the first
       assert html =~ ~s(data-spread-pick="#{nam.slug}" aria-selected="true")

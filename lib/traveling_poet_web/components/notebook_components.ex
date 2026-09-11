@@ -33,6 +33,179 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   def entry_title(entry), do: entry.title || entry.place_name || "Journal"
 
+  attr :entry, :map, required: true
+  attr :spread, :map, required: true, doc: "one spread from Journal.Spreads.pack/3"
+  attr :day, :integer, default: nil
+  attr :media, :map, default: %{}, doc: "media by id, for illustration sections"
+  attr :clamp, :boolean, default: false, doc: "cut prose to a few lines (home page)"
+  attr :heading_tag, :string, default: "h2"
+  attr :show_date, :boolean, default: true
+  attr :rest, :global, doc: "id, hooks and data attributes for the article"
+
+  slot :meta, doc: "above the heading on the left page"
+  slot :controls, doc: "beside the heading: marker menu, earlier/later links"
+  slot :left_footer
+  slot :right_footer, doc: "under the drawing and poem: prompt, reactions"
+
+  @doc """
+  An entry open across two facing pages. The article is the unit the Markers
+  hook attaches to, so every markable block inside keeps the `.marker-target`
+  contract (one `.prose`, section kind and position, media id) whichever page
+  it lands on.
+  """
+  def entry_spread(assigns) do
+    ~H"""
+    <article class="spread" {@rest}>
+      <div class="notebook-page spread-page spread-left">
+        {render_slot(@meta)}
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <.entry_heading entry={@entry} day={@day} tag={@heading_tag} show_date={@show_date} />
+          <div :if={@controls != []} class="flex items-center gap-1 shrink-0">
+            {render_slot(@controls)}
+          </div>
+        </div>
+        <.spread_item
+          :for={item <- @spread.left}
+          item={item}
+          entry={@entry}
+          media={@media}
+          clamp={@clamp}
+        />
+        <p :if={@spread.left == []} class="prose text-sm opacity-60">
+          A quiet page. The drawing says it all today.
+        </p>
+        {render_slot(@left_footer)}
+      </div>
+      <div class={[
+        "notebook-page spread-page spread-right",
+        @spread.right == [] and @right_footer == [] and "spread-page-empty"
+      ]}>
+        <.spread_item
+          :for={item <- @spread.right}
+          item={item}
+          entry={@entry}
+          media={@media}
+          clamp={@clamp}
+        />
+        {render_slot(@right_footer)}
+      </div>
+    </article>
+    """
+  end
+
+  attr :item, :any, required: true
+  attr :entry, :map, required: true
+  attr :media, :map, required: true
+  attr :clamp, :boolean, default: false
+
+  # The id and data attributes come from the section's stored position, not
+  # its place on the page: the Markers hook matches marks by (kind, position)
+  # and the tests pin `section-<entry>-0`.
+  defp spread_item(%{item: {:section, section}} = assigns) do
+    assigns = assign(assigns, :section, section)
+
+    ~H"""
+    <div
+      id={"section-#{@entry.id}-#{@section.position}"}
+      class="mb-6 marker-target"
+      data-section-kind={@section.kind}
+      data-section-position={@section.position}
+      data-media-id={@section.media_id}
+    >
+      <.section
+        section={@section}
+        media={@media[@section.media_id]}
+        clamp={@clamp and @section.kind != "illustration"}
+      />
+    </div>
+    """
+  end
+
+  defp spread_item(%{item: {:media, media}} = assigns) do
+    assigns = assign(assigns, :drawing, media)
+
+    ~H"""
+    <div
+      id={"media-#{@entry.id}-#{@drawing.id}"}
+      class="mb-6 marker-target"
+      data-section-kind="illustration"
+      data-media-id={@drawing.id}
+    >
+      <.section section={%{kind: "illustration"}} media={@drawing} />
+    </div>
+    """
+  end
+
+  attr :spreads, :list, required: true
+  attr :active, :string, required: true
+  attr :patch, :any, required: true, doc: "fn key -> path, the tab's patch target"
+  attr :chat, :boolean, default: false, doc: "add a Chat tab that opens the sidebar"
+
+  @doc """
+  The notebook's index tabs: one per spread, plus Chat on the owner's journal.
+  Chat is not a page (the sidebar has uploads, live replies and the sprite
+  hold), so its tab only opens the sidebar, or the overlay on a phone.
+  """
+  def spread_tabs(assigns) do
+    ~H"""
+    <nav class="spread-tabs" role="tablist" aria-label="Pages of this entry">
+      <.link
+        :for={s <- @spreads}
+        patch={@patch.(s.key)}
+        role="tab"
+        aria-selected={to_string(s.key == @active)}
+        class="spread-tab"
+      >
+        {s.label}
+      </.link>
+      <span :if={@chat} class="hidden lg:contents">
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          class="spread-tab"
+          phx-click="toggle_chat"
+        >
+          Chat
+        </button>
+      </span>
+      <span :if={@chat} class="lg:hidden contents">
+        <button
+          type="button"
+          role="tab"
+          aria-selected="false"
+          class="spread-tab"
+          phx-click="toggle_mobile_chat"
+        >
+          Chat
+        </button>
+      </span>
+    </nav>
+    """
+  end
+
+  @doc """
+  Earlier/later links around the entry being read, as ISO strings: `Date`
+  has no `Phoenix.Param`, and a bare struct in `~p` crashes the render (only
+  once a poet has two entries, which is why day one never caught it).
+  """
+  def entry_nav(entries, current) do
+    dates = entries |> Enum.map(& &1.entry_date) |> Enum.sort(Date)
+    idx = Enum.find_index(dates, &(&1 == current.entry_date))
+
+    prev =
+      if idx && idx > 0,
+        do: [{"← earlier", Date.to_iso8601(Enum.at(dates, idx - 1))}],
+        else: []
+
+    next =
+      if idx && idx < length(dates) - 1,
+        do: [{"later →", Date.to_iso8601(Enum.at(dates, idx + 1))}],
+        else: []
+
+    prev ++ next
+  end
+
   attr :section, :any, required: true
   attr :media, :any, default: nil
   attr :clamp, :boolean, default: false, doc: "cap the prose at a few lines (home page spread)"

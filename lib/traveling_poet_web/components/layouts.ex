@@ -38,6 +38,10 @@ defmodule TravelingPoetWeb.Layouts do
     default: nil,
     doc: "which primary nav item to highlight (:journal, :guide, :settings)"
 
+  attr :wide, :boolean,
+    default: false,
+    doc: "let the page use the whole desk: the journal's two pages plus the chat need it"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -85,7 +89,7 @@ defmodule TravelingPoetWeb.Layouts do
     </header>
 
     <main class="px-4 py-6 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-6xl">
+      <div class={["mx-auto", if(@wide, do: "max-w-[100rem]", else: "max-w-6xl")]}>
         {render_slot(@inner_block)}
       </div>
     </main>

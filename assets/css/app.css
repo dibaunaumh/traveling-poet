@@ -169,6 +169,9 @@ h1, h2, h3 {
   font-family: "Caveat", cursive;
   font-size: 1.25rem;
   color: #8c7454;
+  /* drops to the next line as one piece beside a long title on a narrow page */
+  display: inline-block;
+  white-space: nowrap;
 }
 
 /* "Day 17" ahead of the title: the app's count, in the margin hand */
@@ -788,13 +791,25 @@ mark.marker.marker-sent {
   }
 }
 
-/* ---- Home page: the open notebook under the map ------------------------- */
-/* Two facing pages of the selected poet's newest entry. Same paper as the
-   journals; only the binding gutter and the picker are new. */
+/* ---- The open notebook: two facing pages ------------------------------- */
+/* An entry lies across a spread on the journals and the home page. Whether
+   the pages sit side by side or stack is decided by the width of the column
+   they are read in (a container query), not the viewport: with the chat
+   sidebar open on a laptop the column is narrow, on a phone held sideways it
+   is the whole screen. The column declares itself with .journal-column. */
+
+.journal-column {
+  container-type: inline-size;
+  container-name: journal;
+}
+
+.spread-wrap {
+  position: relative;
+}
 
 .spread {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0;
   margin-top: 1rem;
   filter: drop-shadow(0 14px 28px rgba(60, 45, 20, 0.18));
@@ -805,13 +820,14 @@ mark.marker.marker-sent {
   margin: 0;
 }
 
+/* Stacked: the right page hangs under the left, gutter along the fold */
 .spread .spread-left {
-  border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
-  padding-right: 1.75rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+  padding-right: 2rem;
 }
 
 .spread .spread-right {
-  border-radius: 0.15rem 0.75rem 0.75rem 0.15rem;
+  border-radius: 0 0 0.75rem 0.75rem;
   /* the right-hand page has no margin line; the gutter is its left edge */
   background-image: repeating-linear-gradient(
     transparent,
@@ -819,8 +835,108 @@ mark.marker.marker-sent {
     rgba(140, 120, 90, 0.16) calc(2rem - 1px),
     rgba(140, 120, 90, 0.16) 2rem
   );
-  padding-left: 2.25rem;
-  box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
+  padding-left: 2rem;
+  box-shadow: inset 0 14px 18px -14px rgba(60, 45, 20, 0.35);
+}
+
+/* A blank right page is paper wasted when the pages stack */
+.spread .spread-page-empty {
+  display: none;
+}
+
+/* The right page has no 4rem margin for marker pins to sit in; tuck them
+   just inside its edge */
+.spread .spread-right .marker-pins {
+  left: -1.9rem;
+}
+
+/* Index tabs. Stacked: a strip above the pages. Side by side: hanging off
+   the right edge of the right page, like a notebook's dividers. */
+.spread-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.35rem;
+  margin: 1.25rem 0 -1rem 1rem;
+}
+
+.spread-tab {
+  font-family: "Caveat", cursive;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.45rem 0.9rem 0.35rem;
+  background: #efe3c3;
+  color: #5a4a2e;
+  border: 1px solid rgba(140, 120, 90, 0.35);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.spread-tab:hover {
+  background: #f6ecd2;
+}
+
+.spread-tab[aria-selected="true"] {
+  background: #fdf8ec;
+  color: #2f2a1e;
+  font-weight: 600;
+}
+
+.spread-tab:focus-visible {
+  outline: 3px solid #2f5d62;
+  outline-offset: 2px;
+}
+
+@container journal (min-width: 48rem) {
+  .spread-wrap {
+    padding-right: 2.4rem;
+  }
+
+  .spread {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spread .spread-left {
+    border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
+    padding-right: 1.75rem;
+  }
+
+  .spread .spread-right {
+    border-radius: 0.15rem 0.75rem 0.75rem 0.15rem;
+    padding-left: 2.25rem;
+    box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
+  }
+
+  .spread .spread-page-empty {
+    display: block;
+  }
+
+  .spread .spread-right .marker-pins {
+    left: auto;
+    right: -1.9rem;
+  }
+
+  .spread-tabs {
+    position: absolute;
+    right: 0;
+    top: 3rem;
+    z-index: 1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .spread-tab {
+    writing-mode: vertical-rl;
+    padding: 0.9rem 0.35rem 0.9rem 0.25rem;
+    border: 1px solid rgba(140, 120, 90, 0.35);
+    border-left: none;
+    border-radius: 0 0.5rem 0.5rem 0;
+    box-shadow: 2px 2px 6px rgba(60, 45, 20, 0.15);
+  }
 }
 
 .spread-meta {
@@ -873,16 +989,6 @@ mark.marker.marker-sent {
 }
 .spread-locate:hover { background: rgba(47, 93, 98, 0.08); }
 .spread-locate:focus-visible { outline: 3px solid #2f5d62; outline-offset: 2px; }
-
-@media (max-width: 767px) {
-  .spread { grid-template-columns: 1fr; }
-  .spread .spread-left { border-radius: 0.75rem 0.75rem 0 0; padding-right: 2rem; }
-  .spread .spread-right {
-    border-radius: 0 0 0.75rem 0.75rem;
-    padding-left: 2rem;
-    box-shadow: inset 0 14px 18px -14px rgba(60, 45, 20, 0.35);
-  }
-}
 
 /* The row of poets: who is on the page, and a way to turn to another one
    without hunting for a pin. */

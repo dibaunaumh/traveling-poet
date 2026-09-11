@@ -2,6 +2,7 @@ defmodule TravelingPoetWeb.PageController do
   use TravelingPoetWeb, :controller
 
   alias TravelingPoet.Journal
+  alias TravelingPoet.Journal.Spreads
   alias TravelingPoet.Poets
 
   def home(conn, _params) do
@@ -87,9 +88,8 @@ defmodule TravelingPoetWeb.PageController do
   def onboarding_path(place) when place in [nil, ""], do: ~p"/onboarding"
   def onboarding_path(place), do: ~p"/onboarding?#{[place: place]}"
 
-  # Left page: the words (title, description, poem). Right page: the drawing
-  # and the practical notes. A page with no drawing of its own borrows the
-  # entry's first unattached illustration, as the journal does.
+  # The same Today spread the journal opens to: words left, drawing and poem
+  # right. Drawings the entry owns but no section claimed are shown too.
   defp spread(poet, entry) do
     media =
       entry.sections
@@ -99,22 +99,14 @@ defmodule TravelingPoetWeb.PageController do
       |> Enum.reject(&is_nil/1)
       |> Map.new(&{&1.id, &1})
 
-    {words, rest} = Enum.split_with(entry.sections, &(&1.kind in ["description", "poem"]))
-    {drawings, notes} = Enum.split_with(rest, &(&1.kind == "illustration"))
-
-    drawings =
-      if Enum.any?(drawings, &media[&1.media_id]),
-        do: Enum.filter(drawings, &media[&1.media_id]),
-        else: Enum.take(Journal.unattached_illustrations(entry, entry.sections), 1)
+    extra = Journal.unattached_illustrations(entry, entry.sections)
 
     %{
       poet: poet,
       entry: entry,
       day: Journal.journey_day(entry),
       media: media,
-      words: words,
-      drawings: drawings,
-      notes: notes,
+      spread: hd(Spreads.pack(entry, media, extra)),
       url: entry_url(poet, entry)
     }
   end
