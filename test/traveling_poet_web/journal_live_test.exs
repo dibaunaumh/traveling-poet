@@ -35,6 +35,35 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ "Day one"
   end
 
+  test "the entry opens as a spread with index tabs; an unknown spread falls back to Today",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user)
+    entry = publish_entry(poet, ~D[2026-08-25], "The rooftop")
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+
+    {:ok, view, html} = live(conn, ~p"/journal/2026-08-25?spread=garbage")
+
+    assert html =~ ~s(role="tablist")
+
+    assert [today] =
+             html
+             |> LazyHTML.from_document()
+             |> LazyHTML.query(~s(a[role="tab"][aria-selected="true"]))
+             |> LazyHTML.to_tree()
+
+    assert LazyHTML.text(LazyHTML.from_tree([today])) =~ "Today"
+    assert html =~ "Chat"
+    assert html =~ ~s(class="notebook-page spread-page spread-left")
+    assert html =~ ~s(id="section-#{entry.id}-0")
+    assert html =~ ~s(class="notebook-page spread-page spread-right)
+
+    # turning a tab is a patch on the same date: the entry stays put
+    html = view |> element(~s(a[role="tab"]), "Today") |> render_click()
+    assert html =~ "The rooftop"
+    assert_patch(view, ~p"/journal/2026-08-25?spread=today")
+  end
+
   test "public journal renders with multiple entries", %{conn: conn} do
     user = agent_user_fixture()
     poet = poet_fixture(user, %{is_public: true})
@@ -47,6 +76,10 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ "earlier"
     # the journey day is the app's count, shown ahead of the poet's title
     assert html =~ ~s(class="notebook-day">Day 2</span>)
+    # the same spread and tabs as the owner sees, minus chat
+    assert html =~ ~s(role="tablist")
+    assert html =~ ~s(href="/p/#{poet.slug}/2026-08-26?spread=today")
+    refute html =~ "toggle_chat"
   end
 
   test "a shared public entry carries link-preview tags; the owner's journal does not", %{

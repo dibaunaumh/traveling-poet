@@ -22,6 +22,7 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
+  alias TravelingPoet.Journal.Spreads
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
@@ -128,9 +129,29 @@ defmodule TravelingPoetWeb.JournalLive do
             _ -> nil
           end
 
-        {:noreply, socket |> assign_journal(poet, date) |> push_map()}
+        # Turning to another spread of the same entry is a patch on the same
+        # date: reloading would re-query everything and re-record the view.
+        socket =
+          if same_entry?(socket, date),
+            do: socket,
+            else: assign_journal(socket, poet, date)
+
+        {:noreply, socket |> assign_spread(params["spread"]) |> push_map()}
     end
   end
+
+  defp same_entry?(%{assigns: %{entry: %{entry_date: shown}}}, %Date{} = date), do: shown == date
+  defp same_entry?(_socket, _date), do: false
+
+  # Keeps the reader's current spread across reloads (a revision, a publish)
+  # when it still exists; otherwise the first.
+  defp assign_spread(socket, requested) do
+    requested = requested || (socket.assigns[:spread] && socket.assigns.spread.key)
+    assign(socket, :spread, Spreads.pick(socket.assigns.spreads, requested))
+  end
+
+  defp spread_path(entry, key),
+    do: ~p"/journal/#{Date.to_iso8601(entry.entry_date)}?spread=#{key}"
 
   # The map div is phx-update="ignore" (Leaflet owns its DOM), so a changed
   # data-points attribute does NOT re-render it. Paging between entries has to
@@ -159,17 +180,20 @@ defmodule TravelingPoetWeb.JournalLive do
 
     media_map = entry_media_map(poet, entry)
     entry = record_view(socket, poet, entry)
+    extra = extra_media(entry)
 
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
     |> assign(:journey_start, Journal.first_published_date(poet.id))
     |> assign(:entry_media, media_map)
-    |> assign(:extra_media, extra_media(entry))
+    |> assign(:extra_media, extra)
+    |> assign(:spreads, Spreads.pack(entry, media_map, extra))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
     |> assign_markers(entry)
     |> assign_prompt(poet, entry)
+    |> assign_spread(nil)
   end
 
   # The fleet, for the journey tour that stands in for the map until the
@@ -958,9 +982,10 @@ defmodule TravelingPoetWeb.JournalLive do
       current_user={assigns[:current_user]}
       credits_low={assigns[:credits_low]}
       active_tab={:journal}
+      wide
     >
       <div class="flex h-[calc(100vh-4rem)] gap-4">
-        <div class="flex-1 min-w-0 overflow-y-auto pr-1">
+        <div class="journal-column flex-1 min-w-0 overflow-y-auto pr-1">
           <div
             :if={Credits.exhausted?(@user, @poet)}
             class="alert alert-warning text-sm mb-3"
@@ -1049,18 +1074,25 @@ defmodule TravelingPoetWeb.JournalLive do
             <.journey_cards showcase={@showcase} />
           </section>
 
-          <article
-            :if={@entry}
-            id={"entry-#{@entry.id}"}
-            class="notebook-page mt-6"
-            phx-hook="Markers"
-            data-active-marker={@active_marker}
-            data-markers={@markers_json}
-            data-marker-icons={icons_json()}
-          >
-            <div class="flex items-center justify-between mb-2">
-              <.entry_heading entry={@entry} day={Journal.journey_day(@entry, @journey_start)} />
-              <div class="flex items-center gap-1">
+          <div :if={@entry} class="spread-wrap">
+            <.spread_tabs
+              spreads={@spreads}
+              active={@spread.key}
+              patch={&spread_path(@entry, &1)}
+              chat={!provisioning?(assigns)}
+            />
+            <.entry_spread
+              id={"entry-#{@entry.id}"}
+              entry={@entry}
+              day={Journal.journey_day(@entry, @journey_start)}
+              spread={@spread}
+              media={@entry_media}
+              phx-hook="Markers"
+              data-active-marker={@active_marker}
+              data-markers={@markers_json}
+              data-marker-icons={icons_json()}
+            >
+              <:controls>
                 <.marker_menu active={@active_marker} />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
@@ -1069,77 +1101,59 @@ defmodule TravelingPoetWeb.JournalLive do
                 >
                   {label}
                 </.link>
-              </div>
-            </div>
-
-            <div
-              :for={{section, i} <- Enum.with_index(@entry.sections)}
-              id={"section-#{@entry.id}-#{i}"}
-              class="mb-6 marker-target"
-              data-section-kind={section.kind}
-              data-section-position={section.position}
-              data-media-id={section.media_id}
-            >
-              <.section section={section} media={@entry_media[section.media_id]} />
-            </div>
-
-            <div
-              :for={media <- @extra_media}
-              id={"media-#{@entry.id}-#{media.id}"}
-              class="mb-6 marker-target"
-              data-section-kind="illustration"
-              data-media-id={media.id}
-            >
-              <.section section={%{kind: "illustration"}} media={media} />
-            </div>
-
-            <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
-              <div :if={is_nil(@prompt_answer)}>
-                <p class="text-sm font-medium mb-2">{@prompt.question}</p>
-                <div class="flex flex-wrap items-center gap-2">
-                  <button
-                    :for={option <- Preferences.EntryPrompt.items(@prompt)}
-                    phx-click="prompt_answer"
-                    phx-value-option={option["id"]}
-                    class="btn btn-sm btn-outline"
-                  >
-                    {option["label"]}
-                  </button>
-                  <button phx-click="prompt_dismiss" class="btn btn-ghost btn-xs opacity-50">
-                    not now
-                  </button>
+              </:controls>
+              <:right_footer>
+                <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
+                  <div :if={is_nil(@prompt_answer)}>
+                    <p class="text-sm font-medium mb-2">{@prompt.question}</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        :for={option <- Preferences.EntryPrompt.items(@prompt)}
+                        phx-click="prompt_answer"
+                        phx-value-option={option["id"]}
+                        class="btn btn-sm btn-outline"
+                      >
+                        {option["label"]}
+                      </button>
+                      <button phx-click="prompt_dismiss" class="btn btn-ghost btn-xs opacity-50">
+                        not now
+                      </button>
+                    </div>
+                  </div>
+                  <div :if={@prompt_answer} class="flex items-center gap-2 text-sm">
+                    <span>
+                      Got it — {@poet.name} will keep that in mind.
+                    </span>
+                    <button phx-click="prompt_undo" class="btn btn-ghost btn-xs">undo</button>
+                    <.link navigate={~p"/settings"} class="link text-xs opacity-60">
+                      what your poet has learned
+                    </.link>
+                  </div>
                 </div>
-              </div>
-              <div :if={@prompt_answer} class="flex items-center gap-2 text-sm">
-                <span>
-                  Got it — {@poet.name} will keep that in mind.
-                </span>
-                <button phx-click="prompt_undo" class="btn btn-ghost btn-xs">undo</button>
-                <.link navigate={~p"/settings"} class="link text-xs opacity-60">
-                  what your poet has learned
-                </.link>
-              </div>
-            </div>
 
-            <div class="flex items-center gap-2 border-t border-base-300 pt-3 mt-4">
-              <span class="text-sm opacity-60 mr-1">Tell your poet:</span>
-              <button
-                :for={{kind, emoji} <- reaction_kinds()}
-                phx-click="react"
-                phx-value-kind={kind}
-                class={[
-                  "btn btn-sm",
-                  if(MapSet.member?(@my_reactions, kind), do: "btn-primary", else: "btn-ghost")
-                ]}
-                title={kind}
-              >
-                {emoji}
-              </button>
-              <span class="text-xs opacity-40 ml-2">
-                private feedback — shapes what your poet seeks out next
-              </span>
-            </div>
-          </article>
+                <div class="border-t border-base-300 pt-3 mt-4">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm opacity-60 mr-1 whitespace-nowrap">Tell your poet:</span>
+                    <button
+                      :for={{kind, emoji} <- reaction_kinds()}
+                      phx-click="react"
+                      phx-value-kind={kind}
+                      class={[
+                        "btn btn-sm",
+                        if(MapSet.member?(@my_reactions, kind), do: "btn-primary", else: "btn-ghost")
+                      ]}
+                      title={kind}
+                    >
+                      {emoji}
+                    </button>
+                  </div>
+                  <p class="text-xs opacity-40 mt-1">
+                    private feedback — shapes what your poet seeks out next
+                  </p>
+                </div>
+              </:right_footer>
+            </.entry_spread>
+          </div>
         </div>
 
         <.live_component
@@ -1208,24 +1222,6 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   defp focus_point(_), do: nil
-
-  defp entry_nav(entries, current) do
-    dates = Enum.map(entries, & &1.entry_date) |> Enum.sort(Date)
-    idx = Enum.find_index(dates, &(&1 == current.entry_date))
-
-    # ISO strings, not Date structs — Date has no Phoenix.Param impl, and a
-    # bare struct in ~p"/journal/#{date}" crashes the render (only once a poet
-    # has 2+ entries, which is why day one didn't catch it)
-    prev =
-      if idx && idx > 0, do: [{"← earlier", Date.to_iso8601(Enum.at(dates, idx - 1))}], else: []
-
-    next =
-      if idx && idx < length(dates) - 1,
-        do: [{"later →", Date.to_iso8601(Enum.at(dates, idx + 1))}],
-        else: []
-
-    prev ++ next
-  end
 
   # Closing the tab releases the sprite within seconds instead of leaving the
   # task to run out its expiry.

@@ -85,7 +85,7 @@
         No poets on the road yet. The first ones are still lacing their boots.
       </p>
 
-      <div :if={@spreads != []} id="landing-spread" class="mt-6">
+      <div :if={@spreads != []} id="landing-spread" class="journal-column mt-6">
         <div class="spread-picker" data-spread-picker role="tablist" aria-label="Poets">
           <button
             :for={{s, idx} <- Enum.with_index(@spreads)}
@@ -111,14 +111,20 @@
           </button>
         </div>
 
-        <article
+        <.entry_spread
           :for={{s, idx} <- Enum.with_index(@spreads)}
+          entry={s.entry}
+          day={s.day}
+          spread={s.spread}
+          media={s.media}
+          clamp
+          heading_tag="h3"
+          show_date={false}
           data-spread-poet={s.poet.slug}
           hidden={idx != 0}
-          class="spread"
           aria-label={"#{s.poet.name}'s latest page"}
         >
-          <div class="notebook-page spread-page spread-left">
+          <:meta>
             <div class="spread-meta">
               <span>
                 <b>{s.poet.name}</b>, a traveling poet
@@ -128,34 +134,16 @@
                 {Calendar.strftime(s.entry.entry_date, "%B %-d, %Y")}
               </span>
             </div>
-            <.entry_heading entry={s.entry} day={s.day} tag="h3" show_date={false} />
-            <div :for={section <- s.words} class="mb-5">
-              <.section section={section} clamp={section.kind == "description"} />
-            </div>
-            <p :if={s.words == []} class="prose text-sm opacity-60">
-              A quiet page. The drawing says it all today.
-            </p>
-          </div>
-          <div class="notebook-page spread-page spread-right">
-            <div :for={d <- s.drawings} class="mb-4">
-              <.section
-                section={%{kind: "illustration"}}
-                media={
-                  if is_struct(d, TravelingPoet.Journal.Section), do: s.media[d.media_id], else: d
-                }
-              />
-            </div>
-            <div :for={section <- s.notes} class="mb-4">
-              <.section section={section} clamp={true} />
-            </div>
+          </:meta>
+          <:right_footer>
             <div class="spread-actions">
               <a href={s.url} class="link">Read the whole page &rarr;</a>
               <button type="button" class="spread-locate" data-spread-locate>
                 📍 Show on the map
               </button>
             </div>
-          </div>
-        </article>
+          </:right_footer>
+        </.entry_spread>
       </div>
     </section>
 
