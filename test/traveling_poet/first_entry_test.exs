@@ -93,4 +93,38 @@ defmodule TravelingPoet.FirstEntryTest do
     # ...but the direct path still answers for it rather than crashing
     assert FirstEntry.ensure_started(user, poet) in [:started, :in_flight]
   end
+
+  describe "status/3" do
+    test "walks from waiting through starting, in flight, retry and exhausted to done" do
+      unprovisioned = user_fixture(%{sprite_provisioned: false})
+      assert FirstEntry.status(unprovisioned, poet_fixture(unprovisioned)) == :waiting_for_sprite
+
+      user = user_fixture(%{sprite_provisioned: true})
+      poet = poet_fixture(user)
+      assert FirstEntry.status(user, poet) == :starting
+
+      {:ok, _} = Usage.record(user.id, "first_entry_attempt")
+      assert FirstEntry.status(user, poet) == :in_flight
+
+      age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+      assert FirstEntry.status(user, poet) == :retry_pending
+
+      for _ <- 2..FirstEntry.max_attempts() do
+        {:ok, _} = Usage.record(user.id, "first_entry_attempt")
+      end
+
+      age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+      assert FirstEntry.status(user, poet) == :exhausted
+
+      {:ok, entry} = Journal.upsert_entry(poet.id, Date.utc_today(), %{title: "First"})
+      {:ok, _} = Journal.publish_entry(entry)
+      assert FirstEntry.status(user, poet) == :done
+    end
+
+    test "nothing to say without a user or a poet" do
+      user = user_fixture(%{sprite_provisioned: true})
+      assert FirstEntry.status(nil, poet_fixture(user)) == :waiting_for_sprite
+      assert FirstEntry.status(user, nil) == :waiting_for_sprite
+    end
+  end
 end

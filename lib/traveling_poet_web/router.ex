@@ -105,10 +105,11 @@ defmodule TravelingPoetWeb.Router do
   if Application.compile_env(:traveling_poet, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 
-    scope "/dev" do
+    scope "/dev", TravelingPoetWeb do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: TravelingPoetWeb.Telemetry
+      get "/login/:user_id", DevSessionController, :login
     end
   end
 end

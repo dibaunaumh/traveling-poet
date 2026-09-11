@@ -68,6 +68,24 @@ defmodule TravelingPoet.Provisioner do
         do: env
   end
 
+  # The provisioning chain, in order. The journal's setup card groups these
+  # into the four things a reader can picture; keep the order in sync with the
+  # `with` in do_provision_user/2.
+  @steps ~w(create_sprite make_public install_openclaw write_config write_env
+            write_workspace write_tpoet_plugin ensure_gateway_service pair_device
+            get_sprite_url)a
+
+  @doc "The provisioning steps in the order they run."
+  def steps, do: @steps
+
+  # Announce a step before running it, so a watching journal can show
+  # progress. Purely cosmetic: `{:sprite_provisioned, _}` and the user row
+  # remain the source of truth, and a tab that misses a step loses nothing.
+  defp step(user_id, name, fun) when name in @steps do
+    Phoenix.PubSub.broadcast(TravelingPoet.PubSub, "user:#{user_id}", {:provision_step, name})
+    fun.()
+  end
+
   @doc """
   Provisions (or re-provisions) the user's sprite in a background task and
   returns immediately. LiveViews call this after onboarding and mode switches;
@@ -117,16 +135,33 @@ defmodule TravelingPoet.Provisioner do
 
     phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
 
-    with {:ok, _} <- create_sprite(sprite_name),
-         {:ok, _} <- make_public(sprite_name),
-         {:ok, _} <- install_openclaw(sprite_name, openclaw_version),
-         {:ok, _} <- write_config(sprite_name, gateway_token, phoenix_url, poet_model(poet)),
-         {:ok, _} <- write_env(sprite_name, gateway_token, agent_api_token, phoenix_url),
-         {:ok, _} <- write_workspace(sprite_name, agent_name, user, poet),
-         {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token),
-         {:ok, _} <- ensure_gateway_service(sprite_name),
-         {:ok, _} <- pair_device(sprite_name, device_pub),
-         {:ok, sprite_url} <- SpritesClient.get_sprite_url(sprite_name) do
+    with {:ok, _} <- step(user_id, :create_sprite, fn -> create_sprite(sprite_name) end),
+         {:ok, _} <- step(user_id, :make_public, fn -> make_public(sprite_name) end),
+         {:ok, _} <-
+           step(user_id, :install_openclaw, fn ->
+             install_openclaw(sprite_name, openclaw_version)
+           end),
+         {:ok, _} <-
+           step(user_id, :write_config, fn ->
+             write_config(sprite_name, gateway_token, phoenix_url, poet_model(poet))
+           end),
+         {:ok, _} <-
+           step(user_id, :write_env, fn ->
+             write_env(sprite_name, gateway_token, agent_api_token, phoenix_url)
+           end),
+         {:ok, _} <-
+           step(user_id, :write_workspace, fn ->
+             write_workspace(sprite_name, agent_name, user, poet)
+           end),
+         {:ok, _} <-
+           step(user_id, :write_tpoet_plugin, fn ->
+             write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token)
+           end),
+         {:ok, _} <-
+           step(user_id, :ensure_gateway_service, fn -> ensure_gateway_service(sprite_name) end),
+         {:ok, _} <- step(user_id, :pair_device, fn -> pair_device(sprite_name, device_pub) end),
+         {:ok, sprite_url} <-
+           step(user_id, :get_sprite_url, fn -> SpritesClient.get_sprite_url(sprite_name) end) do
       {:ok, _updated_user} =
         Accounts.update_user(user, %{
           sprite_name: sprite_name,

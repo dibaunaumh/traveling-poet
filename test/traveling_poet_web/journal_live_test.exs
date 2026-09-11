@@ -48,7 +48,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
   end
 
   test "a long setup says so, and shows how long it has been", %{conn: conn} do
-    user = agent_user_fixture(%{onboarding_completed: true})
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user)
 
     # Backdate creation: the fleet's slowest real setup ran 20 minutes, and the
@@ -67,23 +67,127 @@ defmodule TravelingPoetWeb.JournalLiveTest do
 
     assert html =~ "taking longer than usual"
     assert html =~ "25 minutes"
-    refute html =~ "the first journal entry usually follows"
   end
 
-  test "new poet without entries sees the setting-up screen", %{conn: conn} do
-    user = agent_user_fixture(%{onboarding_completed: true})
-    poet = poet_fixture(user)
+  describe "before the first entry" do
+    test "with no sprite yet: the setup card, no chat, no escape hatch", %{conn: conn} do
+      user = user_fixture(%{onboarding_completed: true, sprite_provisioned: false})
+      poet = poet_fixture(user)
 
-    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
-    {:ok, view, html} = live(conn, ~p"/journal")
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, html} = live(conn, ~p"/journal")
 
-    assert html =~ "#{poet.name} is getting ready"
-    assert html =~ "the first journal entry usually follows"
-    refute html =~ "poet-map"
+      assert html =~ ~s(id="setup-card")
+      assert html =~ "Setting up #{poet.name}"
+      assert html =~ "Working on it"
+      assert html =~ ~s(id="poet-map")
+      assert html =~ ~s(id="waiting-tips")
+      refute html =~ ~s(id="chat-sidebar-panel")
+      refute html =~ ~s(id="first-entry-placeholder")
+      refute html =~ "peek behind"
 
-    # escape hatch reveals the real UI
-    html = view |> element("button", "peek behind the curtain") |> render_click()
-    assert html =~ "poet-map"
+      # A step broadcast moves the card along: the two earlier stages are done,
+      # the packing stage is active, the last one still pending.
+      send(view.pid, {:provision_step, :write_workspace})
+      html = render(view)
+      assert html =~ "Packing notebook, pens and maps"
+      refute html =~ "Working on it"
+    end
+
+    test "with a sprite: the real page, a placeholder and the chat", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user)
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, _view, html} = live(conn, ~p"/journal")
+
+      assert html =~ ~s(id="first-entry-placeholder")
+      assert html =~ "#{poet.name} is awake and about to open the notebook"
+      assert html =~ ~s(id="chat-sidebar-panel")
+      assert html =~ ~s(id="poet-map")
+      assert html =~ "While you wait"
+      refute html =~ ~s(id="setup-card")
+    end
+
+    test "an attempt in flight says so on the page and above the composer", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user)
+      {:ok, _} = TravelingPoet.Usage.record(user.id, "first_entry_attempt")
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, _view, html} = live(conn, ~p"/journal")
+
+      assert html =~ "#{poet.name} is writing the first entry"
+      assert html =~ ~s(id="chat-first-entry-hint")
+    end
+
+    test "the first entry replaces the placeholder", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user)
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, _html} = live(conn, ~p"/journal")
+
+      entry = publish_entry(poet, Date.utc_today(), "Setting out")
+      send(view.pid, {:journal_published, entry.id})
+
+      html = render(view)
+      assert html =~ "Setting out"
+      refute html =~ ~s(id="first-entry-placeholder")
+      refute html =~ ~s(id="waiting-tips")
+    end
+
+    test "a turn the app started streams into the chat and is stored once", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      _poet = poet_fixture(user)
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, _html} = live(conn, ~p"/journal")
+
+      send(view.pid, {:gateway_event, {:text_delta, "Lacing my boots in Lisbon."}})
+      assert render(view) =~ "Lacing my boots in Lisbon."
+
+      # AgentSession persisted the same reply for the turn it drove.
+      {:ok, _} =
+        TravelingPoet.Chat.create_message(%{
+          user_id: user.id,
+          role: "agent",
+          content: "Lacing my boots in Lisbon.",
+          channel: "system"
+        })
+
+      send(view.pid, {:gateway_event, {:done, "r1"}})
+      render(view)
+
+      agent_messages =
+        TravelingPoet.Chat.list_messages(user.id) |> Enum.filter(&(&1.role == "agent"))
+
+      assert length(agent_messages) == 1
+    end
+
+    test "a message the gateway turns away mid-onboard is held, then sent when the turn ends",
+         %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      _poet = poet_fixture(user)
+      {:ok, _} = TravelingPoet.Usage.record(user.id, "first_entry_attempt")
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, _html} = live(conn, ~p"/journal")
+
+      # The send itself stops at the readiness gate in the suite (no sprite
+      # URL), which is enough to record what was sent.
+      send(view.pid, {:chat_send, "hello there", false})
+      send(view.pid, {:gateway_event, {:error, "Chat error"}})
+      html = render(view)
+      assert html =~ ~s(id="chat-held-note")
+      assert html =~ "Held until"
+
+      send(view.pid, {:gateway_event, {:done, "r1"}})
+      html = render(view)
+      refute html =~ ~s(id="chat-held-note")
+      # The resend went back through the same gate.
+      assert html =~ "isn&#39;t ready yet"
+    end
   end
 
   test "onboarding scout flow gates Continue until a stop is added", %{conn: conn} do

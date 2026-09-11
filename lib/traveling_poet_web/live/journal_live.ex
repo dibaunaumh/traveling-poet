@@ -4,7 +4,8 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.NotebookComponents
   import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
 
-  import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1]
+  import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
+  import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
 
   alias TravelingPoet.{
     Accounts,
@@ -88,7 +89,11 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:hold_live, false)
           |> assign(:last_activity_at, nil)
           |> assign(:sprite_status, initial_sprite_status)
-          |> assign(:show_anyway, false)
+          |> assign(:provision_step, nil)
+          |> assign(:first_entry, FirstEntry.status(user, poet))
+          |> assign(:held_message, nil)
+          |> assign(:last_sent, nil)
+          |> assign_telegram()
           |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
@@ -243,9 +248,8 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   @impl true
-  def handle_event("peek_anyway", _params, socket) do
-    {:noreply, assign(socket, :show_anyway, true)}
-  end
+  def handle_event("telegram_" <> _ = event, params, socket),
+    do: TravelingPoetWeb.TelegramPairing.handle_event(event, params, socket)
 
   @impl true
   def handle_event("toggle_mobile_chat", _params, socket) do
@@ -359,7 +363,7 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_info({:chat_send, message, has_attachment?}, socket) do
     user = socket.assigns.user
-    socket = mark_activity(socket)
+    socket = socket |> mark_activity() |> assign(:last_sent, message)
 
     cond do
       !(user.sprite_url && user.gateway_token) ->
@@ -428,17 +432,22 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_info({:gateway_event, {:done, response_id}}, socket) do
     send_update(ChatSidebarComponent, id: "chat-sidebar", stream_done: response_id)
-    {:noreply, mark_activity(socket)}
+    {:noreply, socket |> mark_activity() |> resend_held()}
   end
 
   @impl true
   def handle_info({:gateway_event, {:error, reason}}, socket) do
-    send_update(ChatSidebarComponent,
-      id: "chat-sidebar",
-      stream_error: friendly_error(reason, socket)
-    )
+    if holdable?(reason, socket) do
+      send_update(ChatSidebarComponent, id: "chat-sidebar", stream_held: true)
+      {:noreply, assign(socket, :held_message, socket.assigns.last_sent)}
+    else
+      send_update(ChatSidebarComponent,
+        id: "chat-sidebar",
+        stream_error: friendly_error(reason, socket)
+      )
 
-    {:noreply, socket}
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -449,9 +458,19 @@ defmodule TravelingPoetWeb.JournalLive do
       socket
       |> assign(:sprite_status, :running)
       |> maybe_fire_agent_onboard()
+      |> refresh_first_entry()
 
     {:noreply, socket}
   end
+
+  @impl true
+  def handle_info({:provision_step, step}, socket) do
+    {:noreply, assign(socket, :provision_step, step)}
+  end
+
+  @impl true
+  def handle_info({:telegram_paired, _} = msg, socket),
+    do: TravelingPoetWeb.TelegramPairing.handle_info(msg, socket)
 
   @impl true
   def handle_info({:gateway_event, :disconnected}, socket) do
@@ -485,7 +504,9 @@ defmodule TravelingPoetWeb.JournalLive do
      socket
      |> assign(:user, user)
      |> assign(:poet, poet)
-     |> assign(:sprite_status, :running)}
+     |> assign(:provision_step, nil)
+     |> assign(:sprite_status, :running)
+     |> refresh_first_entry()}
   end
 
   @impl true
@@ -515,6 +536,8 @@ defmodule TravelingPoetWeb.JournalLive do
        socket
        |> assign(:poet, poet)
        |> assign_journal(poet, nil)
+       |> assign(:first_entry, :done)
+       |> resend_held()
        |> put_flash(:info, "#{poet.name} published a new journal entry!")}
     end
   end
@@ -547,7 +570,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
   @impl true
   def handle_info(:setup_refresh, socket) do
-    if setting_up?(socket.assigns) do
+    if awaiting_first_entry?(socket.assigns) do
       user = Accounts.get_user!(socket.assigns.user.id)
       poet = Poets.get_poet_by_user(user.id) || socket.assigns.poet
 
@@ -566,12 +589,25 @@ defmodule TravelingPoetWeb.JournalLive do
 
       Process.send_after(self(), :setup_refresh, @setup_refresh_ms)
 
-      {:noreply,
-       socket
-       |> assign(:user, user)
-       |> assign(:poet, poet)
-       |> assign(:sprite_status, sprite_status)
-       |> assign_journal(poet, nil)}
+      socket =
+        socket
+        |> assign(:user, user)
+        |> assign(:poet, poet)
+        |> assign(:sprite_status, sprite_status)
+        |> assign_journal(poet, nil)
+        |> refresh_first_entry()
+
+      # A step broadcast that never arrived (dropped socket) would otherwise
+      # leave the card pointing at a stage that finished long ago.
+      socket =
+        if user.sprite_provisioned, do: assign(socket, :provision_step, nil), else: socket
+
+      # The turn that turned our message away may have ended without a :done
+      # reaching this tab; once the attempt window is over, let it go out.
+      socket =
+        if socket.assigns.first_entry == :in_flight, do: socket, else: resend_held(socket)
+
+      {:noreply, socket}
     else
       {:noreply, socket}
     end
@@ -585,16 +621,16 @@ defmodule TravelingPoetWeb.JournalLive do
 
   ## Render
 
-  # New poets show a setting-up screen until their first entry publishes
-  # (entry #0 from the bootstrap ritual) — the point at which everything is
-  # truly operational. Beta feedback: landing straight in the half-alive
-  # journal + chat during provisioning was confusing. The gateway wiring
-  # keeps running underneath so /onboard still auto-fires.
-  defp setting_up?(assigns) do
-    assigns.entries == [] and not assigns.show_anyway
-  end
+  # Two waits, two gates. Before the sprite exists there is nothing to talk
+  # to, so the chat stays out and the column shows the setup card. Once the
+  # sprite is reachable the real page renders with a placeholder where the
+  # first entry will land, and the chat opens so a hello can go in early.
+  # Beta feedback on the old single screen: people gave up before anything
+  # appeared. The gateway wiring runs underneath so /onboard still auto-fires.
+  defp awaiting_first_entry?(assigns), do: assigns.entries == []
+  defp provisioning?(assigns), do: assigns.sprite_status == :not_provisioned
 
-  # Whole minutes since the poet was created. The setup screen re-renders every
+  # Whole minutes since the poet was created. The waiting cards re-render every
   # @setup_refresh_ms, so this ticks along on its own and the wait shows its own
   # length instead of a promise the app can't keep: measured across the fleet,
   # setup ran 1.7–20 minutes and the first entry landed anywhere from 4 minutes
@@ -608,70 +644,152 @@ defmodule TravelingPoetWeb.JournalLive do
     |> div(60)
   end
 
+  # The provisioning chain as four things a reader can picture. Each stage
+  # covers a run of `Provisioner.steps/0`, in order.
+  @setup_stages [
+    {"Renting a room", [:create_sprite, :make_public]},
+    {"Installing the writing desk", [:install_openclaw]},
+    {"Packing notebook, pens and maps",
+     [:write_config, :write_env, :write_workspace, :write_tpoet_plugin]},
+    {"Opening the door", [:ensure_gateway_service, :pair_device, :get_sprite_url]}
+  ]
+
+  # `nil` means no step broadcast has reached this tab (fresh mount, dropped
+  # socket): every stage shows as pending under one "working" row rather than
+  # pointing at a stage that may be long finished.
+  defp stage_states(nil), do: Enum.map(@setup_stages, fn {label, _} -> {label, :pending} end)
+
+  defp stage_states(step) do
+    steps = TravelingPoet.Provisioner.steps()
+    at = Enum.find_index(steps, &(&1 == step)) || 0
+
+    Enum.map(@setup_stages, fn {label, stage_steps} ->
+      first = Enum.find_index(steps, &(&1 == hd(stage_steps)))
+      last = Enum.find_index(steps, &(&1 == List.last(stage_steps)))
+
+      state =
+        cond do
+          at > last -> :done
+          at >= first -> :active
+          true -> :pending
+        end
+
+      {label, state}
+    end)
+  end
+
   attr :poet, :any, required: true
-  attr :user, :any, required: true
-  attr :sprite_status, :atom, required: true
+  attr :provision_step, :atom, default: nil
 
-  defp setting_up_screen(assigns) do
+  defp setup_card(assigns) do
+    assigns = assign(assigns, :stages, stage_states(assigns.provision_step))
+
     ~H"""
-    <div class="mx-auto max-w-md py-16 text-center">
-      <div class="text-6xl animate-bounce mb-6">🧳</div>
-      <h1 class="text-2xl font-semibold mb-2">{@poet.name} is getting ready</h1>
-      <p class="opacity-70 mb-8">
-        Packing a notebook, lacing boots, finding the first light in {@poet.current_place_name ||
-          "the starting place"}…
-      </p>
-
-      <ol class="text-left space-y-3 mb-8">
-        <li class="flex items-center gap-3">
-          <.step_mark done={@sprite_status in [:provisioned, :running, :waking, :reconnecting]} />
-          <span>Setting up {@poet.name}'s travel desk</span>
+    <article id="setup-card" class="notebook-page mt-6">
+      <h2 class="notebook-title">Setting up {@poet.name}'s travel desk</h2>
+      <ol class="mt-4 space-y-2 text-sm">
+        <li
+          :for={{label, state} <- @stages}
+          class={["flex items-center gap-3", state == :pending && "opacity-50"]}
+        >
+          <.stage_mark state={state} />
+          <span>{label}</span>
         </li>
-        <li class="flex items-center gap-3">
-          <.step_mark done={@user.agent_onboarded_at != nil} />
-          <span>Waking the poet</span>
-        </li>
-        <li class="flex items-center gap-3">
-          <.step_mark done={false} />
-          <span>Writing the first journal entry</span>
+        <li :if={is_nil(@provision_step)} class="flex items-center gap-3">
+          <.stage_mark state={:active} />
+          <span>Working on it</span>
         </li>
       </ol>
-
-      <p class="text-sm opacity-60 mb-2">
-        <span :if={setup_minutes(@poet) < 20}>
-          Setting up takes a few minutes; the first journal entry usually follows
-          within <b>20</b>.
-        </span>
-        <span :if={setup_minutes(@poet) >= 20}>
-          This one is taking longer than usual — nothing is lost, and the poet is
-          still working.
-        </span>
-        <span :if={setup_minutes(@poet) >= 1}>
-          Yours has been getting ready for <b>{setup_minutes(@poet)} minutes</b>.
-        </span>
-        The page updates by itself — and you can safely close it; the poet keeps working.
+      <p class="text-sm opacity-70 mt-4">
+        This usually takes 2 to 20 minutes. You can close this page; {@poet.name} keeps working
+        and this page updates on its own.
       </p>
-      <p :if={@user.telegram_chat_id} class="text-sm opacity-60 mb-6">
-        📱 We'll message you on Telegram the moment the first entry is out.
-      </p>
-      <p :if={is_nil(@user.telegram_chat_id)} class="text-sm opacity-60 mb-6">
-        Tip: pair Telegram in <.link navigate={~p"/settings"} class="link">settings</.link>
-        and your poet will write to you there when it's ready.
-      </p>
-
-      <button phx-click="peek_anyway" class="btn btn-ghost btn-xs opacity-60">
-        peek behind the curtain anyway
-      </button>
-    </div>
+      <.elapsed_note poet={@poet} />
+    </article>
     """
   end
 
-  attr :done, :boolean, required: true
+  attr :state, :atom, required: true
 
-  defp step_mark(assigns) do
+  defp stage_mark(assigns) do
     ~H"""
-    <span :if={@done} class="text-success text-lg">✓</span>
-    <span :if={!@done} class="loading loading-dots loading-sm opacity-50"></span>
+    <span :if={@state == :done} class="text-success inline-flex w-5 justify-center">
+      <.icon name="hero-check" class="size-4" />
+    </span>
+    <span :if={@state == :active} class="loading loading-dots loading-sm opacity-50 w-5"></span>
+    <span :if={@state == :pending} class="inline-block w-5 text-center opacity-40">-</span>
+    """
+  end
+
+  attr :poet, :any, required: true
+
+  defp elapsed_note(assigns) do
+    assigns = assign(assigns, :minutes, setup_minutes(assigns.poet))
+
+    ~H"""
+    <p :if={@minutes >= 1} class="text-sm opacity-60 mt-2">
+      Yours started {@minutes} {if @minutes == 1, do: "minute", else: "minutes"} ago.
+      <span :if={@minutes >= 20}>
+        This one is taking longer than usual. Nothing is lost; the poet is still at it.
+      </span>
+    </p>
+    """
+  end
+
+  attr :poet, :any, required: true
+  attr :first_entry, :atom, required: true
+
+  # Where the first entry will land, in the notebook's own clothes, so the
+  # reader sees the shape of what is coming rather than an empty column.
+  defp first_entry_placeholder(assigns) do
+    ~H"""
+    <article id="first-entry-placeholder" class="notebook-page mt-6">
+      <h2 class="notebook-title">
+        The first entry
+        <span class="notebook-date ml-2">
+          {Calendar.strftime(Date.utc_today(), "%B %-d, %Y")}
+        </span>
+      </h2>
+      <div class="mt-3 text-sm space-y-2">
+        <p :if={@first_entry in [:starting, :waiting_for_sprite, :done]}>
+          {@poet.name} is awake and about to open the notebook. The first page usually takes
+          5 to 12 minutes.
+        </p>
+        <p :if={@first_entry == :in_flight} class="flex items-start gap-2">
+          <span class="loading loading-dots loading-sm opacity-50 mt-1"></span>
+          <span>
+            {@poet.name} is writing the first entry. This usually takes 5 to 12 minutes; the
+            drawing comes last. You can read along in the chat.
+          </span>
+        </p>
+        <p :if={@first_entry == :retry_pending}>
+          The first attempt did not produce a page. {@poet.name} will try again within {FirstEntry.retry_after_minutes()} minutes. Nothing is lost.
+        </p>
+        <p :if={@first_entry == :exhausted}>
+          {@poet.name} could not finish the first entry after {FirstEntry.max_attempts()} tries.
+          The daily run will try again tomorrow.
+        </p>
+        <p class="opacity-70">
+          You can close this page; {@poet.name} keeps working and this page updates on its own.
+        </p>
+      </div>
+      <.elapsed_note poet={@poet} />
+    </article>
+    """
+  end
+
+  attr :poet, :any, required: true
+  attr :user, :any, required: true
+  attr :push, :map, required: true
+  attr :telegram, :map, required: true
+
+  defp waiting_tips(assigns) do
+    ~H"""
+    <section id="waiting-tips" class="mt-6 rounded-xl border border-base-300 p-4 space-y-4">
+      <h3 class="font-semibold">While you wait</h3>
+      <.telegram_tip telegram={@telegram} user={@user} poet={@poet} />
+      <.push_tip push={@push} poet={@poet} />
+    </section>
     """
   end
 
@@ -684,13 +802,7 @@ defmodule TravelingPoetWeb.JournalLive do
       credits_low={assigns[:credits_low]}
       active_tab={:journal}
     >
-      <.setting_up_screen
-        :if={setting_up?(assigns)}
-        poet={@poet}
-        user={@user}
-        sprite_status={@sprite_status}
-      />
-      <div :if={!setting_up?(assigns)} class="flex h-[calc(100vh-4rem)] gap-4">
+      <div class="flex h-[calc(100vh-4rem)] gap-4">
         <div class="flex-1 min-w-0 overflow-y-auto pr-1">
           <div
             :if={Credits.exhausted?(@user, @poet)}
@@ -717,11 +829,12 @@ defmodule TravelingPoetWeb.JournalLive do
                   📍 {@poet.current_place_name}
                 </span>
                 <span :if={@sprite_status == :not_provisioned} class="text-warning">
-                  · preparing to set out…
+                  preparing to set out
                 </span>
               </p>
             </div>
             <button
+              :if={!provisioning?(assigns)}
               phx-click="toggle_chat"
               class="ml-auto hidden lg:inline-flex btn btn-ghost btn-sm"
               aria-label="Toggle chat"
@@ -740,6 +853,20 @@ defmodule TravelingPoetWeb.JournalLive do
           </div>
 
           <.push_nudge push={@push} poet={@poet} entry={@entry} />
+
+          <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
+          <.first_entry_placeholder
+            :if={awaiting_first_entry?(assigns) and !provisioning?(assigns)}
+            poet={@poet}
+            first_entry={@first_entry}
+          />
+          <.waiting_tips
+            :if={awaiting_first_entry?(assigns)}
+            poet={@poet}
+            user={@user}
+            push={@push}
+            telegram={@telegram}
+          />
 
           <article
             :if={@entry}
@@ -837,28 +964,21 @@ defmodule TravelingPoetWeb.JournalLive do
               </span>
             </div>
           </article>
-
-          <div :if={is_nil(@entry)} class="mt-10 text-center opacity-70">
-            <p :if={@sprite_status == :not_provisioned}>
-              Your poet is being prepared — the first journal entry will appear here soon.
-            </p>
-            <p :if={@sprite_status != :not_provisioned}>
-              No journal entries yet. Your poet is settling in — say hello in the chat!
-            </p>
-          </div>
         </div>
 
         <.live_component
+          :if={!provisioning?(assigns)}
           module={TravelingPoetWeb.ChatSidebarComponent}
           id="chat-sidebar"
           user={@user}
           sidebar_open={@sidebar_open}
           mobile_chat_open={@mobile_chat_open}
+          first_entry={@first_entry}
           chat_attachment_upload={@uploads.chat_attachment}
         />
 
         <button
-          :if={!@mobile_chat_open}
+          :if={!provisioning?(assigns) and !@mobile_chat_open}
           phx-click="toggle_mobile_chat"
           class="lg:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
           aria-label="Open chat"
@@ -964,19 +1084,52 @@ defmodule TravelingPoetWeb.JournalLive do
   defp release_hold(socket), do: socket
 
   # The gateway rejects a chat.send while another turn is running (e.g. the
-  # auto-fired /onboard right after provisioning) with a bare "Chat error" —
-  # translate it into something a user can act on.
+  # auto-fired /onboard right after provisioning) with a bare "Chat error".
+  # Translate it into something a user can act on.
   defp friendly_error(reason, socket) when is_binary(reason) do
     poet_name = (socket.assigns[:poet] && socket.assigns.poet.name) || "Your poet"
 
-    if String.contains?(reason, "Chat error") do
-      "#{poet_name} is mid-thought (possibly writing to you right now) — give it a moment and resend."
+    if busy_rejection?(reason) do
+      "#{poet_name} is mid-thought, probably writing to you right now. Give it a moment and resend."
     else
       reason
     end
   end
 
   defp friendly_error(reason, _socket), do: reason
+
+  defp busy_rejection?(reason), do: is_binary(reason) and String.contains?(reason, "Chat error")
+
+  # While the first entry is being written the gateway is busy for minutes,
+  # and a hello sent into that is worth keeping rather than bouncing back at
+  # the reader. One message at a time; it goes out when the turn ends.
+  defp holdable?(reason, socket) do
+    busy_rejection?(reason) and socket.assigns.first_entry == :in_flight and
+      is_nil(socket.assigns.held_message) and is_binary(socket.assigns.last_sent)
+  end
+
+  defp resend_held(%{assigns: %{held_message: nil}} = socket), do: socket
+
+  defp resend_held(%{assigns: %{held_message: message, user: user}} = socket) do
+    socket = assign(socket, :held_message, nil)
+
+    if user.sprite_url && user.gateway_token do
+      send_update(ChatSidebarComponent, id: "chat-sidebar", stream_resent: true)
+      {:noreply, socket} = dispatch_to_gateway(socket, message)
+      socket
+    else
+      send_update(ChatSidebarComponent,
+        id: "chat-sidebar",
+        stream_error: "Your poet isn't ready yet."
+      )
+
+      socket
+    end
+  end
+
+  defp refresh_first_entry(socket) do
+    assign(socket, :first_entry, FirstEntry.status(socket.assigns.user, socket.assigns.poet))
+  end
 
   defp recently_active?(socket) do
     case socket.assigns[:last_activity_at] do
@@ -1005,7 +1158,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp dispatch_to_gateway(socket, message) do
     user = socket.assigns.user
-    socket = ensure_gateway_connected(socket)
+    socket = socket |> assign(:last_sent, message) |> ensure_gateway_connected()
     pid = socket.assigns.gateway_socket_pid
 
     if pid do
