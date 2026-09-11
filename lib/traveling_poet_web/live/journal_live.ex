@@ -22,6 +22,7 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
+  alias TravelingPoet.Guide
   alias TravelingPoet.Journal.Spreads
   alias TravelingPoetWeb.ChatSidebarComponent
 
@@ -161,7 +162,12 @@ defmodule TravelingPoetWeb.JournalLive do
       push_event(
         socket,
         "map:update",
-        map_points(socket.assigns.path_points, socket.assigns.poet, socket.assigns.entry)
+        map_points(
+          socket.assigns.path_points,
+          socket.assigns.poet,
+          socket.assigns.entry,
+          map_places(socket)
+        )
       )
     else
       socket
@@ -181,6 +187,7 @@ defmodule TravelingPoetWeb.JournalLive do
     media_map = entry_media_map(poet, entry)
     entry = record_view(socket, poet, entry)
     extra = extra_media(entry)
+    places = entry_places(entry)
 
     socket
     |> assign(:entries, entries)
@@ -188,7 +195,10 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:journey_start, Journal.first_published_date(poet.id))
     |> assign(:entry_media, media_map)
     |> assign(:extra_media, extra)
-    |> assign(:spreads, Spreads.pack(entry, media_map, extra))
+    |> assign(:places, places)
+    |> assign(:place_media, place_media_map(places))
+    |> assign_stay(poet, entry)
+    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
     |> assign_markers(entry)
@@ -247,6 +257,44 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
+
+  # The day's trip guide, for the Places spread: the entry's own places, and
+  # how many the whole stay has so the page can point at the guide.
+  defp entry_places(nil), do: []
+  defp entry_places(entry), do: Guide.list_places_for_entry(entry.id)
+
+  defp place_media_map(places) do
+    places
+    |> Enum.map(& &1.media_id)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&Journal.get_media/1)
+    |> Enum.reject(&is_nil/1)
+    |> Map.new(&{&1.id, &1})
+  end
+
+  defp assign_stay(socket, _poet, nil), do: assign(socket, stay_id: nil, stay_count: 0)
+
+  defp assign_stay(socket, poet, entry) do
+    case Guide.path_point_for(entry) do
+      nil ->
+        assign(socket, stay_id: nil, stay_count: 0)
+
+      stay_id ->
+        count = poet.id |> Guide.list_places(path_point_id: stay_id) |> length()
+        assign(socket, stay_id: stay_id, stay_count: count)
+    end
+  end
+
+  defp guide_url(nil), do: ~p"/guide"
+  defp guide_url(stay_id), do: ~p"/guide?#{[stay: stay_id, view: "itinerary"]}"
+
+  # Places pins only when the reader is on the Places spread; on Today the
+  # map shows the journey, and the two would fight for the viewport.
+  defp map_places(%{assigns: %{spread: %{key: "places"}, places: places}}), do: places
+  defp map_places(_socket), do: []
+
+  defp places_spread?(%{spread: %{key: "places"}}), do: true
+  defp places_spread?(_assigns), do: false
 
   defp entry_media_map(_poet, nil), do: %{}
 
@@ -1026,12 +1074,12 @@ defmodule TravelingPoetWeb.JournalLive do
           </div>
 
           <div
-            :if={!awaiting_first_entry?(assigns)}
+            :if={!awaiting_first_entry?(assigns) and !places_spread?(assigns)}
             id="poet-map"
             phx-hook="PoetMap"
             phx-update="ignore"
             class="w-full h-64 rounded-xl border border-base-300 z-0"
-            data-points={Jason.encode!(map_points(@path_points, @poet, @entry))}
+            data-points={Jason.encode!(map_points(@path_points, @poet, @entry, []))}
           >
           </div>
 
@@ -1082,7 +1130,39 @@ defmodule TravelingPoetWeb.JournalLive do
               chat={!provisioning?(assigns)}
               chat_open={@sidebar_open}
             />
+            <.places_spread
+              :if={places_spread?(assigns)}
+              id={"places-#{@entry.id}"}
+              entry={@entry}
+              day={Journal.journey_day(@entry, @journey_start)}
+              spread={@spread}
+              poet={@poet}
+              place_media={@place_media}
+              guide_url={guide_url(@stay_id)}
+              stay_count={@stay_count}
+            >
+              <:map>
+                <div
+                  id="poet-map"
+                  phx-hook="PoetMap"
+                  phx-update="ignore"
+                  class="taped-map-canvas z-0"
+                  data-points={Jason.encode!(map_points(@path_points, @poet, @entry, @places))}
+                >
+                </div>
+              </:map>
+              <:controls>
+                <.link
+                  :for={{label, date} <- entry_nav(@entries, @entry)}
+                  navigate={~p"/journal/#{date}"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  {label}
+                </.link>
+              </:controls>
+            </.places_spread>
             <.entry_spread
+              :if={!places_spread?(assigns)}
               id={"entry-#{@entry.id}"}
               entry={@entry}
               day={Journal.journey_day(@entry, @journey_start)}
@@ -1189,7 +1269,7 @@ defmodule TravelingPoetWeb.JournalLive do
   # map only ever knew the poet's path and where it is NOW, so paging back
   # through the journal left it sitting on the current city while the page
   # talked about somewhere else entirely.
-  defp map_points(path_points, poet, entry) do
+  defp map_points(path_points, poet, entry, places) do
     points =
       Enum.map(path_points, fn p ->
         %{lat: p.lat, lng: p.lng, name: p.place_name}
@@ -1214,7 +1294,8 @@ defmodule TravelingPoetWeb.JournalLive do
       current: current,
       planned: planned,
       poet: poet.name,
-      focus: focus_point(entry)
+      focus: focus_point(entry),
+      places: Guide.map_payload(places, poet.name)
     }
   end
 

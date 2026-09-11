@@ -7,7 +7,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   use TravelingPoetWeb, :html
 
+  alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.Media
+  alias TravelingPoetWeb.GuideComponents
 
   attr :entry, :map, required: true
   attr :day, :integer, default: nil, doc: "journey day, see Journal.journey_day/2"
@@ -135,6 +137,128 @@ defmodule TravelingPoetWeb.NotebookComponents do
     </div>
     """
   end
+
+  attr :entry, :map, required: true
+  attr :spread, :map, required: true, doc: "the Places spread from Journal.Spreads.pack/4"
+  attr :day, :integer, default: nil
+  attr :poet, :map, required: true
+  attr :place_media, :map, default: %{}, doc: "media by id, for place drawings"
+  attr :guide_url, :string, required: true, doc: "the guide, opened on this entry's stay"
+  attr :stay_count, :integer, default: 0, doc: "places in the whole stay"
+  attr :rest, :global
+
+  slot :map, required: true, doc: "the map element; the caller owns its hook and payload"
+  slot :controls
+
+  @doc """
+  The Places spread: the day's map taped onto the left page, the stops the
+  poet would send you to on the right, each under its passport stamp. The
+  full stay lives in the guide, one link away.
+  """
+  def places_spread(assigns) do
+    stops = for {:place, place} <- assigns.spread.right, do: place
+    assigns = assign(assigns, stops: stops, mapped: Enum.count(stops, &Place.mapped?/1))
+
+    ~H"""
+    <article class="spread" {@rest}>
+      <div class="notebook-page spread-page spread-left">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <.entry_heading entry={@entry} day={@day} />
+          <div :if={@controls != []} class="flex items-center gap-1 shrink-0">
+            {render_slot(@controls)}
+          </div>
+        </div>
+        <figure class="taped-map">
+          {render_slot(@map)}
+        </figure>
+        <p class="notebook-caption">
+          <span :if={@stops == []}>Nowhere in particular today.</span>
+          <span :if={@stops != [] and @mapped == length(@stops)}>
+            {stop_count(@stops)} on the map.
+          </span>
+          <span :if={@stops != [] and @mapped < length(@stops)}>
+            {stop_count(@stops)}, {@mapped} on the map.
+          </span>
+        </p>
+      </div>
+      <div class="notebook-page spread-page spread-right">
+        <h3 class="notebook-section-title mb-3">Where {@poet.name} would send you</h3>
+        <ol :if={@stops != []} class="stops">
+          <li :for={{place, n} <- Enum.with_index(@stops, 1)} id={"stop-#{place.id}"} class="stop">
+            <.place_stamp place={place} n={n} />
+            <div class="stop-body">
+              <div class="stop-name">{place.name}</div>
+              <GuideComponents.event_dates place={place} />
+              <GuideComponents.poet_pick :if={place.poet_rating} place={place} poet={@poet} />
+              <p :if={place.blurb} class="stop-blurb">{place.blurb}</p>
+              <div :if={place.address} class="stop-address">{place.address}</div>
+              <img
+                :if={@place_media[place.media_id]}
+                src={~p"/media/#{place.media_id}"}
+                alt={@place_media[place.media_id].alt_text || place.name}
+                class="stop-drawing"
+                loading="lazy"
+              />
+            </div>
+          </li>
+        </ol>
+        <p :if={@stops == []} class="prose text-sm opacity-60">
+          No places logged for this day. The guide has the rest of the trip.
+        </p>
+        <div class="spread-actions">
+          <a href={@guide_url} class="link">
+            <span :if={@stay_count > 0}>
+              All {@stay_count} {ngettext("place", "places", @stay_count)} in {@entry.place_name ||
+                "the guide"} &rarr;
+            </span>
+            <span :if={@stay_count == 0}>Open the guide &rarr;</span>
+          </a>
+        </div>
+      </div>
+    </article>
+    """
+  end
+
+  defp stop_count(stops), do: "#{length(stops)} #{ngettext("stop", "stops", length(stops))}"
+
+  attr :place, :map, required: true
+  attr :n, :integer, required: true
+
+  @doc """
+  A rubber stamp for a place: name, category and date inside an inked ring,
+  coloured by the guide's filter group so it matches the pin on the map. It
+  links to the place's own page (already link-checked when the poet logged
+  it). Drawn in CSS, never a fetched logo: the app shows nothing it did not
+  make itself.
+  """
+  def place_stamp(assigns) do
+    assigns =
+      assign(assigns,
+        color: stamp_color(Place.group_for(assigns.place.category)),
+        href: assigns.place.source_url
+      )
+
+    ~H"""
+    <a
+      href={@href || "#stop-#{@place.id}"}
+      target={@href && "_blank"}
+      rel={@href && "noopener noreferrer nofollow"}
+      class="place-stamp"
+      style={"--stamp-c: #{@color}"}
+      title={if @href, do: "Open #{@place.name}'s page", else: @place.name}
+    >
+      <span class="stamp-n">{@n}</span>
+      <span class="stamp-name">{@place.name}</span>
+      <span class="stamp-cat">{GuideComponents.humanize_category(@place.category)}</span>
+      <span class="stamp-date">{GuideComponents.format_date(@place.entry_date)}</span>
+    </a>
+    """
+  end
+
+  # The same three inks as the map pins (poet_map_hook.js GROUP_COLORS).
+  defp stamp_color("food"), do: "#c0392b"
+  defp stamp_color("events"), do: "#8e44ad"
+  defp stamp_color(_), do: "#0f766e"
 
   attr :spreads, :list, required: true
   attr :active, :string, required: true

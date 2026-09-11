@@ -1,9 +1,11 @@
 // Leaflet map showing a poet's journey path + current location.
 // Reads data-points (JSON: {path: [{lat,lng,name}], current: {lat,lng,name},
-// focus: {lat,lng,name,date}, poet}) -- focus is the entry being read, and it
-// wins the viewport over `current` so paging back through the journal moves
-// the map to the day you are looking at
-// on mount; a "map:update" push event with the same shape re-renders.
+// focus: {lat,lng,name,date}, poet, places}) -- focus is the entry being read,
+// and it wins the viewport over `current` so paging back through the journal
+// moves the map to the day you are looking at. `places` (same shape as the
+// guide's, below) is the entry's own stops when the reader is on the Places
+// spread; then the pins win the viewport, since that page is about them.
+// Rendered on mount; a "map:update" push event with the same shape re-renders.
 // For the landing page, data-poets (JSON: [{lat,lng,name,place,slug,avatar,
 // entry_url}]) renders clickable markers for all public poets instead, and
 // cycles their popups one at a time (see startTour). data-anonymous-poets
@@ -178,8 +180,10 @@ const PoetMap = {
 
     // phx-update="ignore" means a changed data attribute never re-renders the
     // map, so filter changes arrive as an event instead.
+    // A journey payload always has a path (possibly empty); the guide's has
+    // only places.
     this.handleEvent("map:update", (data) =>
-      data.places ? this.renderPlaces(data.places) : this.render(data)
+      data.path !== undefined ? this.render(data) : this.renderPlaces(data.places)
     )
   },
 
@@ -249,9 +253,20 @@ const PoetMap = {
         .addTo(this.layer)
     }
 
-    // Focus wins the viewport: the reader is looking at that day, not at
-    // wherever the poet happens to be now.
-    if (data.focus) {
+    // The day's stops, numbered like the guide's pins. No select_place push
+    // here: the journal has no handler for it, the popup is the whole story.
+    const stops = (data.places || []).map((p) => [p.lat, p.lng])
+    ;(data.places || []).forEach((p) => {
+      L.marker([p.lat, p.lng], { icon: placeIcon(p) }).bindPopup(placePopup(p)).addTo(this.layer)
+    })
+
+    // Stops win the viewport (that page is about them), then focus: the
+    // reader is looking at that day, not at wherever the poet happens to be.
+    if (stops.length > 1) {
+      this.map.fitBounds(stops, { padding: [40, 40], maxZoom: 15 })
+    } else if (stops.length === 1) {
+      this.map.setView(stops[0], 14)
+    } else if (data.focus) {
       this.map.setView([data.focus.lat, data.focus.lng], 9)
     } else if (data.current && planned.length > 0) {
       this.map.fitBounds([[data.current.lat, data.current.lng], ...planned], { padding: [30, 30] })
