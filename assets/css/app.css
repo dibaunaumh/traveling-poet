@@ -1134,3 +1134,62 @@ mark.marker.marker-sent {
   .home-trust-strip li { border-left: 0; }
   .home-trust-strip li:nth-child(n + 2) { border-top: 1px solid var(--color-base-100); }
 }
+
+/* ---- Journey tour: the fleet, while your own first entry is written ----- */
+/* The card under the tour map: a poet's numbers and the drawings along the
+   route, revealed as the map draws it. Same paper as the journal. */
+
+.tour-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.tour-stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.tour-stat b {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: #2f5d62;
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-stat span {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.tour-stops {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.tour-stop {
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+.tour-stop.is-in { opacity: 1; }
+
+.tour-stop .taped-photo {
+  margin: 0.5rem 0 0;
+}
+
+.tour-stop-caption {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-stop { transition: none; }
+}

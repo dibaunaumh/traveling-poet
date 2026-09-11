@@ -47,7 +47,7 @@ defmodule TravelingPoetWeb.PageController do
     render(conn, :home,
       public_poets: poets,
       spreads: spreads,
-      anonymous_poets: Enum.map(private, &blurred_point/1),
+      anonymous_poets: Enum.map(private, &Poets.Showcase.blurred_point/1),
       poets_on_map: length(public) + length(private),
       my_poet: my_poet,
       signed_out?: is_nil(conn.assigns[:current_user]),
@@ -116,13 +116,6 @@ defmodule TravelingPoetWeb.PageController do
       notes: notes,
       url: entry_url(poet, entry)
     }
-  end
-
-  # A private poet contributes a pin and nothing else: no name, slug, avatar or
-  # place, and coordinates rounded to ~10km so the dot says "somewhere around
-  # here" rather than pointing at a street.
-  defp blurred_point(poet) do
-    %{lat: Float.round(poet.current_lat, 1), lng: Float.round(poet.current_lng, 1)}
   end
 
   # Deep-link straight to the newest published entry when there is one; the

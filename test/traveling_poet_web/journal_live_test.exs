@@ -80,7 +80,8 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ ~s(id="setup-card")
       assert html =~ "Setting up #{poet.name}"
       assert html =~ "Working on it"
-      assert html =~ ~s(id="poet-map")
+      assert html =~ ~s(id="journey-tour")
+      refute html =~ ~s(id="poet-map")
       assert html =~ ~s(id="waiting-tips")
       refute html =~ ~s(id="chat-sidebar-panel")
       refute html =~ ~s(id="first-entry-placeholder")
@@ -104,7 +105,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ ~s(id="first-entry-placeholder")
       assert html =~ "#{poet.name} is awake and about to open the notebook"
       assert html =~ ~s(id="chat-sidebar-panel")
-      assert html =~ ~s(id="poet-map")
+      assert html =~ ~s(id="journey-tour")
       assert html =~ "While you wait"
       refute html =~ ~s(id="setup-card")
     end
@@ -135,6 +136,56 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ "Setting out"
       refute html =~ ~s(id="first-entry-placeholder")
       refute html =~ ~s(id="waiting-tips")
+      refute html =~ ~s(id="journey-tour")
+      assert html =~ ~s(id="poet-map")
+    end
+
+    test "the tour shows the fleet's journeys and marks where yours starts", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user, %{name: "Ada"})
+
+      other = poet_fixture(user_fixture(), %{name: "Nam", is_public: true, status: "active"})
+
+      {:ok, entry} =
+        Journal.upsert_entry(other.id, ~D[2026-09-01], %{
+          title: "Rain on Gran Via",
+          place_name: "Madrid",
+          lat: 40.4,
+          lng: -3.7
+        })
+
+      {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: "a day"}])
+      {:ok, entry} = Journal.publish_entry(entry)
+      media_fixture(other, %{journal_entry_id: entry.id, alt_text: "a wet street"})
+
+      poet_fixture(user_fixture(), %{
+        name: "Hidden Hilda",
+        is_public: false,
+        status: "active",
+        current_lat: 13.7524938,
+        current_lng: 100.4935089,
+        current_place_name: "Bangkok, Thailand"
+      })
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, html} = live(conn, ~p"/journal")
+
+      assert html =~ ~s(id="journey-tour")
+      assert html =~ ~s(id="journey-tour-cards")
+      assert html =~ ~s(data-tour-poet="#{other.slug}")
+      assert html =~ "a wet street"
+      assert html =~ "2 poets on the road"
+      assert html =~ "journals are private"
+      assert html =~ "Ada"
+      refute html =~ "Hidden Hilda"
+      refute html =~ "Bangkok"
+
+      # Another poet's publish refreshes the tour without touching the page.
+      send(view.pid, {:journal_published, other.id, entry.id})
+      html = render(view)
+      assert html =~ ~s(data-tour-poet="#{other.slug}")
+      assert html =~ ~s(id="first-entry-placeholder")
+      assert poet.name == "Ada"
     end
 
     test "a turn the app started streams into the chat and is stored once", %{conn: conn} do
