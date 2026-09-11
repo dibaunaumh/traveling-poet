@@ -386,23 +386,22 @@ defmodule TravelingPoetWeb.NotebookComponents do
         {section_icon(@section.kind)} {@section.title}
       </h3>
       <div class={["prose prose-sm max-w-none", @clamp && "spread-clamp"]}>
-        {raw_markdown(@section.body, Map.keys(@spot_media), @links)}
+        {raw_markdown(@section.body, @spot_media, @links)}
       </div>
-      <%!-- every drawing cites what it was drawn from, the small ones too;
-            outside .prose so the markers' text offsets are untouched --%>
+      <%!-- every drawing cites what it was drawn from, the small ones too:
+            the drawing links to its reference, and this line names them.
+            Outside .prose so the markers' text offsets are untouched. --%>
       <div :if={@spots != []} class="spot-sources">
-        <span :for={spot <- @spots}>
-          {spot.alt_text || "drawing"}, drawn from
-          <a
-            :for={src <- Media.source_items(spot)}
-            href={src["url"]}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            class="link"
-          >
-            {src["label"] || "the real place"} ↗
-          </a>
-        </span>
+        Ink drawing drawn from
+        <a
+          :for={src <- Enum.flat_map(@spots, &Media.source_items/1)}
+          href={src["url"]}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          class="link"
+        >
+          {src["label"] || "the real place"} ↗
+        </a>
       </div>
       <a
         :if={@section.metadata["source_url"]}
@@ -433,8 +432,14 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   def raw_markdown(nil, _allowed, _links), do: ""
 
-  def raw_markdown(text, allowed_media_ids, place_links) do
-    allowed = MapSet.new(allowed_media_ids, &to_string/1)
+  def raw_markdown(text, allowed_media, place_links) do
+    # a map of id => media lets the drawing link to what it was drawn from;
+    # a bare list of ids only lets it through
+    allowed =
+      Map.new(allowed_media, fn
+        {id, media} -> {to_string(id), media}
+        id -> {to_string(id), nil}
+      end)
 
     with {:ok, doc} <- MDEx.parse_document(text),
          doc = MDEx.traverse_and_update(doc, &own_images_only(&1, allowed)),
@@ -566,11 +571,29 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   defp own_images_only(%MDEx.Image{url: "/media/" <> id} = image, allowed) do
-    if MapSet.member?(allowed, id), do: image, else: alt_text(image)
+    case Map.fetch(allowed, id) do
+      {:ok, nil} -> image
+      {:ok, media} -> cite(image, media)
+      :error -> alt_text(image)
+    end
   end
 
   defp own_images_only(%MDEx.Image{} = image, _allowed), do: alt_text(image)
   defp own_images_only(node, _allowed), do: node
+
+  # The drawing itself is the citation: tapping it opens the reference it
+  # was drawn from, so the credit sits on the drawing and not a screen away
+  # at the end of a long section. No text is added, so marker offsets hold.
+  defp cite(image, media) do
+    case Media.source_items(media) do
+      [%{"url" => url} | _] = items when is_binary(url) ->
+        labels = items |> Enum.map(&(&1["label"] || &1["url"])) |> Enum.join(", ")
+        %MDEx.Link{url: url, title: "Drawn from #{labels}", nodes: [image]}
+
+      _ ->
+        image
+    end
+  end
 
   defp alt_text(%MDEx.Image{nodes: nodes}) do
     %MDEx.Text{literal: Enum.map_join(nodes, "", &node_text/1)}

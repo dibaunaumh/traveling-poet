@@ -139,7 +139,13 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
               # ready-made beats trusting the model to spell the path.
               reply =
                 if media.kind == "spot",
-                  do: Map.put(reply, :markdown, Journal.spot_markdown(media)),
+                  do:
+                    Map.merge(reply, %{
+                      markdown: Journal.spot_markdown(media),
+                      placement:
+                        "Paste the markdown on its own line immediately BEFORE the paragraph it illustrates, " <>
+                          "in whichever section that paragraph lives. The drawing sits beside the paragraph that follows it."
+                    }),
                   else: reply
 
               json(conn, reply)

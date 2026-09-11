@@ -148,10 +148,17 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
     {:ok, _view, html} = live(conn, ~p"/journal/2026-08-25")
 
-    assert html =~ ~s(<img src="/media/#{spot.id}" alt="a cup of cafe con leche")
+    # the drawing is the citation: it links to what it was drawn from
+    assert html
+           |> LazyHTML.from_document()
+           |> LazyHTML.query(
+             ~s|.prose a[href="https://example.com/cup"][title="Drawn from the cafe"] img[src="/media/#{spot.id}"]|
+           )
+           |> Enum.count() == 1
+
     refute html =~ ~s(src="/media/#{foreign.id}")
     refute html =~ "photos.example"
-    assert html =~ "a cup of cafe con leche, drawn from"
+    assert html =~ "Ink drawing drawn from"
     assert html =~ ~s(href="https://example.com/cup")
   end
 

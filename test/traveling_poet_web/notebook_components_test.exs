@@ -36,6 +36,37 @@ defmodule TravelingPoetWeb.NotebookComponentsTest do
     assert kept =~ ~s(<img src="/media/42" alt="a cup")
   end
 
+  test "an own drawing given with its media becomes a link to what it was drawn from" do
+    media = %TravelingPoet.Journal.Media{
+      id: 42,
+      sources: %{
+        "items" => [
+          %{"url" => "https://example.com/rope", "label" => "the patio"},
+          %{"url" => "https://example.com/2", "label" => "another"}
+        ]
+      }
+    }
+
+    out = html(raw_markdown("Before\n\n![a rope](/media/42)\n\nAfter.", %{42 => media}))
+
+    assert out =~
+             ~s(<a href="https://example.com/rope" title="Drawn from the patio, another" rel="noopener noreferrer"><img src="/media/42" alt="a rope"></a>)
+
+    assert text(raw_markdown("x ![a rope](/media/42) y", %{42 => media})) ==
+             text(raw_markdown("x  y"))
+
+    # no sources on record (should not happen; the changeset requires them): plain image, still own
+    bare =
+      html(
+        raw_markdown("![a rope](/media/42)", %{
+          42 => %TravelingPoet.Journal.Media{id: 42, sources: %{}}
+        })
+      )
+
+    assert bare =~ ~s(<img src="/media/42")
+    refute bare =~ "<a "
+  end
+
   test "a media path with anything after the id is not vouched for" do
     refute html(raw_markdown("![x](/media/42/../../secret)", [42])) =~ "<img"
     refute html(raw_markdown("![x](/media/42?x=1)", [42])) =~ "<img"

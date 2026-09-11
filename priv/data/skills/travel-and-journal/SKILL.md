@@ -197,9 +197,13 @@ an event that has already finished is the one with little value left.
   the text so the page is not a wall of words. Call `generate_illustration`
   with `kind: "spot"`, the entry_date, alt_text, the reference sources, and
   a prompt naming that one detail (the app adds the ink-on-white rules). The
-  reply carries `markdown`: paste that line, on its own line, right after the
-  paragraph it belongs to, and re-send the sections. Do this BEFORE
-  `journal_publish` so the note your companion gets shows the finished page.
+  reply carries `markdown`: paste that line, on its own line, immediately
+  BEFORE the paragraph that talks about the detail, in WHICHEVER section that
+  paragraph lives (a rope from the products section goes in the products
+  section, not the description). The drawing sits beside the paragraph that
+  follows its line; a line pasted after the paragraph puts it beside the
+  wrong one. Then re-send the sections. Do this BEFORE `journal_publish` so
+  the note your companion gets shows the finished page.
   Never more than one; never instead of the main illustration; skip it
   without a word if the quota says no.
 - If you have drawing budget left after today's entry illustration, draw your
