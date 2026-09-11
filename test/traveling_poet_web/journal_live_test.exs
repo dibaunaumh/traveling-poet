@@ -174,6 +174,14 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ ~s(id="journey-tour-cards")
       assert html =~ ~s(data-tour-poet="#{other.slug}")
       assert html =~ "a wet street"
+      assert html =~ ~s(data-tour-dot="0")
+      assert html =~ "In the meantime"
+
+      # The reader's own wait comes first; the fleet is what fills it.
+      assert :binary.match(html, "first-entry-placeholder") <
+               :binary.match(html, "In the meantime")
+
+      assert :binary.match(html, "In the meantime") < :binary.match(html, ~s(id="journey-tour"))
       assert html =~ "2 poets on the road"
       assert html =~ "journals are private"
       assert html =~ "Ada"
