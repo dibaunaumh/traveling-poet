@@ -6,14 +6,15 @@
 //    anonymous: [{lat,lng}], totals: {...}}
 // and a sibling container named by data-cards holding one
 // [data-tour-poet=slug] card per poet (server-rendered, hidden except the
-// first), with [data-tour-pick] chips, [data-tour-count] numbers and
-// [data-tour-stop="slug:i"] drawings inside.
+// first), with [data-tour-pick] chips, [data-tour-count] numbers and a
+// drawing carousel of [data-tour-stop="slug:i"] slides with [data-tour-dot],
+// [data-tour-prev] and [data-tour-next] controls.
 //
 // Each step: fly to the poet's route, draw it point by point with a marker
-// riding the head, reveal each stop's drawing as the head passes it, count
-// the numbers up, hold, move on; loop. Hovering the map or the cards pauses
-// it. Under prefers-reduced-motion nothing moves: full routes, final numbers,
-// and the cards simply take turns.
+// riding the head, turn the carousel to each stop's drawing as the head
+// passes it, count the numbers up, hold, move on; loop. Hovering the map or
+// the cards pauses it. Under prefers-reduced-motion nothing moves: full
+// routes, final numbers, and the cards simply take turns.
 //
 // The map div is phx-update="ignore"; a "tour:update" push event carries the
 // same shape and re-selects the current poet, since a LiveView re-render of
@@ -139,14 +140,14 @@ const JourneyTour = {
 
     if (this.reduced) {
       this.drawFull(poet, pts)
-      this.revealAllStops(poet)
+      this.showSlide(poet, 0)
       this.setCounts(poet, 1)
       if (bounds) this.map.fitBounds(bounds, { ...FIT, animate: false })
       this.later(() => this.next(), REDUCED_PAGE_MS)
       return
     }
 
-    this.resetStops(poet)
+    this.showSlide(poet, 0)
     this.setCounts(poet, 0)
     this.afterMove(() => this.animate(poet, pts))
     if (bounds && bounds.isValid()) this.map.flyToBounds(bounds, { ...FIT, duration: FLY_S })
@@ -189,7 +190,6 @@ const JourneyTour = {
   animate(poet, pts) {
     if (pts.length < 2) {
       this.drawFull(poet, pts)
-      this.revealAllStops(poet)
       this.countUp(poet)
       this.later(() => this.next(), HOLD_MS)
       return
@@ -241,7 +241,7 @@ const JourneyTour = {
       stopAt.forEach((at, j) => {
         if (!revealed.has(j) && progress >= at) {
           revealed.add(j)
-          this.revealStop(poet, j)
+          this.turnTo(poet, j)
         }
       })
 
@@ -249,7 +249,6 @@ const JourneyTour = {
         this.raf = requestAnimationFrame(frame)
       } else {
         this.raf = null
-        this.revealAllStops(poet)
         this.later(() => this.next(), HOLD_MS)
       }
     }
@@ -284,34 +283,49 @@ const JourneyTour = {
     return this.cards ? this.cards.querySelector(`[data-tour-poet="${CSS.escape(poet.slug)}"]`) : null
   },
 
-  stopEl(poet, j) {
+  // -- the drawing carousel ---------------------------------------------
+  // One slide at a time. Slides are keyed by stop index; a stop without a
+  // drawing has no slide, so turning to it lands on the nearest earlier one.
+
+  slides(poet) {
     const card = this.card(poet)
-    return card ? card.querySelector(`[data-tour-stop="${CSS.escape(poet.slug + ":" + j)}"]`) : null
+    return card ? [...card.querySelectorAll("[data-tour-stop]")] : []
   },
 
-  resetStops(poet) {
-    const card = this.card(poet)
-    if (!card) return
-    card.querySelectorAll("[data-tour-stop]").forEach((el) => {
-      el.hidden = true
+  slideIndexOf(el) {
+    return Number((el.dataset.tourStop || "").split(":").pop())
+  },
+
+  // Show the slide at position `n` in the slide list.
+  showSlide(poet, n) {
+    const slides = this.slides(poet)
+    if (slides.length === 0) return
+    const at = ((n % slides.length) + slides.length) % slides.length
+    slides.forEach((el, k) => {
+      const on = k === at
+      if (on && !el.hidden) return
+      el.hidden = !on
       el.classList.remove("is-in")
+      if (on) requestAnimationFrame(() => el.classList.add("is-in"))
     })
-  },
-
-  revealStop(poet, j) {
-    const el = this.stopEl(poet, j)
-    if (!el) return
-    el.hidden = false
-    requestAnimationFrame(() => el.classList.add("is-in"))
-  },
-
-  revealAllStops(poet) {
     const card = this.card(poet)
-    if (!card) return
-    card.querySelectorAll("[data-tour-stop]").forEach((el) => {
-      el.hidden = false
-      el.classList.add("is-in")
+    card.querySelectorAll("[data-tour-dot]").forEach((dot, k) => {
+      dot.setAttribute("aria-current", String(k === at))
     })
+  },
+
+  // Turn to the drawing of stop `j` (a stop index, not a slide position).
+  turnTo(poet, j) {
+    const slides = this.slides(poet)
+    let n = -1
+    slides.forEach((el, k) => {
+      if (this.slideIndexOf(el) <= j) n = k
+    })
+    if (n >= 0) this.showSlide(poet, n)
+  },
+
+  currentSlide(poet) {
+    return this.slides(poet).findIndex((el) => !el.hidden)
   },
 
   setCounts(poet, fraction) {
@@ -367,7 +381,24 @@ const JourneyTour = {
       this.cards.addEventListener("mouseleave", resume)
       this.cards.addEventListener("click", (e) => {
         const pick = e.target.closest("[data-tour-pick]")
-        if (pick) this.pick(pick.dataset.tourPick)
+        if (pick) return this.pick(pick.dataset.tourPick)
+
+        // Browsing the drawings by hand: turn the page and keep it a while.
+        const poet = this.poets[this.index]
+        if (!poet) return
+        const dot = e.target.closest("[data-tour-dot]")
+        if (dot) {
+          this.engage()
+          return this.turnTo(poet, Number(dot.dataset.tourDot))
+        }
+        if (e.target.closest("[data-tour-prev]")) {
+          this.engage()
+          return this.showSlide(poet, this.currentSlide(poet) - 1)
+        }
+        if (e.target.closest("[data-tour-next]")) {
+          this.engage()
+          return this.showSlide(poet, this.currentSlide(poet) + 1)
+        }
       })
     }
   },

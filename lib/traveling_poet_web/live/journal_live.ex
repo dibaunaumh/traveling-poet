@@ -812,9 +812,9 @@ defmodule TravelingPoetWeb.JournalLive do
   attr :showcase, :map, required: true
 
   # The cards the tour turns: one per public poet, first one open. The hook
-  # toggles `hidden`, counts the numbers up and reveals the drawings as the
-  # map draws the route. Private poets are grey dots on the map and nothing
-  # here.
+  # toggles `hidden`, counts the numbers up and turns the drawing carousel to
+  # each stop as the map draws the route. Private poets are grey dots on the
+  # map and nothing here.
   defp journey_cards(assigns) do
     ~H"""
     <div id="journey-tour-cards" class="mt-3">
@@ -870,18 +870,48 @@ defmodule TravelingPoetWeb.JournalLive do
             <span>{label}</span>
           </div>
         </div>
-        <div class="tour-stops">
-          <div
-            :for={{s, i} <- Enum.with_index(p.stops)}
-            :if={s.media}
-            data-tour-stop={"#{p.slug}:#{i}"}
-            hidden
-            class="tour-stop"
-          >
-            <.section section={%{kind: "illustration"}} media={s.media} />
-            <p class="tour-stop-caption">
-              {s.place}, {Calendar.strftime(Date.from_iso8601!(s.date), "%B %-d")}
-            </p>
+        <div :if={Enum.any?(p.stops, & &1.media)} class="tour-carousel" data-tour-carousel>
+          <div class="tour-slides">
+            <div
+              :for={{s, i} <- Enum.with_index(p.stops)}
+              :if={s.media}
+              data-tour-stop={"#{p.slug}:#{i}"}
+              hidden
+              class="tour-slide"
+            >
+              <.section section={%{kind: "illustration"}} media={s.media} />
+              <p class="tour-stop-caption">
+                {s.place}, {Calendar.strftime(Date.from_iso8601!(s.date), "%B %-d")}
+              </p>
+            </div>
+          </div>
+          <div class="tour-carousel-nav" role="group" aria-label="Drawings along the way">
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs"
+              data-tour-prev
+              aria-label="Previous drawing"
+            >
+              <.icon name="hero-chevron-left" class="size-4" />
+            </button>
+            <span class="tour-dots">
+              <button
+                :for={{s, i} <- Enum.with_index(p.stops)}
+                :if={s.media}
+                type="button"
+                class="tour-dot"
+                data-tour-dot={i}
+                aria-label={"Drawing from #{s.place}"}
+              ></button>
+            </span>
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs"
+              data-tour-next
+              aria-label="Next drawing"
+            >
+              <.icon name="hero-chevron-right" class="size-4" />
+            </button>
           </div>
         </div>
         <a href={p.latest_url} class="link text-sm inline-block mt-3">
@@ -979,18 +1009,6 @@ defmodule TravelingPoetWeb.JournalLive do
           >
           </div>
 
-          <div
-            :if={awaiting_first_entry?(assigns) and @showcase}
-            id="journey-tour"
-            phx-hook="JourneyTour"
-            phx-update="ignore"
-            data-cards="journey-tour-cards"
-            class="w-full h-72 rounded-xl border border-base-300 z-0"
-            data-tour={Jason.encode!(Showcase.tour_payload(@showcase))}
-          >
-          </div>
-          <.journey_cards :if={awaiting_first_entry?(assigns) and @showcase} showcase={@showcase} />
-
           <.push_nudge push={@push} poet={@poet} entry={@entry} />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
@@ -1006,6 +1024,29 @@ defmodule TravelingPoetWeb.JournalLive do
             push={@push}
             telegram={@telegram}
           />
+
+          <section :if={awaiting_first_entry?(assigns) and @showcase} id="meanwhile" class="mt-8">
+            <h3 class="font-semibold">In the meantime</h3>
+            <p class="text-sm opacity-70 mb-3">
+              <span :if={@showcase.poets != []}>
+                Other poets are already out on the road. This is where they have been, what they
+                drew and what they found, one poet at a time. Your own, {@poet.name}, is the red ring.
+              </span>
+              <span :if={@showcase.poets == []}>
+                Here is where {@poet.name} sets out from. Yours will be the first poet on the road.
+              </span>
+            </p>
+            <div
+              id="journey-tour"
+              phx-hook="JourneyTour"
+              phx-update="ignore"
+              data-cards="journey-tour-cards"
+              class="w-full h-64 rounded-xl border border-base-300 z-0"
+              data-tour={Jason.encode!(Showcase.tour_payload(@showcase))}
+            >
+            </div>
+            <.journey_cards showcase={@showcase} />
+          </section>
 
           <article
             :if={@entry}

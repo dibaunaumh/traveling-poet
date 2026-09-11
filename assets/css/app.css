@@ -1167,21 +1167,44 @@ mark.marker.marker-sent {
   opacity: 0.65;
 }
 
-.tour-stops {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-  gap: 0.75rem 1rem;
+/* The carousel: one drawing at a time in a fixed frame, so the card never
+   grows past the fold; the tour turns it, the dots and arrows let the
+   reader browse. */
+.tour-carousel {
   margin-top: 0.75rem;
 }
 
-.tour-stop {
-  opacity: 0;
-  transition: opacity 700ms ease;
+.tour-slides {
+  min-height: 13rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.tour-stop.is-in { opacity: 1; }
 
-.tour-stop .taped-photo {
-  margin: 0.5rem 0 0;
+.tour-slide {
+  width: 100%;
+  max-width: 24rem;
+  margin: 0 auto;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.tour-slide.is-in { opacity: 1; }
+
+.tour-slide .taped-photo {
+  margin: 0.25rem auto 0;
+  display: inline-block;
+}
+
+.tour-slide .taped-photo img {
+  max-height: 11rem;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.tour-slide .taped-photo figcaption {
+  justify-content: center;
 }
 
 .tour-stop-caption {
@@ -1190,6 +1213,35 @@ mark.marker.marker-sent {
   margin-top: 0.25rem;
 }
 
+.tour-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tour-dots {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.tour-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #2f5d62;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.5;
+}
+.tour-dot[aria-current="true"] {
+  background: #2f5d62;
+  opacity: 1;
+}
+.tour-dot:focus-visible { outline: 2px solid #2f5d62; outline-offset: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .tour-stop { transition: none; }
+  .tour-slide { transition: none; }
 }
