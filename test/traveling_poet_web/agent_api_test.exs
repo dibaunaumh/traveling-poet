@@ -250,6 +250,70 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert poet.id
   end
 
+  test "re-putting a marked published entry keeps the unmarked sections as written",
+       %{conn: conn, user: user, poet: poet} do
+    entry = published_entry_fixture(poet)
+
+    {:ok, _} =
+      Journal.replace_sections(entry, [
+        %{kind: "description", body: "Steep streets and a long day."},
+        %{kind: "poem", body: "a verse"},
+        %{kind: "products", body: "Liberty Public Market sells honey."}
+      ])
+
+    {:ok, _} =
+      TravelingPoet.Markers.add_marker(user, entry, %{
+        "kind" => "beautiful",
+        "target" => "text",
+        "section_kind" => "poem",
+        "section_position" => 1,
+        "quote" => "a verse"
+      })
+
+    {:ok, _} =
+      TravelingPoet.Markers.add_marker(user, entry, %{
+        "kind" => "link_needed",
+        "target" => "text",
+        "section_kind" => "products",
+        "section_position" => 2,
+        "quote" => "Liberty Public Market"
+      })
+
+    date = Date.to_iso8601(entry.entry_date)
+
+    body =
+      conn
+      |> put(~p"/api/agent/journal_entries/#{date}/sections", %{
+        sections: [
+          %{kind: "description", body: "Rewritten from the ground up."},
+          %{kind: "poem", body: "a rewritten verse"},
+          %{
+            kind: "products",
+            body: "Liberty Public Market sells honey.",
+            metadata: %{
+              source_url: "https://libertypublicmarketsd.com/",
+              source_label: "Liberty Public Market"
+            }
+          }
+        ]
+      })
+      |> json_response(200)
+
+    assert body["ok"]
+    assert body["kept_as_written"] == ["description", "poem"]
+    assert body["note"] =~ "kept exactly"
+
+    saved = Journal.get_entry_preloaded(poet.id, entry.entry_date).sections
+
+    assert Enum.map(saved, & &1.body) == [
+             "Steep streets and a long day.",
+             "a verse",
+             "Liberty Public Market sells honey."
+           ]
+
+    assert Enum.at(saved, 2).metadata["source_url"] == "https://libertypublicmarketsd.com/"
+  end
+
   test "entry upsert + sections + publish round-trip", %{conn: conn, poet: poet} do
     date = Date.utc_today() |> Date.to_iso8601()
 

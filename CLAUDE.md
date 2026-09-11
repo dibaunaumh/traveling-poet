@@ -84,6 +84,7 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 ### Contexts worth knowing before touching them
 
 - `Journal` (entries, typed sections, media, reactions) vs `Guide` (places with geocoded pins and poet ratings). Keep places OUT of `journal_sections`: `replace_sections/2` wipes and re-inserts on every agent re-put and would destroy coordinates and drawings.
+- `Markers.Guard` keeps a revision surgical: when a published entry with active markers (pending, or sent in the last 30 min) is re-put, every section no change-asking marker sits on is restored from the stored version, and the endpoint replies `kept_as_written`. Praise markers (Interesting, Beautiful) ask for nothing. Chat-requested revisions with no markers in play pass through.
 - `Preferences` learns what the companion wants from taps, chat, reactions and settings, with decay and sticky dismissal. The agent may only ADD preferences (source forced to `"chat"`), never delete. `Preferences.Cadence` decides when to ask; the app owns that decision, not the model.
 - `Credits` is an append-only ledger in milli-credits; flat rate per daily run by mission (`wander`, `scout`). `Usage` holds the daily abuse caps. `quota_exempt` users are free.
 - `Illustrations` generates images server-side via OpenRouter so no shared secret reaches the sprite; media lives in Tigris (S3) via `Storage.S3`, served through `/media/:id` which authorizes on `poet.is_public`.

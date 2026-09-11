@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   require Logger
 
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences}
+  alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Guide.Geocoding
   alias TravelingPoet.Journal.Marker
 
@@ -87,21 +88,48 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   end
 
   defp do_put_sections(conn, poet, date, sections, date_str) do
-    case Journal.get_entry(poet.id, date) do
+    case Journal.get_entry_preloaded(poet.id, date) do
       nil ->
         conn
         |> put_status(404)
         |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
 
       entry ->
+        {sections, kept} = guard_revision(entry, sections)
+
         case Journal.replace_sections(entry, sections) do
           {:ok, saved} ->
-            json(conn, %{ok: true, section_count: length(saved)})
+            json(conn, put_sections_result(saved, kept))
 
           {:error, reason} ->
             conn |> put_status(422) |> json(%{error: inspect(reason)})
         end
     end
+  end
+
+  # A re-put of a published entry with feedback markers on it is a revision:
+  # only the marked passages may change (Markers.Guard). Drafts, and revisions
+  # the reader asked for in chat with no markers in play, pass through.
+  defp guard_revision(%{status: "published"} = entry, sections) do
+    case Guard.active_markers(Markers.list_markers(entry.id)) do
+      [] -> {sections, []}
+      markers -> Guard.protect(entry.sections, sections, markers)
+    end
+  end
+
+  defp guard_revision(_entry, sections), do: {sections, []}
+
+  defp put_sections_result(saved, []), do: %{ok: true, section_count: length(saved)}
+
+  defp put_sections_result(saved, kept) do
+    %{
+      ok: true,
+      section_count: length(saved),
+      kept_as_written: kept,
+      note:
+        "These sections carried no marker asking for a change, so they were kept exactly " <>
+          "as the reader read them. Do not describe them as changed in your reply."
+    }
   end
 
   defp validate_section_links(sections) do

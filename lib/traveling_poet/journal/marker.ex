@@ -26,7 +26,7 @@ defmodule TravelingPoet.Journal.Marker do
     "interesting" => %{
       label: "Interesting",
       meaning: "This held my attention",
-      ask: "keep it, and lean into more like it"
+      ask: "keep it exactly as it is, and do more like it in the days ahead"
     },
     "boring" => %{
       label: "Boring",
@@ -51,7 +51,7 @@ defmodule TravelingPoet.Journal.Marker do
     "beautiful" => %{
       label: "Beautiful",
       meaning: "This moved me",
-      ask: "keep it exactly as it is, and let the rest rise to it"
+      ask: "keep it exactly as it is"
     },
     "not_creative" => %{
       label: "Not creative enough",
