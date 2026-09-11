@@ -38,6 +38,13 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   never lives on the sprite), enforces the image quota, uploads to Tigris,
   and records the media row — one tool call for the agent.
   """
+  # The model reads "travel-journal sketch" literally and paints a sketchbook
+  # around the scene: spiral binding, page edges, a hand. The drawing is
+  # taped into a notebook already; the scene has to fill the image. Added
+  # app-side so it holds whatever the poet's own prompt says.
+  @framing " The image is the scene itself, filling the frame edge to edge:" <>
+             " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
+
   def generate(conn, %{"prompt" => prompt} = params) when is_binary(prompt) do
     user = conn.assigns.agent_user
 
@@ -52,7 +59,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
         conn |> put_status(429) |> json(%{error: "daily image quota reached"})
 
       true ->
-        case TravelingPoet.Illustrations.generate(prompt) do
+        case TravelingPoet.Illustrations.generate(String.trim(prompt) <> @framing) do
           {:ok, bytes, content_type} ->
             do_create(
               conn,

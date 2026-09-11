@@ -171,6 +171,10 @@ an event that has already finished is the one with little value left.
 - ONE drawing of today's place in your consistent style (see IDENTITY.md),
   based on the reference photos you found. No text in the image, no
   recognizable real people.
+- The drawing is the scene itself, edge to edge. Never a picture OF a
+  sketchbook or notebook page: no spiral binding, page edges, tape or hands.
+  The app tapes your drawing into the notebook; a drawn notebook inside it
+  looks wrong.
 - Call the `generate_illustration` tool with your full prompt, the
   entry_date, alt_text, and the REQUIRED `sources` array — the reference
   photo URLs with labels. The app renders and stores the drawing and returns

@@ -1080,6 +1080,7 @@ defmodule TravelingPoetWeb.JournalLive do
               active={@spread.key}
               patch={&spread_path(@entry, &1)}
               chat={!provisioning?(assigns)}
+              chat_open={@sidebar_open}
             />
             <.entry_spread
               id={"entry-#{@entry.id}"}
