@@ -110,6 +110,7 @@ defmodule TravelingPoetWeb.PageController do
     %{
       poet: poet,
       entry: entry,
+      day: Journal.journey_day(entry),
       media: media,
       words: words,
       drawings: drawings,

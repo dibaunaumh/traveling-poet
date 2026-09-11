@@ -171,6 +171,22 @@ h1, h2, h3 {
   color: #8c7454;
 }
 
+/* "Day 17" ahead of the title: the app's count, in the margin hand */
+.notebook-day {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #8c7454;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.notebook-day::after {
+  content: "\00b7";
+  margin-left: 0.5rem;
+  opacity: 0.6;
+}
+
 .notebook-section-title {
   font-family: "Caveat", cursive;
   font-weight: 600;

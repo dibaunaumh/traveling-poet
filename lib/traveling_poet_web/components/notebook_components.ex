@@ -9,6 +9,30 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   alias TravelingPoet.Journal.Media
 
+  attr :entry, :map, required: true
+  attr :day, :integer, default: nil, doc: "journey day, see Journal.journey_day/2"
+  attr :tag, :string, default: "h2"
+  attr :show_date, :boolean, default: true
+
+  @doc """
+  The entry's heading, the same on every surface: the journey day in the
+  margin hand, the poet's title (falling back to the place, then "Journal"),
+  and the date. The day comes from the app, never from the stored title.
+  """
+  def entry_heading(assigns) do
+    ~H"""
+    <.dynamic_tag tag_name={@tag} class="notebook-title">
+      <span :if={@day} class="notebook-day">Day {@day}</span>
+      {entry_title(@entry)}
+      <span :if={@show_date} class="notebook-date ml-2">
+        {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
+      </span>
+    </.dynamic_tag>
+    """
+  end
+
+  def entry_title(entry), do: entry.title || entry.place_name || "Journal"
+
   attr :section, :any, required: true
   attr :media, :any, default: nil
   attr :clamp, :boolean, default: false, doc: "cap the prose at a few lines (home page spread)"

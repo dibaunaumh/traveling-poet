@@ -7,6 +7,9 @@ defmodule TravelingPoet.Journal.Entry do
   schema "journal_entries" do
     field :entry_date, :date
     field :title, :string
+    # The hook for the day's notification: one line the poet writes to make
+    # its reader open the entry. The app prefixes the journey day itself.
+    field :teaser, :string
     field :place_name, :string
     field :lat, :float
     field :lng, :float
@@ -34,6 +37,7 @@ defmodule TravelingPoet.Journal.Entry do
       :poet_id,
       :entry_date,
       :title,
+      :teaser,
       :place_name,
       :lat,
       :lng,
@@ -45,6 +49,7 @@ defmodule TravelingPoet.Journal.Entry do
       :owner_view_count
     ])
     |> validate_required([:poet_id, :entry_date])
+    |> validate_length(:teaser, max: 140)
     |> validate_inclusion(:status, @statuses)
     |> unique_constraint([:poet_id, :entry_date])
   end

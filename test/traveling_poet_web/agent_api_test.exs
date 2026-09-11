@@ -314,6 +314,32 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert Enum.at(saved, 2).metadata["source_url"] == "https://libertypublicmarketsd.com/"
   end
 
+  test "a teaser is stored, cut to 140 characters rather than rejected, and read back with the day",
+       %{conn: conn, poet: poet} do
+    date = Date.utc_today() |> Date.to_iso8601()
+    long = String.duplicate("swifts at dusk ", 20)
+
+    assert %{"ok" => true} =
+             conn
+             |> post(~p"/api/agent/journal_entries", %{
+               entry_date: date,
+               title: "Rooftop",
+               teaser: long
+             })
+             |> json_response(200)
+
+    stored = Journal.get_entry(poet.id, Date.utc_today())
+    assert String.length(stored.teaser) == 140
+    assert stored.teaser == long |> String.trim() |> String.slice(0, 140)
+
+    assert %{"entry" => %{"teaser" => teaser, "journey_day" => 1}} =
+             conn |> get(~p"/api/agent/journal_entries/#{date}") |> json_response(200)
+
+    assert teaser == stored.teaser
+    # today's context tells the poet which day it is, so it never counts
+    assert %{"journey_day" => 1} = conn |> get(~p"/api/agent/context") |> json_response(200)
+  end
+
   test "entry upsert + sections + publish round-trip", %{conn: conn, poet: poet} do
     date = Date.utc_today() |> Date.to_iso8601()
 

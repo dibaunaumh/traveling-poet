@@ -107,14 +107,7 @@ defmodule TravelingPoet.WebPush do
     with poet when not is_nil(poet) <- Poets.get_poet(poet_id),
          subs when subs != [] <- list_subscriptions(%{id: poet.user_id}) do
       entry = Journal.get_entry!(entry_id)
-
-      payload = %{
-        title: "#{poet.name} wrote from #{entry.place_name || "the road"}",
-        body: entry.title || "A new journal entry is waiting.",
-        url: "/journal/#{entry.entry_date}",
-        tag: "entry-#{entry.id}",
-        icon: "/images/icon-192.png"
-      }
+      payload = entry_payload(poet, entry, Journal.journey_day(entry))
 
       Enum.reduce(subs, {0, 0}, fn sub, {sent, pruned} ->
         case send_notification(sub, payload) do
@@ -127,6 +120,27 @@ defmodule TravelingPoet.WebPush do
       _ -> {0, 0}
     end
   end
+
+  @doc """
+  What the device shows for a published entry, pure so it can be tested. The
+  journey day and place make the title; the poet's own teaser (or title) is
+  the body, so no two mornings read the same.
+  """
+  def entry_payload(poet, entry, day) do
+    where = entry.place_name || poet.current_place_name
+
+    %{
+      title:
+        if(where, do: "Day #{day} · #{poet.name} in #{where}", else: "Day #{day} · #{poet.name}"),
+      body: present(entry.teaser) || present(entry.title) || "A new journal entry is waiting.",
+      url: "/journal/#{entry.entry_date}",
+      tag: "entry-#{entry.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
+  defp present(nil), do: nil
+  defp present(text), do: if(String.trim(text) == "", do: nil, else: text)
 
   @doc """
   Encrypts `payload` (a map, JSON-encoded) for one subscription and delivers

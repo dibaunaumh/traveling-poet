@@ -104,4 +104,51 @@ defmodule TravelingPoet.JournalTest do
 
     assert [%{kind: "love", note: "more like this"}] = feedback
   end
+
+  describe "journey day" do
+    test "counts calendar days from the first published entry, gaps included", %{poet: poet} do
+      assert Journal.first_published_date(poet.id) == nil
+
+      # A draft before anything is published is Day 1 in waiting, not Day 0.
+      draft = entry_fixture(poet, %{entry_date: ~D[2026-09-01]})
+      assert Journal.journey_day(draft) == 1
+
+      first = published_entry_fixture(poet, %{entry_date: ~D[2026-09-01]})
+      published_entry_fixture(poet, %{entry_date: ~D[2026-09-02]})
+      # 09-03 skipped: a rest day (or no credits) leaves a gap, it does not renumber
+      fourth = published_entry_fixture(poet, %{entry_date: ~D[2026-09-04]})
+
+      assert Journal.first_published_date(poet.id) == ~D[2026-09-01]
+      assert Journal.journey_day(first) == 1
+      assert Journal.journey_day(fourth) == 4
+      assert Journal.journey_day(~D[2026-09-04], ~D[2026-09-01]) == 4
+      assert Journal.journey_day(~D[2026-09-04], nil) == 1
+    end
+
+    test "a draft dated before the first published entry never goes below Day 1", %{poet: poet} do
+      published_entry_fixture(poet, %{entry_date: ~D[2026-09-05]})
+      earlier = entry_fixture(poet, %{entry_date: ~D[2026-09-02]})
+      assert Journal.journey_day(earlier) == 1
+    end
+  end
+
+  describe "entry_illustration/1" do
+    test "prefers the illustration section's drawing, then an unattached one", %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-01]})
+      assert Journal.entry_illustration(entry) == nil
+
+      loose = media_fixture(poet, %{journal_entry_id: entry.id})
+      assert Journal.entry_illustration(entry).id == loose.id
+
+      chosen = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{kind: "description", body: "words"},
+          %{kind: "illustration", media_id: chosen.id}
+        ])
+
+      assert Journal.entry_illustration(entry).id == chosen.id
+    end
+  end
 end

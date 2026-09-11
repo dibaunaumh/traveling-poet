@@ -15,13 +15,17 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   # full list run serially could hold the agent's request open for most of a
   # minute.
   @link_check_concurrency 6
+  # Matches Entry's validation. Over-long teasers are cut, never rejected: a
+  # fumbled field must not cost the poet its entry.
+  @teaser_max 140
 
   def upsert_entry(conn, %{"entry_date" => date_str} = params) do
     with_poet_and_date(conn, date_str, fn poet, date ->
       attrs =
         params
-        |> Map.take(["title", "place_name", "lat", "lng", "weather", "sources"])
+        |> Map.take(["title", "teaser", "place_name", "lat", "lng", "weather", "sources"])
         |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
+        |> trim_teaser()
 
       case Journal.upsert_entry(poet.id, date, attrs) do
         {:ok, entry} ->
@@ -44,6 +48,12 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   def upsert_entry(conn, _params) do
     conn |> put_status(422) |> json(%{error: "entry_date (YYYY-MM-DD) is required"})
   end
+
+  defp trim_teaser(%{teaser: teaser} = attrs) when is_binary(teaser) do
+    %{attrs | teaser: teaser |> String.trim() |> String.slice(0, @teaser_max)}
+  end
+
+  defp trim_teaser(attrs), do: attrs
 
   # A question the poet wants to ask under today's entry. Optional, and a
   # malformed one is dropped rather than rejected: the fleet model fumbles
@@ -266,7 +276,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
           json(conn, %{
             entry: %{
               entry_date: entry.entry_date,
+              journey_day: Journal.journey_day(entry),
               title: entry.title,
+              teaser: entry.teaser,
               place_name: entry.place_name,
               status: entry.status,
               published_at: entry.published_at,
