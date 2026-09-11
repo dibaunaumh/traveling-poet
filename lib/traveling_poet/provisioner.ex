@@ -460,8 +460,9 @@ defmodule TravelingPoet.Provisioner do
     Interests: #{interests}
     Currently reading: #{reading_text}
     Illustration style: keep one consistent style across all drawings (pick it
-    in your first entry — e.g. loose watercolor travel-journal sketches — and
-    restate it in every generation prompt).
+    in your first entry — e.g. loose watercolor sketches with a fineliner — and
+    restate it in every generation prompt). The style describes the marks, not
+    the object: draw the scene edge to edge, never a sketchbook or notebook.
     """
 
     user_md = """

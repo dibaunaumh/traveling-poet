@@ -140,6 +140,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :active, :string, required: true
   attr :patch, :any, required: true, doc: "fn key -> path, the tab's patch target"
   attr :chat, :boolean, default: false, doc: "add a Chat tab that opens the sidebar"
+  attr :chat_open, :boolean, default: false, doc: "whether the desktop sidebar is showing"
 
   @doc """
   The notebook's index tabs: one per spread, plus Chat on the owner's journal.
@@ -162,7 +163,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
         <button
           type="button"
           role="tab"
-          aria-selected="false"
+          aria-selected={to_string(@chat_open)}
+          title={if @chat_open, do: "Hide the chat", else: "Show the chat"}
           class="spread-tab"
           phx-click="toggle_chat"
         >

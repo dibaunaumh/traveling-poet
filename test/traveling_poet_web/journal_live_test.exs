@@ -53,6 +53,10 @@ defmodule TravelingPoetWeb.JournalLiveTest do
              |> LazyHTML.to_tree()
 
     assert LazyHTML.text(LazyHTML.from_tree([today])) =~ "Today"
+    # the Chat tab shows whether the sidebar is out (open by default) and says what a tap does
+    assert html =~ ~s(title="Hide the chat")
+    html = view |> element(~s(button.spread-tab[phx-click="toggle_chat"])) |> render_click()
+    assert html =~ ~s(title="Show the chat")
     assert html =~ "Chat"
     assert html =~ ~s(class="notebook-page spread-page spread-left")
     assert html =~ ~s(id="section-#{entry.id}-0")

@@ -820,10 +820,12 @@ mark.marker.marker-sent {
   margin: 0;
 }
 
-/* Stacked: the right page hangs under the left, gutter along the fold */
+/* Stacked: the right page hangs under the left, gutter along the fold.
+   Both pages curve into the fold, so each carries a shadow on its fold edge. */
 .spread .spread-left {
   border-radius: 0.75rem 0.75rem 0 0;
   padding-right: 2rem;
+  box-shadow: inset 0 -14px 18px -14px rgba(60, 45, 20, 0.3);
 }
 
 .spread .spread-right {
@@ -889,6 +891,15 @@ mark.marker.marker-sent {
   outline-offset: 2px;
 }
 
+/* A phone held sideways: a full-height map filled the screen and swallowed
+   every swipe, so the page below could not be reached. Keep the map short. */
+@media (max-height: 520px) and (orientation: landscape) {
+  #poet-map,
+  #public-poet-map {
+    height: 8rem;
+  }
+}
+
 @container journal (min-width: 48rem) {
   .spread-wrap {
     padding-right: 2.4rem;
@@ -901,6 +912,7 @@ mark.marker.marker-sent {
   .spread .spread-left {
     border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
     padding-right: 1.75rem;
+    box-shadow: inset -14px 0 18px -14px rgba(60, 45, 20, 0.3);
   }
 
   .spread .spread-right {
