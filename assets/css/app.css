@@ -820,36 +820,20 @@ mark.marker.marker-sent {
   margin: 0;
 }
 
-/* Stacked: the right page hangs under the left, gutter along the fold.
-   Both pages curve into the fold, so each carries a shadow on its fold edge. */
+/* Stacked (a phone): one continuous sheet, the second page simply carrying
+   on below the first. Nobody sees two facing pages there, so there is no
+   fold to draw; both halves keep the margin line and the full page padding. */
 .spread .spread-left {
   border-radius: 0.75rem 0.75rem 0 0;
-  padding-right: 2rem;
-  box-shadow: inset 0 -14px 18px -14px rgba(60, 45, 20, 0.3);
 }
 
 .spread .spread-right {
   border-radius: 0 0 0.75rem 0.75rem;
-  /* the right-hand page has no margin line; the gutter is its left edge */
-  background-image: repeating-linear-gradient(
-    transparent,
-    transparent calc(2rem - 1px),
-    rgba(140, 120, 90, 0.16) calc(2rem - 1px),
-    rgba(140, 120, 90, 0.16) 2rem
-  );
-  padding-left: 2rem;
-  box-shadow: inset 0 14px 18px -14px rgba(60, 45, 20, 0.35);
 }
 
 /* A blank right page is paper wasted when the pages stack */
 .spread .spread-page-empty {
   display: none;
-}
-
-/* The right page has no 4rem margin for marker pins to sit in; tuck them
-   just inside its edge */
-.spread .spread-right .marker-pins {
-  left: -1.9rem;
 }
 
 /* Index tabs. Stacked: a strip above the pages. Side by side: hanging off
@@ -909,6 +893,8 @@ mark.marker.marker-sent {
     grid-template-columns: 1fr 1fr;
   }
 
+  /* Side by side: both pages curve into the fold, each shaded on its fold
+     edge; the right page has no margin line, its gutter is its left edge. */
   .spread .spread-left {
     border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
     padding-right: 1.75rem;
@@ -917,6 +903,12 @@ mark.marker.marker-sent {
 
   .spread .spread-right {
     border-radius: 0.15rem 0.75rem 0.75rem 0.15rem;
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent calc(2rem - 1px),
+      rgba(140, 120, 90, 0.16) calc(2rem - 1px),
+      rgba(140, 120, 90, 0.16) 2rem
+    );
     padding-left: 2.25rem;
     box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
   }
@@ -925,6 +917,8 @@ mark.marker.marker-sent {
     display: block;
   }
 
+  /* The right page has no 4rem margin for marker pins; they sit in its
+     outer margin instead */
   .spread .spread-right .marker-pins {
     left: auto;
     right: -1.9rem;
