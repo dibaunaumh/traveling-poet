@@ -61,14 +61,48 @@ defmodule TravelingPoetWeb.NotebookComponents do
     """
   end
 
-  def raw_markdown(nil), do: ""
+  @doc """
+  The poet's markdown as sanitized HTML.
 
-  def raw_markdown(text) do
-    case MDEx.to_html(text) do
-      {:ok, html} -> Phoenix.HTML.raw(html)
+  Section bodies come from the sprite, which is user-driven territory, so
+  they are cleaned the same way chat is. Images are the one place the rule
+  goes further than the sanitizer: a drawing may only be embedded from this
+  app's own `/media/:id` route, and only when the caller vouches for the id
+  (`allowed_media_ids`, the poet's own media for this entry). Anything else,
+  which would be a photo found online, collapses to its alt text. That keeps
+  the "never embed photos you find online" rule in `priv/data/AGENTS.md`
+  enforced here rather than only in the prompt.
+  """
+  def raw_markdown(text, allowed_media_ids \\ [])
+
+  def raw_markdown(nil, _allowed), do: ""
+
+  def raw_markdown(text, allowed_media_ids) do
+    allowed = MapSet.new(allowed_media_ids, &to_string/1)
+
+    with {:ok, doc} <- MDEx.parse_document(text),
+         doc = MDEx.traverse_and_update(doc, &own_images_only(&1, allowed)),
+         {:ok, html} <- MDEx.to_html(doc, sanitize: MDEx.Document.default_sanitize_options()) do
+      Phoenix.HTML.raw(html)
+    else
       _ -> text
     end
   end
+
+  defp own_images_only(%MDEx.Image{url: "/media/" <> id} = image, allowed) do
+    if MapSet.member?(allowed, id), do: image, else: alt_text(image)
+  end
+
+  defp own_images_only(%MDEx.Image{} = image, _allowed), do: alt_text(image)
+  defp own_images_only(node, _allowed), do: node
+
+  defp alt_text(%MDEx.Image{nodes: nodes}) do
+    %MDEx.Text{literal: Enum.map_join(nodes, "", &node_text/1)}
+  end
+
+  defp node_text(%MDEx.Text{literal: literal}), do: literal
+  defp node_text(%{nodes: nodes}), do: Enum.map_join(nodes, "", &node_text/1)
+  defp node_text(_), do: ""
 
   def section_icon("poem"), do: "✒️"
   def section_icon("description"), do: "🗺️"
