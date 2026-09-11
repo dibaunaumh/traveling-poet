@@ -237,6 +237,19 @@ defmodule TravelingPoet.Guide do
 
   defp maybe_group(query, _), do: query
 
+  @doc "Published places per poet, for the fleet showcase: `%{poet_id => count}`."
+  def count_published_places([]), do: %{}
+
+  def count_published_places(poet_ids) do
+    Place
+    |> maybe_published(true)
+    |> where([p], p.poet_id in ^poet_ids)
+    |> group_by([p], p.poet_id)
+    |> select([p], {p.poet_id, count(p.id)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
   @doc "Counts per filter chip, so a chip can show how much it would reveal."
   def counts_by_group(places) do
     base = %{"all" => length(places), "food" => 0, "sights" => 0, "events" => 0}
