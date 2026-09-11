@@ -30,12 +30,12 @@ defmodule TravelingPoet.Journal.Spreads do
   with no places still gets the Places tab (an empty page that says so beats
   a tab that comes and goes between days).
   """
-  @spec pack(map | nil, %{optional(integer) => map}, [map], [map]) :: [spread]
-  def pack(entry, media_by_id, extra_media, places \\ [])
+  @spec pack(map | nil, %{optional(integer) => map}, [map], [map], Date.t()) :: [spread]
+  def pack(entry, media_by_id, extra_media, places \\ [], today \\ Date.utc_today())
 
-  def pack(nil, _media_by_id, _extra_media, _places), do: []
+  def pack(nil, _media_by_id, _extra_media, _places, _today), do: []
 
-  def pack(entry, media_by_id, extra_media, places) do
+  def pack(entry, media_by_id, extra_media, places, today) do
     {right, left} = Enum.split_with(entry.sections, &(&1.kind in @right_kinds))
 
     # An illustration section whose drawing is missing would render nothing
@@ -48,7 +48,7 @@ defmodule TravelingPoet.Journal.Spreads do
     [
       %{
         key: "today",
-        label: "Today",
+        label: entry_label(entry, today),
         left: Enum.map(left, &{:section, &1}),
         right:
           Enum.map(drawings, &{:section, &1}) ++
@@ -63,6 +63,14 @@ defmodule TravelingPoet.Journal.Spreads do
       }
     ]
   end
+
+  # The tab names the day, and only today's entry is "Today": paging back
+  # to an earlier entry, the tab reads its date, not a promise it cannot keep.
+  defp entry_label(%{entry_date: %Date{} = date}, today) do
+    if Date.compare(date, today) == :eq, do: "Today", else: Calendar.strftime(date, "%b %-d")
+  end
+
+  defp entry_label(_entry, _today), do: "Entry"
 
   @doc """
   The spread a reader asked for by key, or the first one when the key is

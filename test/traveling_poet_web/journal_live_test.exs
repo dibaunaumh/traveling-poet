@@ -57,7 +57,8 @@ defmodule TravelingPoetWeb.JournalLiveTest do
              |> LazyHTML.query(~s(a[role="tab"][aria-selected="true"]))
              |> LazyHTML.to_tree()
 
-    assert LazyHTML.text(LazyHTML.from_tree([today])) =~ "Today"
+    # an entry from August is not "Today": the tab carries its date
+    assert LazyHTML.text(LazyHTML.from_tree([today])) =~ "Aug 25"
     # the Chat tab shows whether the sidebar is out (open by default) and says what a tap does
     assert html =~ ~s(title="Hide the chat")
     html = view |> element(~s(button.spread-tab[phx-click="toggle_chat"])) |> render_click()
@@ -68,7 +69,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ ~s(class="notebook-page spread-page spread-right)
 
     # turning a tab is a patch on the same date: the entry stays put
-    html = view |> element(~s(a[role="tab"]), "Today") |> render_click()
+    html = view |> element(~s(a[role="tab"]), "Aug 25") |> render_click()
     assert html =~ "The rooftop"
     assert_patch(view, ~p"/journal/2026-08-25?spread=today")
   end
@@ -115,7 +116,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     refute html =~ ~s(phx-hook="Markers")
 
     # back to Today: the pins leave the payload
-    view |> element(~s(a[role="tab"]), "Today") |> render_click()
+    view |> element(~s(a[role="tab"]), "Aug 25") |> render_click()
     assert_push_event(view, "map:update", %{places: []})
   end
 

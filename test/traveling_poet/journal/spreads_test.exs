@@ -12,6 +12,7 @@ defmodule TravelingPoet.Journal.SpreadsTest do
 
   test "words on the left in the poet's order, drawing then poem on the right" do
     entry = %{
+      entry_date: ~D[2026-09-11],
       sections: [
         section("illustration", 0, 7),
         section("description", 1),
@@ -22,7 +23,7 @@ defmodule TravelingPoet.Journal.SpreadsTest do
     }
 
     assert [%{key: "today", label: "Today", left: left, right: right}, %{key: "places"}] =
-             Spreads.pack(entry, %{7 => %{id: 7}}, [])
+             Spreads.pack(entry, %{7 => %{id: 7}}, [], [], ~D[2026-09-11])
 
     assert Enum.map(left, fn {:section, s} -> {s.kind, s.position} end) ==
              [{"description", 1}, {"products", 3}, {"kindness", 4}]
@@ -53,6 +54,13 @@ defmodule TravelingPoet.Journal.SpreadsTest do
     assert right == Enum.map(stops, &{:place, &1})
 
     assert [_, %{key: "places", right: []}] = Spreads.pack(entry, %{}, [])
+  end
+
+  test "an earlier entry's tab reads its date, never Today" do
+    entry = %{entry_date: ~D[2026-09-04], sections: []}
+
+    assert [%{key: "today", label: "Sep 4"}, _] = Spreads.pack(entry, %{}, [], [], ~D[2026-09-11])
+    assert [%{label: "Today"}, _] = Spreads.pack(entry, %{}, [], [], ~D[2026-09-04])
   end
 
   test "pick falls back to the first spread for an unknown or missing key" do
