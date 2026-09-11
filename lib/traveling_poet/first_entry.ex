@@ -34,8 +34,6 @@ defmodule TravelingPoet.FirstEntry do
 
   @trigger "/onboard"
   @attempt_kind "first_entry_attempt"
-  # The ritual writes and illustrates an entry: same budget as a daily run.
-  @hold_awake_rounds 8
   @reply_timeout_ms 10 * 60 * 1000
   @max_attempts 3
   @retry_after_minutes 15
@@ -87,7 +85,6 @@ defmodule TravelingPoet.FirstEntry do
 
     case AgentSession.run(user, @trigger,
            channel: "system",
-           hold_awake_rounds: @hold_awake_rounds,
            reply_timeout_ms: @reply_timeout_ms
          ) do
       {:ok, _reply} ->

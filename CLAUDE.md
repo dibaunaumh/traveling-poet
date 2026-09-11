@@ -57,6 +57,7 @@ The Phoenix app never writes journal prose itself. The only server-side text LLM
 - The plugin's tools call back into `/api/agent/*` (bearer token = `users.agent_api_token`, shape `<user_id>.<secret>`, verified by `Plugs.AgentAuth`). Tool handlers must have arity `(toolCallId, params)`; `agent_plugin_test.exs` pins this because a one-arg handler silently receives the call id as its body.
 - `GatewaySocket` (WebSockex, `restart: :temporary`) is the WebSocket client into a sprite's OpenClaw gateway. It is started on demand via `GatewaySocketSupervisor.ensure_connected/1` and closes itself when idle, because an open socket keeps the sprite awake and billing. Never make it permanent.
 - `AgentSession` is the headless exchange (wake sprite, send, hold awake, collect streamed reply, persist to `Chat`) used by everything that talks to a poet without a browser: the daily scheduler, first-entry kickoff, Telegram relay.
+- `SpriteHold` keeps a sprite running while the app drives it, via the Sprites Tasks API (`/.sprite/api.sock`, reachable only inside the sprite, so each call is one short `curl` over `SpritesClient.exec`). `with_hold/4` creates a uniquely named task, refreshes it while the turn runs, and deletes it after. Do not reintroduce long `sleep` execs as a hold.
 
 ### Background processes (all in `Application`, all no-op unless configured)
 
@@ -93,7 +94,7 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 
 - Sessions: Google OAuth via Ueberauth only. `UserAuth` has `mount_current_user`, `ensure_authenticated`, `ensure_admin` (`users.is_admin`). Route groups: `:public` (`/p/:slug`, `/p/:slug/guide`, `/p/:slug/:date`), `:authenticated` (`/onboarding`, `/journal`, `/guide`, `/settings`), `:admin` (`/admin`, `/admin/change-stream`).
 - Owner and public views share state and markup on purpose: `GuideState` + `GuideComponents` back both `/guide` and `/p/:slug/guide`; `NotebookComponents` renders entries on the owner journal, public journal, and home page. Change these shared modules rather than forking markup.
-- `JournalLive` owns the chat sidebar, uploads, sprite keepalive timers, and the provisioning/setting-up state machine. That is why the guide is a separate LiveView.
+- `JournalLive` owns the chat sidebar, uploads, the sprite hold while the reader is active (a `SpriteHold` task refreshed each minute, released on quiet or terminate), and the provisioning/setting-up state machine. That is why the guide is a separate LiveView.
 - `/webhooks/*` uses `Plugs.CacheBodyReader` so Stripe signatures can be checked over the raw body.
 - JS hooks live in `assets/js/*_hook.js` and are registered in `app.js`; Leaflet is vendored under `assets/vendor/leaflet`.
 
