@@ -1168,6 +1168,7 @@ defmodule TravelingPoetWeb.JournalLive do
               day={Journal.journey_day(@entry, @journey_start)}
               spread={@spread}
               media={@entry_media}
+              place_links={place_links(@places, ~p"/journal/#{Date.to_iso8601(@entry.entry_date)}")}
               phx-hook="Markers"
               data-active-marker={@active_marker}
               data-markers={@markers_json}

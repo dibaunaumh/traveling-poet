@@ -8,7 +8,12 @@ defmodule TravelingPoetWeb.JournalLiveTest do
 
   defp publish_entry(poet, date, title) do
     {:ok, entry} = Journal.upsert_entry(poet.id, date, %{title: title, place_name: "Lisbon"})
-    {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: "a day"}])
+
+    {:ok, _} =
+      Journal.replace_sections(entry, [
+        %{kind: "description", body: "a day, coffee at Cafe Museum"}
+      ])
+
     {:ok, _} = Journal.publish_entry(entry)
     entry
   end
@@ -93,6 +98,11 @@ defmodule TravelingPoetWeb.JournalLiveTest do
 
     assert html =~ "Where Nam would send you"
     assert html =~ "Cafe Museum"
+    assert html =~ ~s(id="stop-)
+
+    # on Today, the first mention in the prose links to that stop
+    {:ok, _view, today} = live(conn, ~p"/journal/2026-08-25")
+    assert today =~ ~s(<a href="/journal/2026-08-25?spread=places#stop-)
     assert html =~ "Unplaced Bar"
     assert html =~ "Nam&#39;s pick"
     assert html =~ ~s(href="https://example.com/cafe-museum")

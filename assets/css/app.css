@@ -836,6 +836,29 @@ mark.marker.marker-sent {
   display: none;
 }
 
+/* A place named in the prose is a way into the Places page: stamped ink,
+   not the blue of an outbound link. The stop it lands on lights up. */
+.notebook-page .prose a[href*="spread=places"] {
+  color: #0f766e;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.notebook-page .prose a[href*="spread=places"]:hover {
+  text-decoration-style: solid;
+}
+
+.stop:target,
+.stop.stop-lit {
+  background: rgba(15, 118, 110, 0.08);
+  outline: 2px dashed rgba(15, 118, 110, 0.35);
+  outline-offset: 0.4rem;
+  border-radius: 0.5rem;
+  transition: background 0.6s, outline-color 0.6s;
+}
+
 /* ---- The Places spread: the day's map taped in, stops under their stamps -- */
 
 .taped-map {
