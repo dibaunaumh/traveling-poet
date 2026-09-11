@@ -21,7 +21,7 @@ defmodule TravelingPoet.Journal.SpreadsTest do
       ]
     }
 
-    assert [%{key: "today", label: "Today", left: left, right: right}] =
+    assert [%{key: "today", label: "Today", left: left, right: right}, %{key: "places"}] =
              Spreads.pack(entry, %{7 => %{id: 7}}, [])
 
     assert Enum.map(left, fn {:section, s} -> {s.kind, s.position} end) ==
@@ -38,9 +38,21 @@ defmodule TravelingPoet.Journal.SpreadsTest do
 
     loose = %{id: 11}
 
-    [%{right: right}] = Spreads.pack(entry, %{}, [loose])
+    [%{right: right}, _places] = Spreads.pack(entry, %{}, [loose])
 
     assert right == [{:media, loose}, {:section, section("poem", 2)}]
+  end
+
+  test "Places follows Today: the map on the left, the day's stops on the right, even when empty" do
+    entry = %{sections: [section("description", 0)]}
+    stops = [%{id: 1, name: "Cafe"}, %{id: 2, name: "Bridge"}]
+
+    assert [%{key: "today"}, %{key: "places", label: "Places", left: [{:map, nil}], right: right}] =
+             Spreads.pack(entry, %{}, [], stops)
+
+    assert right == Enum.map(stops, &{:place, &1})
+
+    assert [_, %{key: "places", right: []}] = Spreads.pack(entry, %{}, [])
   end
 
   test "pick falls back to the first spread for an unknown or missing key" do

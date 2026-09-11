@@ -836,6 +836,192 @@ mark.marker.marker-sent {
   display: none;
 }
 
+/* ---- The Places spread: the day's map taped in, stops under their stamps -- */
+
+.taped-map {
+  position: relative;
+  background: #fff;
+  padding: 0.6rem;
+  margin: 0.75rem 0 0.5rem;
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+}
+
+/* the same tape as .taped-photo, but the map stays square: Leaflet cannot
+   take a rotated container */
+.taped-map::before,
+.taped-map::after {
+  content: "";
+  position: absolute;
+  width: 5.5rem;
+  height: 1.6rem;
+  background: rgba(255, 244, 200, 0.6);
+  border-left: 1px dashed rgba(160, 140, 90, 0.3);
+  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
+  z-index: 1;
+}
+
+.taped-map::before {
+  top: -0.8rem;
+  left: -1.5rem;
+  transform: rotate(-38deg);
+}
+
+.taped-map::after {
+  top: -0.8rem;
+  right: -1.5rem;
+  transform: rotate(38deg);
+}
+
+.taped-map-canvas {
+  width: 100%;
+  height: 22rem;
+}
+
+.notebook-caption {
+  font-family: "Caveat", cursive;
+  font-size: 1.15rem;
+  color: #6b5b40;
+  line-height: 2rem;
+}
+
+.stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stop {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.stop-body {
+  flex: 1;
+  min-width: 0;
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+  color: #3a3226;
+  line-height: 2rem;
+}
+
+.stop-name {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 1.4rem;
+  line-height: 2rem;
+  color: #2f2a1e;
+}
+
+.stop-blurb {
+  margin: 0;
+  font-size: 1.05rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.stop-address {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+.stop-drawing {
+  display: block;
+  width: 8rem;
+  margin-top: 0.5rem;
+  border-radius: 2px;
+  border: 4px solid #fff;
+  box-shadow: 0 2px 6px rgba(60, 45, 20, 0.25);
+  transform: rotate(1.5deg);
+}
+
+/* A rubber stamp: inked ring, the place's name, its kind, the day. The ink
+   is the guide's group colour so it matches the pin. Multiply keeps the
+   ruled lines showing through, as a real stamp would. */
+.place-stamp {
+  --stamp-c: #0f766e;
+  flex: 0 0 6.5rem;
+  width: 6.5rem;
+  height: 6.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 2px double var(--stamp-c);
+  outline: 1px solid color-mix(in srgb, var(--stamp-c) 55%, transparent);
+  outline-offset: -0.35rem;
+  color: var(--stamp-c);
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.05;
+  transform: rotate(-7deg);
+  opacity: 0.88;
+  mix-blend-mode: multiply;
+  position: relative;
+}
+
+.stop:nth-child(even) .place-stamp {
+  transform: rotate(5deg);
+}
+
+.place-stamp:hover {
+  opacity: 1;
+}
+
+.place-stamp:focus-visible {
+  outline: 3px solid #2f5d62;
+  outline-offset: 2px;
+}
+
+.place-stamp .stamp-n {
+  position: absolute;
+  top: -0.4rem;
+  left: -0.2rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--stamp-c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(7deg);
+}
+
+.place-stamp .stamp-name {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.place-stamp .stamp-cat {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.place-stamp .stamp-date {
+  font-family: "Caveat", cursive;
+  font-size: 0.85rem;
+}
+
 /* Index tabs. Stacked: a strip above the pages. Side by side: hanging off
    the right edge of the right page, like a notebook's dividers. */
 .spread-tabs {

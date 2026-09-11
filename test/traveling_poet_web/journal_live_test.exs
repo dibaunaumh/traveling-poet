@@ -68,6 +68,59 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert_patch(view, ~p"/journal/2026-08-25?spread=today")
   end
 
+  test "the Places spread lists the day's stops under stamps and pins them on the map",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user, %{name: "Nam"})
+    entry = publish_entry(poet, ~D[2026-08-25], "The rooftop")
+
+    place_fixture(poet, entry, %{
+      name: "Cafe Museum",
+      category: "cafe",
+      lat: 48.2,
+      lng: 16.37,
+      geocode_status: "ok",
+      poet_rating: 4,
+      blurb: "Loos designed it.",
+      source_url: "https://example.com/cafe-museum",
+      position: 0
+    })
+
+    place_fixture(poet, entry, %{name: "Unplaced Bar", category: "restaurant", position: 1})
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, html} = live(conn, ~p"/journal/2026-08-25?spread=places")
+
+    assert html =~ "Where Nam would send you"
+    assert html =~ "Cafe Museum"
+    assert html =~ "Unplaced Bar"
+    assert html =~ "Nam&#39;s pick"
+    assert html =~ ~s(href="https://example.com/cafe-museum")
+    assert html =~ "2 stops, 1 on the map."
+    assert html =~ ~s(class="place-stamp")
+    # the journey map moved into the left page, carrying the stops as pins
+    assert html =~ ~s(id="poet-map")
+    assert html =~ ~s(class="taped-map-canvas z-0")
+    assert_push_event(view, "map:update", %{places: [%{name: "Cafe Museum", n: 1}]})
+    refute html =~ ~s(phx-hook="Markers")
+
+    # back to Today: the pins leave the payload
+    view |> element(~s(a[role="tab"]), "Today") |> render_click()
+    assert_push_event(view, "map:update", %{places: []})
+  end
+
+  test "an entry without places still has the tab, and says so", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user)
+    publish_entry(poet, ~D[2026-08-25], "Quiet")
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+
+    {:ok, _view, html} = live(conn, ~p"/journal/2026-08-25?spread=places")
+    assert html =~ "No places logged for this day"
+    assert html =~ "Nowhere in particular today."
+    assert html =~ ~s(href="/guide")
+  end
+
   test "public journal renders with multiple entries", %{conn: conn} do
     user = agent_user_fixture()
     poet = poet_fixture(user, %{is_public: true})
@@ -83,7 +136,13 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     # the same spread and tabs as the owner sees, minus chat
     assert html =~ ~s(role="tablist")
     assert html =~ ~s(href="/p/#{poet.slug}/2026-08-26?spread=today")
+    assert html =~ ~s(href="/p/#{poet.slug}/2026-08-26?spread=places")
     refute html =~ "toggle_chat"
+
+    {:ok, view, html} = live(conn, ~p"/p/#{poet.slug}/2026-08-26?spread=places")
+    assert html =~ ~s(id="public-poet-map")
+    assert html =~ "No places logged for this day"
+    assert_push_event(view, "map:update", %{places: []})
   end
 
   test "a shared public entry carries link-preview tags; the owner's journal does not", %{
