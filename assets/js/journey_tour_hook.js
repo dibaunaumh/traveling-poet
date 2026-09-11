@@ -12,9 +12,10 @@
 //
 // Each step: fly to the poet's route, draw it point by point with a marker
 // riding the head, turn the carousel to each stop's drawing as the head
-// passes it, count the numbers up, hold, move on; loop. Hovering the map or
-// the cards pauses it. Under prefers-reduced-motion nothing moves: full
-// routes, final numbers, and the cards simply take turns.
+// passes it, count the numbers up, hold, move on; loop. A pointer on the map
+// or the cards, a click or a drag holds the hand-off for a while (never for
+// good). Under prefers-reduced-motion nothing moves: full routes, final
+// numbers, and the cards simply take turns.
 //
 // The map div is phx-update="ignore"; a "tour:update" push event carries the
 // same shape and re-selects the current poet, since a LiveView re-render of
@@ -27,7 +28,11 @@ const COUNT_MS = 1500
 const HOLD_MS = 4500
 const FLY_S = 1.2
 const REDUCED_PAGE_MS = 12_000
-const ENGAGE_MS = 20_000
+// How long a reader's touch (pointer over the map or the cards, a click, a
+// drag) holds the hand-off. It refreshes while the pointer keeps moving and
+// expires on its own, so a parked pointer or a missed mouseleave can never
+// stall the tour for good.
+const HOLD_INTERACT_MS = 25_000
 const FIT = { padding: [30, 30], maxZoom: 7 }
 const TEAL = "#2f5d62"
 const RED = "#c0392b"
@@ -59,6 +64,7 @@ const JourneyTour = {
 
   destroyed() {
     this.stop()
+    clearTimeout(this.holdTimer)
     if (this.onVisibility) document.removeEventListener("visibilitychange", this.onVisibility)
     if (this.map) this.map.remove()
   },
@@ -142,14 +148,20 @@ const JourneyTour = {
       this.drawFull(poet, pts)
       this.showSlide(poet, 0)
       this.setCounts(poet, 1)
+      this.flying = true
       if (bounds) this.map.fitBounds(bounds, { ...FIT, animate: false })
+      this.flying = false
       this.later(() => this.next(), REDUCED_PAGE_MS)
       return
     }
 
     this.showSlide(poet, 0)
     this.setCounts(poet, 0)
-    this.afterMove(() => this.animate(poet, pts))
+    this.flying = true
+    this.afterMove(() => {
+      this.flying = false
+      this.animate(poet, pts)
+    })
     if (bounds && bounds.isValid()) this.map.flyToBounds(bounds, { ...FIT, duration: FLY_S })
     else this.fitAll()
   },
@@ -350,35 +362,24 @@ const JourneyTour = {
   // -- interaction ------------------------------------------------------
 
   bindInteraction() {
-    const pause = () => {
-      this.hovering = true
-      this.pause()
-    }
-    const resume = () => {
-      this.hovering = false
-      this.resume()
-    }
-    this.el.addEventListener("mouseenter", pause)
-    this.el.addEventListener("mouseleave", resume)
-    this.map.on("dragstart zoomstart", () => this.engage())
+    const hold = () => this.hold()
+    const release = () => this.release()
 
-    // A hidden tab gets no animation frames, so a flight would freeze while
-    // the timers kept turning the cards underneath it. Hold everything, and
-    // start the current step over when the reader comes back.
-    this.onVisibility = () => {
-      if (document.hidden) {
-        this.stop()
-        this.paused = true
-      } else if (!this.hovering && !this.engaged) {
-        this.paused = false
-        if (this.poets.length > 0) this.show(this.index || 0)
-      }
-    }
-    document.addEventListener("visibilitychange", this.onVisibility)
+    // The pointer resting on the map or the cards means someone is looking;
+    // moving it keeps the hold fresh, leaving releases it at once.
+    this.el.addEventListener("mouseenter", hold)
+    this.el.addEventListener("mousemove", hold)
+    this.el.addEventListener("mouseleave", release)
+    this.map.on("dragstart", hold)
+    // Our own flights fire zoomstart too; only a reader's zoom counts.
+    this.map.on("zoomstart", () => {
+      if (!this.flying) this.hold()
+    })
 
     if (this.cards) {
-      this.cards.addEventListener("mouseenter", pause)
-      this.cards.addEventListener("mouseleave", resume)
+      this.cards.addEventListener("mouseenter", hold)
+      this.cards.addEventListener("mousemove", hold)
+      this.cards.addEventListener("mouseleave", release)
       this.cards.addEventListener("click", (e) => {
         const pick = e.target.closest("[data-tour-pick]")
         if (pick) return this.pick(pick.dataset.tourPick)
@@ -388,48 +389,59 @@ const JourneyTour = {
         if (!poet) return
         const dot = e.target.closest("[data-tour-dot]")
         if (dot) {
-          this.engage()
+          this.hold()
           return this.turnTo(poet, Number(dot.dataset.tourDot))
         }
         if (e.target.closest("[data-tour-prev]")) {
-          this.engage()
+          this.hold()
           return this.showSlide(poet, this.currentSlide(poet) - 1)
         }
         if (e.target.closest("[data-tour-next]")) {
-          this.engage()
+          this.hold()
           return this.showSlide(poet, this.currentSlide(poet) + 1)
         }
       })
     }
+
+    // A hidden tab gets no animation frames, so a flight would freeze while
+    // the timers kept turning the cards underneath it. Hold everything, and
+    // start the current step over when the reader comes back.
+    this.onVisibility = () => {
+      if (document.hidden) {
+        this.stop()
+        this.paused = true
+      } else {
+        clearTimeout(this.holdTimer)
+        this.paused = false
+        if (this.poets.length > 0) this.show(this.index || 0)
+      }
+    }
+    document.addEventListener("visibilitychange", this.onVisibility)
   },
 
   // A chip or pin click shows that poet right away and keeps it for a while.
   pick(slug) {
     const i = this.poets.findIndex((p) => p.slug === slug)
     if (i < 0) return
-    this.engage()
+    this.hold()
     this.show(i)
   },
 
-  engage() {
-    this.engaged = true
-    clearTimeout(this.engageTimer)
-    this.engageTimer = setTimeout(() => {
-      this.engaged = false
-      this.resume()
-    }, ENGAGE_MS)
-    this.pause()
-  },
-
-  // Pausing only stops the hand-off to the next poet; a route mid-draw
-  // finishes, which reads better than a frozen marker.
-  pause() {
+  // Holding only stops the hand-off to the next poet; a route mid-draw
+  // finishes, which reads better than a frozen marker. Every hold expires.
+  hold() {
     this.paused = true
+    clearTimeout(this.holdTimer)
+    this.holdTimer = setTimeout(() => this.release(), HOLD_INTERACT_MS)
   },
 
-  resume() {
-    if (this.hovering || this.engaged || document.hidden) return
+  release() {
+    clearTimeout(this.holdTimer)
+    this.holdTimer = null
+    if (document.hidden) return
     this.paused = false
+    // Nothing in flight and nothing scheduled: the hand-off that was skipped
+    // while held has to be put back.
     if (this.raf == null && this.timers.length === 0 && this.poets.length > 0) {
       this.later(() => this.next(), 800)
     }
