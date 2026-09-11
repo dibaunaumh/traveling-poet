@@ -72,6 +72,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
           travel: Poets.travel_plan(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),
+          # Which day of the journey today is. The app counts; you never do.
+          # Use it in the chat postcard ("Day 17"), not in the entry title.
+          journey_day:
+            Journal.journey_day(Date.utc_today(), Journal.first_published_date(poet.id)),
           recent_private_feedback: feedback,
           # What the companion has actually asked for, strongest first. This
           # outranks the poet's own instincts and the interests baked into its

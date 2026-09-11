@@ -163,6 +163,7 @@ defmodule TravelingPoetWeb.JournalLive do
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
+    |> assign(:journey_start, Journal.first_published_date(poet.id))
     |> assign(:entry_media, media_map)
     |> assign(:extra_media, extra_media(entry))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
@@ -1058,12 +1059,7 @@ defmodule TravelingPoetWeb.JournalLive do
             data-marker-icons={icons_json()}
           >
             <div class="flex items-center justify-between mb-2">
-              <h2 class="notebook-title">
-                {@entry.title || @entry.place_name || "Journal"}
-                <span class="notebook-date ml-2">
-                  {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
-                </span>
-              </h2>
+              <.entry_heading entry={@entry} day={Journal.journey_day(@entry, @journey_start)} />
               <div class="flex items-center gap-1">
                 <.marker_menu active={@active_marker} />
                 <.link

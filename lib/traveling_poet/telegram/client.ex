@@ -1,7 +1,7 @@
 defmodule TravelingPoet.Telegram.Client do
   @moduledoc """
-  Thin Req client for the Telegram Bot API — the only two calls we need are
-  `getUpdates` (long polling) and `sendMessage`.
+  Thin Req client for the Telegram Bot API — the only calls we need are
+  `getUpdates` (long polling), `sendMessage` and `sendPhoto`.
   """
 
   require Logger
@@ -65,6 +65,33 @@ defmodule TravelingPoet.Telegram.Client do
     end
   end
 
+  @doc """
+  Sends a photo from bytes with an optional `:caption`. Bytes, not a URL: the
+  app's media route is owner-only for private poets, so Telegram could not
+  fetch it. The caller keeps captions within Telegram's 1024-char cap.
+  """
+  def send_photo(chat_id, {bytes, filename, content_type}, opts \\ []) do
+    fields =
+      [
+        chat_id: to_string(chat_id),
+        photo: {bytes, filename: filename, content_type: content_type}
+      ]
+      |> maybe_put(:caption, opts[:caption])
+
+    case Req.post(url("sendPhoto"), form_multipart: fields, receive_timeout: 30_000) do
+      {:ok, %{status: 200, body: %{"ok" => true}}} ->
+        :ok
+
+      {:ok, %{status: status, body: resp}} ->
+        Logger.warning("Telegram sendPhoto failed (#{status}): #{inspect(resp)}")
+        {:error, {status, resp}}
+
+      {:error, reason} ->
+        Logger.warning("Telegram sendPhoto error: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
   defp chunk_text(text) do
     text
     |> String.codepoints()
@@ -76,7 +103,8 @@ defmodule TravelingPoet.Telegram.Client do
     end
   end
 
-  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(fields, _key, nil), do: fields
+  defp maybe_put(fields, key, value) when is_list(fields), do: fields ++ [{key, value}]
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp url(method), do: "https://api.telegram.org/bot#{bot_token()}/#{method}"

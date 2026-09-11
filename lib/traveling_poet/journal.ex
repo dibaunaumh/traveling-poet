@@ -168,6 +168,51 @@ defmodule TravelingPoet.Journal do
     |> Repo.one()
   end
 
+  ## Journey day
+
+  @doc "The date this poet's journey began: its first published entry, or nil before one exists."
+  def first_published_date(poet_id) do
+    Entry
+    |> where(poet_id: ^poet_id, status: "published")
+    |> select([e], min(e.entry_date))
+    |> Repo.one()
+  end
+
+  @doc """
+  Which day of the journey a date falls on, counted in calendar days from the
+  first published entry (Day 1), so a day the poet rested or ran out of
+  credits leaves an honest gap instead of renumbering every earlier entry.
+  Before anything is published the next entry will be Day 1.
+
+  The app computes this rather than the poet: a model cannot count days
+  reliably, and a number baked into a stored title would go stale on the
+  first revision. `journey_day/2` is the pure form for views that already
+  hold the start date.
+  """
+  def journey_day(%Entry{poet_id: poet_id, entry_date: date}),
+    do: journey_day(date, first_published_date(poet_id))
+
+  def journey_day(%Entry{entry_date: date}, start), do: journey_day(date, start)
+  def journey_day(%Date{}, nil), do: 1
+  def journey_day(%Date{} = date, %Date{} = start), do: max(Date.diff(date, start) + 1, 1)
+
+  @doc """
+  The entry's drawing for notes and link previews: the first illustration
+  section's media, else the first drawing linked to the entry that no section
+  claimed (the same fallback the pages render).
+  """
+  def entry_illustration(%Entry{} = entry) do
+    entry =
+      if Ecto.assoc_loaded?(entry.sections), do: entry, else: preload_entry(entry)
+
+    from_section =
+      entry.sections
+      |> Enum.filter(&(&1.kind == "illustration" and &1.media_id))
+      |> Enum.find_value(&get_media(&1.media_id))
+
+    from_section || List.first(unattached_illustrations(entry, entry.sections))
+  end
+
   ## Media
 
   def get_media(id), do: Repo.get(Media, id)

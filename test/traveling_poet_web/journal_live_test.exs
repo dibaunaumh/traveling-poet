@@ -45,6 +45,34 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     {:ok, _view, html} = live(conn, ~p"/p/#{poet.slug}")
     assert html =~ "Day two"
     assert html =~ "earlier"
+    # the journey day is the app's count, shown ahead of the poet's title
+    assert html =~ ~s(class="notebook-day">Day 2</span>)
+  end
+
+  test "a shared public entry carries link-preview tags; the owner's journal does not", %{
+    conn: conn
+  } do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user, %{is_public: true})
+    publish_entry(poet, ~D[2026-08-25], "Day one")
+
+    {:ok, entry} =
+      Journal.upsert_entry(poet.id, ~D[2026-08-27], %{
+        title: "The rooftop nobody mentions",
+        teaser: "Swifts at dusk over the mosque.",
+        place_name: "Cordoba"
+      })
+
+    {:ok, _} = Journal.publish_entry(entry)
+
+    html = conn |> get(~p"/p/#{poet.slug}/2026-08-27") |> html_response(200)
+    assert html =~ ~s(property="og:title" content="Day 3: The rooftop nobody mentions")
+    assert html =~ ~s(property="og:description" content="Swifts at dusk over the mosque.")
+    assert html =~ ~s(content="http://localhost:4000/p/#{poet.slug}/2026-08-27")
+    refute html =~ "og:image"
+
+    owner = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    refute owner |> get(~p"/journal/2026-08-27") |> html_response(200) =~ "og:title"
   end
 
   test "a long setup says so, and shows how long it has been", %{conn: conn} do

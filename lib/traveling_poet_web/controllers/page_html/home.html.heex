@@ -128,9 +128,7 @@
                 {Calendar.strftime(s.entry.entry_date, "%B %-d, %Y")}
               </span>
             </div>
-            <h3 class="notebook-title mb-3">
-              {s.entry.title || s.entry.place_name || "Journal"}
-            </h3>
+            <.entry_heading entry={s.entry} day={s.day} tag="h3" show_date={false} />
             <div :for={section <- s.words} class="mb-5">
               <.section section={section} clamp={section.kind == "description"} />
             </div>

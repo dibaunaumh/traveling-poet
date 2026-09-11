@@ -678,7 +678,8 @@ defmodule TravelingPoet.Provisioner do
             required: ["entry_date"],
             properties: {
               entry_date: { type: "string", description: "YYYY-MM-DD" },
-              title: { type: "string" },
+              title: { type: "string", description: "The day's one concrete image or moment, under 60 characters. Specific, never just the place name, never a day number (the app adds 'Day N'). Good: 'The rooftop nobody mentions'. Bad: 'Cordoba', 'Day 17 in Cordoba'." },
+              teaser: { type: "string", description: "One line, under 140 characters, that makes your companion want to open today's entry. The hook, not a summary; no day number. It becomes their notification. Good: 'I found a rooftop over the mosque where the swifts come in at dusk.'" },
               place_name: { type: "string" },
               lat: { type: "number" },
               lng: { type: "number" },

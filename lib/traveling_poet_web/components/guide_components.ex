@@ -159,12 +159,17 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :days, :list, required: true
   attr :media, :map, required: true
   attr :poet, :map, required: true
+  attr :stay, :map, default: nil, doc: "the path point these days belong to"
 
+  # "Day 2 in Vienna", not a bare "Day 2": the journal numbers the whole
+  # journey, so an unqualified count here would read as a contradiction.
   def itinerary_view(assigns) do
     ~H"""
     <div id="guide-itinerary" class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       <div :for={day <- @days} id={"guide-day-#{day.day}"}>
-        <div class="font-semibold">Day {day.day}</div>
+        <div class="font-semibold">
+          Day {day.day}<span :if={@stay && @stay.place_name}> in {@stay.place_name}</span>
+        </div>
         <div class="text-xs opacity-60 mb-4">{format_date(day.date)}</div>
 
         <div class="relative pl-6 border-l border-base-300">

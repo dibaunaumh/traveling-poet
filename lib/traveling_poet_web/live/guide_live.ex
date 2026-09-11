@@ -80,7 +80,13 @@ defmodule TravelingPoetWeb.GuideLive do
           unmapped={@unmapped}
         />
         <.list_view :if={@view == "list"} places={@places} media={@media} poet={@poet} />
-        <.itinerary_view :if={@view == "itinerary"} days={@days} media={@media} poet={@poet} />
+        <.itinerary_view
+          :if={@view == "itinerary"}
+          days={@days}
+          media={@media}
+          poet={@poet}
+          stay={@stay}
+        />
       </div>
     </Layouts.app>
     """

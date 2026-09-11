@@ -9,7 +9,11 @@ defmodule TravelingPoet.Telegram.Notifier do
   require Logger
 
   alias TravelingPoet.{Accounts, Journal, Poets}
+  alias TravelingPoet.Storage.S3
   alias TravelingPoet.Telegram.Client
+
+  # Telegram caps a photo caption at 1024 characters.
+  @caption_max 1024
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -31,18 +35,8 @@ defmodule TravelingPoet.Telegram.Notifier do
          user when not is_nil(user) <- Accounts.get_user(poet.user_id),
          chat_id when is_integer(chat_id) <- user.telegram_chat_id do
       entry = Journal.get_entry!(entry_id)
-      base = Application.get_env(:traveling_poet, :phoenix_url, "")
-
-      link =
-        if poet.is_public,
-          do: "#{base}/p/#{poet.slug}",
-          else: "#{base}/journal/#{entry.entry_date}"
-
-      Client.send_message(
-        chat_id,
-        "🖋 #{poet.name} published today's entry from #{entry.place_name || "the road"}: #{link}",
-        disable_web_page_preview: false
-      )
+      text = publish_text(poet, entry, Journal.journey_day(entry), entry_link(poet, entry))
+      send_publish_note(chat_id, text, Journal.entry_illustration(entry))
     else
       _ -> :ok
     end
@@ -74,4 +68,58 @@ defmodule TravelingPoet.Telegram.Notifier do
 
   @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc """
+  The note that goes out with a published entry, pure so it can be tested:
+  the journey day, the poet, and the poet's own teaser (the title when it
+  wrote none), then the link. The same words every day is what taught
+  readers to ignore these.
+  """
+  def publish_text(poet, entry, day, link) do
+    hook =
+      blank_to_nil(entry.teaser) || blank_to_nil(entry.title) ||
+        "a new entry from #{entry.place_name || "the road"}"
+
+    "Day #{day} · #{poet.name}: #{hook}\n#{link}"
+  end
+
+  @doc "Always the announced entry's own page, never the journal index (which would show whatever is newest by the time it is opened)."
+  def entry_link(poet, entry) do
+    base = Application.get_env(:traveling_poet, :phoenix_url, "")
+
+    if poet.is_public,
+      do: "#{base}/p/#{poet.slug}/#{entry.entry_date}",
+      else: "#{base}/journal/#{entry.entry_date}"
+  end
+
+  # The drawing goes with the note when there is one. It is uploaded as bytes:
+  # a private poet's /media/:id is owner-only, so Telegram could never fetch
+  # it by URL. Any failure along the way falls back to the plain text note.
+  defp send_publish_note(chat_id, text, nil), do: send_text(chat_id, text)
+
+  defp send_publish_note(chat_id, text, media) do
+    with {:ok, bytes} <- S3.download_file(media.s3_key),
+         :ok <-
+           Client.send_photo(chat_id, {bytes, filename(media), media.content_type},
+             caption: String.slice(text, 0, @caption_max)
+           ) do
+      :ok
+    else
+      _ -> send_text(chat_id, text)
+    end
+  end
+
+  defp send_text(chat_id, text),
+    do: Client.send_message(chat_id, text, disable_web_page_preview: false)
+
+  defp filename(media), do: "drawing-#{media.id}#{Path.extname(media.s3_key || ".png")}"
+
+  defp blank_to_nil(nil), do: nil
+
+  defp blank_to_nil(text) do
+    case String.trim(text) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
 end

@@ -101,9 +101,13 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         true -> nil
       end
 
+    journey_start = Journal.first_published_date(poet.id)
+
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
+    |> assign(:journey_start, journey_start)
+    |> assign(:og, open_graph(poet, entry, journey_start))
     |> assign(:entry_media, entry_media_map(entry))
     |> assign(:extra_media, extra_media(entry))
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
@@ -112,6 +116,24 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
+
+  # Link previews for a shared public entry: the day and title, the poet's
+  # teaser, and the drawing. Only public poets reach this view, and their
+  # /media/:id is world-readable, so the image URL resolves for crawlers.
+  defp open_graph(_poet, nil, _start), do: nil
+
+  defp open_graph(poet, entry, journey_start) do
+    base = Application.get_env(:traveling_poet, :phoenix_url, "")
+    drawing = Journal.entry_illustration(entry)
+
+    %{
+      title: "Day #{Journal.journey_day(entry, journey_start)}: #{entry_title(entry)}",
+      description:
+        entry.teaser || "#{poet.name}'s journal from #{entry.place_name || "the road"}",
+      image: drawing && "#{base}/media/#{drawing.id}",
+      url: "#{base}/p/#{poet.slug}/#{entry.entry_date}"
+    }
+  end
 
   defp published_entry(poet, date) do
     case Journal.get_entry_preloaded(poet.id, date) do
@@ -176,12 +198,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
         <article :if={@entry} class="notebook-page mt-6">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="notebook-title">
-              {@entry.title || @entry.place_name || "Journal"}
-              <span class="notebook-date ml-2">
-                {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
-              </span>
-            </h2>
+            <.entry_heading entry={@entry} day={Journal.journey_day(@entry, @journey_start)} />
             <div class="flex gap-1">
               <.link
                 :for={{label, date} <- entry_nav(@entries, @entry)}
