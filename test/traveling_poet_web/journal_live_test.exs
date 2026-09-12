@@ -163,6 +163,31 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert html =~ ~s(href="https://example.com/cup")
   end
 
+  test "a spot drawing the poet made but never pasted still appears in the text", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user)
+
+    {:ok, entry} =
+      Journal.upsert_entry(poet.id, ~D[2026-08-25], %{title: "Ink", place_name: "Ronda"})
+
+    spot = media_fixture(poet, %{journal_entry_id: entry.id, kind: "spot", alt_text: "a lantern"})
+
+    {:ok, _} =
+      Journal.replace_sections(entry, [
+        %{kind: "description", body: "First paragraph.\n\nSecond paragraph.\n\nThird."}
+      ])
+
+    {:ok, _} = Journal.publish_entry(entry)
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, _view, html} = live(conn, ~p"/journal/2026-08-25")
+
+    assert html =~ ~s(src="/media/#{spot.id}")
+    assert html =~ "Ink drawing drawn from"
+    # the stored body is untouched
+    assert hd(Journal.preload_entry(entry).sections).body =~ "First paragraph.\n\nSecond"
+    refute hd(Journal.preload_entry(entry).sections).body =~ "/media/"
+  end
+
   test "an entry without places still has the tab, and says so", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user)

@@ -329,15 +329,18 @@ defmodule TravelingPoetWeb.AgentApiTest do
              |> json_response(200)
 
     stored = Journal.get_entry(poet.id, Date.utc_today())
-    assert String.length(stored.teaser) == 140
-    assert stored.teaser == long |> String.trim() |> String.slice(0, 140)
+    # cut on a whole word with an ellipsis, never mid-word ("I wasn'")
+    assert String.length(stored.teaser) <= 140
+    assert String.ends_with?(stored.teaser, "dusk…")
 
     assert %{"entry" => %{"teaser" => teaser, "journey_day" => 1}} =
              conn |> get(~p"/api/agent/journal_entries/#{date}") |> json_response(200)
 
     assert teaser == stored.teaser
-    # today's context tells the poet which day it is, so it never counts
-    assert %{"journey_day" => 1} = conn |> get(~p"/api/agent/context") |> json_response(200)
+    # today's context tells the poet which day it is, so it never counts,
+    # and how many spot drawings the entry gets (balanced verbosity: 2)
+    assert %{"journey_day" => 1, "drawings" => %{"spots" => 2}} =
+             conn |> get(~p"/api/agent/context") |> json_response(200)
   end
 
   test "reading an entry back lists its spot drawings with the markdown that places them",

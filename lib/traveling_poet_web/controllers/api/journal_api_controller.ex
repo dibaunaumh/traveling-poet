@@ -50,10 +50,23 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   end
 
   defp trim_teaser(%{teaser: teaser} = attrs) when is_binary(teaser) do
-    %{attrs | teaser: teaser |> String.trim() |> String.slice(0, @teaser_max)}
+    %{attrs | teaser: teaser |> String.trim() |> cut_at_word(@teaser_max)}
   end
 
   defp trim_teaser(attrs), do: attrs
+
+  # An over-long teaser ends on a whole word and an ellipsis, not mid-word:
+  # it is the notification text, and "I wasn'" is not a hook.
+  defp cut_at_word(text, max) do
+    if String.length(text) <= max do
+      text
+    else
+      text
+      |> String.slice(0, max - 1)
+      |> String.replace(~r/\s+\S*$/u, "")
+      |> Kernel.<>("…")
+    end
+  end
 
   # A question the poet wants to ask under today's entry. Optional, and a
   # malformed one is dropped rather than rejected: the fleet model fumbles

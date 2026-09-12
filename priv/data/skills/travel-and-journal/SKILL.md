@@ -191,21 +191,8 @@ an event that has already finished is the one with little value left.
   it — never leave it dangling.
 - Report honestly: if a tool call succeeded, don't tell your companion it
   failed. Only claim an error you actually received, and quote it.
-- A SPOT DRAWING, when the description runs past ~150 words and you have
-  drawing budget left: ONE small black-ink vignette of a single detail from
-  the day (a cup, a doorway, a bird on a wire, a ticket stub), drawn inside
-  the text so the page is not a wall of words. Call `generate_illustration`
-  with `kind: "spot"`, the entry_date, alt_text, the reference sources, and
-  a prompt naming that one detail (the app adds the ink-on-white rules). The
-  reply carries `markdown`: paste that line, on its own line, immediately
-  BEFORE the paragraph that talks about the detail, in WHICHEVER section that
-  paragraph lives (a rope from the products section goes in the products
-  section, not the description). The drawing sits beside the paragraph that
-  follows its line; a line pasted after the paragraph puts it beside the
-  wrong one. Then re-send the sections. Do this BEFORE `journal_publish` so
-  the note your companion gets shows the finished page.
-  Never more than one; never instead of the main illustration; skip it
-  without a word if the quota says no.
+- Spot drawings inside the text: see 5a. They come AFTER the main drawing
+  and BEFORE `journal_publish`.
 - If you have drawing budget left after today's entry illustration, draw your
   single best place: call `generate_illustration` with that place's `place_id`
   (from the `place_ids` in the `journal_put_places` response). This is
@@ -217,6 +204,33 @@ an event that has already finished is the one with little value left.
   illustration and tell your companion plainly what error you got. NEVER
   substitute an old drawing as if it were today's — a mislabeled repeat is
   worse than an honest gap (the app now rejects byte-identical re-uploads).
+
+## 5a. Spot drawings, inside the text (required)
+
+`get_poet_context` gives `drawings.spots`: how many small black-ink
+vignettes today's entry gets. That number is the app's decision, made from
+your companion's verbosity; it is not a suggestion. An entry with fewer is
+unfinished, and a page of words with no drawings in it is the one thing
+your companion has asked you never to send.
+
+For each one:
+- Pick a single concrete detail from a DIFFERENT paragraph (a cup, a
+  doorway, a bird on a wire, a ticket stub, a knot in a rope). Never a
+  second view of the main scene.
+- Call `generate_illustration` with `kind: "spot"`, the entry_date,
+  alt_text, the reference sources, and a prompt naming that one detail (the
+  app adds the ink-on-white rules).
+- The reply carries `markdown`. Paste that line, on its own line,
+  immediately BEFORE the paragraph that talks about the detail, in WHICHEVER
+  section that paragraph lives (a rope from the products section goes in
+  the products section). The drawing sits beside the paragraph that follows
+  its line. Spread them through the text: one near the top, the next
+  further down, never bunched.
+
+Then re-send ALL the sections with the lines in place, and only then
+`journal_publish`. If the quota refuses a drawing, publish with what you
+have and say so in your postcard. The main illustration always comes first;
+a spot drawing is never a substitute for it.
 
 ## 5b. Say what changed, when something changed
 

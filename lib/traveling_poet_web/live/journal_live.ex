@@ -186,6 +186,8 @@ defmodule TravelingPoetWeb.JournalLive do
 
     media_map = entry_media_map(poet, entry)
     entry = record_view(socket, poet, entry)
+    spots = if entry, do: Journal.spot_media(entry), else: []
+    entry = with_unclaimed_spots(entry, spots)
     extra = extra_media(entry)
     places = entry_places(entry)
 
@@ -197,7 +199,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
-    |> assign(:spot_media, spot_media_map(entry))
+    |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
     |> assign_stay(poet, entry)
     |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
@@ -264,8 +266,12 @@ defmodule TravelingPoetWeb.JournalLive do
   defp entry_places(nil), do: []
   defp entry_places(entry), do: Guide.list_places_for_entry(entry.id)
 
-  defp spot_media_map(nil), do: %{}
-  defp spot_media_map(entry), do: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1})
+  # A spot drawing the poet made but never pasted still gets onto the page
+  # (render-time only; the stored body is untouched).
+  defp with_unclaimed_spots(nil, _spots), do: nil
+
+  defp with_unclaimed_spots(entry, spots),
+    do: %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
 
   defp place_media_map(places) do
     places

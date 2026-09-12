@@ -76,6 +76,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # Use it in the chat postcard ("Day 17"), not in the entry title.
           journey_day:
             Journal.journey_day(Date.utc_today(), Journal.first_published_date(poet.id)),
+          # How many small ink drawings go inside today's text. The app
+          # decides (from the companion's verbosity): left to the model, "one
+          # if the text runs long" produced none on four poets out of seven.
+          drawings: %{spots: spot_target(poet)},
           recent_private_feedback: feedback,
           # What the companion has actually asked for, strongest first. This
           # outranks the poet's own instincts and the interests baked into its
@@ -90,6 +94,14 @@ defmodule TravelingPoetWeb.Api.AgentController do
           ask_prompt: ask_prompt?(poet)
         })
     end
+  end
+
+  # Spot drawings per entry by verbosity. Each is one image (~3 cents); the
+  # daily image cap leaves room for the main drawing, these, and a place.
+  @spot_targets %{"brief" => 1, "balanced" => 2, "expansive" => 3}
+
+  defp spot_target(poet) do
+    Map.get(@spot_targets, Map.get(poet.settings || %{}, "verbosity", "balanced"), 2)
   end
 
   # Whether the reader is still opening what the poet writes.
