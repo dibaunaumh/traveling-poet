@@ -847,6 +847,10 @@ mark.marker.marker-sent {
   margin: 0.25rem 0 0.5rem 1.25rem;
   mix-blend-mode: multiply;
   transform: rotate(1.5deg);
+  /* The model sometimes paints an off-white "paper" behind the subject,
+     which multiply leaves as a faint grey box. Push near-white to white so
+     it vanishes; ink and washes keep their weight. */
+  filter: contrast(1.15) brightness(1.05);
 }
 
 /* the image sits in a paragraph of its own; that paragraph must not open

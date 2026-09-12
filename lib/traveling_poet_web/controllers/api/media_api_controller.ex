@@ -46,12 +46,16 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
              " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
 
   # A spot drawing sits inside the prose, blended onto the paper with CSS
-  # multiply, which makes pure white vanish. So: ink on white, nothing else.
-  # The model cannot be trusted to keep the background clean from the poet's
-  # prompt alone; the app says it every time.
-  @ink " A small black ink line drawing of one detail, on a pure white background:" <>
-         " no wash, no colour, no shading fill, no vignette, no border, no text." <>
-         " The white must stay pure white."
+  # multiply, which makes pure white vanish and lets a wash sit on the paper
+  # like real watercolour. Colour is welcome where it carries the meaning (a
+  # textile, a fruit, a sky); the background is the thing that must stay
+  # clean, and the model cannot be trusted with that from the poet's prompt
+  # alone, so the app says it every time.
+  @ink " A small drawing of one detail: black ink line, with a light watercolour wash" <>
+         " where colour carries the meaning, otherwise plain ink." <>
+         " The background must be pure white (#FFFFFF), the white of the page itself:" <>
+         " no paper texture, no grey, no vignette, no shadow, no border, no frame, no text." <>
+         " The subject sits alone on blank white."
 
   def generate(conn, %{"prompt" => prompt} = params) when is_binary(prompt) do
     user = conn.assigns.agent_user
