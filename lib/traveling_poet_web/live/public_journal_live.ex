@@ -125,6 +125,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
     journey_start = Journal.first_published_date(poet.id)
     media_map = entry_media_map(entry)
+    spots = if entry, do: Journal.spot_media(entry), else: []
+    entry = with_unclaimed_spots(entry, spots)
     extra = extra_media(entry)
     places = if entry, do: Guide.list_places_for_entry(entry.id), else: []
 
@@ -137,7 +139,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
-    |> assign(:spot_media, spot_media_map(entry))
+    |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
     |> assign_stay(poet, entry)
     |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
     |> assign_spread(nil)
@@ -148,8 +150,10 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
 
-  defp spot_media_map(nil), do: %{}
-  defp spot_media_map(entry), do: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1})
+  defp with_unclaimed_spots(nil, _spots), do: nil
+
+  defp with_unclaimed_spots(entry, spots),
+    do: %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
 
   defp place_media_map(places) do
     places

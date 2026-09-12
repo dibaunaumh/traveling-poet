@@ -100,6 +100,8 @@ defmodule TravelingPoetWeb.PageController do
       |> Map.new(&{&1.id, &1})
 
     extra = Journal.unattached_illustrations(entry, entry.sections)
+    spots = Journal.spot_media(entry)
+    entry = %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
 
     %{
       poet: poet,
@@ -107,7 +109,7 @@ defmodule TravelingPoetWeb.PageController do
       day: Journal.journey_day(entry),
       media: media,
       spread: hd(Spreads.pack(entry, media, extra)),
-      spot_media: entry |> Journal.spot_media() |> Map.new(&{&1.id, &1}),
+      spot_media: Map.new(spots, &{&1.id, &1}),
       url: entry_url(poet, entry)
     }
   end
