@@ -392,7 +392,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             the drawing links to its reference, and this line names them.
             Outside .prose so the markers' text offsets are untouched. --%>
       <div :if={@spots != []} class="spot-sources">
-        Ink drawing drawn from
+        Drawn from
         <a
           :for={src <- Enum.flat_map(@spots, &Media.source_items/1)}
           href={src["url"]}

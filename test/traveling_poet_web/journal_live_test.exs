@@ -159,7 +159,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
 
     refute html =~ ~s(src="/media/#{foreign.id}")
     refute html =~ "photos.example"
-    assert html =~ "Ink drawing drawn from"
+    assert html =~ "Drawn from"
     assert html =~ ~s(href="https://example.com/cup")
   end
 
@@ -182,7 +182,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     {:ok, _view, html} = live(conn, ~p"/journal/2026-08-25")
 
     assert html =~ ~s(src="/media/#{spot.id}")
-    assert html =~ "Ink drawing drawn from"
+    assert html =~ "Drawn from"
     # the stored body is untouched
     assert hd(Journal.preload_entry(entry).sections).body =~ "First paragraph.\n\nSecond"
     refute hd(Journal.preload_entry(entry).sections).body =~ "/media/"

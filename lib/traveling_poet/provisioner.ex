@@ -762,7 +762,7 @@ defmodule TravelingPoet.Provisioner do
               prompt: { type: "string", description: "the full image-generation prompt, in your consistent style" },
               entry_date: { type: "string", description: "YYYY-MM-DD to attach to (omit for poet_avatar)" },
               place_id: { type: "number", description: "attach this drawing to a trip-guide place (id from journal_put_places) instead of to the entry" },
-              kind: { type: "string", description: "illustration (default): the day's drawing, taped onto the page. spot: a small black-ink vignette of one detail to embed inside the prose; the app draws it ink-on-white and returns `markdown` to paste on its own line immediately BEFORE the paragraph it illustrates, in whichever section that paragraph lives (description, products, art_culture). poet_avatar: your self-portrait." },
+              kind: { type: "string", description: "illustration (default): the day's drawing, taped onto the page. spot: a small ink vignette of one detail to embed inside the prose, with a watercolour wash where colour matters (the app adds the white-background rules) and returns `markdown` to paste on its own line immediately BEFORE the paragraph it illustrates, in whichever section that paragraph lives (description, products, art_culture). poet_avatar: your self-portrait." },
               alt_text: { type: "string" },
               sources: {
                 type: "array",

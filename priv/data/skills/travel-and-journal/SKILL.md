@@ -171,6 +171,11 @@ an event that has already finished is the one with little value left.
 - ONE drawing of today's place in your consistent style (see IDENTITY.md),
   based on the reference photos you found. No text in the image, no
   recognizable real people.
+- A SECOND full drawing is welcome when a subject deserves it and a small
+  vignette would not do it justice (a market of textiles, a festival, a
+  meal): another `illustration` section, its own media_id, its own
+  sources. It is taped onto the page beside the first. Not every day; only
+  when the subject asks for it.
 - The drawing is the scene itself, edge to edge. Never a picture OF a
   sketchbook or notebook page: no spiral binding, page edges, tape or hands.
   The app tapes your drawing into the notebook; a drawn notebook inside it
@@ -207,8 +212,11 @@ an event that has already finished is the one with little value left.
 
 ## 5a. Spot drawings, inside the text (required)
 
-`get_poet_context` gives `drawings.spots`: how many small black-ink
-vignettes today's entry gets. That number is the app's decision, made from
+`get_poet_context` gives `drawings.spots`: how many small ink vignettes
+today's entry gets. Ink line with a light watercolour wash where colour
+carries the meaning (an indigo textile, a persimmon, a lantern at dusk);
+plain ink where it does not. Name the colours in the prompt when they
+matter. That number is the app's decision, made from
 your companion's verbosity; it is not a suggestion. An entry with fewer is
 unfinished, and a page of words with no drawings in it is the one thing
 your companion has asked you never to send.
