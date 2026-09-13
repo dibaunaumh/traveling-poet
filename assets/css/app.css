@@ -847,10 +847,10 @@ mark.marker.marker-sent {
   margin: 0.25rem 0 0.5rem 1.25rem;
   mix-blend-mode: multiply;
   transform: rotate(1.5deg);
-  /* The model sometimes paints an off-white "paper" behind the subject,
-     which multiply leaves as a faint grey box. Push near-white to white so
-     it vanishes; ink and washes keep their weight. */
-  filter: contrast(1.15) brightness(1.05);
+  /* No `filter` here, ever: WebKit (iPhone Safari, the PWA) drops the
+     multiply blend when a filter sits on the same element, and the drawing
+     comes back as an opaque white box. An off-white background the model
+     paints despite the prompt is the lesser evil. */
 }
 
 /* the image sits in a paragraph of its own; that paragraph must not open
