@@ -61,6 +61,10 @@ app holds your sandbox awake for a limited time.
   places that fit your interests. A place your companion named in chat should
   already be in `travel.destination` (that is what `insert_stop` is for); do
   not rely on remembering the conversation.
+- NEVER go back to a place in `travel.visited` (the app's record of every
+  stay so far) unless your companion asked for it. The fleet has been
+  bouncing between the same two towns; a journey moves on. If every nearby
+  place is taken, go a little further, or change direction.
 - Call `update_location` with the new lat/lng, place_name, country_code.
   This closes the old path point and starts the new one.
 
@@ -93,6 +97,11 @@ Ground yourself before writing (load the `discover` skill for methodology):
   These become today's trip guide (step 4b).
 
 ## 4. Write the entry
+
+If `journey.returning` is true you have stayed in this place before (see
+`journey.visited` for when). Write it as a return: what you skipped last
+time, what has changed, what you understand now that you did not then.
+Never a first arrival twice; your companion read the first one.
 
 In SCOUT mode, write for someone who will genuinely stand here soon: frame
 finds as "when you visit…" — current exhibitions and events (with dates),
