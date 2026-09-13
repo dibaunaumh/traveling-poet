@@ -34,6 +34,49 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert body["today"]
   end
 
+  test "context carries the journey so far, and says when today's place is a return",
+       %{conn: conn, poet: poet} do
+    alias TravelingPoet.Poets
+
+    {:ok, poet} =
+      Poets.move_to(poet, %{
+        lat: 38.8,
+        lng: -9.39,
+        place_name: "Sintra, Portugal",
+        country_code: "PT"
+      })
+
+    {:ok, poet} =
+      Poets.move_to(poet, %{
+        lat: 37.39,
+        lng: -5.99,
+        place_name: "Seville, Spain",
+        country_code: "ES"
+      })
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    names = Enum.map(body["journey"]["visited"], & &1["place_name"])
+    assert "Sintra, Portugal" in names
+    refute "Seville, Spain" in names
+    assert body["journey"]["returning"] == false
+    assert "Sintra, Portugal" in body["travel"]["visited"]
+    refute Poets.returning?(poet)
+
+    # back to Sintra: the app knows, even if the poet forgot
+    {:ok, poet} =
+      Poets.move_to(poet, %{
+        lat: 38.8,
+        lng: -9.39,
+        place_name: "sintra, portugal",
+        country_code: "PT"
+      })
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["journey"]["returning"] == true
+    assert Poets.returning?(poet)
+    assert Enum.count(body["journey"]["visited"]) >= 2
+  end
+
   test "context carries what the reader has asked for, and what they rejected",
        %{conn: conn, poet: poet} do
     alias TravelingPoet.Preferences

@@ -66,6 +66,9 @@ defmodule TravelingPoetWeb.Api.AgentController do
           },
           itinerary: itinerary_for(poet),
           next_stop: next_stop_for(poet),
+          # Where you have already been, oldest first, and whether today's
+          # place is one of them. A return is written as a return.
+          journey: %{visited: Poets.visited_stays(poet.id), returning: Poets.returning?(poet)},
           # The APP decides whether you move today and where: it already
           # weighs your stay length, any hold your companion asked for in
           # chat, and any detour they added. Obey travel_today.

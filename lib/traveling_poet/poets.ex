@@ -244,7 +244,9 @@ defmodule TravelingPoet.Poets do
       days_here: days_here,
       stay_duration_days: stay,
       hold_until: poet.hold_until,
-      destination: next && stop_payload(next)
+      destination: next && stop_payload(next),
+      # Where the poet has already stayed, so a free choice is a new place.
+      visited: poet.id |> visited_stays() |> Enum.map(& &1.place_name) |> Enum.uniq()
     }
 
     cond do
@@ -268,7 +270,11 @@ defmodule TravelingPoet.Poets do
         decide(base, true, "your stay here is done; advance to the next planned stop")
 
       true ->
-        decide(base, true, "your stay here is done; pick somewhere real and nearby")
+        decide(
+          base,
+          true,
+          "your stay here is done; pick somewhere real and nearby that is NOT in `visited`"
+        )
     end
   end
 
@@ -336,4 +342,43 @@ defmodule TravelingPoet.Poets do
     |> order_by(asc: :position)
     |> Repo.all()
   end
+
+  @doc """
+  The stays before the current one, oldest first: where the poet has already
+  been. A wandering poet was told to "pick somewhere nearby" with no memory
+  of its own path, and the fleet bounced between the same two or three towns
+  (Reno, Truckee, Reno; Asheville three times), writing each return as a
+  first arrival. The app holds the path; the poet is told.
+  """
+  def visited_stays(poet_id) do
+    case list_path_points(poet_id) do
+      [] ->
+        []
+
+      points ->
+        points
+        |> Enum.drop(-1)
+        |> Enum.map(fn p ->
+          %{
+            place_name: p.place_name,
+            arrived_on: p.arrived_at && DateTime.to_date(p.arrived_at),
+            departed_on: p.departed_at && DateTime.to_date(p.departed_at)
+          }
+        end)
+    end
+  end
+
+  @doc "Whether the poet's current place is one it has stayed in before."
+  def returning?(%Poet{current_place_name: name} = poet) when is_binary(name) do
+    poet.id
+    |> visited_stays()
+    |> Enum.any?(&same_place?(&1.place_name, name))
+  end
+
+  def returning?(_poet), do: false
+
+  defp same_place?(a, b) when is_binary(a) and is_binary(b),
+    do: String.downcase(String.trim(a)) == String.downcase(String.trim(b))
+
+  defp same_place?(_, _), do: false
 end
