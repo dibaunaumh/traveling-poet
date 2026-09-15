@@ -9,6 +9,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.Media
+  alias TravelingPoet.Topics
   alias TravelingPoetWeb.GuideComponents
 
   attr :entry, :map, required: true
@@ -19,9 +20,12 @@ defmodule TravelingPoetWeb.NotebookComponents do
   @doc """
   The entry's heading, the same on every surface: the journey day in the
   margin hand, the poet's title (falling back to the place, then "Journal"),
-  and the date. The day comes from the app, never from the stored title.
+  and the date. The day comes from the app, never from the stored title. An
+  excursion entry names its topic where a place entry has nothing to add.
   """
   def entry_heading(assigns) do
+    assigns = assign(assigns, :excursion_label, excursion_label(assigns.entry))
+
     ~H"""
     <.dynamic_tag tag_name={@tag} class="notebook-title">
       <span :if={@day} class="notebook-day">Day {@day}</span>
@@ -29,11 +33,41 @@ defmodule TravelingPoetWeb.NotebookComponents do
       <span :if={@show_date} class="notebook-date ml-2">
         {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
       </span>
+      <span :if={@excursion_label} class="notebook-excursion">
+        Excursion: {@excursion_label}
+      </span>
     </.dynamic_tag>
     """
   end
 
-  def entry_title(entry), do: entry.title || entry.place_name || "Journal"
+  def entry_title(entry) do
+    entry.title || excursion_venue(entry) || excursion_label(entry) || entry.place_name ||
+      "Journal"
+  end
+
+  @doc "The topic of an excursion entry, nil for a day at a place."
+  def excursion_label(entry) do
+    case excursion_of(entry) do
+      %{topic: %{label: label}} when is_binary(label) -> label
+      _ -> nil
+    end
+  end
+
+  defp excursion_venue(entry) do
+    case excursion_of(entry) do
+      %{venue_name: name} when is_binary(name) and name != "" -> name
+      _ -> nil
+    end
+  end
+
+  # Only what the caller loaded: a heading never queries. The journal views
+  # preload `excursion: :topic`; a bare map in a test carries the key or not.
+  defp excursion_of(entry) do
+    case Map.get(entry, :excursion) do
+      %Ecto.Association.NotLoaded{} -> nil
+      other -> other
+    end
+  end
 
   attr :entry, :map, required: true
   attr :spread, :map, required: true, doc: "one spread from Journal.Spreads.pack/3"
@@ -230,6 +264,127 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   defp stop_count(stops), do: "#{length(stops)} #{ngettext("stop", "stops", length(stops))}"
+
+  attr :entry, :map, required: true
+  attr :spread, :map, required: true, doc: "the Finds spread from Journal.Spreads.pack/4"
+  attr :day, :integer, default: nil
+  attr :poet, :map, required: true
+  attr :find_media, :map, default: %{}, doc: "media by id, for find drawings"
+  attr :rest, :global
+
+  slot :controls
+
+  @doc """
+  The Finds spread of an excursion entry: the ticket for the day off the
+  road on the left (where the poet went and for which topic), and what it
+  brought back on the right, each under its stamp. No map: a find is a link,
+  not an address, and nothing here reaches the trip guide.
+  """
+  def finds_spread(assigns) do
+    finds = for {:find, find} <- assigns.spread.right, do: find
+    [{:excursion, excursion}] = assigns.spread.left
+    assigns = assign(assigns, finds: finds, excursion: excursion)
+
+    ~H"""
+    <article class="spread" {@rest}>
+      <div class="notebook-page spread-page spread-left">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <.entry_heading entry={@entry} day={@day} />
+          <div :if={@controls != []} class="flex items-center gap-1 shrink-0">
+            {render_slot(@controls)}
+          </div>
+        </div>
+        <figure class="taped-ticket">
+          <div class="ticket-kicker">A day off the road</div>
+          <div class="ticket-topic">{Topics.label_for_entry(@entry) || "an excursion"}</div>
+          <div :if={@excursion.venue_name} class="ticket-venue">
+            <a
+              :if={@excursion.venue_url}
+              href={@excursion.venue_url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+            >
+              {@excursion.venue_name}
+            </a>
+            <span :if={!@excursion.venue_url}>{@excursion.venue_name}</span>
+          </div>
+          <div :if={@excursion.source == "chat"} class="ticket-note">
+            You asked for this one in chat.
+          </div>
+          <div :if={@poet.current_place_name} class="ticket-note">
+            Written from {@poet.current_place_name}.
+          </div>
+        </figure>
+        <p class="notebook-caption">
+          <span :if={@finds == []}>Nothing to take home today.</span>
+          <span :if={@finds != []}>{find_count(@finds)} worth your time.</span>
+        </p>
+      </div>
+      <div class="notebook-page spread-page spread-right">
+        <h3 class="notebook-section-title mb-3">What {@poet.name} brought back</h3>
+        <ol :if={@finds != []} class="stops">
+          <li :for={{find, n} <- Enum.with_index(@finds, 1)} id={"find-#{find.id}"} class="stop">
+            <.find_stamp find={find} n={n} />
+            <div class="stop-body">
+              <div class="stop-name">
+                <a href={find.url} target="_blank" rel="noopener noreferrer nofollow">
+                  {find.name}
+                </a>
+              </div>
+              <GuideComponents.poet_pick :if={find.poet_rating} place={find} poet={@poet} />
+              <p :if={find.blurb} class="stop-blurb">{find.blurb}</p>
+              <img
+                :if={@find_media[find.media_id]}
+                src={~p"/media/#{find.media_id}"}
+                alt={@find_media[find.media_id].alt_text || find.name}
+                class="stop-drawing"
+                loading="lazy"
+              />
+            </div>
+          </li>
+        </ol>
+        <p :if={@finds == []} class="prose text-sm opacity-60">
+          No finds logged for this excursion.
+        </p>
+      </div>
+    </article>
+    """
+  end
+
+  defp find_count(finds), do: "#{length(finds)} #{ngettext("find", "finds", length(finds))}"
+
+  attr :find, :map, required: true
+  attr :n, :integer, required: true
+
+  @doc """
+  The stamp for a find: the same inked ring as a place stamp, coloured by
+  what kind of thing it is. Links to the find's own page.
+  """
+  def find_stamp(assigns) do
+    assigns = assign(assigns, color: find_color(assigns.find.kind))
+
+    ~H"""
+    <a
+      href={@find.url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      class="place-stamp"
+      style={"--stamp-c: #{@color}"}
+      title={"Open #{@find.name}"}
+    >
+      <span class="stamp-n">{@n}</span>
+      <span class="stamp-name">{@find.name}</span>
+      <span class="stamp-cat">{GuideComponents.humanize_category(@find.kind)}</span>
+      <span class="stamp-date">{GuideComponents.format_date(@find.entry_date)}</span>
+    </a>
+    """
+  end
+
+  # Ideas in indigo, things in ochre, happenings in the events purple.
+  defp find_color(kind) when kind in ~w(paper talk session), do: "#3b4a8c"
+  defp find_color("product"), do: "#b7791f"
+  defp find_color(kind) when kind in ~w(event venue), do: "#8e44ad"
+  defp find_color(_), do: "#0f766e"
 
   attr :place, :map, required: true
   attr :n, :integer, required: true

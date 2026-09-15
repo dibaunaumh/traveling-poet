@@ -23,7 +23,7 @@ defmodule TravelingPoet.Journal do
   end
 
   def preload_entry(entry) do
-    Repo.preload(entry, sections: from(s in Section, order_by: s.position))
+    Repo.preload(entry, sections: from(s in Section, order_by: s.position), excursion: :topic)
   end
 
   @doc "Upserts the entry for (poet, date) — the agent write-back path is idempotent by date."
@@ -86,6 +86,9 @@ defmodule TravelingPoet.Journal do
       |> Repo.update()
 
     with {:ok, published} <- result do
+      # An excursion entry going out settles its excursion for good.
+      TravelingPoet.Topics.mark_published(published.id)
+
       Phoenix.PubSub.broadcast(
         TravelingPoet.PubSub,
         "poet:#{entry.poet_id}",

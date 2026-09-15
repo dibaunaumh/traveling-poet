@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   require Logger
 
-  alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences}
+  alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Guide.Geocoding
   alias TravelingPoet.Journal.Marker
@@ -29,15 +29,32 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
       case Journal.upsert_entry(poet.id, date, attrs) do
         {:ok, entry} ->
-          prompt = maybe_attach_prompt(entry, params["prompt"])
+          case Topics.link_entry(entry, params) do
+            {:ok, excursion} ->
+              prompt = maybe_attach_prompt(entry, params["prompt"])
 
-          json(conn, %{
-            ok: true,
-            entry_id: entry.id,
-            entry_date: entry.entry_date,
-            status: entry.status,
-            prompt_accepted: prompt
-          })
+              json(conn, %{
+                ok: true,
+                entry_id: entry.id,
+                entry_date: entry.entry_date,
+                status: entry.status,
+                prompt_accepted: prompt,
+                excursion_linked: not is_nil(excursion)
+              })
+
+            # The entry is saved; only the excursion id was wrong. Loud, so
+            # the poet fixes the id instead of publishing a place entry on a
+            # day the app sent it off the road.
+            {:error, reason} ->
+              conn
+              |> put_status(422)
+              |> json(%{
+                error:
+                  "entry saved, but #{reason}: pass the excursion_id or topic_id from " <>
+                    "travel.excursion in get_poet_context",
+                entry_id: entry.id
+              })
+          end
 
         {:error, changeset} ->
           conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})
@@ -199,8 +216,23 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   end
 
   defp do_put_places(conn, poet, entry, places) do
+    if Topics.get_excursion_for_entry(entry.id) do
+      # An excursion has no address to pin; its finds have their own call.
+      conn
+      |> put_status(422)
+      |> json(%{
+        error:
+          "this entry is an excursion; it has no places to pin. " <>
+            "Call journal_put_finds with what you brought back instead."
+      })
+    else
+      do_replace_places(conn, poet, entry, places)
+    end
+  end
+
+  defp do_replace_places(conn, poet, entry, places) do
     {kept, over_cap} = Enum.split(places, @max_places)
-    {usable, dropped} = reject_dead_links(kept)
+    {usable, dropped} = reject_dead_links(kept, "source_url")
 
     case Guide.replace_places(entry, usable) do
       {:ok, saved} ->
@@ -222,30 +254,87 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
     end
   end
 
+  @doc """
+  Replaces the day's finds: what an excursion brought back. The twin of
+  `put_places` for a day off the road, with the same forgiveness (a dead link
+  drops that one find, named in the response) and no geocoding: a find is a
+  URL, not an address. Only an excursion entry has finds.
+  """
+  def put_finds(conn, %{"date" => date_str, "finds" => finds} = params) when is_list(finds) do
+    with_poet_and_date(conn, date_str, fn poet, date ->
+      with %{} = entry <- Journal.get_entry(poet.id, date),
+           %{} = excursion <- Topics.get_excursion_for_entry(entry.id) do
+        do_put_finds(conn, entry, excursion, finds, params)
+      else
+        nil ->
+          if Journal.get_entry(poet.id, date) do
+            conn
+            |> put_status(422)
+            |> json(%{
+              error:
+                "this entry is not an excursion; it has places, not finds. " <>
+                  "Call journal_put_places instead."
+            })
+          else
+            conn
+            |> put_status(404)
+            |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
+          end
+      end
+    end)
+  end
+
+  def put_finds(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "finds (list) is required"})
+  end
+
+  defp do_put_finds(conn, entry, excursion, finds, params) do
+    {kept, over_cap} = Enum.split(finds, @max_places)
+    {usable, dropped} = reject_dead_links(kept, "url")
+
+    with {:ok, saved} <- Topics.replace_finds(entry, usable),
+         {:ok, _} <- Topics.set_venue(excursion, Map.take(params, ["venue_name", "venue_url"])) do
+      json(conn, %{
+        ok: true,
+        find_count: length(saved),
+        find_ids: Map.new(saved, &{&1.name, &1.id}),
+        dropped: dropped,
+        over_cap: length(over_cap)
+      })
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})
+
+      {:error, reason} ->
+        conn |> put_status(422) |> json(%{error: inspect(reason)})
+    end
+  end
+
   # Concurrent on purpose: see @link_check_concurrency. A check that times out
   # counts as a pass -- this is a liveness nicety, and it must never be the
-  # reason a real recommendation is lost.
-  defp reject_dead_links(places) do
-    places
-    |> Task.async_stream(&check_place_link/1,
+  # reason a real recommendation is lost. `url_key` names the field that
+  # carries the link ("source_url" on a place, "url" on a find).
+  defp reject_dead_links(items, url_key) do
+    items
+    |> Task.async_stream(&check_item_link(&1, url_key),
       max_concurrency: @link_check_concurrency,
       timeout: 8_000,
       on_timeout: :kill_task
     )
-    |> Enum.zip(places)
+    |> Enum.zip(items)
     |> Enum.reduce({[], []}, fn
-      {{:ok, :ok}, place}, {keep, drop} -> {[place | keep], drop}
-      {{:ok, {:dead, name}}, _place}, {keep, drop} -> {keep, [name | drop]}
-      {{:exit, _}, place}, {keep, drop} -> {[place | keep], drop}
+      {{:ok, :ok}, item}, {keep, drop} -> {[item | keep], drop}
+      {{:ok, {:dead, name}}, _item}, {keep, drop} -> {keep, [name | drop]}
+      {{:exit, _}, item}, {keep, drop} -> {[item | keep], drop}
     end)
     |> then(fn {keep, drop} -> {Enum.reverse(keep), Enum.reverse(drop)} end)
   end
 
-  defp check_place_link(place) do
-    url = place["source_url"] || place[:source_url]
+  defp check_item_link(item, url_key) do
+    url = item[url_key] || item[String.to_existing_atom(url_key)]
 
     if is_binary(url) and url != "" and LinkCheck.check(url) != :ok do
-      {:dead, place["name"] || place[:name]}
+      {:dead, item["name"] || item[:name]}
     else
       :ok
     end

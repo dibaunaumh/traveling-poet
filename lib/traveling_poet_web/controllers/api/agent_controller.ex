@@ -62,7 +62,9 @@ defmodule TravelingPoetWeb.Api.AgentController do
             place_name: poet.current_place_name,
             country_code: poet.current_country_code,
             arrived_at: poet.arrived_at,
-            days_here: Poet.days_at_location(poet)
+            # Days at the place, excursion days excluded: the same number the
+            # travel plan counts with.
+            days_here: Poets.days_here(poet)
           },
           itinerary: itinerary_for(poet),
           next_stop: next_stop_for(poet),
@@ -71,7 +73,9 @@ defmodule TravelingPoetWeb.Api.AgentController do
           journey: %{visited: Poets.visited_stays(poet.id), returning: Poets.returning?(poet)},
           # The APP decides whether you move today and where: it already
           # weighs your stay length, any hold your companion asked for in
-          # chat, and any detour they added. Obey travel_today.
+          # chat, and any detour they added. Obey travel_today. `day` is
+          # move | stay | excursion; on an excursion day `excursion` names
+          # the topic (and the venue the companion asked for, if any).
           travel: Poets.travel_plan(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),

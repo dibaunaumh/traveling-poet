@@ -20,6 +20,7 @@ defmodule TravelingPoet.Preferences.Cadence do
   alias TravelingPoet.Preferences
   alias TravelingPoet.Preferences.EntryPrompt
   alias TravelingPoet.Repo
+  alias TravelingPoet.Topics
 
   @cold_start_entries 3
   @min_preferences 3
@@ -27,8 +28,12 @@ defmodule TravelingPoet.Preferences.Cadence do
   @days_after_answer 5
   @max_unanswered_streak 2
   @backoff_every 10
+  # The first excursions into a topic always ask: they are the fastest way to
+  # learn whether the topic was worth a day off the road.
+  @excursion_check_ins 3
 
   def cold_start_entries, do: @cold_start_entries
+  def excursion_check_ins, do: @excursion_check_ins
 
   @doc """
   `{true, reason}` when this entry should carry a question, `false` otherwise.
@@ -42,12 +47,28 @@ defmodule TravelingPoet.Preferences.Cadence do
     cond do
       # One prompt per entry, ever — answered, dismissed or merely shown.
       prompt_for(entry.id) != nil -> false
+      app_owned?(entry) -> {true, :excursion}
       disengaged?(poet, entry) -> {true, :disengaged}
       unanswered_streak(poet.id) > @max_unanswered_streak -> backoff(poet, entry)
       cold_start?(poet, entry) -> {true, :cold_start}
       answered_recently?(poet.id, now) -> false
       due_by_interval?(poet, entry) -> {true, :steady_state}
       true -> false
+    end
+  end
+
+  @doc """
+  Whether the question under this entry belongs to the app, not the poet:
+  one of the first excursions into a topic. `attach_agent_prompt/2` refuses
+  to replace it, so a poet that ignores its skill loses nothing.
+  """
+  def app_owned?(entry) do
+    case Topics.excursion_of(entry) do
+      %{topic_id: topic_id} when is_integer(topic_id) ->
+        Topics.published_excursions_before(topic_id, entry.entry_date) < @excursion_check_ins
+
+      _ ->
+        false
     end
   end
 
@@ -128,5 +149,6 @@ defmodule TravelingPoet.Preferences.Cadence do
   reading to choose between museums and markets misses the point.
   """
   def question_kind(:disengaged), do: :broad
+  def question_kind(:excursion), do: :excursion
   def question_kind(_reason), do: :narrow
 end

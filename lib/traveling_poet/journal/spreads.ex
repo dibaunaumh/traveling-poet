@@ -18,6 +18,11 @@ defmodule TravelingPoet.Journal.Spreads do
   opening the Guide; now it is one tab away from the entry that mentions
   them. The map page is rendered by the caller (it owns the Leaflet hook), so
   the left side is the single item `{:map, nil}`; stops are `{:place, place}`.
+
+  An excursion entry (a day off the road, into a topic) has no places to
+  pin; its second spread is "Finds": the excursion itself on the left as
+  `{:excursion, excursion}`, what it brought back on the right as
+  `{:find, find}`. The fourth argument then carries finds instead of places.
   """
 
   @type item :: {:section, map} | {:media, map}
@@ -26,16 +31,16 @@ defmodule TravelingPoet.Journal.Spreads do
   @right_kinds ~w(illustration poem)
 
   @doc """
-  The spreads for an entry, in reading order: Today, then Places. An entry
-  with no places still gets the Places tab (an empty page that says so beats
-  a tab that comes and goes between days).
+  The spreads for an entry, in reading order: Today, then Places (or Finds
+  for an excursion). An entry with no places still gets the Places tab (an
+  empty page that says so beats a tab that comes and goes between days).
   """
   @spec pack(map | nil, %{optional(integer) => map}, [map], [map], Date.t()) :: [spread]
-  def pack(entry, media_by_id, extra_media, places \\ [], today \\ Date.utc_today())
+  def pack(entry, media_by_id, extra_media, side_items \\ [], today \\ Date.utc_today())
 
-  def pack(nil, _media_by_id, _extra_media, _places, _today), do: []
+  def pack(nil, _media_by_id, _extra_media, _side_items, _today), do: []
 
-  def pack(entry, media_by_id, extra_media, places, today) do
+  def pack(entry, media_by_id, extra_media, side_items, today) do
     {right, left} = Enum.split_with(entry.sections, &(&1.kind in @right_kinds))
 
     # An illustration section whose drawing is missing would render nothing
@@ -55,13 +60,37 @@ defmodule TravelingPoet.Journal.Spreads do
             Enum.map(extra_media, &{:media, &1}) ++
             Enum.map(poems, &{:section, &1})
       },
-      %{
-        key: "places",
-        label: "Places",
-        left: [{:map, nil}],
-        right: Enum.map(places, &{:place, &1})
-      }
+      side_spread(entry, side_items)
     ]
+  end
+
+  defp side_spread(entry, items) do
+    case excursion_of(entry) do
+      nil ->
+        %{
+          key: "places",
+          label: "Places",
+          left: [{:map, nil}],
+          right: Enum.map(items, &{:place, &1})
+        }
+
+      excursion ->
+        %{
+          key: "finds",
+          label: "Finds",
+          left: [{:excursion, excursion}],
+          right: Enum.map(items, &{:find, &1})
+        }
+    end
+  end
+
+  # Pure: reads only what the caller loaded. An unloaded association counts
+  # as no excursion; callers that want the Finds spread preload it.
+  defp excursion_of(entry) do
+    case Map.get(entry, :excursion) do
+      %{__struct__: Ecto.Association.NotLoaded} -> nil
+      other -> other
+    end
   end
 
   # The tab names the day, and only today's entry is "Today": paging back

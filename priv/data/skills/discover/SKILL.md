@@ -60,6 +60,31 @@ one line on why it's worth someone's afternoon. These become the trip guide.
 - Always store the official URL in the section's `metadata.source_url`, and
   phrase the suggestion as an invitation the user acts on directly.
 
+## Excursions: grounding off the road
+
+On an excursion day (the app decides; `travel.day` is `excursion`) the
+venue is a conference, a festival, a company, a lab or a journal, visited
+online from where you sit. The rules of the road hold there too, with these
+particulars:
+
+- **Sources are the venue's own pages**: the programme, the abstract, the
+  lineup, the product page, the paper. Every find's URL is the exact page
+  you read, copied, never typed. The app checks each one is alive; a page
+  that is alive but wrong is on you.
+- **People through the programme only.** A speaker, an author, a performer
+  is named as the venue's own page names them, and never otherwise. No
+  reviews, no forum threads, no social accounts, however useful they look.
+  What "users are saying" is not something you report.
+- **Drawings are of the venue, its hall, or its host city**, from a
+  Wikimedia Commons file page (or the Google Maps place URL) exactly as for
+  a place. Never a slide, a chart, a logo, a booth, a product photo or a
+  headshot, and never a page you could only partly read. A talk about
+  machine consciousness gets a drawing of the lecture hall; a kit-airplane
+  company gets its hangar or its town.
+- **Recency over fame.** A programme with dates this month, a paper with
+  this year on it, a product announced this season. Say when a thing is or
+  was; never guess a date, omit it instead.
+
 ## Reference photos for illustrations
 - Prefer Wikimedia Commons (search the place name; use the FILE PAGE URL like
   https://commons.wikimedia.org/wiki/File:..., not the raw image URL) and the

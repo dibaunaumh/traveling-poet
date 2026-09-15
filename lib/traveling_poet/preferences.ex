@@ -26,7 +26,7 @@ defmodule TravelingPoet.Preferences do
   import Ecto.Query
 
   alias TravelingPoet.Preferences.{Cadence, EntryPrompt, Preference, Prompts}
-  alias TravelingPoet.Repo
+  alias TravelingPoet.{Repo, Topics}
 
   # Beyond this, a preference confirmed only once no longer steers the poet.
   @stale_after_days 30
@@ -286,6 +286,7 @@ defmodule TravelingPoet.Preferences do
     attrs =
       case Cadence.question_kind(reason) do
         :broad -> Prompts.broad_check_in(entry)
+        :excursion -> Prompts.excursion_check_in(entry, Topics.excursion_of(entry))
         :narrow -> Prompts.default_for(entry, profile(poet.id))
       end
 
@@ -332,10 +333,33 @@ defmodule TravelingPoet.Preferences do
                 |> maybe_put_entry(entry)
             })
 
+          apply_effect(option["effect"], poet_id)
+
           {prompt, preference}
         end)
     end
   end
+
+  # What an app-authored option does beyond teaching a taste. Only the app
+  # writes options with an effect (validate_option/1 builds agent options
+  # from scratch), so this never runs on the poet's say-so.
+  defp apply_effect(%{"pause_topic" => topic_id}, poet_id) do
+    case Topics.get(poet_id, topic_id) do
+      nil -> :ok
+      topic -> Topics.pause(topic)
+    end
+  end
+
+  defp apply_effect(_effect, _poet_id), do: :ok
+
+  defp revert_effect(%{"pause_topic" => topic_id}, poet_id) do
+    case Topics.get(poet_id, topic_id) do
+      %{status: "paused"} = topic -> Topics.resume(topic)
+      _ -> :ok
+    end
+  end
+
+  defp revert_effect(_effect, _poet_id), do: :ok
 
   defp maybe_put_entry(evidence, nil), do: evidence
 
@@ -352,6 +376,8 @@ defmodule TravelingPoet.Preferences do
           nil -> :ok
           pref -> dismiss(pref)
         end
+
+        revert_effect(option["effect"], poet_id)
       end
 
       {:ok, prompt} =
@@ -372,7 +398,8 @@ defmodule TravelingPoet.Preferences do
   the reader has engaged with a question, it stays put.
   """
   def attach_agent_prompt(entry, raw) do
-    with {:ok, question} <- validate_question(raw["question"]),
+    with :ok <- if(Cadence.app_owned?(entry), do: {:error, :app_owned}, else: :ok),
+         {:ok, question} <- validate_question(raw["question"]),
          {:ok, options} <- validate_options(raw["options"]) do
       case Cadence.prompt_for(entry.id) do
         %EntryPrompt{answered_at: nil, dismissed_at: nil} = existing ->

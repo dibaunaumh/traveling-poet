@@ -36,6 +36,9 @@ config :phoenix,
 # HTTP mocking library.
 config :traveling_poet, change_stream_req_options: [plug: {Req.Test, TravelingPoet.ChangeStream}]
 config :traveling_poet, web_push_req_options: [plug: {Req.Test, TravelingPoet.WebPush}]
+# Link liveness probes (LinkCheck) too: a test that cites a URL stubs the
+# answer, so no assertion ever depends on a real site being up.
+config :traveling_poet, link_check_req_options: [plug: {Req.Test, TravelingPoet.LinkCheck}]
 
 # Onboarding and mode switches provision the sprite in a background task.
 # Never do that from the test suite: with SPRITES_TOKEN/OPENROUTER_API_KEY in

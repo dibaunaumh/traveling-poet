@@ -130,6 +130,9 @@
               <span>
                 <b>{s.poet.name}</b>, a traveling poet
                 <span :if={s.entry.place_name}>&middot; {s.entry.place_name}</span>
+                <span :if={excursion_label(s.entry)}>
+                  &middot; on an excursion: {excursion_label(s.entry)}
+                </span>
               </span>
               <span class="notebook-date">
                 {Calendar.strftime(s.entry.entry_date, "%B %-d, %Y")}

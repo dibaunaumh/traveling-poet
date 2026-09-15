@@ -127,12 +127,23 @@ defmodule TravelingPoet.Credits do
   end
 
   @doc "Charges one daily run up front; `{:ok, :exempt}` for free users."
-  def debit_daily_run(%User{quota_exempt: true}, _poet, _ref), do: {:ok, :exempt}
+  def debit_daily_run(user, poet, ref, opts \\ [])
 
-  def debit_daily_run(%User{} = user, poet, ref) do
+  def debit_daily_run(%User{quota_exempt: true}, _poet, _ref, _opts), do: {:ok, :exempt}
+
+  # `day:` (move | stay | excursion) is recorded so the ledger says what kind
+  # of run was bought. An excursion costs the same as any run of this mode
+  # and runs on the poet's own model; revisit once real ones show their cost.
+  def debit_daily_run(%User{} = user, poet, ref, opts) do
+    metadata =
+      case Keyword.get(opts, :day) do
+        nil -> %{"mode" => Poet.mode(poet)}
+        day -> %{"mode" => Poet.mode(poet), "day" => day}
+      end
+
     apply(user, -daily_run_cost(poet), "debit_daily_run",
       reference: "usage_event:#{ref}",
-      metadata: %{"mode" => Poet.mode(poet)}
+      metadata: metadata
     )
   end
 

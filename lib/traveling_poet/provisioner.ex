@@ -498,7 +498,8 @@ defmodule TravelingPoet.Provisioner do
     `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
     `journal_put_places`, `generate_illustration`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
-    `record_preference`, `hold_here`, `insert_stop`, `propose_topic`.
+    `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
+    `request_excursion`, `journal_put_finds`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -624,7 +625,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_poet_context",
-          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), recent feedback, and learned_profile — what your companion has actually asked for. Read it every run: it outranks your instincts and the interests baked into your workspace.",
+          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), recent feedback, learned_profile (what your companion has actually asked for), topics (subjects they follow beyond places), and travel: the app's decision for today, with travel.day = move | stay | excursion. Read it every run: it outranks your instincts and the interests baked into your workspace.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/context"); }
         });
@@ -708,8 +709,22 @@ defmodule TravelingPoet.Provisioner do
           execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
         });
         ctx.registerTool({
+          name: "request_excursion",
+          description: "Your companion asked you to go somewhere for one of their topics ('go to the Big Ears festival for me', 'see what is new at NeurIPS'). Queues one excursion: a day off the road, spent at that venue online, on the next day you are not moving (a move always goes first). The reply's `travel` says when it will actually happen; confirm from that, in one line. Never promise an excursion without calling this.",
+          parameters: {
+            type: "object",
+            required: ["topic", "venue"],
+            properties: {
+              topic: { type: "string", description: "The topic's label, as in `topics` from get_poet_context, or in their words if it is new (it is then proposed too)" },
+              venue: { type: "string", description: "The conference, festival, company, lab or event as your companion named it" },
+              url: { type: "string", description: "Its page, only if you copied it from a page you actually fetched" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/excursions", asParams(raw)); }
+        });
+        ctx.registerTool({
           name: "journal_upsert_entry",
-          description: "Create or update the journal entry for a date (idempotent by date).",
+          description: "Create or update the journal entry for a date (idempotent by date). On an excursion day (travel.day is 'excursion' in get_poet_context) pass excursion_id or topic_id from travel.excursion and NO place_name, lat or lng: you did not move.",
           parameters: {
             type: "object",
             required: ["entry_date"],
@@ -717,9 +732,11 @@ defmodule TravelingPoet.Provisioner do
               entry_date: { type: "string", description: "YYYY-MM-DD" },
               title: { type: "string", description: "The day's one concrete image or moment, under 60 characters. Specific, never just the place name, never a day number (the app adds 'Day N'). Good: 'The rooftop nobody mentions'. Bad: 'Cordoba', 'Day 17 in Cordoba'." },
               teaser: { type: "string", description: "One line, under 140 characters, that makes your companion want to open today's entry. The hook, not a summary; no day number. It becomes their notification. Good: 'I found a rooftop over the mosque where the swifts come in at dusk.'" },
-              place_name: { type: "string" },
-              lat: { type: "number" },
-              lng: { type: "number" },
+              place_name: { type: "string", description: "omit on an excursion day" },
+              lat: { type: "number", description: "omit on an excursion day" },
+              lng: { type: "number", description: "omit on an excursion day" },
+              excursion_id: { type: "number", description: "excursion days only: travel.excursion.id from get_poet_context, when it is set" },
+              topic_id: { type: "number", description: "excursion days only: travel.excursion.topic_id from get_poet_context" },
               weather: { type: "object" },
               sources: { type: "object", description: "grounding URLs, e.g. {wikipedia: ..., news: ...}" }
             }
@@ -728,7 +745,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_sections",
-          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness.",
+          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness; on an excursion day, highlights (what the venue had, with links) instead of art_culture, products and kindness.",
           parameters: {
             type: "object",
             required: ["entry_date", "sections"],
@@ -789,6 +806,38 @@ defmodule TravelingPoet.Provisioner do
           }
         });
         ctx.registerTool({
+          name: "journal_put_finds",
+          description: "Excursion days only. Record what you brought back from the venue: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass venue_name and venue_url for the venue itself. Never journal_put_places on an excursion day.",
+          parameters: {
+            type: "object",
+            required: ["entry_date", "finds"],
+            properties: {
+              entry_date: { type: "string", description: "YYYY-MM-DD" },
+              venue_name: { type: "string", description: "the conference, festival, company or lab you went to" },
+              venue_url: { type: "string", description: "its page, copied from a page you fetched" },
+              finds: {
+                type: "array",
+                description: "up to 8; three to six real finds",
+                items: {
+                  type: "object",
+                  required: ["name", "url"],
+                  properties: {
+                    name: { type: "string" },
+                    url: { type: "string", description: "the exact page you read: the talk, the abstract, the product, the session" },
+                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "other"] },
+                    blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
+                    poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" }
+                  }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/finds", { finds: a.finds, venue_name: a.venue_name, venue_url: a.venue_url });
+          }
+        });
+        ctx.registerTool({
           name: "generate_illustration",
           description: "Generate a drawing from your prompt (the app renders it, stores it, and returns media_id). REQUIRES sources: the reference photo URLs you drew from. Preferred over local generation.",
           parameters: {
@@ -798,6 +847,7 @@ defmodule TravelingPoet.Provisioner do
               prompt: { type: "string", description: "the full image-generation prompt, in your consistent style" },
               entry_date: { type: "string", description: "YYYY-MM-DD to attach to (omit for poet_avatar)" },
               place_id: { type: "number", description: "attach this drawing to a trip-guide place (id from journal_put_places) instead of to the entry" },
+              find_id: { type: "number", description: "excursion days: attach this drawing to a find (id from journal_put_finds) instead of to the entry" },
               kind: { type: "string", description: "illustration (default): the day's drawing, taped onto the page. spot: a small ink vignette of one detail to embed inside the prose, with a watercolour wash where colour matters (the app adds the white-background rules) and returns `markdown` to paste on its own line immediately BEFORE the paragraph it illustrates, in whichever section that paragraph lives (description, products, art_culture). poet_avatar: your self-portrait." },
               alt_text: { type: "string" },
               sources: {

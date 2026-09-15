@@ -49,6 +49,94 @@ defmodule TravelingPoetWeb.Api.TopicController do
     conn |> put_status(422) |> json(%{error: "label is required"})
   end
 
+  @doc """
+  The companion asked in chat for an excursion ("go to the Big Ears
+  festival for me"). Queues one; the next stay day takes it, and the reply
+  carries `travel` so the poet can say when. A topic the companion has not
+  kept yet is proposed alongside: the explicit request is its own
+  confirmation for one day, no more.
+  """
+  def request(conn, %{"venue" => venue} = params) when is_binary(venue) do
+    user = conn.assigns.agent_user
+
+    with {:ok, poet} <- fetch_poet(user),
+         {:ok, venue} <- validate_venue(venue),
+         {:ok, topic} <- resolve_topic(poet, params) do
+      {url, dropped} = checked_url(params["url"])
+
+      case Topics.request_excursion(poet.id, topic, %{
+             requested_venue: venue,
+             requested_url: url
+           }) do
+        {:ok, excursion} ->
+          Logger.info("Excursion requested for poet #{poet.id}: #{venue} (#{topic.label})")
+
+          json(conn, %{
+            ok: true,
+            excursion: %{id: excursion.id, topic: Topics.topic_payload(topic), venue: venue},
+            dropped_url: dropped,
+            # When it will actually happen: a move day always goes first.
+            travel: Poets.travel_plan(poet)
+          })
+
+        {:error, changeset} ->
+          conn |> put_status(422) |> json(%{error: errors(changeset)})
+      end
+    else
+      {:error, :no_poet} ->
+        conn |> put_status(404) |> json(%{error: "no poet configured"})
+
+      {:error, message} when is_binary(message) ->
+        conn |> put_status(422) |> json(%{error: message})
+
+      {:error, changeset} ->
+        conn |> put_status(422) |> json(%{error: errors(changeset)})
+    end
+  end
+
+  def request(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "venue is required"})
+  end
+
+  defp validate_venue(venue) do
+    case String.trim(venue) do
+      "" -> {:error, "venue cannot be blank"}
+      v when byte_size(v) > 160 -> {:error, "venue must be 160 characters or fewer"}
+      v -> {:ok, v}
+    end
+  end
+
+  # By id, by label (an existing topic under that key), or a new proposal.
+  defp resolve_topic(poet, %{"topic_id" => id}) when is_integer(id) do
+    case Topics.get(poet.id, id) do
+      nil -> {:error, "no topic with that id; pass the topic's label instead"}
+      topic -> {:ok, topic}
+    end
+  end
+
+  defp resolve_topic(poet, %{"topic" => label}) when is_binary(label) do
+    case String.trim(label) do
+      "" ->
+        {:error, "topic cannot be blank"}
+
+      label ->
+        case Topics.propose(poet.id, %{label: label}) do
+          {:ok, topic, _known} -> {:ok, topic}
+          {:error, changeset} -> {:error, changeset}
+        end
+    end
+  end
+
+  defp resolve_topic(_poet, _params), do: {:error, "topic (label) or topic_id is required"}
+
+  # A dead link is dropped, never fatal: the venue's name is what the
+  # excursion runs on.
+  defp checked_url(url) when is_binary(url) and url != "" do
+    if TravelingPoet.LinkCheck.check(url) == :ok, do: {url, nil}, else: {nil, url}
+  end
+
+  defp checked_url(_), do: {nil, nil}
+
   defp note(_topic, false),
     do: "proposed; your companion keeps or drops it in Settings"
 

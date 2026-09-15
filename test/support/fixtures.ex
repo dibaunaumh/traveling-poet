@@ -113,6 +113,53 @@ defmodule TravelingPoet.Fixtures do
     topic
   end
 
+  @doc """
+  An excursion into `topic`. With an `entry`, the entry becomes that day's
+  excursion (its place fields are cleared, as the API does); without one, a
+  queued chat request for `venue`.
+  """
+  def excursion_fixture(poet, topic, entry \\ nil, attrs \\ %{})
+
+  def excursion_fixture(_poet, topic, %{id: _} = entry, _attrs) do
+    {:ok, excursion} = TravelingPoet.Topics.link_entry(entry, %{"topic_id" => topic.id})
+    excursion
+  end
+
+  def excursion_fixture(poet, topic, nil, attrs) do
+    {:ok, excursion} =
+      TravelingPoet.Topics.request_excursion(
+        poet.id,
+        topic,
+        Map.merge(%{requested_venue: "Big Ears"}, attrs)
+      )
+
+    excursion
+  end
+
+  def find_fixture(poet, entry, attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, find} =
+      %TravelingPoet.Topics.Find{}
+      |> TravelingPoet.Topics.Find.changeset(
+        Map.merge(
+          %{
+            poet_id: poet.id,
+            journal_entry_id: entry.id,
+            entry_date: entry.entry_date,
+            name: "Find #{n}",
+            url: "https://example.com/find-#{n}",
+            kind: "talk",
+            position: 0
+          },
+          attrs
+        )
+      )
+      |> Repo.insert()
+
+    find
+  end
+
   def media_fixture(poet, attrs \\ %{}) do
     n = System.unique_integer([:positive])
 
