@@ -19,6 +19,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Journal,
     Poets,
     Preferences,
+    Topics,
     Usage
   }
 
@@ -27,6 +28,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Poets.Poet,
     Poets.PathPoint,
     Poets.ItineraryStop,
+    Topics.Topic,
     Journal.Entry,
     Journal.Section,
     Journal.Media,

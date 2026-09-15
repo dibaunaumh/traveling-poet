@@ -30,6 +30,7 @@ defmodule TravelingPoet.ChangeStream.RegistryTest do
     assert idx.("journal_entries") < idx.("places")
     assert idx.("poets") < idx.("path_points")
     assert idx.("path_points") < idx.("places")
+    assert idx.("poets") < idx.("poet_topics")
   end
 
   test "geocode_cache and the stream's own tables are not streamed" do

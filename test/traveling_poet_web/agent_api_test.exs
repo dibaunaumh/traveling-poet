@@ -243,6 +243,72 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert Preferences.list_active(poet.id) == []
   end
 
+  test "POST /topics proposes a topic that waits for the reader, and never more than that",
+       %{conn: conn, poet: poet} do
+    alias TravelingPoet.Topics
+
+    body =
+      conn
+      |> post(~p"/api/agent/topics", %{
+        "label" => "Kit airplanes",
+        "kind" => "personal",
+        "quote" => "I build them on weekends",
+        # the agent cannot claim the reader typed it
+        "status" => "active",
+        "source" => "settings"
+      })
+      |> json_response(200)
+
+    assert body["ok"]
+    assert body["already_known"] == false
+    assert body["topic"]["label"] == "Kit airplanes"
+    assert body["topic"]["status"] == "proposed"
+
+    [topic] = Topics.list(poet.id)
+    assert topic.status == "proposed"
+    assert topic.source == "chat"
+    assert topic.evidence["quote"] == "I build them on weekends"
+
+    # a repeat is reported, not duplicated; a paused topic stays paused
+    {:ok, _} = Topics.pause(topic)
+
+    body =
+      conn
+      |> post(~p"/api/agent/topics", %{"label" => "kit airplanes"})
+      |> json_response(200)
+
+    assert body["already_known"] == true
+    assert body["topic"]["status"] == "paused"
+    assert body["note"] =~ "paused"
+    assert length(Topics.list(poet.id)) == 1
+
+    assert conn |> post(~p"/api/agent/topics", %{"label" => " "}) |> json_response(422)
+
+    assert conn
+           |> post(~p"/api/agent/topics", %{"label" => "x", "kind" => "hobby"})
+           |> json_response(422)
+
+    assert conn |> post(~p"/api/agent/topics", %{}) |> json_response(422)
+  end
+
+  test "context carries the reader's topics, without the paused ones", %{conn: conn, poet: poet} do
+    alias TravelingPoet.Topics
+
+    {:ok, active} = Topics.create(poet.id, %{label: "Embodied minds", kind: "professional"})
+    {:ok, paused} = Topics.create(poet.id, %{label: "Ceramics"})
+    {:ok, _} = Topics.pause(paused)
+    {:ok, _proposed, false} = Topics.propose(poet.id, %{label: "Kit airplanes"})
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    topics = body["topics"]
+
+    assert Enum.map(topics, & &1["label"]) == ["Embodied minds", "Kit airplanes"]
+    assert hd(topics)["id"] == active.id
+    assert hd(topics)["kind"] == "professional"
+    assert hd(topics)["every_days"] == 7
+    assert List.last(topics)["status"] == "proposed"
+  end
+
   test "malformed preferences are refused rather than half-stored", %{conn: conn, poet: poet} do
     assert conn
            |> post(~p"/api/agent/preferences", %{"label" => "  "})

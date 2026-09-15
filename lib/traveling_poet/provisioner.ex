@@ -471,6 +471,12 @@ defmodule TravelingPoet.Provisioner do
 
     ## Their interests
     #{user_interests_text(user, poet)}
+
+    ## Their topics
+    Subjects they follow beyond places, for excursions off the road. The
+    current list is `topics` in `get_poet_context`; this is the snapshot at
+    setup.
+    #{user_topics_text(poet)}
     """
 
     instructions_md = """
@@ -492,7 +498,7 @@ defmodule TravelingPoet.Provisioner do
     `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
     `journal_put_places`, `generate_illustration`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
-    `record_preference`, `hold_here`, `insert_stop`.
+    `record_preference`, `hold_here`, `insert_stop`, `propose_topic`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -537,6 +543,22 @@ defmodule TravelingPoet.Provisioner do
     case interests do
       list when is_list(list) and list != [] -> Enum.map_join(list, "\n", &"- #{&1}")
       _ -> "- (Ask them in chat what they'd love postcards about)\n- Email: #{user.email}"
+    end
+  end
+
+  defp user_topics_text(nil), do: "- (none yet)"
+
+  defp user_topics_text(poet) do
+    case TravelingPoet.Topics.list_active(poet.id) do
+      [] ->
+        "- (none yet; when they name a field they work in or a passion they keep, " <>
+          "call `propose_topic` so it can reach Settings)"
+
+      topics ->
+        Enum.map_join(topics, "\n", fn t ->
+          kind = if t.kind, do: " (#{t.kind})", else: ""
+          "- #{t.label}#{kind}, an excursion every #{t.every_days} days"
+        end)
     end
   end
 
@@ -670,6 +692,20 @@ defmodule TravelingPoet.Provisioner do
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/itinerary_stops", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "propose_topic",
+          description: "Your companion named a subject they follow beyond places: a field they work in, a passion they keep ('I'm really into kit airplanes', 'my work is on embodied minds'). Propose it as a topic for excursions off the road. It waits in Settings until they keep it; you cannot activate, pause or remove topics. Standing interests only, never a one-off question. Use their own words as the label.",
+          parameters: {
+            type: "object",
+            required: ["label"],
+            properties: {
+              label: { type: "string", description: "The topic in your companion's own words, short, e.g. 'kit airplanes'" },
+              kind: { type: "string", enum: ["professional", "personal"], description: "A field they work or study in, or a passion. Leave out when unsure." },
+              quote: { type: "string", description: "What they actually said, shown to them beside the proposal" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
         });
         ctx.registerTool({
           name: "journal_upsert_entry",

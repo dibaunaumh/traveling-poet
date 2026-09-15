@@ -41,7 +41,8 @@ defmodule TravelingPoet.AgentPluginTest do
 
     for expected <- ~w(journal_upsert_entry journal_get_entry journal_put_sections
                        journal_put_places journal_publish generate_illustration
-                       record_preference update_location hold_here insert_stop) do
+                       record_preference update_location hold_here insert_stop
+                       propose_topic) do
       assert expected in names, "#{expected} is not registered in the plugin"
     end
   end

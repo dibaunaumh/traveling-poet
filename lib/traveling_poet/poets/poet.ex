@@ -28,6 +28,7 @@ defmodule TravelingPoet.Poets.Poet do
     has_many :path_points, TravelingPoet.Poets.PathPoint
     has_many :itinerary_stops, TravelingPoet.Poets.ItineraryStop
     has_many :journal_entries, TravelingPoet.Journal.Entry
+    has_many :topics, TravelingPoet.Topics.Topic
 
     timestamps()
   end

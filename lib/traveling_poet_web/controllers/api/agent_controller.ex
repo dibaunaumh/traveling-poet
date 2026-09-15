@@ -1,7 +1,7 @@
 defmodule TravelingPoetWeb.Api.AgentController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Chat, Journal, Markers, Poets, Preferences}
+  alias TravelingPoet.{Chat, Journal, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Preferences.Cadence
   alias TravelingPoet.Poets.Poet
 
@@ -75,6 +75,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
           travel: Poets.travel_plan(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),
+          # The companion's topics of interest beyond places: active ones and
+          # the ones the poet proposed that still wait in Settings. Paused
+          # topics are withheld on purpose.
+          topics: Topics.payload(poet.id),
           # Which day of the journey today is. The app counts; you never do.
           # Use it in the chat postcard ("Day 17"), not in the entry title.
           journey_day:
