@@ -93,6 +93,9 @@ defmodule TravelingPoet.FleetHealth do
       last_published_at: latest && latest.published_at,
       last_entry_date: latest && latest.entry_date,
       entry_place: latest && (latest.place_name || excursion_place(latest)),
+      # Set when the newest entry was a day off the road, so the admin row
+      # can mark it at a glance.
+      excursion_label: latest && TravelingPoet.Topics.label_for_entry(latest),
       current_place: poet.current_place_name,
       hours_since_publish: hours && Float.round(hours, 1),
       due_at: due_at(poet, now),

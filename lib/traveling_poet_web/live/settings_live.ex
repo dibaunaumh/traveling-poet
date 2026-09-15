@@ -46,8 +46,13 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   defp assign_topics(socket) do
     case socket.assigns.poet do
-      nil -> assign(socket, :topics, [])
-      poet -> assign(socket, :topics, Topics.list(poet.id))
+      nil ->
+        socket |> assign(:topics, []) |> assign(:queued_excursions, [])
+
+      poet ->
+        socket
+        |> assign(:topics, Topics.list(poet.id))
+        |> assign(:queued_excursions, Topics.list_queued(poet.id))
     end
   end
 
@@ -180,6 +185,19 @@ defmodule TravelingPoetWeb.SettingsLive do
       {:ok, _} = Topics.delete(topic)
       {:noreply, assign_topics(socket)}
     end)
+  end
+
+  @impl true
+  def handle_event("remove_excursion", %{"id" => id}, socket) do
+    poet = socket.assigns.poet
+
+    with {id, ""} <- Integer.parse(to_string(id)),
+         %{status: "queued"} = excursion <- Topics.get_excursion(poet.id, id),
+         {:ok, _} <- Topics.delete_excursion(excursion) do
+      {:noreply, assign_topics(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   @impl true
@@ -491,6 +509,27 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp topic_status_label(%Topic{source: "chat"}), do: "from chat"
   defp topic_status_label(_), do: nil
 
+  # "last excursion Sep 12, next in 3 days" for an active topic; nothing for
+  # the others (a paused topic has no next, a proposal is not yet followed).
+  defp topic_schedule(%Topic{status: "active"} = topic, poet_name) do
+    last =
+      case Topics.last_excursion_on(topic) do
+        nil -> "no excursion yet"
+        date -> "last excursion " <> Calendar.strftime(date, "%b %-d")
+      end
+
+    next =
+      case Topics.days_until_due(topic) do
+        :due -> "next on the first day #{poet_name} stays put"
+        1 -> "next in a day"
+        n -> "next in #{n} days"
+      end
+
+    last <> ", " <> next
+  end
+
+  defp topic_schedule(_topic, _poet_name), do: nil
+
   defp verbosity_options do
     [
       {"brief", "Brief — short postcards, a few lines and a poem"},
@@ -730,6 +769,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </form>
                 <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
                   <span :if={topic_status_label(topic)}>{topic_status_label(topic)}</span>
+                  <span :if={topic_schedule(topic, @poet.name)}>{topic_schedule(topic, @poet.name)}</span>
                   <span :if={topic.evidence["quote"]} class="italic">
                     &ldquo;{topic.evidence["quote"]}&rdquo;
                   </span>
@@ -783,6 +823,32 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </div>
               </li>
             </ul>
+
+            <div :if={@queued_excursions != []} class="mt-3">
+              <h3 class="text-sm font-medium mb-1">Asked for in chat</h3>
+              <ul id="queued-excursions" class="space-y-1">
+                <li
+                  :for={x <- @queued_excursions}
+                  id={"excursion-#{x.id}"}
+                  class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
+                >
+                  <span class="flex-1">
+                    {x.requested_venue}
+                    <span class="opacity-60">for {x.topic.label}</span>
+                  </span>
+                  <span class="text-xs opacity-60">on the next day {@poet.name} stays put</span>
+                  <button
+                    type="button"
+                    phx-click="remove_excursion"
+                    phx-value-id={x.id}
+                    class="btn btn-ghost btn-xs"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </li>
+              </ul>
+            </div>
 
             <form id="add-topic-form" phx-submit="add_topic" class="flex gap-2 mt-3">
               <input
