@@ -291,6 +291,229 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert conn |> post(~p"/api/agent/topics", %{}) |> json_response(422)
   end
 
+  describe "excursions" do
+    alias TravelingPoet.{Poets, Topics}
+
+    setup %{poet: poet} do
+      one_day_ago = DateTime.add(DateTime.utc_now(), -1, :day)
+      {:ok, poet} = Poets.update_poet(poet, %{arrived_at: one_day_ago})
+      topic = topic_fixture(poet, %{label: "Kit airplanes"})
+      # every link a find cites is checked; the stub answers for the internet
+      Req.Test.stub(TravelingPoet.LinkCheck, &Req.Test.text(&1, "ok"))
+      %{poet: poet, topic: topic}
+    end
+
+    defp today_str, do: Date.to_iso8601(Date.utc_today())
+
+    defp upsert_excursion(conn, params) do
+      conn
+      |> post(~p"/api/agent/journal_entries", Map.merge(%{"entry_date" => today_str()}, params))
+      |> json_response(200)
+    end
+
+    defp put_finds(conn, params) do
+      put(conn, ~p"/api/agent/journal_entries/#{today_str()}/finds", params)
+    end
+
+    test "the context says it is an excursion day and which topic", %{conn: conn, topic: topic} do
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+
+      assert body["travel"]["day"] == "excursion"
+      assert body["travel"]["travel_today"] == false
+      assert body["travel"]["excursion"]["topic_id"] == topic.id
+      assert body["travel"]["excursion"]["label"] == "Kit airplanes"
+
+      assert [%{"label" => "Kit airplanes", "excursions_count" => 0, "last_answer" => nil}] =
+               body["topics"]
+    end
+
+    test "POST /excursions queues a chat request and says when it happens",
+         %{conn: conn, poet: poet, topic: topic} do
+      body =
+        conn
+        |> post(~p"/api/agent/excursions", %{
+          "topic" => "kit AIRPLANES",
+          "venue" => "Oshkosh AirVenture",
+          "url" => "https://example.com/oshkosh"
+        })
+        |> json_response(200)
+
+      assert body["ok"]
+      assert body["excursion"]["topic"]["id"] == topic.id
+      assert body["excursion"]["venue"] == "Oshkosh AirVenture"
+      assert body["dropped_url"] == nil
+      assert body["travel"]["day"] == "excursion"
+      assert body["travel"]["excursion"]["id"] == body["excursion"]["id"]
+      assert body["travel"]["excursion"]["requested_venue"] == "Oshkosh AirVenture"
+
+      [queued] = Topics.list_queued(poet.id)
+      assert queued.requested_url == "https://example.com/oshkosh"
+
+      # an unknown topic is proposed alongside, and a dead link is dropped, not fatal
+      body =
+        conn
+        |> post(~p"/api/agent/excursions", %{
+          "topic" => "Embodied minds",
+          "venue" => "Machine Consciousness 0001",
+          "url" => "http://localhost:9/nope"
+        })
+        |> json_response(200)
+
+      assert body["excursion"]["topic"]["status"] == "proposed"
+      assert body["dropped_url"] == "http://localhost:9/nope"
+      assert length(Topics.list_queued(poet.id)) == 2
+
+      assert conn |> post(~p"/api/agent/excursions", %{"venue" => "x"}) |> json_response(422)
+      assert conn |> post(~p"/api/agent/excursions", %{"topic" => "a"}) |> json_response(422)
+    end
+
+    test "an excursion entry links to its topic, loses its place, and publishes as taken",
+         %{conn: conn, poet: poet, topic: topic} do
+      body =
+        upsert_excursion(conn, %{
+          "title" => "The RV-15 reveal",
+          "topic_id" => topic.id,
+          "place_name" => "Lisbon",
+          "lat" => 1.0,
+          "lng" => 2.0,
+          "prompt" => %{
+            "question" => "More?",
+            "options" => [%{"label" => "Yes"}, %{"label" => "No"}]
+          }
+        })
+
+      assert body["excursion_linked"] == true
+      # the app asks its own question under an excursion; the poet's is refused
+      assert body["prompt_accepted"] == false
+
+      entry = Journal.get_entry!(body["entry_id"])
+      assert is_nil(entry.place_name)
+      assert is_nil(entry.lat)
+      excursion = Topics.get_excursion_for_entry(entry.id)
+      assert excursion.status == "written"
+      assert excursion.scheduled_for == Date.utc_today()
+
+      # a retry the same day gives the same excursion id
+      assert Poets.travel_plan(poet).excursion.id == excursion.id
+
+      conn
+      |> post(~p"/api/agent/journal_entries/#{today_str()}/publish", %{})
+      |> json_response(200)
+
+      assert Topics.get_excursion_for_entry(entry.id).status == "published"
+
+      # a wrong id is loud but the entry is kept
+      body =
+        conn
+        |> post(~p"/api/agent/journal_entries", %{"entry_date" => today_str(), "topic_id" => 999})
+        |> json_response(422)
+
+      assert body["error"] =~ "unknown_topic"
+      assert body["entry_id"] == entry.id
+    end
+
+    test "PUT finds records what came back; places are refused on an excursion day",
+         %{conn: conn, poet: poet, topic: topic} do
+      %{"entry_id" => entry_id} = upsert_excursion(conn, %{"topic_id" => topic.id})
+
+      body =
+        conn
+        |> put_finds(%{
+          "venue_name" => "Oshkosh AirVenture",
+          "venue_url" => "https://example.com/oshkosh",
+          "finds" => [
+            %{
+              "name" => "RV-15 talk",
+              "url" => "https://example.com/rv15",
+              "kind" => "talk",
+              "poet_rating" => 4
+            },
+            %{"name" => "Ghost page", "url" => "http://localhost:9/nope"},
+            %{
+              "name" => "Kit prices",
+              "url" => "https://example.com/prices",
+              "kind" => "pricelist"
+            }
+          ]
+        })
+        |> json_response(200)
+
+      assert body["ok"]
+      assert body["find_count"] == 2
+      assert body["dropped"] == ["Ghost page"]
+      assert Map.keys(body["find_ids"]) |> Enum.sort() == ["Kit prices", "RV-15 talk"]
+
+      [talk, prices] = Topics.list_finds_for_entry(entry_id)
+      assert talk.kind == "talk"
+      assert talk.poet_rating == 4
+      assert prices.kind == "other"
+
+      excursion = Topics.get_excursion_for_entry(entry_id)
+      assert excursion.venue_name == "Oshkosh AirVenture"
+      assert excursion.venue_url == "https://example.com/oshkosh"
+
+      # a find without a URL is not a find
+      assert conn
+             |> put_finds(%{"finds" => [%{"name" => "No link"}]})
+             |> json_response(422)
+
+      body =
+        conn
+        |> put(~p"/api/agent/journal_entries/#{today_str()}/places", %{
+          "places" => [%{"name" => "Cafe", "category" => "cafe"}]
+        })
+        |> json_response(422)
+
+      assert body["error"] =~ "journal_put_finds"
+      assert TravelingPoet.Guide.list_places(poet.id, published_only: false) == []
+    end
+
+    test "finds are refused on a day at the place, and need an entry first", %{conn: conn} do
+      body =
+        conn
+        |> put_finds(%{"finds" => [%{"name" => "x", "url" => "https://example.com/x"}]})
+        |> json_response(404)
+
+      assert body["error"] =~ "journal_upsert_entry"
+
+      conn
+      |> post(~p"/api/agent/journal_entries", %{"entry_date" => today_str()})
+      |> json_response(200)
+
+      body =
+        conn
+        |> put_finds(%{"finds" => [%{"name" => "x", "url" => "https://example.com/x"}]})
+        |> json_response(422)
+
+      assert body["error"] =~ "journal_put_places"
+    end
+
+    # Storage is not reachable in test, so only the resolution is pinned here:
+    # a find id is scoped to the poet and checked before any upload, the way
+    # place_id is. Attaching itself is covered in excursions_test.
+    test "a drawing aimed at a find the poet does not own is refused before upload",
+         %{conn: conn, topic: topic} do
+      upsert_excursion(conn, %{"topic_id" => topic.id})
+      other = poet_fixture(user_fixture())
+      other_entry = entry_fixture(other)
+      foreign = find_fixture(other, other_entry)
+
+      body =
+        conn
+        |> post(~p"/api/agent/media", %{
+          "image_base64" => Base.encode64(<<137, 80, 78, 71, 13, 10, 26, 10, 0>>),
+          "content_type" => "image/png",
+          "entry_date" => today_str(),
+          "find_id" => foreign.id,
+          "sources" => [%{"url" => "https://example.com/hangar", "label" => "the hangar"}]
+        })
+        |> json_response(404)
+
+      assert body["error"] =~ "no such find"
+      assert is_nil(Topics.get_find(other.id, foreign.id).media_id)
+    end
+  end
+
   test "context carries the reader's topics, without the paused ones", %{conn: conn, poet: poet} do
     alias TravelingPoet.Topics
 
@@ -361,6 +584,8 @@ defmodule TravelingPoetWeb.AgentApiTest do
 
   test "re-putting a marked published entry keeps the unmarked sections as written",
        %{conn: conn, user: user, poet: poet} do
+    # the products section below cites a link; the stub stands in for its host
+    Req.Test.stub(TravelingPoet.LinkCheck, &Req.Test.text(&1, "ok"))
     entry = published_entry_fixture(poet)
 
     {:ok, _} =

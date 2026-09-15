@@ -93,6 +93,49 @@ defmodule TravelingPoet.Preferences.Prompts do
     }
   end
 
+  @doc """
+  The question under one of the first excursions into a topic: was the day
+  off the road worth it. "Pause this topic" carries an `effect` the app
+  applies on answer (and reverses on undo); only the app may set one, so an
+  agent-authored option never reaches `Preferences.answer_prompt/4` with it.
+  """
+  def excursion_check_in(_entry, excursion) do
+    label = (excursion.topic && excursion.topic.label) || "this topic"
+    subject = "excursions into #{label}"
+
+    %{
+      question: "An excursion into #{label}. Worth the day?",
+      source: "app",
+      options: [
+        %{
+          "id" => "more_like_this",
+          "label" => "More like this",
+          "dimension" => "topic",
+          "polarity" => "seek",
+          "key" => Preferences.derive_key("topic", subject),
+          "subject" => subject
+        },
+        %{
+          "id" => "different_angle",
+          "label" => "A different angle",
+          "dimension" => "topic",
+          "polarity" => "avoid",
+          "key" => Preferences.derive_key("topic", "this angle on #{label}"),
+          "subject" => "this angle on #{label}"
+        },
+        %{
+          "id" => "pause_topic",
+          "label" => "Pause this topic",
+          "dimension" => "topic",
+          "polarity" => "avoid",
+          "key" => Preferences.derive_key("topic", subject),
+          "subject" => subject,
+          "effect" => %{"pause_topic" => excursion.topic_id}
+        }
+      ]
+    }
+  end
+
   defp catalogue(entry) do
     place = entry.place_name || "here"
 

@@ -105,6 +105,84 @@ defmodule TravelingPoet.ItineraryTest do
     assert %{travel_today: true, destination: %{place_name: "Aveiro"}} = Poets.travel_plan(poet)
   end
 
+  describe "travel_plan and excursions" do
+    setup do
+      user = user_fixture()
+      one_day_ago = DateTime.add(DateTime.utc_now(), -1, :day)
+      poet = poet_fixture(user, %{arrived_at: one_day_ago})
+      topic = topic_fixture(poet, %{label: "Kit airplanes"})
+      %{poet: poet, topic: topic}
+    end
+
+    test "a stay day with a topic due becomes an excursion; the poet does not move",
+         %{poet: poet, topic: topic} do
+      plan = Poets.travel_plan(poet)
+
+      assert plan.day == "excursion"
+      assert plan.travel_today == false
+      assert plan.excursion.topic_id == topic.id
+      assert plan.excursion.label == "Kit airplanes"
+      assert plan.excursion.source == "app"
+      assert plan.excursion.id == nil
+      assert plan.reason =~ "excursion into Kit airplanes"
+      # every key the skills already read is still there
+      assert %{days_here: 1, stay_duration_days: 3, destination: nil, visited: []} = plan
+    end
+
+    test "a move day always wins over an excursion", %{poet: poet} do
+      five_days_ago = DateTime.add(DateTime.utc_now(), -5, :day)
+      {:ok, poet} = Poets.update_poet(poet, %{arrived_at: five_days_ago})
+
+      assert %{day: "move", travel_today: true, excursion: nil} = Poets.travel_plan(poet)
+    end
+
+    test "never two excursion days in a row", %{poet: poet, topic: topic} do
+      yesterday = Date.add(Date.utc_today(), -1)
+      entry = published_entry_fixture(poet, %{entry_date: yesterday})
+      excursion_fixture(poet, topic, entry)
+
+      assert %{day: "stay", travel_today: false, excursion: nil} = Poets.travel_plan(poet)
+    end
+
+    test "a chat request goes before the cadence, and names what was asked for",
+         %{poet: poet, topic: topic} do
+      other = topic_fixture(poet, %{label: "Embodied minds"})
+
+      queued =
+        excursion_fixture(poet, other, nil, %{requested_venue: "Machine Consciousness 0001"})
+
+      plan = Poets.travel_plan(poet)
+      assert plan.day == "excursion"
+      assert plan.excursion.id == queued.id
+      assert plan.excursion.topic_id == other.id
+      assert plan.excursion.source == "chat"
+      assert plan.excursion.requested_venue == "Machine Consciousness 0001"
+      assert plan.reason =~ "asked for Machine Consciousness 0001"
+      refute plan.excursion.topic_id == topic.id
+    end
+
+    test "once today's entry is linked, a retry makes the same decision", %{
+      poet: poet,
+      topic: topic
+    } do
+      entry = entry_fixture(poet)
+      linked = excursion_fixture(poet, topic, entry)
+
+      plan = Poets.travel_plan(poet)
+      assert plan.day == "excursion"
+      assert plan.excursion.id == linked.id
+    end
+
+    test "with no topics the plan is exactly what it was", %{poet: poet, topic: topic} do
+      {:ok, _} = TravelingPoet.Topics.delete(topic)
+
+      assert %{day: "stay", travel_today: false, excursion: nil, reason: reason} =
+               Poets.travel_plan(poet)
+
+      assert reason =~ "day 2 of 3"
+    end
+  end
+
   test "poet_model policy: override beats scout beats fleet default" do
     alias TravelingPoet.Provisioner
 

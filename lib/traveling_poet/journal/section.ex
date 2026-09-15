@@ -2,7 +2,9 @@ defmodule TravelingPoet.Journal.Section do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(illustration description poem art_culture products kindness)
+  # highlights: what an excursion brought back (talks, papers, products),
+  # where a day at a place would have art_culture and products.
+  @kinds ~w(illustration description poem art_culture products kindness highlights)
 
   schema "journal_sections" do
     field :kind, :string

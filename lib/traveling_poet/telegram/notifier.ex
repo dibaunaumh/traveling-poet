@@ -77,10 +77,16 @@ defmodule TravelingPoet.Telegram.Notifier do
   """
   def publish_text(poet, entry, day, link) do
     hook =
-      blank_to_nil(entry.teaser) || blank_to_nil(entry.title) ||
-        "a new entry from #{entry.place_name || "the road"}"
+      blank_to_nil(entry.teaser) || blank_to_nil(entry.title) || fallback_hook(entry)
 
     "Day #{day} · #{poet.name}: #{hook}\n#{link}"
+  end
+
+  defp fallback_hook(entry) do
+    case TravelingPoet.Topics.label_for_entry(entry) do
+      nil -> "a new entry from #{entry.place_name || "the road"}"
+      label -> "an excursion into #{label}"
+    end
   end
 
   @doc "Always the announced entry's own page, never the journal index (which would show whatever is newest by the time it is opened)."

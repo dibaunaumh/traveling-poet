@@ -78,6 +78,26 @@ defmodule TravelingPoetWeb.FeedbackPromptTest do
     assert Repo.get_by(Preferences.EntryPrompt, journal_entry_id: entry.id).dismissed_at
   end
 
+  test "an excursion asks whether it was worth the day; pausing the topic is undoable",
+       %{conn: conn} do
+    {user, poet, entry} = published_poet()
+    topic = topic_fixture(poet, %{label: "Kit airplanes"})
+    excursion_fixture(poet, topic, entry)
+
+    {:ok, view, html} = live(sign_in(conn, user), ~p"/journal")
+    assert html =~ "An excursion into Kit airplanes. Worth the day?"
+    assert html =~ "Pause this topic"
+
+    html = render_click(view, "prompt_answer", %{"option" => "pause_topic"})
+    assert html =~ "Got it — Wren will keep that in mind."
+    assert TravelingPoet.Topics.get(poet.id, topic.id).status == "paused"
+    assert [%{polarity: "avoid", dimension: "topic"}] = Preferences.list_active(poet.id)
+
+    view |> element("button", "undo") |> render_click()
+    assert TravelingPoet.Topics.get(poet.id, topic.id).status == "active"
+    assert Preferences.list_active(poet.id) == []
+  end
+
   test "opening an entry is recorded, so silence can be told from absence", %{conn: conn} do
     {user, _poet, entry} = published_poet()
 

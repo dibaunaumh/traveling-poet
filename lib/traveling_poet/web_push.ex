@@ -128,10 +128,15 @@ defmodule TravelingPoet.WebPush do
   """
   def entry_payload(poet, entry, day) do
     where = entry.place_name || poet.current_place_name
+    excursion = TravelingPoet.Topics.label_for_entry(entry)
 
     %{
       title:
-        if(where, do: "Day #{day} · #{poet.name} in #{where}", else: "Day #{day} · #{poet.name}"),
+        cond do
+          excursion -> "Day #{day} · #{poet.name}, an excursion into #{excursion}"
+          where -> "Day #{day} · #{poet.name} in #{where}"
+          true -> "Day #{day} · #{poet.name}"
+        end,
       body: present(entry.teaser) || present(entry.title) || "A new journal entry is waiting.",
       url: "/journal/#{entry.entry_date}",
       tag: "entry-#{entry.id}",

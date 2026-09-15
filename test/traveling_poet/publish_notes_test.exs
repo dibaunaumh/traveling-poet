@@ -38,6 +38,15 @@ defmodule TravelingPoet.PublishNotesTest do
                "Day 3 · Nam: a new entry from Cordoba"
     end
 
+    test "an excursion entry with no hook says where the poet went instead" do
+      entry =
+        %{@entry | teaser: nil, title: nil, place_name: nil}
+        |> Map.put(:excursion, %{topic: %{label: "Kit airplanes"}})
+
+      assert Notifier.publish_text(@poet, entry, 3, "L") =~
+               "Day 3 · Nam: an excursion into Kit airplanes"
+    end
+
     test "a private poet's link goes to the owner's journal for that date" do
       assert Notifier.entry_link(%{@poet | is_public: false}, @entry)
              |> String.ends_with?("/journal/2026-09-11")
@@ -68,6 +77,16 @@ defmodule TravelingPoet.PublishNotesTest do
 
       assert bare.title == "Day 2 · Nam"
       assert bare.body == "A new journal entry is waiting."
+    end
+
+    test "an excursion's title names the topic, not the place the poet is parked in" do
+      entry =
+        %{@entry | place_name: nil}
+        |> Map.put(:excursion, %{topic: %{label: "Kit airplanes"}})
+
+      payload = WebPush.entry_payload(@poet, entry, 5)
+      assert payload.title == "Day 5 · Nam, an excursion into Kit airplanes"
+      assert payload.body == @entry.teaser
     end
   end
 end

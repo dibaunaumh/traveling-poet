@@ -26,6 +26,9 @@ defmodule TravelingPoet.Journal.Entry do
     has_many :sections, TravelingPoet.Journal.Section, foreign_key: :journal_entry_id
     has_many :reactions, TravelingPoet.Journal.Reaction, foreign_key: :journal_entry_id
     has_one :prompt, TravelingPoet.Preferences.EntryPrompt, foreign_key: :journal_entry_id
+    # Set when this entry is an excursion into a topic rather than a day at
+    # the place. Its own table: the excursion exists before the entry does.
+    has_one :excursion, TravelingPoet.Topics.Excursion, foreign_key: :journal_entry_id
 
     timestamps()
   end

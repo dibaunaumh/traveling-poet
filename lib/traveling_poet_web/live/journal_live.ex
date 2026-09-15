@@ -22,7 +22,7 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
-  alias TravelingPoet.Guide
+  alias TravelingPoet.{Guide, Topics}
   alias TravelingPoet.Journal.Spreads
   alias TravelingPoetWeb.ChatSidebarComponent
 
@@ -189,7 +189,7 @@ defmodule TravelingPoetWeb.JournalLive do
     spots = if entry, do: Journal.spot_media(entry), else: []
     entry = with_unclaimed_spots(entry, spots)
     extra = extra_media(entry)
-    places = entry_places(entry)
+    {places, finds} = side_items(entry)
 
     socket
     |> assign(:entries, entries)
@@ -199,9 +199,10 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
+    |> assign(:find_media, place_media_map(finds))
     |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
     |> assign_stay(poet, entry)
-    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
+    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places ++ finds))
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
     |> assign_markers(entry)
@@ -261,10 +262,16 @@ defmodule TravelingPoetWeb.JournalLive do
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
 
-  # The day's trip guide, for the Places spread: the entry's own places, and
-  # how many the whole stay has so the page can point at the guide.
-  defp entry_places(nil), do: []
-  defp entry_places(entry), do: Guide.list_places_for_entry(entry.id)
+  # The second spread's items: the day's places (a day at the place) or its
+  # finds (an excursion). Never both, so the pair is `{places, finds}` and
+  # one side is always empty.
+  defp side_items(nil), do: {[], []}
+
+  defp side_items(entry) do
+    if Topics.excursion_of(entry),
+      do: {[], Topics.list_finds_for_entry(entry.id)},
+      else: {Guide.list_places_for_entry(entry.id), []}
+  end
 
   # A spot drawing the poet made but never pasted still gets onto the page
   # (render-time only; the stored body is untouched).
@@ -305,6 +312,9 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp places_spread?(%{spread: %{key: "places"}}), do: true
   defp places_spread?(_assigns), do: false
+
+  defp finds_spread?(%{spread: %{key: "finds"}}), do: true
+  defp finds_spread?(_assigns), do: false
 
   defp entry_media_map(_poet, nil), do: %{}
 
@@ -1171,8 +1181,27 @@ defmodule TravelingPoetWeb.JournalLive do
                 </.link>
               </:controls>
             </.places_spread>
+            <.finds_spread
+              :if={finds_spread?(assigns)}
+              id={"finds-#{@entry.id}"}
+              entry={@entry}
+              day={Journal.journey_day(@entry, @journey_start)}
+              spread={@spread}
+              poet={@poet}
+              find_media={@find_media}
+            >
+              <:controls>
+                <.link
+                  :for={{label, date} <- entry_nav(@entries, @entry)}
+                  navigate={~p"/journal/#{date}"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  {label}
+                </.link>
+              </:controls>
+            </.finds_spread>
             <.entry_spread
-              :if={!places_spread?(assigns)}
+              :if={!places_spread?(assigns) and !finds_spread?(assigns)}
               id={"entry-#{@entry.id}"}
               entry={@entry}
               day={Journal.journey_day(@entry, @journey_start)}

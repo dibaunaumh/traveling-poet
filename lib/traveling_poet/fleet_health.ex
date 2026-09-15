@@ -92,7 +92,7 @@ defmodule TravelingPoet.FleetHealth do
       user: user,
       last_published_at: latest && latest.published_at,
       last_entry_date: latest && latest.entry_date,
-      entry_place: latest && latest.place_name,
+      entry_place: latest && (latest.place_name || excursion_place(latest)),
       current_place: poet.current_place_name,
       hours_since_publish: hours && Float.round(hours, 1),
       due_at: due_at(poet, now),
@@ -133,6 +133,14 @@ defmodule TravelingPoet.FleetHealth do
   defp published_today?(entry, now) do
     start_of_day = now |> DateTime.to_date() |> DateTime.new!(~T[00:00:00], "Etc/UTC")
     DateTime.compare(entry.published_at, start_of_day) != :lt
+  end
+
+  # An excursion entry has no place; the admin row says where it went instead.
+  defp excursion_place(entry) do
+    case TravelingPoet.Topics.label_for_entry(entry) do
+      nil -> nil
+      label -> "excursion: #{label}"
+    end
   end
 
   # Both places known and different — the symptom a reader actually notices.

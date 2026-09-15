@@ -101,6 +101,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
          {:ok, bytes} <- Base.decode64(b64),
          {:ok, entry} <- resolve_entry(poet, params["entry_date"]),
          {:ok, place} <- resolve_place(poet, params["place_id"]),
+         {:ok, find} <- resolve_find(poet, params["find_id"]),
          content_hash = :crypto.hash(:md5, bytes) |> Base.encode16(),
          :ok <- reject_duplicate(poet, content_hash, params["kind"]),
          :ok <- validate_source_links(params["sources"]) do
@@ -116,7 +117,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
             # any entry-linked illustration no section claims, so linking it
             # would leak the place's picture onto the journal page as a stray
             # taped photo.
-            journal_entry_id: if(place, do: nil, else: entry && entry.id),
+            journal_entry_id: if(place || find, do: nil, else: entry && entry.id),
             s3_key: key,
             content_type: content_type,
             byte_size: byte_size(bytes),
@@ -136,6 +137,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
               end
 
               if place, do: TravelingPoet.Guide.attach_media(place, media.id)
+              if find, do: TravelingPoet.Topics.attach_find_media(find, media.id)
 
               reply = %{ok: true, media_id: media.id, url: "/media/#{media.id}"}
 
@@ -178,6 +180,11 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
         conn
         |> put_status(404)
         |> json(%{error: "no such place — call journal_put_places first and use a returned id"})
+
+      {:error, :no_find} ->
+        conn
+        |> put_status(404)
+        |> json(%{error: "no such find; call journal_put_finds first and use a returned id"})
 
       {:error, {:bad_links, bad_urls}} ->
         conn
@@ -244,6 +251,15 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
     case TravelingPoet.Guide.get_place(poet.id, place_id) do
       nil -> {:error, :no_place}
       place -> {:ok, place}
+    end
+  end
+
+  defp resolve_find(_poet, nil), do: {:ok, nil}
+
+  defp resolve_find(poet, find_id) do
+    case TravelingPoet.Topics.get_find(poet.id, find_id) do
+      nil -> {:error, :no_find}
+      find -> {:ok, find}
     end
   end
 

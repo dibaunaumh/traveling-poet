@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   import TravelingPoetWeb.NotebookComponents
 
-  alias TravelingPoet.{Guide, Journal, Poets}
+  alias TravelingPoet.{Guide, Journal, Poets, Topics}
   alias TravelingPoet.Journal.Spreads
 
   @impl true
@@ -128,7 +128,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     spots = if entry, do: Journal.spot_media(entry), else: []
     entry = with_unclaimed_spots(entry, spots)
     extra = extra_media(entry)
-    places = if entry, do: Guide.list_places_for_entry(entry.id), else: []
+    {places, finds} = side_items(entry)
 
     socket
     |> assign(:entries, entries)
@@ -139,9 +139,10 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:extra_media, extra)
     |> assign(:places, places)
     |> assign(:place_media, place_media_map(places))
+    |> assign(:find_media, place_media_map(finds))
     |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
     |> assign_stay(poet, entry)
-    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places))
+    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places ++ finds))
     |> assign_spread(nil)
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
     |> assign(:path_points, Poets.list_path_points(poet.id))
@@ -149,6 +150,15 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp extra_media(nil), do: []
   defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
+
+  # Places for a day at the place, finds for an excursion; never both.
+  defp side_items(nil), do: {[], []}
+
+  defp side_items(entry) do
+    if Topics.excursion_of(entry),
+      do: {[], Topics.list_finds_for_entry(entry.id)},
+      else: {Guide.list_places_for_entry(entry.id), []}
+  end
 
   defp with_unclaimed_spots(nil, _spots), do: nil
 
@@ -188,6 +198,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   defp places_spread?(%{spread: %{key: "places"}}), do: true
   defp places_spread?(_assigns), do: false
 
+  defp finds_spread?(%{spread: %{key: "finds"}}), do: true
+  defp finds_spread?(_assigns), do: false
+
   # Link previews for a shared public entry: the day and title, the poet's
   # teaser, and the drawing. Only public poets reach this view, and their
   # /media/:id is world-readable, so the image URL resolves for crawlers.
@@ -200,7 +213,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     %{
       title: "Day #{Journal.journey_day(entry, journey_start)}: #{entry_title(entry)}",
       description:
-        entry.teaser || "#{poet.name}'s journal from #{entry.place_name || "the road"}",
+        entry.teaser ||
+          "#{poet.name}'s journal from #{entry.place_name || excursion_label(entry) || "the road"}",
       image: drawing && "#{base}/media/#{drawing.id}",
       url: "#{base}/p/#{poet.slug}/#{entry.entry_date}"
     }
@@ -305,8 +319,27 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               </.link>
             </:controls>
           </.places_spread>
+          <.finds_spread
+            :if={finds_spread?(assigns)}
+            id={"finds-#{@entry.id}"}
+            entry={@entry}
+            day={Journal.journey_day(@entry, @journey_start)}
+            spread={@spread}
+            poet={@poet}
+            find_media={@find_media}
+          >
+            <:controls>
+              <.link
+                :for={{label, date} <- entry_nav(@entries, @entry)}
+                navigate={~p"/p/#{@poet.slug}/#{date}"}
+                class="btn btn-ghost btn-xs"
+              >
+                {label}
+              </.link>
+            </:controls>
+          </.finds_spread>
           <.entry_spread
-            :if={!places_spread?(assigns)}
+            :if={!places_spread?(assigns) and !finds_spread?(assigns)}
             id={"entry-#{@entry.id}"}
             entry={@entry}
             day={Journal.journey_day(@entry, @journey_start)}

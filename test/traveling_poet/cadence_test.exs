@@ -116,6 +116,46 @@ defmodule TravelingPoet.Preferences.CadenceTest do
     assert Cadence.question_kind(:disengaged) == :broad
   end
 
+  test "the first excursions into a topic always ask, and the question is the app's" do
+    poet = poet_fixture(user_fixture())
+    stock_preferences(poet, 5)
+    for d <- 9..4//-1, do: publish(poet, d) |> viewed()
+
+    topic = topic_fixture(poet, %{label: "Kit airplanes"})
+
+    excursions =
+      for d <- 3..0//-1 do
+        entry = publish(poet, d)
+        excursion_fixture(poet, topic, entry)
+        Journal.preload_entry(entry)
+      end
+
+    [first, second, third, fourth] = excursions
+
+    assert {true, :excursion} = Cadence.ask?(poet, first)
+    assert {true, :excursion} = Cadence.ask?(poet, second)
+    assert {true, :excursion} = Cadence.ask?(poet, third)
+    assert Cadence.app_owned?(third)
+    assert Cadence.question_kind(:excursion) == :excursion
+
+    # the fourth falls back to the ordinary rules
+    refute Cadence.app_owned?(fourth)
+
+    case Cadence.ask?(poet, fourth) do
+      {true, reason} -> refute reason == :excursion
+      false -> :ok
+    end
+
+    # the poet cannot replace the app's question on those entries
+    good = %{
+      "question" => "More of this?",
+      "options" => [%{"label" => "Yes"}, %{"label" => "No"}]
+    }
+
+    assert {:error, :app_owned} = Preferences.attach_agent_prompt(first, good)
+    assert {:ok, _} = Preferences.attach_agent_prompt(fourth, good)
+  end
+
   test "an engaged reader is not treated as disengaged" do
     poet = poet_fixture(user_fixture())
     stock_preferences(poet, 5)

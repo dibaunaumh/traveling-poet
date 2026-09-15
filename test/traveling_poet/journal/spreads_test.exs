@@ -56,6 +56,24 @@ defmodule TravelingPoet.Journal.SpreadsTest do
     assert [_, %{key: "places", right: []}] = Spreads.pack(entry, %{}, [])
   end
 
+  test "an excursion entry gets Finds instead of Places: the ticket left, the finds right" do
+    excursion = %{id: 5, topic_id: 2, topic: %{label: "Kit airplanes"}, venue_name: "Oshkosh"}
+    entry = %{sections: [section("description", 0)], excursion: excursion}
+    finds = [%{id: 1, name: "RV-15 talk"}, %{id: 2, name: "Kit prices"}]
+
+    assert [
+             %{key: "today"},
+             %{key: "finds", label: "Finds", left: [{:excursion, ^excursion}], right: right}
+           ] =
+             Spreads.pack(entry, %{}, [], finds)
+
+    assert right == Enum.map(finds, &{:find, &1})
+
+    # an association nobody loaded is a day at the place
+    unloaded = %{sections: [], excursion: %Ecto.Association.NotLoaded{__field__: :excursion}}
+    assert [_, %{key: "places"}] = Spreads.pack(unloaded, %{}, [])
+  end
+
   test "an earlier entry's tab reads its date, never Today" do
     entry = %{entry_date: ~D[2026-09-04], sections: []}
 

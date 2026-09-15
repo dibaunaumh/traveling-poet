@@ -57,8 +57,15 @@ defmodule TravelingPoet.LinkCheck do
     end
   end
 
+  # In test every probe goes through a Req.Test stub (config/test.exs): the
+  # suite must never depend on a real host being up.
+  defp req_options, do: Application.get_env(:traveling_poet, :link_check_req_options, [])
+
   defp probe(url) do
-    case Req.head(url, receive_timeout: @timeout_ms, redirect: true, retry: false) do
+    case Req.head(
+           url,
+           [receive_timeout: @timeout_ms, redirect: true, retry: false] ++ req_options()
+         ) do
       {:ok, %{status: status}} when status in 200..399 ->
         :ok
 
@@ -76,7 +83,10 @@ defmodule TravelingPoet.LinkCheck do
   end
 
   defp probe_get(url) do
-    case Req.get(url, receive_timeout: @timeout_ms, redirect: true, retry: false) do
+    case Req.get(
+           url,
+           [receive_timeout: @timeout_ms, redirect: true, retry: false] ++ req_options()
+         ) do
       {:ok, %{status: status}} when status in 200..399 -> :ok
       {:ok, %{status: status}} -> {:error, {:http, status}}
       {:error, _} -> {:error, :unreachable}

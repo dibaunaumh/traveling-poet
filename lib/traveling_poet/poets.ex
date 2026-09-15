@@ -4,7 +4,7 @@ defmodule TravelingPoet.Poets do
   """
 
   import Ecto.Query
-  alias TravelingPoet.Repo
+  alias TravelingPoet.{Repo, Topics}
   alias TravelingPoet.Poets.{ItineraryStop, Poet, PathPoint}
 
   def get_poet!(id), do: Repo.get!(Poet, id)
@@ -235,7 +235,7 @@ defmodule TravelingPoet.Poets do
   picks somewhere itself.
   """
   def travel_plan(%Poet{} = poet, today \\ Date.utc_today()) do
-    days_here = Poet.days_at_location(poet)
+    days_here = days_here(poet, today)
     stay = Poet.stay_duration_days(poet)
     scout? = Poet.mode(poet) == "scout"
     next = if scout?, do: next_pending_stop(poet.id), else: next_requested_stop(poet.id)
@@ -249,33 +249,100 @@ defmodule TravelingPoet.Poets do
       visited: poet.id |> visited_stays() |> Enum.map(& &1.place_name) |> Enum.uniq()
     }
 
+    route =
+      cond do
+        held?(poet, today) ->
+          decide(base, false, "your companion asked you to stay here through #{poet.hold_until}")
+
+        next && next.source == "chat" ->
+          decide(base, true, "your companion asked for this stop in chat; go there today")
+
+        days_here < stay ->
+          decide(base, false, "day #{days_here + 1} of #{stay} here; not yet time to move")
+
+        scout? and is_nil(next) ->
+          decide(
+            base,
+            false,
+            "itinerary complete: stay at this final stop and go deeper; ask whether to add stops"
+          )
+
+        scout? ->
+          decide(base, true, "your stay here is done; advance to the next planned stop")
+
+        true ->
+          decide(
+            base,
+            true,
+            "your stay here is done; pick somewhere real and nearby that is NOT in `visited`"
+          )
+      end
+
+    with_excursion(route, poet, today)
+  end
+
+  # An excursion is a stay day spent off the road, into one of the
+  # companion's topics. It never displaces a move (a chat-requested stop and
+  # a chat-requested excursion both pending: the move goes first), never
+  # follows another excursion, and a row already on today's date wins so a
+  # retried run makes the same decision. Otherwise a queued chat request
+  # goes before the cadence.
+  defp with_excursion(route, poet, today) do
+    today_row = Topics.excursion_for_today(poet.id, today)
+
     cond do
-      held?(poet, today) ->
-        decide(base, false, "your companion asked you to stay here through #{poet.hold_until}")
+      today_row ->
+        excursion(route, today_row)
 
-      next && next.source == "chat" ->
-        decide(base, true, "your companion asked for this stop in chat; go there today")
+      route.travel_today ->
+        Map.merge(route, %{day: "move", excursion: nil})
 
-      days_here < stay ->
-        decide(base, false, "day #{days_here + 1} of #{stay} here; not yet time to move")
+      Topics.excursion_yesterday?(poet.id, today) ->
+        Map.merge(route, %{day: "stay", excursion: nil})
 
-      scout? and is_nil(next) ->
-        decide(
-          base,
-          false,
-          "itinerary complete: stay at this final stop and go deeper; ask whether to add stops"
-        )
+      queued = Topics.queued_chat_excursion(poet.id) ->
+        excursion(route, queued)
 
-      scout? ->
-        decide(base, true, "your stay here is done; advance to the next planned stop")
+      topic = Topics.due_topic(poet.id, today) ->
+        excursion(route, %Topics.Excursion{
+          id: nil,
+          topic_id: topic.id,
+          topic: topic,
+          source: "app"
+        })
 
       true ->
-        decide(
-          base,
-          true,
-          "your stay here is done; pick somewhere real and nearby that is NOT in `visited`"
-        )
+        Map.merge(route, %{day: "stay", excursion: nil})
     end
+  end
+
+  defp excursion(route, %Topics.Excursion{} = x) do
+    label = x.topic && x.topic.label
+
+    asked =
+      if x.source == "chat", do: " (your companion asked for #{x.requested_venue})", else: ""
+
+    Map.merge(route, %{
+      travel_today: false,
+      day: "excursion",
+      excursion: Topics.excursion_payload(x),
+      reason:
+        "an excursion into #{label}#{asked}: a day at your desk, not on the road; " <>
+          "you do not move today and it does not count against your stay"
+    })
+  end
+
+  @doc """
+  Days the poet has spent AT the place: calendar days since arrival minus
+  the excursion days taken there. An excursion is a day off the road, so a
+  three-day stay with one excursion lasts four calendar days and the place
+  still gets its three entries. Both the travel plan and the agent context
+  read this, so they never disagree.
+  """
+  def days_here(%Poet{} = poet, _today \\ Date.utc_today()) do
+    arrived_on = poet.arrived_at && DateTime.to_date(poet.arrived_at)
+    excursions = Topics.excursion_days_since(poet.id, arrived_on)
+    max(Poet.days_at_location(poet) - excursions, 0)
   end
 
   defp decide(base, travel?, reason),

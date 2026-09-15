@@ -26,7 +26,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Credits, Accounts, AgentSession, Journal, Repo, Usage}
+  alias TravelingPoet.{Credits, Accounts, AgentSession, Journal, Poets, Repo, Usage}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
@@ -158,8 +158,11 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     {:ok, attempt} = Usage.record(user.id, "daily_run_attempt")
 
     # Charge up front so a half-day balance can't buy a free run; refund
-    # below when the run demonstrably failed.
-    case Credits.debit_daily_run(user, poet, attempt.id) do
+    # below when the run demonstrably failed. The day's kind goes on the
+    # ledger row so admin can tell an excursion run from a travel run.
+    day = Poets.travel_plan(poet).day
+
+    case Credits.debit_daily_run(user, poet, attempt.id, day: day) do
       {:ok, _} ->
         outcome =
           AgentSession.run(user, @trigger,

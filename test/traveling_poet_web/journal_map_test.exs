@@ -90,6 +90,38 @@ defmodule TravelingPoetWeb.JournalMapTest do
     assert_push_event(view, "map:update", %{focus: nil})
   end
 
+  # A day off the road: the entry names its topic and opens a Finds page
+  # instead of Places, the map has nothing to focus on, and the poet's path
+  # gains no point. The same on the public journal.
+  test "an excursion entry reads as one, on both journals", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user, %{is_public: true, slug: "excursionist", name: "Wren"})
+    publish(poet, ~D[2026-08-25], "Lisbon, Portugal", 38.72, -9.13)
+    entry = publish(poet, ~D[2026-08-26], "Lisbon, Portugal", 38.72, -9.13)
+    topic = topic_fixture(poet, %{label: "Kit airplanes"})
+    excursion = excursion_fixture(poet, topic, entry)
+    {:ok, _} = TravelingPoet.Topics.set_venue(excursion, %{venue_name: "Oshkosh AirVenture"})
+    find_fixture(poet, entry, %{name: "The RV-15 talk", kind: "talk", poet_rating: 4})
+
+    {:ok, view, html} = live(signed_in(conn, user), ~p"/journal/2026-08-26")
+    assert html =~ "Excursion: Kit airplanes"
+    assert html =~ ~r/spread-tab[^>]*>\s*Finds\s*</
+    refute html =~ ~r/spread-tab[^>]*>\s*Places\s*</
+    assert_push_event(view, "map:update", %{focus: nil})
+    # no move was recorded for the excursion
+    assert TravelingPoet.Poets.list_path_points(poet.id) == []
+
+    {:ok, _view, html} = live(signed_in(conn, user), ~p"/journal/2026-08-26?spread=finds")
+    assert html =~ "What Wren brought back"
+    assert html =~ "The RV-15 talk"
+    assert html =~ "Oshkosh AirVenture"
+    assert html =~ "Wren&#39;s pick"
+
+    {:ok, _view, html} = live(conn, ~p"/p/excursionist/2026-08-26?spread=finds")
+    assert html =~ "Excursion: Kit airplanes"
+    assert html =~ "The RV-15 talk"
+  end
+
   test "the public journal follows the entry too", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user, %{is_public: true, slug: "mapper"})
