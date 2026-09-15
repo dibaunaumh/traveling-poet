@@ -56,6 +56,7 @@ defmodule TravelingPoetWeb.Router do
     get "/context", AgentController, :context
     get "/feedback", AgentController, :feedback
     post "/preferences", PreferenceController, :create
+    post "/topics", TopicController, :propose
     post "/location", LocationController, :update
     post "/hold", RouteController, :hold
     post "/itinerary_stops", RouteController, :insert_stop

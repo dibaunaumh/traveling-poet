@@ -68,11 +68,13 @@ The Phoenix app never writes journal prose itself. The only server-side text LLM
 | `DailyJourneyScheduler` | `JOURNEY_CHECK_INTERVAL_MINUTES` | Fires `/travel-and-journal` at due poets; a run counts only if the poet actually published; max 3 attempts/day |
 | `FirstEntry.Watchdog` | `FIRST_ENTRY_CHECK_INTERVAL_MINUTES` (default 5) | Retries `/onboard` until the first entry is published |
 | `Markers.Watchdog` | `MARKER_DELIVERY_INTERVAL_MINUTES` (+ `MARKER_QUIET_MINUTES`, default 15) | Sends the reader's feedback markers to the poet as one `/revise-entry` turn once the reader has been quiet |
-| `FleetHealth.Alerter` | `FLEET_HEALTH_CHECK_INTERVAL_MINUTES` | Pages admins over Telegram about poets that stopped publishing |
+| `FleetHealth.Alerter` | `FLEET_HEALTH_CHECK_INTERVAL_MINUTES` | Pages admins over Telegram about poets that stopped publishing; also surfaces `OpenRouter.key_status` because an exhausted key looks like a silent sprite |
 | `ChangeStream.Worker` | `CHANGE_STREAM_POLL_SECONDS` + a registered endpoint | Snapshot-diff outbox + signed webhook delivery for external agents |
 | `Telegram.Poller` / `Telegram.Notifier` | `TELEGRAM_BOT_TOKEN` | Pairing, chat relay, publish notes |
 | `WebPush.Notifier` | VAPID keys | Browser push on publish |
 | `Geocoder.Limiter` | always on | Serialises every Nominatim call to 1 req/s app-wide. All geocoding must go through it |
+
+Operator paging goes through `Alerts.notify_admins/1` (`ALERT_TELEGRAM_CHAT_ID`, else every admin who paired Telegram). Callers compose and dedup; it only sends.
 
 The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram poller, in-process schedulers). Never scale horizontally, and never set `min_machines_running` to 0.
 
@@ -86,10 +88,14 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 ### Contexts worth knowing before touching them
 
 - `Journal` (entries, typed sections, media, reactions) vs `Guide` (places with geocoded pins and poet ratings). Keep places OUT of `journal_sections`: `replace_sections/2` wipes and re-inserts on every agent re-put and would destroy coordinates and drawings.
+- Rendering is defensive about what the model fumbles. `Journal.Spreads` (pure) lays an entry across the Today and Places spreads and draws any media linked to the entry that no section claimed; `Journal.Spots.embed_unclaimed/2` weaves spot drawings no body embeds into the prose at render time. Neither touches the stored body. `NotebookComponents.raw_markdown/3` is the only section renderer: it sanitizes, drops every image that is not an app `/media/:id` the caller vouched for, and links the first mention of each place to its stop by splitting Text nodes only, so feedback-marker text offsets stay byte-exact. Keep it that way when changing it.
+- The app counts, the poet never does: `Journal.journey_day/1` (calendar days since the first published entry), `Poets.visited_stays/1` + `returning?/1` (journey memory so a wanderer does not bounce back), and `drawings.spots` (how many spot drawings today gets, from the companion's verbosity) are all computed app-side and handed to the agent in `/api/agent/context`. The poet writes the entry `teaser` at upsert; it is cut to 140 chars on a word boundary, never rejected.
 - `Markers.Guard` keeps a revision surgical: when a published entry with active markers (pending, or sent in the last 30 min) is re-put, every section no change-asking marker sits on is restored from the stored version, and the endpoint replies `kept_as_written`. Praise markers (Interesting, Beautiful) ask for nothing. Chat-requested revisions with no markers in play pass through.
 - `Preferences` learns what the companion wants from taps, chat, reactions and settings, with decay and sticky dismissal. The agent may only ADD preferences (source forced to `"chat"`), never delete. `Preferences.Cadence` decides when to ask; the app owns that decision, not the model.
 - `Credits` is an append-only ledger in milli-credits; flat rate per daily run by mission (`wander`, `scout`). `Usage` holds the daily abuse caps. `quota_exempt` users are free.
-- `Illustrations` generates images server-side via OpenRouter so no shared secret reaches the sprite; media lives in Tigris (S3) via `Storage.S3`, served through `/media/:id` which authorizes on `poet.is_public`.
+- `Illustrations` generates images server-side via OpenRouter so no shared secret reaches the sprite; media lives in Tigris (S3) via `Storage.S3`, served through `/media/:id` which authorizes on `poet.is_public`. `DAILY_IMAGE_CAP` (prod 12) covers the main drawing, up to three spots, a place drawing and a revision. `LinkCheck` is a liveness gate on every agent-cited URL (sources, kindness links) with basic SSRF hygiene; the skill-side "only cite pages you fetched" rule covers the semantic half.
+- `Poets.Showcase` builds the fleet journey tour shown while a reader waits for entry #0, and owns `blurred_point/1`, the one rule for how a private poet appears on any map (rounded to ~10km, nothing else).
+- `Artifacts` / `SpriteUploads` move files out of and into a sprite's `~/.openclaw/workspace` over `SpritesClient.exec` (base64 through the shell, size-capped, path-validated). `GET /api/artifacts` serves them behind a 5-minute `SessionToken`. The `SessionToken` moduledoc still cites an `/api/generate_token` route that no longer exists.
 - `ChangeStream.Registry` must list every Ecto schema as streamed or excluded; `registry_test.exs` fails the build otherwise. `Serializer` redacts by field name (anything token/secret/key-like, emails, chat content) and OMITS the key rather than masking it.
 - `Accounts.Purge` relies on `on_delete: :delete_all` everywhere and `PRAGMA foreign_keys` being on. New tables hanging off `users` must cascade.
 
@@ -98,13 +104,16 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 - Sessions: Google OAuth via Ueberauth only. `UserAuth` has `mount_current_user`, `ensure_authenticated`, `ensure_admin` (`users.is_admin`). Route groups: `:public` (`/p/:slug`, `/p/:slug/guide`, `/p/:slug/:date`), `:authenticated` (`/onboarding`, `/journal`, `/guide`, `/settings`), `:admin` (`/admin`, `/admin/change-stream`).
 - Owner and public views share state and markup on purpose: `GuideState` + `GuideComponents` back both `/guide` and `/p/:slug/guide`; `NotebookComponents` renders entries on the owner journal, public journal, and home page. Change these shared modules rather than forking markup.
 - `JournalLive` owns the chat sidebar, uploads, the sprite hold while the reader is active (a `SpriteHold` task refreshed each minute, released on quiet or terminate), and the provisioning/setting-up state machine. That is why the guide is a separate LiveView.
+- `PushNotifications` and `TelegramPairing` are the server halves of two opt-in flows shared by the journal (first-run nudge) and settings (permanent switch): each LiveView assigns their state and routes the `push_*` / `telegram_*` events to them.
+- Agent and chat markdown always goes through a sanitizer (`ChatSidebarComponent.render_markdown/1`, `raw_markdown/3`). Do not render model output with `raw/1` anywhere else.
 - `/webhooks/*` uses `Plugs.CacheBodyReader` so Stripe signatures can be checked over the raw body.
-- JS hooks live in `assets/js/*_hook.js` and are registered in `app.js`; Leaflet is vendored under `assets/vendor/leaflet`.
+- JS hooks live in `assets/js/*_hook.js` and are registered in `app.js`; Leaflet is vendored under `assets/vendor/leaflet` and every map hook (`PoetMap`, `JourneyTour`) imports it through `leaflet_setup.js`, which carries the marker-icon fix. Place links inside sanitized prose lose their `data-phx-link` attributes, so `app.js` patches those clicks itself.
 
 ## Testing conventions
 
 - SQLite + `Ecto.Adapters.SQL.Sandbox`. Most cases are `async: false`; only pure-function tests use `async: true`.
 - Fixtures in `test/support/fixtures.ex`: `user_fixture` (pass `credits: n`), `agent_user_fixture` (provisioned user with API token), `poet_fixture`, `entry_fixture`, `published_entry_fixture`, `place_fixture`, `media_fixture`.
+- Sprite calls in test: swap in `TravelingPoet.SpritesClientRecorder` via the `:sprites_client` app env (see its moduledoc); it forwards every `exec/3` as a message to the test pid and replies `{:ok, ""}`. Clean up in `on_exit`.
 - Timers are off in test; tests drive one pass directly: `ChangeStream.Capture.tick/1`, `ChangeStream.Delivery.deliver_pending/1`, `ChangeStream.Worker.check_now/0`, `FleetHealth.Alerter.check_now/0`, `DailyJourneyScheduler.run_now/1`.
 
 ## Product and workflow rules
@@ -112,3 +121,5 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 - Work on a branch and open a PR; no direct pushes to `main`.
 - UI copy: no em dashes in interface text, no emoji. The wordmark is "Traveling *Poet*" (Poet italic).
 - Illustrations must cite real source links; the agent-facing rules in `priv/data/AGENTS.md` are part of the product's safety posture. Do not loosen them without asking.
+- Anything under `priv/data/` (skills, AGENTS.md, plugin source in `Provisioner`) reaches a poet only through `Provisioner.upgrade_fleet/1` after deploy. A PR that changes skill text should say so in its description; app-side rules, context fields and CSS need no rollout.
+- Commit messages in this repo explain the observed problem first (what the fleet actually did), then the change. Keep that shape.

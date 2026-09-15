@@ -101,6 +101,18 @@ defmodule TravelingPoet.Fixtures do
     place
   end
 
+  def topic_fixture(poet, attrs \\ %{}) do
+    n = System.unique_integer([:positive])
+
+    {:ok, topic} =
+      TravelingPoet.Topics.create(
+        poet.id,
+        Map.merge(%{label: "Topic #{n}"}, attrs)
+      )
+
+    topic
+  end
+
   def media_fixture(poet, attrs \\ %{}) do
     n = System.unique_integer([:positive])
 

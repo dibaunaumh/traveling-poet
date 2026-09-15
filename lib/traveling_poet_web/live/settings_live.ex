@@ -8,6 +8,8 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   alias TravelingPoet.{Accounts, Credits, Geocoder, Payments, Poets, Preferences, Provisioner}
   alias TravelingPoet.Poets.{Poet, Presets}
+  alias TravelingPoet.Topics
+  alias TravelingPoet.Topics.Topic
 
   @impl true
   def mount(params, _session, socket) do
@@ -38,7 +40,15 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:stop_query, "")
      |> assign(:stop_results, [])
      |> assign(:stop_error, nil)
+     |> assign_topics()
      |> assign_learned()}
+  end
+
+  defp assign_topics(socket) do
+    case socket.assigns.poet do
+      nil -> assign(socket, :topics, [])
+      poet -> assign(socket, :topics, Topics.list(poet.id))
+    end
   end
 
   defp assign_learned(socket) do
@@ -93,6 +103,83 @@ defmodule TravelingPoetWeb.SettingsLive do
     else
       _ -> {:noreply, socket}
     end
+  end
+
+  ## Topics
+
+  @impl true
+  def handle_event("add_topic", %{"label" => label} = params, socket) do
+    poet = socket.assigns.poet
+
+    case String.trim(label || "") do
+      "" ->
+        {:noreply, socket}
+
+      label ->
+        attrs = %{label: label, kind: parse_kind(params["kind"])}
+
+        case Topics.create(poet.id, attrs) do
+          {:ok, _} ->
+            {:noreply, assign_topics(socket)}
+
+          {:error, changeset} ->
+            {:noreply, put_flash(socket, :error, topic_error(changeset))}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("save_topic", %{"topic_id" => id} = params, socket) do
+    with_topic(socket, id, fn topic ->
+      attrs = %{
+        kind: parse_kind(params["kind"]),
+        every_days: parse_cadence(params["every_days"], topic.every_days)
+      }
+
+      # A half-retyped label keeps the current one, as the poet's name does.
+      attrs =
+        case String.trim(params["label"] || "") do
+          "" -> attrs
+          label -> Map.put(attrs, :label, label)
+        end
+
+      case Topics.update(topic, attrs) do
+        {:ok, _} -> {:noreply, assign_topics(socket)}
+        {:error, changeset} -> {:noreply, put_flash(socket, :error, topic_error(changeset))}
+      end
+    end)
+  end
+
+  @impl true
+  def handle_event("keep_topic", %{"id" => id}, socket) do
+    with_topic(socket, id, fn topic ->
+      {:ok, _} = Topics.keep(topic)
+      {:noreply, assign_topics(socket)}
+    end)
+  end
+
+  @impl true
+  def handle_event("pause_topic", %{"id" => id}, socket) do
+    with_topic(socket, id, fn topic ->
+      {:ok, _} = Topics.pause(topic)
+      {:noreply, assign_topics(socket)}
+    end)
+  end
+
+  @impl true
+  def handle_event("resume_topic", %{"id" => id}, socket) do
+    with_topic(socket, id, fn topic ->
+      {:ok, _} = Topics.resume(topic)
+      {:noreply, assign_topics(socket)}
+    end)
+  end
+
+  @impl true
+  def handle_event("remove_topic", %{"id" => id}, socket) do
+    with_topic(socket, id, fn topic ->
+      {:ok, _} = Topics.delete(topic)
+      {:noreply, assign_topics(socket)}
+    end)
   end
 
   @impl true
@@ -365,6 +452,45 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp parse_verbosity(v) when v in ["brief", "balanced", "expansive"], do: v
   defp parse_verbosity(_), do: "balanced"
 
+  defp with_topic(socket, id, fun) do
+    poet = socket.assigns.poet
+
+    with {id, ""} <- Integer.parse(to_string(id)),
+         %Topic{} = topic <- Topics.get(poet.id, id) do
+      fun.(topic)
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  defp parse_kind(kind) when kind in ["professional", "personal"], do: kind
+  defp parse_kind(_), do: nil
+
+  defp parse_cadence(str, current) do
+    case Integer.parse(to_string(str)) do
+      {n, _} when n in 3..30 -> n
+      _ -> current
+    end
+  end
+
+  defp topic_error(changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
+    |> then(&"Could not save the topic: #{&1}.")
+  end
+
+  defp cadence_options,
+    do: [{5, "every 5 days"}, {7, "every week"}, {10, "every 10 days"}, {14, "every two weeks"}]
+
+  defp kind_options,
+    do: [{"", "not sure"}, {"professional", "work or study"}, {"personal", "passion"}]
+
+  defp topic_status_label(%Topic{status: "proposed"}), do: "proposed by your poet"
+  defp topic_status_label(%Topic{status: "paused"}), do: "paused"
+  defp topic_status_label(%Topic{source: "chat"}), do: "from chat"
+  defp topic_status_label(_), do: nil
+
   defp verbosity_options do
     [
       {"brief", "Brief — short postcards, a few lines and a poem"},
@@ -543,6 +669,134 @@ defmodule TravelingPoetWeb.SettingsLive do
             />
             <button type="submit" class="btn btn-sm">Add</button>
           </form>
+
+          <div class="divider"></div>
+
+          <section id="topics">
+            <h2 class="text-lg font-semibold mb-1">Topics {@poet.name} follows for you</h2>
+            <p class="text-sm opacity-60 mb-3">
+              Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
+            </p>
+
+            <p :if={@topics == []} class="text-sm opacity-50 mb-2">
+              None yet.
+            </p>
+
+            <ul class="space-y-2">
+              <li
+                :for={topic <- @topics}
+                id={"topic-#{topic.id}"}
+                class={[
+                  "p-2 rounded-lg border border-base-200",
+                  topic.status == "paused" && "opacity-60"
+                ]}
+              >
+                <form
+                  id={"topic-form-#{topic.id}"}
+                  phx-change="save_topic"
+                  phx-value-id={topic.id}
+                  class="flex flex-wrap items-center gap-2"
+                >
+                  <input type="hidden" name="topic_id" value={topic.id} />
+                  <input
+                    type="text"
+                    name="label"
+                    phx-debounce="750"
+                    value={topic.label}
+                    class="input input-bordered input-sm flex-1 min-w-40"
+                  />
+                  <select name="kind" class="select select-bordered select-sm">
+                    <option
+                      :for={{value, label} <- kind_options()}
+                      value={value}
+                      selected={(topic.kind || "") == value}
+                    >
+                      {label}
+                    </option>
+                  </select>
+                  <select
+                    name="every_days"
+                    class="select select-bordered select-sm"
+                    disabled={topic.status == "proposed"}
+                  >
+                    <option
+                      :for={{days, label} <- cadence_options()}
+                      value={days}
+                      selected={topic.every_days == days}
+                    >
+                      {label}
+                    </option>
+                  </select>
+                </form>
+                <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
+                  <span :if={topic_status_label(topic)}>{topic_status_label(topic)}</span>
+                  <span :if={topic.evidence["quote"]} class="italic">
+                    &ldquo;{topic.evidence["quote"]}&rdquo;
+                  </span>
+                  <span class="flex-1"></span>
+                  <button
+                    :if={topic.status == "proposed"}
+                    type="button"
+                    phx-click="keep_topic"
+                    phx-value-id={topic.id}
+                    class="btn btn-primary btn-xs"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    :if={topic.status == "proposed"}
+                    type="button"
+                    phx-click="remove_topic"
+                    phx-value-id={topic.id}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    Not this
+                  </button>
+                  <button
+                    :if={topic.status == "active"}
+                    type="button"
+                    phx-click="pause_topic"
+                    phx-value-id={topic.id}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    Pause
+                  </button>
+                  <button
+                    :if={topic.status == "paused"}
+                    type="button"
+                    phx-click="resume_topic"
+                    phx-value-id={topic.id}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    Resume
+                  </button>
+                  <button
+                    :if={topic.status != "proposed"}
+                    type="button"
+                    phx-click="remove_topic"
+                    phx-value-id={topic.id}
+                    class="btn btn-ghost btn-xs"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </li>
+            </ul>
+
+            <form id="add-topic-form" phx-submit="add_topic" class="flex gap-2 mt-3">
+              <input
+                type="text"
+                name="label"
+                class="input input-bordered input-sm flex-1"
+                placeholder="Add a topic, like kit airplanes or embodied minds"
+              />
+              <select name="kind" class="select select-bordered select-sm">
+                <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
+              </select>
+              <button type="submit" class="btn btn-sm">Add</button>
+            </form>
+          </section>
 
           <div class="divider"></div>
 

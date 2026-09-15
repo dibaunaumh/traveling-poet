@@ -1,0 +1,82 @@
+defmodule TravelingPoet.Topics.Topic do
+  @moduledoc """
+  A subject the companion wants their poet to follow beyond places: a field
+  they work in, a passion they keep. On some days the poet leaves the road for
+  an excursion into one of these (a conference, a festival, a lab, a company)
+  and writes back about it.
+
+  Topics are structural, not tastes: each has its own excursions and entries.
+  What the companion likes about those entries is a `Preferences.Preference`.
+
+  `status`: "proposed" (the poet suggested it from chat; waits for the
+  companion to keep it in Settings), "active", "paused". Only active topics
+  get scheduled excursions.
+  """
+
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @kinds ~w(professional personal)
+  @statuses ~w(proposed active paused)
+  # "settings": typed in by the companion. "chat": proposed by the poet from
+  # what the companion said. "onboarding": reserved for a first-run source.
+  @sources ~w(settings chat onboarding)
+  @cadence_range 3..30
+  @default_every_days 7
+
+  schema "poet_topics" do
+    field :key, :string
+    field :label, :string
+    field :kind, :string
+    field :status, :string, default: "proposed"
+    field :source, :string, default: "settings"
+    field :every_days, :integer, default: @default_every_days
+    field :position, :integer, default: 0
+    field :evidence, :map, default: %{}
+
+    belongs_to :poet, TravelingPoet.Poets.Poet
+
+    timestamps()
+  end
+
+  def kinds, do: @kinds
+  def statuses, do: @statuses
+  def sources, do: @sources
+  def cadence_range, do: @cadence_range
+  def default_every_days, do: @default_every_days
+
+  @doc false
+  def changeset(topic, attrs) do
+    topic
+    |> cast(attrs, [:poet_id, :label, :kind, :status, :source, :every_days, :position, :evidence])
+    |> update_change(:label, &String.trim/1)
+    |> validate_required([:poet_id, :label])
+    |> validate_length(:label, min: 2, max: 80)
+    |> validate_inclusion(:kind, @kinds)
+    |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:source, @sources)
+    |> validate_number(:every_days,
+      greater_than_or_equal_to: @cadence_range.first,
+      less_than_or_equal_to: @cadence_range.last
+    )
+    |> put_key()
+    |> unique_constraint([:poet_id, :key], message: "already follows this topic")
+  end
+
+  # Groups a topic by what it is about, ignoring how it was phrased, so
+  # "Experimental music" proposed twice is one topic.
+  defp put_key(changeset) do
+    case get_change(changeset, :label) do
+      nil -> changeset
+      label -> put_change(changeset, :key, derive_key(label))
+    end
+  end
+
+  def derive_key(label) when is_binary(label) do
+    label
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "-")
+    |> String.trim("-")
+    |> String.slice(0, 40)
+  end
+end
