@@ -104,5 +104,28 @@ defmodule TravelingPoetWeb.SettingsTopicsTest do
     assert html =~ "Could not save the topic"
   end
 
+  test "each topic says when its next excursion is, and chat requests can be removed",
+       %{conn: conn} do
+    {_user, poet, _view, _html} = mount(conn)
+    topic = topic_fixture(poet, %{label: "Kit airplanes"})
+    queued = excursion_fixture(poet, topic, nil, %{requested_venue: "Oshkosh AirVenture"})
+
+    {:ok, view, html} = live(sign_in(build_conn(), poet_owner(poet)), ~p"/settings")
+    assert html =~ "no excursion yet, next on the first day"
+    assert html =~ "Asked for in chat"
+    assert html =~ "Oshkosh AirVenture"
+
+    html = render_click(view, "remove_excursion", %{"id" => to_string(queued.id)})
+    refute html =~ "Oshkosh AirVenture"
+    assert Topics.list_queued(poet.id) == []
+
+    two_days_ago = Date.add(Date.utc_today(), -2)
+    entry = published_entry_fixture(poet, %{entry_date: two_days_ago})
+    excursion_fixture(poet, topic, entry)
+
+    {:ok, _view, html} = live(sign_in(build_conn(), poet_owner(poet)), ~p"/settings")
+    assert html =~ "last excursion #{Calendar.strftime(two_days_ago, "%b %-d")}, next in 5 days"
+  end
+
   defp poet_owner(poet), do: TravelingPoet.Accounts.get_user!(poet.user_id)
 end

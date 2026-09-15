@@ -231,6 +231,13 @@ defmodule TravelingPoetWeb.AdminLive do
                 </td>
                 <td>
                   {h.entry_place || "—"}
+                  <span
+                    :if={h.excursion_label}
+                    class="badge badge-info badge-xs"
+                    title={"A day off the road, into #{h.excursion_label}"}
+                  >
+                    excursion
+                  </span>
                   <span :if={h.last_entry_date} class="opacity-50 text-xs">
                     {h.last_entry_date}
                   </span>

@@ -217,6 +217,24 @@ defmodule TravelingPoet.Topics do
     end
   end
 
+  @doc """
+  For Settings: when this topic's next excursion falls due. `:due` when it
+  is (never had one, or the cadence has elapsed), else the days to wait.
+  """
+  def days_until_due(%Topic{} = topic, today \\ Date.utc_today()) do
+    case last_on(topic) do
+      nil ->
+        :due
+
+      last ->
+        max(topic.every_days - Date.diff(today, last), 0)
+        |> then(&if(&1 == 0, do: :due, else: &1))
+    end
+  end
+
+  @doc "The date of the last excursion taken into this topic, or nil."
+  def last_excursion_on(%Topic{} = topic), do: last_on(topic)
+
   # nil sorts first in Elixir's term order (nil < binary), which is exactly
   # "never had one goes first".
   defp last_on(%Topic{id: topic_id}) do

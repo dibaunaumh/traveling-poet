@@ -117,6 +117,19 @@ defmodule TravelingPoet.FleetHealthTest do
     assert Enum.any?(FleetHealth.drifted(noon()), &(&1.poet.id == poet.id))
   end
 
+  test "an excursion entry is named as one and never counts as drift" do
+    poet = poet_due_at(8, %{current_place_name: "Lisbon, Portugal"})
+    topic = topic_fixture(poet, %{label: "Kit airplanes"})
+    entry = publish(poet, Date.utc_today(), %{place_name: "Lisbon, Portugal"})
+    excursion_fixture(poet, topic, entry)
+
+    row = row_for(poet, noon())
+    assert row.entry_place == "excursion: Kit airplanes"
+    assert row.excursion_label == "Kit airplanes"
+    refute row.drifted?
+    assert row.status == :ok
+  end
+
   test "no drift when the newest entry matches the map" do
     poet = poet_due_at(8, %{current_place_name: "Lisbon, Portugal"})
     publish(poet, Date.utc_today(), %{place_name: "Lisbon, Portugal"})
