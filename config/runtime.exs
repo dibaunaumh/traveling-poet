@@ -155,6 +155,11 @@ config :traveling_poet,
         max: String.to_integer(System.get_env("BOOK_COMPOSE_CREDITS_MAX") || "10")
       }
     ),
+  # PDFs render on the poet's sprite. "admins" until proven in production,
+  # then "all"; "off" hides it.
+  book_pdf_enabled:
+    if(config_env() == :test, do: "all", else: System.get_env("BOOK_PDF_ENABLED") || "admins"),
+  daily_book_pdf_cap: String.to_integer(System.get_env("DAILY_BOOK_PDF_CAP") || "4"),
   daily_book_compose_cap:
     if(config_env() == :test,
       do: 2,

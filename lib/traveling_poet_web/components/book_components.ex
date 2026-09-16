@@ -523,6 +523,7 @@ defmodule TravelingPoetWeb.BookComponents do
   attr :has_composed, :boolean, default: false
   attr :plain, :boolean, default: true
   attr :composing, :boolean, default: false
+  attr :pdf_enabled, :boolean, default: false
   attr :poet, :map, required: true
 
   @doc "Print, paper size, edition, back: on screen only."
@@ -559,7 +560,15 @@ defmodule TravelingPoetWeb.BookComponents do
       >
         {label}
       </a>
-      <button type="button" id="book-print" disabled>Print / Save as PDF</button>
+      <button type="button" id="book-print" disabled>Print</button>
+      <a
+        :if={@pdf_enabled}
+        href={~p"/settings#book"}
+        id="book-get-pdf"
+        title="A stored PDF to download"
+      >
+        Get the PDF
+      </a>
       <a href={~p"/journal"} title="Back to the journal">Journal</a>
     </div>
     """

@@ -63,7 +63,7 @@ defmodule TravelingPoet.Accounts.Purge do
 
   defp do_purge(%User{} = user) do
     poet = Repo.get_by(Poet, user_id: user.id)
-    media_keys = media_keys(poet)
+    media_keys = media_keys(poet) ++ TravelingPoet.Books.pdf_keys(poet)
 
     Logger.warning(
       "Purge: deleting user #{user.id} (#{user.email}), poet #{inspect(poet && poet.name)}, " <>

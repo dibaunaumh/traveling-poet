@@ -30,11 +30,32 @@ defmodule TravelingPoetWeb.MediaController do
     end
   end
 
-  defp authorize(conn, poet) do
+  @doc false
+  # Public for tests: the render cookie path cannot be exercised through show/2
+  # without a bucket.
+  def authorize(conn, poet) do
     cond do
       poet.is_public -> :ok
       match?(%{id: id} when id == poet.user_id, conn.assigns[:current_user]) -> :ok
+      rendering_this_poet?(conn, poet) -> :ok
       true -> :forbidden
+    end
+  end
+
+  # The poet's sprite printing the book: its browser holds the render cookie
+  # for one PDF of this poet, set by BookController.render_pdf/2.
+  defp rendering_this_poet?(conn, poet) do
+    conn = Plug.Conn.fetch_cookies(conn)
+
+    case conn.req_cookies[TravelingPoetWeb.BookController.render_cookie()] do
+      nil ->
+        false
+
+      token ->
+        match?(
+          {:ok, %{poet_id: id}} when id == poet.id,
+          TravelingPoet.Books.verify_render_token(token)
+        )
     end
   end
 

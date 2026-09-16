@@ -50,3 +50,12 @@ config :traveling_poet, provision_in_background: false
 # turn in a task. Never from the suite: the turn would try to wake a sprite.
 # Tests drive Books.Composer.finish/2 directly with the outcome they need.
 config :traveling_poet, book_compose_in_background: false
+
+# A PDF request opens the row, then renders on the poet's sprite in a task
+# and uploads to Tigris. Never from the suite: tests drive
+# Books.PdfRenderer.run/1 with a fake runner and storage.
+config :traveling_poet,
+  book_pdf_in_background: false,
+  book_pdf_runner: TravelingPoet.FakePdfRunner,
+  book_pdf_storage: TravelingPoet.FakePdfStorage,
+  book_pdf_poll_ms: 0

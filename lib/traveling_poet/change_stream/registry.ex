@@ -31,6 +31,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Poets.ItineraryStop,
     Topics.Topic,
     Books.Edition,
+    Books.Pdf,
     Journal.Entry,
     Topics.Excursion,
     Topics.Find,

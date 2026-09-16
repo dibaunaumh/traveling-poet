@@ -51,5 +51,11 @@ defmodule TravelingPoet.WebPush.Notifier do
   end
 
   @impl true
+  def handle_info({:book_pdf_ready, user_id, pdf_id}, state) do
+    Task.start(fn -> WebPush.notify_book_pdf_ready(user_id, pdf_id) end)
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
 end
