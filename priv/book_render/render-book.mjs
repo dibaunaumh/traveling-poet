@@ -40,17 +40,11 @@ const LIBS = [
   "libdrm2", "libxkbcommon0", "libxcomposite1", "libxdamage1", "libxfixes3",
   "libxrandr2", "libgbm1", "libasound2t64", "libpango-1.0-0", "libcairo2",
   "libdbus-1-3", "libexpat1", "fonts-liberation", "fonts-noto-cjk",
-  // not Chrome's: recompresses the printed drawings (see shrink below)
-  "ghostscript",
 ];
-
-const hasGhostscript = () => {
-  try { execFileSync("gs", ["--version"], { stdio: "ignore" }); return true; } catch { return false; }
-};
 
 function chromePath() {
   const root = join(homedir(), ".tpoet", "chrome");
-  if (existsSync(join(root, "path.txt")) && hasGhostscript()) {
+  if (existsSync(join(root, "path.txt"))) {
     const p = readFileSync(join(root, "path.txt"), "utf8").trim();
     if (p && existsSync(p)) return p;
   }
@@ -139,25 +133,11 @@ async function main() {
   log("printed", printed.length, "bytes");
   try { chrome.kill("SIGKILL"); } catch {}
 
-  // Chrome embeds every drawing at full resolution (a 220-page journal came
-  // out at 80 MB). Ghostscript recompresses images to print resolution and
-  // keeps the pages, text and link annotations. Kept only if it is smaller.
-  say("compressing", { pages });
+  // The page already hands Chrome print-sized JPEGs with no blend modes
+  // (book.js bakeImages), so the file needs no recompression. Ghostscript
+  // used to do that, and its output drew as blank boxes in Preview.
   const out = join(work, "book.pdf");
-  let pdf = printed;
-  try {
-    execFileSync("gs", [
-      "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.7", "-dPDFSETTINGS=/printer",
-      "-dDownsampleColorImages=true", "-dColorImageResolution=200", "-dColorImageDownsampleType=/Bicubic",
-      "-dAutoFilterColorImages=false", "-dColorImageFilter=/DCTEncode", "-dJPEGQ=85",
-      "-dNOPAUSE", "-dQUIET", "-dBATCH", `-sOutputFile=${out}`, raw,
-    ], { stdio: "inherit", timeout: 600000 });
-    const smaller = readFileSync(out);
-    if (smaller.length > 0 && smaller.length < printed.length) pdf = smaller;
-    log("compressed to", smaller.length, "bytes");
-  } catch (e) {
-    log("compression skipped:", String(e).slice(0, 200));
-  }
+  const pdf = printed;
   writeFileSync(out, pdf);
   rmSync(raw, { force: true });
 

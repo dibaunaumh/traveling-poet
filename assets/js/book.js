@@ -37,6 +37,51 @@ const takeStylesheets = () => {
   return {sheets, restore: () => removed.forEach((el) => document.head.appendChild(el))}
 }
 
+// Every drawing is redrawn once, before layout, into a JPEG no larger than
+// it will ever print (about 300 dpi on A4). Where the page blends a drawing
+// into the paper (mix-blend-mode: multiply), the blend is done here, onto
+// the paper colour, so the pixels already carry it. Two reasons, both about
+// the PDF the poet's sprite prints: a PDF viewer such as Preview draws
+// blended images as blank boxes, and full-size PNG drawings made an 80 MB
+// file. Same-origin images only (/media), so the canvas is never tainted.
+const PAPER = "#fdf8ec"
+const MAX_EDGE = 1600
+
+const bakeImages = async (root) => {
+  const images = [...root.querySelectorAll("img")].filter((img) => {
+    const src = img.getAttribute("src") || ""
+    return src.startsWith("/") && !src.startsWith("//")
+  })
+
+  await Promise.all(images.map(async (img) => {
+    try {
+      img.loading = "eager"
+      if (!img.complete || img.naturalWidth === 0) await img.decode()
+      const w = img.naturalWidth, h = img.naturalHeight
+      if (!w || !h) return
+
+      const scale = Math.min(1, MAX_EDGE / Math.max(w, h))
+      const canvas = document.createElement("canvas")
+      canvas.width = Math.round(w * scale)
+      canvas.height = Math.round(h * scale)
+      const ctx = canvas.getContext("2d")
+
+      const blends = getComputedStyle(img).mixBlendMode === "multiply"
+      ctx.fillStyle = blends ? PAPER : "#ffffff"
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.globalCompositeOperation = blends ? "multiply" : "source-over"
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+      img.src = canvas.toDataURL("image/jpeg", 0.86)
+      img.dataset.baked = "true"
+      await img.decode()
+    } catch (e) {
+      // a drawing that will not load stays as it is; the page still lays out
+      console.warn("book: could not prepare a drawing for print", img.src, e)
+    }
+  }))
+}
+
 const layOut = async () => {
   const book = document.getElementById("book")
   const status = document.getElementById("book-status")
@@ -55,6 +100,7 @@ const layOut = async () => {
 
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready
+    await bakeImages(book)
     const previewer = new window.Paged.Previewer()
     styles = takeStylesheets()
     // The source leaves the document (as the polyfill's own auto mode does
