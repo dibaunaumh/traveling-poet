@@ -20,7 +20,7 @@ defmodule TravelingPoet.Books do
 
   alias TravelingPoet.{Accounts, Credits, Journal, Poets, Repo, Usage}
   alias TravelingPoet.Accounts.User
-  alias TravelingPoet.Books.{Composer, Edition, Manuscript, Matter}
+  alias TravelingPoet.Books.{Composer, Edition, Manuscript, Matter, Pdf, PdfRenderer}
   alias TravelingPoet.Journal.EntryBundle
   alias TravelingPoet.Markers.Delivery
 
@@ -191,6 +191,177 @@ defmodule TravelingPoet.Books do
       poet -> poet.user_id
     end
   end
+
+  ## PDFs
+
+  @pdf_attempt_kind "book_pdf_attempt"
+  # a render past this is settled as failed when next read
+  @pdf_stale_after_minutes 25
+  @render_token_salt "book render"
+  @render_token_max_age 30 * 60
+
+  @doc """
+  Whether this user may make PDFs: `:book_pdf_enabled` is "all", "admins"
+  (the default until the sprite render has proven itself in production) or
+  "off".
+  """
+  def pdf_enabled?(%{is_admin: admin?}) do
+    case Application.get_env(:traveling_poet, :book_pdf_enabled, "admins") do
+      "all" -> true
+      "admins" -> admin? == true
+      _ -> false
+    end
+  end
+
+  def pdf_enabled?(_user), do: false
+
+  def get_pdf(id), do: Repo.get(Pdf, id)
+
+  @doc "A ready PDF this user owns, or nil."
+  def get_owned_pdf(%User{id: user_id}, id) do
+    with %Pdf{status: "ready"} = pdf <- Repo.get(Pdf, id),
+         %{user_id: ^user_id} <- Poets.get_poet(pdf.poet_id) do
+      pdf
+    else
+      _ -> nil
+    end
+  end
+
+  @doc "The newest PDF for this poet, settled first if its render went stale."
+  def current_pdf(%{id: poet_id}) do
+    Pdf
+    |> where(poet_id: ^poet_id)
+    |> order_by(desc: :id)
+    |> limit(1)
+    |> Repo.one()
+    |> reap_pdf_if_stale()
+  end
+
+  @doc "The newest ready PDF for this poet."
+  def latest_ready_pdf(%{id: poet_id}) do
+    Pdf
+    |> where(poet_id: ^poet_id, status: "ready")
+    |> order_by(desc: :id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @doc "Whether a PDF may be made now, and why not."
+  def pdf_blocker(%User{} = user, poet, %Manuscript{} = manuscript) do
+    cond do
+      not pdf_enabled?(user) -> {:blocked, :pdf_disabled}
+      manuscript.chapters == [] -> {:blocked, :empty}
+      not user.sprite_provisioned or is_nil(user.sprite_name) -> {:blocked, :no_sprite}
+      match?(%Pdf{status: "rendering"}, current_pdf(poet)) -> {:blocked, :already_rendering}
+      not Usage.within_budget?(user, @pdf_attempt_kind) -> {:blocked, :daily_cap}
+      composing?(poet) -> {:blocked, :poet_busy}
+      true -> :ok
+    end
+  end
+
+  @doc """
+  Starts a PDF of the book on the poet's sprite. `opts`: `page_size` (a5, a4,
+  letter) and `variant` ("composed" falls back to "plain" when no composed
+  edition is ready). Free; the daily attempt cap bounds it.
+  """
+  def request_pdf(%User{} = user, poet, opts \\ %{}) do
+    manuscript = manuscript(poet)
+
+    with :ok <- pdf_blocker(user, poet, manuscript) do
+      size = if opts[:page_size] in Pdf.page_sizes(), do: opts[:page_size], else: "a5"
+      edition = if opts[:variant] == "composed", do: latest_ready_edition(poet), else: nil
+
+      {:ok, _} = Usage.record(user.id, @pdf_attempt_kind, %{metadata: %{"poet_id" => poet.id}})
+
+      {:ok, pdf} =
+        %Pdf{}
+        |> Pdf.changeset(%{
+          poet_id: poet.id,
+          edition_id: edition && edition.id,
+          variant: if(edition, do: "composed", else: "plain"),
+          page_size: size,
+          status: "rendering"
+        })
+        |> Repo.insert()
+
+      broadcast_pdf_updated(pdf)
+
+      if Application.get_env(:traveling_poet, :book_pdf_in_background, true),
+        do: PdfRenderer.dispatch(pdf)
+
+      {:ok, pdf}
+    end
+  end
+
+  @doc "A signed link token that opens this one PDF's book page for the sprite's browser."
+  def render_token(%Pdf{id: id, poet_id: poet_id}) do
+    Phoenix.Token.sign(TravelingPoetWeb.Endpoint, @render_token_salt, %{pdf: id, poet: poet_id})
+  end
+
+  @doc "The PDF a render token opens, while it is still rendering and the token is fresh."
+  def verify_render_token(token) when is_binary(token) do
+    with {:ok, %{pdf: id, poet: poet_id}} <-
+           Phoenix.Token.verify(TravelingPoetWeb.Endpoint, @render_token_salt, token,
+             max_age: @render_token_max_age
+           ),
+         %Pdf{status: "rendering", poet_id: ^poet_id} = pdf <- Repo.get(Pdf, id) do
+      {:ok, pdf}
+    else
+      _ -> {:error, :invalid}
+    end
+  end
+
+  def verify_render_token(_), do: {:error, :invalid}
+
+  @doc "What the downloaded file is called."
+  def pdf_filename(poet, %Pdf{} = pdf) do
+    safe = poet.name |> String.replace(~r/[^\p{L}\p{N} ._-]/u, "") |> String.trim()
+    date = pdf.rendered_at && Calendar.strftime(pdf.rendered_at, "%Y-%m-%d")
+    Enum.join(Enum.reject([safe, "Traveling Poet", date], &is_nil/1), " - ") <> ".pdf"
+  end
+
+  @doc "Every stored PDF object of a poet, for the account purge."
+  def pdf_keys(nil), do: []
+
+  def pdf_keys(%{id: poet_id}) do
+    Pdf
+    |> where([p], p.poet_id == ^poet_id and not is_nil(p.s3_key))
+    |> select([p], p.s3_key)
+    |> Repo.all()
+  end
+
+  @doc false
+  def broadcast_pdf_updated(%Pdf{} = pdf) do
+    case Poets.get_poet(pdf.poet_id) do
+      nil ->
+        :ok
+
+      poet ->
+        Phoenix.PubSub.broadcast(
+          TravelingPoet.PubSub,
+          "user:#{poet.user_id}",
+          {:book_pdf_updated, pdf.id}
+        )
+    end
+  end
+
+  defp reap_pdf_if_stale(%Pdf{status: "rendering"} = pdf) do
+    cutoff = DateTime.add(DateTime.utc_now(), -@pdf_stale_after_minutes, :minute)
+
+    if NaiveDateTime.compare(pdf.inserted_at, DateTime.to_naive(cutoff)) == :lt do
+      {:ok, pdf} =
+        pdf
+        |> Pdf.changeset(%{status: "failed", error: "the render never reported back"})
+        |> Repo.update()
+
+      broadcast_pdf_updated(pdf)
+      pdf
+    else
+      pdf
+    end
+  end
+
+  defp reap_pdf_if_stale(other), do: other
 
   @doc false
   def user_for(%Edition{} = edition) do

@@ -83,7 +83,25 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:book_pdf_ready, user_id, pdf_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id) do
+      base = Application.get_env(:traveling_poet, :phoenix_url, "")
+      Client.send_message(chat_id, book_pdf_text(poet, "#{base}/journal/book/pdf/#{pdf_id}"))
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc "The note that says the book's PDF is ready. A link, not the file: it can be large. Pure, for tests."
+  def book_pdf_text(poet, link),
+    do: "📄 The PDF of your book with #{poet.name} is ready to download.\n#{link}"
 
   @doc "The note that says a composed edition is bound. Pure, for tests."
   def book_ready_text(poet, link),

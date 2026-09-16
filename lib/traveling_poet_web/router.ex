@@ -37,6 +37,10 @@ defmodule TravelingPoetWeb.Router do
     # The hero's destination box: remembers the place across Google sign-in
     get "/start", PageController, :start
     get "/media/:id", MediaController, :show
+    # The book page, opened by the poet's sprite to print a PDF. No session:
+    # a signed token for one rendering PDF, which also lets that page's
+    # drawings load (see MediaController).
+    get "/book/render/:token", BookController, :render_pdf
     # Files the agent produced in its sprite workspace (chat attachments etc.)
     get "/api/artifacts", Api.ArtifactController, :show
 
@@ -95,6 +99,7 @@ defmodule TravelingPoetWeb.Router do
     # paged.js rewrites the DOM into pages and LiveView would patch it back.
     # Declared ahead of /journal/:date so "book" is never read as a date.
     get "/journal/book", BookController, :show
+    get "/journal/book/pdf/:id", BookController, :download_pdf
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do

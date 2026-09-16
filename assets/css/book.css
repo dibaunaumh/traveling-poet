@@ -1049,6 +1049,13 @@ body.book .book-status-busy::after {
     background: white;
   }
 
+  /* Anything outside the laid-out pages that is wider than a page (an
+     injected element, a stray long line) makes Chrome shrink every printed
+     page to fit it. Only the pages print. */
+  body.book:has(.pagedjs_pages) > :not(.pagedjs_pages) {
+    display: none !important;
+  }
+
   body.book .no-print {
     display: none !important;
   }

@@ -22,6 +22,8 @@ defmodule TravelingPoet.Usage do
     # also gates the daily run, and a book must never cost tomorrow's entry.
     "book_compose_attempt" => 0,
     "book_compose" => 0,
+    # a PDF render runs on the poet's own sprite: no model, no credits
+    "book_pdf_attempt" => 0,
     "chat_turn" => 2,
     "image_gen" => 4,
     "exec" => 0,
@@ -87,6 +89,9 @@ defmodule TravelingPoet.Usage do
 
   defp cap("book_compose_attempt"),
     do: Application.get_env(:traveling_poet, :daily_book_compose_cap, 2)
+
+  defp cap("book_pdf_attempt"),
+    do: Application.get_env(:traveling_poet, :daily_book_pdf_cap, 4)
 
   defp cap(_), do: 1_000_000
 

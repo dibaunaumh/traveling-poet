@@ -40,6 +40,8 @@
 </div>
 
 <.toolbar
+  :if={!@render_mode}
+  pdf_enabled={@pdf_enabled}
   size={@page_size}
   size_key={@size_key}
   sizes={@sizes}

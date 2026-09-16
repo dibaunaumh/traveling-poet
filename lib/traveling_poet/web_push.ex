@@ -127,6 +127,25 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells every device of the owner that the book's PDF is ready to download."
+  def notify_book_pdf_ready(user_id, pdf_id) do
+    case Poets.get_poet_by_user(user_id) do
+      nil -> {0, 0}
+      poet -> notify_user(user_id, fn -> book_pdf_payload(poet, pdf_id) end)
+    end
+  end
+
+  @doc "What the device shows when a PDF of the book is ready. Pure, for tests."
+  def book_pdf_payload(poet, pdf_id) do
+    %{
+      title: "Your book with #{poet.name} is ready as a PDF",
+      body: "Tap to download it.",
+      url: "/journal/book/pdf/#{pdf_id}",
+      tag: "book-pdf-#{pdf_id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
   # One payload to each of a user's devices. The payload is built only when
   # someone is subscribed, so an unsubscribed owner costs no queries.
   defp notify_user(user_id, build_payload) do

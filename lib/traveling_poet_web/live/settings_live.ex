@@ -76,6 +76,15 @@ defmodule TravelingPoetWeb.SettingsLive do
               case Books.compose_blocker(user, poet, manuscript) do
                 :ok -> nil
                 {:blocked, reason} -> reason
+              end,
+            pdf_enabled: Books.pdf_enabled?(user),
+            pdf: Books.current_pdf(poet),
+            last_ready_pdf: Books.latest_ready_pdf(poet),
+            has_composed: not is_nil(Books.latest_ready_edition(poet)),
+            pdf_blocker:
+              case Books.pdf_blocker(user, poet, manuscript) do
+                :ok -> nil
+                {:blocked, reason} -> reason
               end
           }
         )
@@ -363,6 +372,28 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("make_pdf", params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    poet = socket.assigns.poet
+    opts = %{page_size: params["page_size"], variant: params["variant"]}
+
+    case poet && Books.request_pdf(user, poet, opts) do
+      {:ok, _pdf} ->
+        {:noreply,
+         socket
+         |> assign(:user, user)
+         |> put_flash(:info, "Making your PDF. It takes a minute or two.")
+         |> assign_book()}
+
+      {:blocked, reason} ->
+        {:noreply, socket |> put_flash(:error, pdf_blocker_text(reason, poet)) |> assign_book()}
+
+      nil ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("switch_mode", %{"mode" => mode}, socket) when mode in ["wander", "scout"] do
     poet = socket.assigns.poet
     pending = Enum.count(socket.assigns.stops, &is_nil(&1.visited_at))
@@ -466,6 +497,11 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_info({:book_pdf_updated, _pdf_id}, socket) do
+    {:noreply, assign_book(socket)}
+  end
+
+  @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp assign_credits(socket) do
@@ -509,6 +545,25 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   defp blocker_text(:poet_busy, poet),
     do: "#{poet.name} is in the middle of something. Try again in a few minutes."
+
+  defp pdf_blocker_text(:pdf_disabled, _poet), do: "PDFs are not available yet."
+  defp pdf_blocker_text(:empty, poet), do: "#{poet.name} has no published pages to print yet."
+  defp pdf_blocker_text(:no_sprite, poet), do: "#{poet.name} is still setting out."
+  defp pdf_blocker_text(:already_rendering, _poet), do: "A PDF is already being made."
+
+  defp pdf_blocker_text(:daily_cap, _poet),
+    do: "That is enough PDFs for today. Try again tomorrow."
+
+  defp pdf_blocker_text(:poet_busy, poet),
+    do: "#{poet.name} is composing your book. Make the PDF once it is done."
+
+  defp megabytes(nil), do: ""
+  defp megabytes(bytes), do: :erlang.float_to_binary(bytes / 1_000_000, decimals: 1) <> " MB"
+
+  defp size_label("a5"), do: "A5"
+  defp size_label("a4"), do: "A4"
+  defp size_label("letter"), do: "Letter"
+  defp size_label(other), do: other
 
   defp signed(milli) when milli >= 0, do: "+" <> Credits.format(milli)
   defp signed(milli), do: "−" <> Credits.format(-milli)
@@ -1077,6 +1132,86 @@ defmodule TravelingPoetWeb.SettingsLive do
             >
               <.icon name="hero-book-open" class="size-4" /> Open the book
             </a>
+
+            <div :if={@book && @book.pdf_enabled && @book.chapters > 0} class="mt-4" id="book-pdf">
+              <h3 class="text-sm font-medium mb-1">A PDF to keep</h3>
+              <p class="text-sm opacity-70 mb-2">
+                The book as a PDF file, made on {@poet.name}'s own machine, ready to download,
+                print or share. Free.
+              </p>
+
+              <div :if={@book.last_ready_pdf} class="text-sm mb-2" id="book-pdf-ready">
+                <a
+                  href={~p"/journal/book/pdf/#{@book.last_ready_pdf.id}"}
+                  class="link font-medium"
+                  id="book-pdf-download"
+                >
+                  <.icon name="hero-arrow-down-tray" class="size-4" /> Download the PDF
+                </a>
+                <span class="opacity-60">
+                  ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
+                    @book.last_ready_pdf.page_size
+                  )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
+                    @book.last_ready_pdf.rendered_at,
+                    "%b %-d"
+                  )})
+                </span>
+              </div>
+
+              <p
+                :if={match?(%{status: "rendering"}, @book.pdf)}
+                class="text-sm mb-2"
+                id="book-pdf-rendering"
+              >
+                <span class="loading loading-dots loading-xs align-middle"></span>
+                Making your PDF. The first one takes a couple of minutes longer while {@poet.name}'s machine gets ready.
+              </p>
+
+              <p
+                :if={match?(%{status: "failed"}, @book.pdf)}
+                class="text-sm text-warning mb-2"
+                id="book-pdf-failed"
+              >
+                The last PDF did not come out. You can try again.
+              </p>
+
+              <form
+                :if={!match?(%{status: "rendering"}, @book.pdf)}
+                phx-submit="make_pdf"
+                id="make-pdf-form"
+                class="flex flex-wrap items-end gap-2"
+              >
+                <label class="text-xs">
+                  <span class="block opacity-70 mb-1">Paper</span>
+                  <select name="page_size" class="select select-sm">
+                    <option value="a5">A5</option>
+                    <option value="a4">A4</option>
+                    <option value="letter">Letter</option>
+                  </select>
+                </label>
+                <label :if={@book.has_composed} class="text-xs">
+                  <span class="block opacity-70 mb-1">Edition</span>
+                  <select name="variant" class="select select-sm">
+                    <option value="composed">Composed</option>
+                    <option value="plain">As written</option>
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-outline"
+                  disabled={@book.pdf_blocker not in [nil, :poet_busy]}
+                  id="make-pdf-button"
+                >
+                  {if @book.last_ready_pdf, do: "Make a new PDF", else: "Make the PDF"}
+                </button>
+              </form>
+              <p :if={@book.pdf_blocker == :daily_cap} class="text-xs opacity-70 mt-1">
+                That is enough PDFs for today. Try again tomorrow.
+              </p>
+              <p :if={@book.pdf_blocker == :no_sprite} class="text-xs opacity-70 mt-1">
+                {@poet.name} is still setting out.
+              </p>
+            </div>
 
             <div :if={@book && @book.chapters > 0} class="mt-4" id="compose-book">
               <h3 class="text-sm font-medium mb-1">A composed edition</h3>
