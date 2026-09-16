@@ -22,7 +22,7 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
-  alias TravelingPoet.Guide
+  alias TravelingPoet.{Guide, Topics}
   alias TravelingPoet.Journal.{EntryBundle, Spreads}
   alias TravelingPoetWeb.ChatSidebarComponent
 
@@ -276,6 +276,13 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
+
+  defp finds_guide_url(entry) do
+    case Topics.excursion_of(entry) do
+      %{topic_id: topic_id} when is_integer(topic_id) -> ~p"/guide?#{[topic: topic_id]}"
+      _ -> nil
+    end
+  end
 
   defp my_reactions(nil, _user), do: MapSet.new()
 
@@ -1151,6 +1158,7 @@ defmodule TravelingPoetWeb.JournalLive do
               spread={@spread}
               poet={@poet}
               find_media={@find_media}
+              guide_url={finds_guide_url(@entry)}
             >
               <:controls>
                 <.link

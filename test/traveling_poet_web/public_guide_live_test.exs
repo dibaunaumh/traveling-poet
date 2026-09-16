@@ -119,6 +119,22 @@ defmodule TravelingPoetWeb.PublicGuideLiveTest do
     assert render(view) =~ "#{poet.name}&#39;s pick"
   end
 
+  # The owner's guide lists the companion's topics; a public page must not.
+  test "a public guide never lists topics or finds, even when asked by URL", %{conn: conn} do
+    {_user, poet} = public_poet()
+    seed(poet, [place("Tasca do Chico")])
+    topic = topic_fixture(poet, %{label: "Embodied minds"})
+    entry = published_entry_fixture(poet, %{entry_date: ~D[2026-09-10]})
+    excursion_fixture(poet, topic, entry)
+    find_fixture(poet, entry, %{name: "Shanahan keynote"})
+
+    {:ok, view, html} = live(conn, ~p"/p/#{poet.slug}/guide?topic=#{topic.id}")
+    refute has_element?(view, "#guide-journeys")
+    refute html =~ "Embodied minds"
+    refute html =~ "Shanahan keynote"
+    assert html =~ "Tasca do Chico"
+  end
+
   test "one public poet's guide never shows another's places", %{conn: conn} do
     {_user, poet} = public_poet()
     {_other_user, other} = public_poet()

@@ -299,6 +299,167 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     refute render(view) =~ "Not yours"
   end
 
+  describe "topics" do
+    alias TravelingPoet.Topics
+
+    # An excursion into `topic` on `date`, published, with its finds.
+    defp excursion(poet, topic, date, venue, finds) do
+      entry = published_entry_fixture(poet, %{entry_date: date, title: "Off the road"})
+      x = excursion_fixture(poet, topic, entry)
+      {:ok, x} = Topics.set_venue(x, %{venue_name: venue})
+
+      for {name, kind} <- finds,
+          do: find_fixture(poet, entry, %{name: name, kind: kind, poet_rating: 4})
+
+      x
+    end
+
+    defp with_two_excursions(poet) do
+      topic = topic_fixture(poet, %{label: "Embodied minds"})
+
+      first =
+        excursion(poet, topic, ~D[2026-09-10], "ECogS 2026", [
+          {"Shanahan keynote", "talk"},
+          {"Robot kit", "product"}
+        ])
+
+      second =
+        excursion(poet, topic, ~D[2026-09-14], "Machine Consciousness 0001", [
+          {"Froese reflection", "session"}
+        ])
+
+      {topic, first, second}
+    end
+
+    test "places stay the default; a topic is one tap away with its excursion count",
+         %{conn: conn} do
+      {user, poet} = guide_poet()
+      seed_places(poet, [place("Tasca do Chico")])
+      {topic, _, _} = with_two_excursions(poet)
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide")
+      assert has_element?(view, "#guide-journeys")
+      assert has_element?(view, "#guide-journey-places.btn-neutral")
+      assert has_element?(view, "#guide-journey-topic-#{topic.id}", "Embodied minds")
+      assert html =~ "Tasca do Chico"
+      refute html =~ "Shanahan keynote"
+
+      view |> element("#guide-journey-topic-#{topic.id}") |> render_click()
+
+      assert_patch(
+        view,
+        ~p"/guide?#{[filter: "all", stay: poet_stay(poet), topic: topic.id, view: "list"]}"
+      )
+
+      html = render(view)
+      assert html =~ "What #{poet.name} brought back from excursions into Embodied minds"
+      assert html =~ "Shanahan keynote"
+      assert html =~ "Froese reflection"
+      refute html =~ "Tasca do Chico"
+      # finds are links, not addresses: no map for a topic
+      refute has_element?(view, "#guide-view-map")
+      assert has_element?(view, "#guide-filter-ideas", "Talks and papers")
+
+      view |> element("#guide-journey-places") |> render_click()
+      assert render(view) =~ "Tasca do Chico"
+    end
+
+    test "venue pills and kind chips narrow the finds", %{conn: conn} do
+      {user, poet} = guide_poet()
+      {topic, first, _second} = with_two_excursions(poet)
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}")
+      assert has_element?(view, "#guide-venue-all.btn-secondary")
+      assert has_element?(view, "#guide-venue-#{first.id}", "ECogS 2026")
+
+      view |> element("#guide-venue-#{first.id}") |> render_click()
+      html = render(view)
+      assert html =~ "Shanahan keynote"
+      refute html =~ "Froese reflection"
+
+      view |> element("#guide-filter-things") |> render_click()
+      html = render(view)
+      assert html =~ "Robot kit"
+      refute html =~ "Shanahan keynote"
+
+      view |> element("#guide-filter-happenings") |> render_click()
+      assert has_element?(view, "#guide-finds-empty")
+    end
+
+    test "the itinerary numbers the excursions and links back to each entry", %{conn: conn} do
+      {user, poet} = guide_poet()
+      {topic, first, second} = with_two_excursions(poet)
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=itinerary")
+      assert has_element?(view, "#guide-excursion-#{first.id}", "Excursion 1 into Embodied minds")
+
+      assert has_element?(
+               view,
+               "#guide-excursion-#{second.id}",
+               "Excursion 2 into Embodied minds"
+             )
+
+      assert html =~ ~s|href="/journal/2026-09-10?spread=finds"|
+
+      # a filter that empties one excursion keeps its number
+      view |> element("#guide-filter-things") |> render_click()
+
+      assert has_element?(
+               view,
+               "#guide-excursion-#{second.id}",
+               "Excursion 2 into Embodied minds"
+             )
+
+      assert has_element?(view, "#guide-excursion-#{second.id}", "Nothing under this filter.")
+    end
+
+    test "a map view asked for a topic falls back to the list", %{conn: conn} do
+      {user, poet} = guide_poet()
+      seed_places(poet, [place("Tasca do Chico")])
+      {topic, _, _} = with_two_excursions(poet)
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?view=map")
+      view |> element("#guide-journey-topic-#{topic.id}") |> render_click()
+      assert has_element?(view, "#guide-finds")
+      refute has_element?(view, "#guide-map")
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=map")
+      assert has_element?(view, "#guide-finds")
+    end
+
+    test "no row at all without a topic that has a published excursion", %{conn: conn} do
+      {user, poet} = guide_poet()
+      seed_places(poet, [place("Tasca do Chico")])
+      topic = topic_fixture(poet, %{label: "Kit airplanes"})
+
+      # a draft excursion does not count
+      draft = entry_fixture(poet, %{entry_date: ~D[2026-09-12]})
+      excursion_fixture(poet, topic, draft)
+      find_fixture(poet, draft, %{name: "Not yet out"})
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}")
+      refute has_element?(view, "#guide-journeys")
+      refute html =~ "Not yet out"
+      assert html =~ "Tasca do Chico"
+    end
+
+    test "a poet with excursions and no places yet can still reach them", %{conn: conn} do
+      {user, poet} = guide_poet()
+      {topic, _, _} = with_two_excursions(poet)
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide")
+      assert has_element?(view, "#guide-empty")
+      assert has_element?(view, "#guide-journey-topic-#{topic.id}")
+    end
+  end
+
+  defp poet_stay(poet) do
+    case TravelingPoet.Poets.current_path_point(poet.id) do
+      nil -> nil
+      point -> point.id
+    end
+  end
+
   test "a user with no poet is sent to onboarding", %{conn: conn} do
     user = user_fixture(%{onboarding_completed: true})
 
