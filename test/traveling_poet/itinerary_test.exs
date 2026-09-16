@@ -173,6 +173,32 @@ defmodule TravelingPoet.ItineraryTest do
       assert plan.excursion.id == linked.id
     end
 
+    test "a retry after the poet already moved today stays a move day, with no excursion",
+         %{poet: poet, topic: topic} do
+      # the first attempt moved the poet, then did not publish
+      {:ok, moved} =
+        Poets.move_to(poet, %{
+          lat: 36.53,
+          lng: -6.29,
+          place_name: "Cadiz, Spain",
+          country_code: "ES"
+        })
+
+      plan = Poets.travel_plan(moved)
+      assert plan.day == "move"
+      assert plan.travel_today == false
+      assert plan.excursion == nil
+      assert plan.reason =~ "day 1 of 3"
+
+      # a chat request waits too
+      excursion_fixture(moved, topic, nil, %{requested_venue: "Oshkosh"})
+      assert %{day: "move", excursion: nil} = Poets.travel_plan(moved)
+
+      # the next day the topic is still due and the excursion happens
+      tomorrow = Date.add(Date.utc_today(), 1)
+      assert %{day: "excursion"} = Poets.travel_plan(moved, tomorrow)
+    end
+
     test "with no topics the plan is exactly what it was", %{poet: poet, topic: topic} do
       {:ok, _} = TravelingPoet.Topics.delete(topic)
 
