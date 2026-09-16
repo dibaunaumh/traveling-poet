@@ -71,6 +71,9 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # Where you have already been, oldest first, and whether today's
           # place is one of them. A return is written as a return.
           journey: %{visited: Poets.visited_stays(poet.id), returning: Poets.returning?(poet)},
+          # The places already logged on earlier days of this stay. Never log
+          # one again, events included: the app drops repeats anyway.
+          guide: %{this_stay: TravelingPoet.Guide.this_stay_payload(poet.id)},
           # The APP decides whether you move today and where: it already
           # weighs your stay length, any hold your companion asked for in
           # chat, and any detour they added. Obey travel_today. `day` is

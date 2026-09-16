@@ -776,7 +776,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_places",
-          description: "Record the concrete places you actually recommend from today -- restaurants, cafes, viewpoints, attractions, events, landmarks, shops -- for your companion's trip guide. Replaces the day's whole list, so send them all at once. Each place wants a real postal address (the app geocodes it onto a map) and YOUR OWN 1-5 rating: your take, never a copied review score. EVERY dated festival, exhibition or concert you wrote about in your art_culture section MUST be in this list as category `event`, with its venue as the address and its run in starts_on/ends_on -- including ones that have not started yet, which are the most useful of all to someone planning a trip.",
+          description: "Record the concrete places you actually recommend from today -- restaurants, cafes, viewpoints, attractions, events, landmarks, shops -- for your companion's trip guide. Replaces the day's whole list, so send them all at once. Each place wants a real postal address (the app geocodes it onto a map) and YOUR OWN 1-5 rating: your take, never a copied review score. Never repeat a place or event already in `guide.this_stay` from get_poet_context, however it is spelled: the app drops repeats and names them in `already_logged`. EVERY dated festival, exhibition or concert you wrote about in your art_culture section MUST be in this list as category `event`, with its venue as the address and its run in starts_on/ends_on -- including ones that have not started yet, which are the most useful of all to someone planning a trip.",
           parameters: {
             type: "object",
             required: ["entry_date", "places"],

@@ -232,17 +232,40 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   defp do_replace_places(conn, poet, entry, places) do
     {kept, over_cap} = Enum.split(places, @max_places)
-    {usable, dropped} = reject_dead_links(kept, "source_url")
+    {fresh, repeats} = reject_repeats(entry, kept)
+    {usable, dropped} = reject_dead_links(fresh, "source_url")
     existing = Guide.list_places_for_entry(entry.id)
 
     if wipe_by_rejection?(kept, usable, existing) do
-      json(conn, kept_existing_reply(:place, existing, dropped, over_cap))
+      reply = kept_existing_reply(:place, existing, dropped, over_cap)
+      json(conn, Map.put(reply, :already_logged, repeats))
     else
-      save_places(conn, poet, entry, usable, dropped, over_cap)
+      save_places(conn, poet, entry, usable, dropped, over_cap, repeats)
     end
   end
 
-  defp save_places(conn, poet, entry, usable, dropped, over_cap) do
+  # A place logged on an earlier day of this stay is not logged again, events
+  # included, however it is spelled; nor twice in one list. Checked before the
+  # links, so a repeat costs no network call.
+  defp reject_repeats(entry, places) do
+    seen = entry |> Guide.logged_earlier_in_stay() |> MapSet.new(&Guide.name_key(&1.name))
+
+    {fresh, repeats, _seen} =
+      Enum.reduce(places, {[], [], seen}, fn place, {fresh, repeats, seen} ->
+        name = place["name"] || place[:name]
+        key = Guide.name_key(name)
+
+        cond do
+          key == "" -> {[place | fresh], repeats, seen}
+          MapSet.member?(seen, key) -> {fresh, [name | repeats], seen}
+          true -> {[place | fresh], repeats, MapSet.put(seen, key)}
+        end
+      end)
+
+    {Enum.reverse(fresh), Enum.reverse(repeats)}
+  end
+
+  defp save_places(conn, poet, entry, usable, dropped, over_cap, repeats) do
     case Guide.replace_places(entry, usable) do
       {:ok, saved} ->
         city = entry.place_name || poet.current_place_name
@@ -255,6 +278,8 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
           place_ids: Map.new(resolved, &{&1.name, &1.id}),
           not_located: not_located,
           dropped: dropped,
+          # already in this stay's guide from an earlier day; not saved again
+          already_logged: repeats,
           over_cap: length(over_cap)
         })
 
@@ -334,7 +359,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
       :over_cap => length(over_cap),
       :kept_existing => true,
       :note =>
-        "Every item in this call was dropped, so nothing changed: your #{length(existing)} " <>
+        "Every item in this call was dropped or already logged, so nothing changed: your #{length(existing)} " <>
           "#{noun} already saved are kept. A dropped item is gone; do not re-send it alone. " <>
           "#{tool} replaces the whole list, so any later call must carry all of them."
     }
