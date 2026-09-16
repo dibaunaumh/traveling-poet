@@ -809,7 +809,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_finds",
-          description: "Excursion days only. Record what you brought back from the venue: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass venue_name and venue_url for the venue itself. Never journal_put_places on an excursion day.",
+          description: "Excursion days only. Record what you brought back from the venue: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. A find in the reply's `dropped` had a dead link and is gone: leave it out; never re-send it on its own, which would replace your whole list with it. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass venue_name and venue_url for the venue itself. Never journal_put_places on an excursion day.",
           parameters: {
             type: "object",
             required: ["entry_date", "finds"],

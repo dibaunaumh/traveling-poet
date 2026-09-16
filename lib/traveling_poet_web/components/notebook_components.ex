@@ -8,7 +8,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   use TravelingPoetWeb, :html
 
   alias TravelingPoet.Guide.Place
-  alias TravelingPoet.Journal.Media
+  alias TravelingPoet.Journal.{Blank, Media}
   alias TravelingPoet.Topics
   alias TravelingPoetWeb.GuideComponents
 
@@ -41,8 +41,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   def entry_title(entry) do
-    entry.title || excursion_venue(entry) || excursion_label(entry) || entry.place_name ||
-      "Journal"
+    Blank.clean(entry.title) || excursion_venue(entry) || excursion_label(entry) ||
+      entry.place_name || "Journal"
   end
 
   @doc "The topic of an excursion entry, nil for a day at a place."
@@ -550,7 +550,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
     ~H"""
     <div class={@section.kind == "poem" && "notebook-poem"}>
-      <h3 :if={@section.title} class="notebook-section-title mb-1">
+      <h3 :if={Blank.present?(@section.title)} class="notebook-section-title mb-1">
         <span class="section-icon">{section_icon(@section.kind)}</span> {@section.title}
       </h3>
       <div class={["prose prose-sm max-w-none", @clamp && "spread-clamp"]}>

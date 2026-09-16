@@ -115,6 +115,26 @@ defmodule TravelingPoetWeb.GuideApiTest do
     assert Enum.sort(names) == ["Miradouro", "Tasca do Chico"]
   end
 
+  test "retrying one dropped place alone never erases the places already saved", %{
+    conn: conn,
+    poet: poet
+  } do
+    with_entry(poet)
+
+    put_places(conn, [place("Tasca do Chico"), place("Miradouro", %{"category" => "viewpoint"})])
+    |> json_response(200)
+
+    body =
+      conn
+      |> put_places([place("Ghost Bar", %{"source_url" => "http://localhost:9/nope"})])
+      |> json_response(200)
+
+    assert body["kept_existing"] == true
+    assert body["place_count"] == 2
+    assert body["dropped"] == ["Ghost Bar"]
+    assert length(Guide.list_places(poet.id, published_only: false)) == 2
+  end
+
   test "a runaway list is capped and the agent is told how much was cut", %{
     conn: conn,
     poet: poet

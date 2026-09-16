@@ -51,6 +51,8 @@ defmodule TravelingPoet.Journal.Entry do
       :owner_viewed_at,
       :owner_view_count
     ])
+    |> update_change(:title, &TravelingPoet.Journal.Blank.clean/1)
+    |> update_change(:teaser, &TravelingPoet.Journal.Blank.clean/1)
     |> validate_required([:poet_id, :entry_date])
     |> validate_length(:teaser, max: 140)
     |> validate_inclusion(:status, @statuses)

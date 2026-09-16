@@ -71,6 +71,7 @@ defmodule TravelingPoet.Topics.Find do
     |> update_change(:kind, &normalize_kind/1)
     |> update_change(:name, &String.trim/1)
     |> update_change(:url, &String.trim/1)
+    |> update_change(:blurb, &TravelingPoet.Journal.Blank.clean/1)
     |> validate_required([:poet_id, :journal_entry_id, :entry_date, :name, :url, :kind, :position])
     |> validate_length(:name, max: 160)
     |> validate_inclusion(:kind, @kinds)

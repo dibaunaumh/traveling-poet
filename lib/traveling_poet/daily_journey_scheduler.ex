@@ -43,6 +43,15 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   @startup_delay_ms 60_000
   # a run "counts" for ~22h so drift doesn't skip days
   @min_hours_between_runs 22
+  # How long an attempt may still be going on the sprite after it started: the
+  # reply timeout plus room for the turn to finish publishing after the app
+  # stopped listening. A deploy kills the Task that was waiting on the run,
+  # but not the run itself; Hilma, 2026-09-16: a deploy two minutes into her
+  # run, and the restarted scheduler sent a second /travel-and-journal into
+  # the turn still in progress. No new attempt starts inside this window, and
+  # attempts older than it with no recorded outcome are settled (see
+  # settle_interrupted/1).
+  @in_flight_minutes 20
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -62,6 +71,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   @impl true
   def handle_info(:tick, state) do
+    settle_interrupted()
     poets = due_poets()
 
     if poets != [] do
@@ -100,6 +110,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
         not published_today?(poet, now) and
         not ran_recently?(user.id, now) and
         not revising?(user.id, now) and
+        not attempt_in_flight?(user.id, now) and
         attempts_today(user.id, now) < @max_attempts_per_day
     end)
   end
@@ -195,10 +206,89 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     # already done — the third retry moved her to a new city for nothing.
     if published? do
       log_published_outcome(poet, outcome)
-      Usage.record(user.id, "daily_run")
+      record_daily_run(user.id, attempt.id)
     else
       log_unpublished_outcome(poet, outcome)
       Credits.refund_daily_run(user, attempt.id)
+    end
+  end
+
+  # The outcome row names its attempt, so an attempt without one can be told
+  # apart later (settle_interrupted/1).
+  defp record_daily_run(user_id, attempt_id, extra \\ %{}),
+    do: Usage.record(user_id, "daily_run", %{metadata: Map.put(extra, "attempt_id", attempt_id)})
+
+  @doc """
+  Settles attempts whose Task died before finish_run (a deploy or crash mid
+  run). Every attempt normally ends in exactly one of: a `daily_run` usage row
+  (published) or a refund (not). An attempt past the in-flight window with
+  neither is settled the same way finish_run would have: published since it
+  started counts the day; otherwise the debit is refunded. Idempotent.
+  Returns the number settled. Public so a test, or a console, can run one pass.
+  """
+  def settle_interrupted(now \\ DateTime.utc_now()) do
+    in_flight_cutoff = DateTime.add(now, -@in_flight_minutes, :minute)
+    oldest = DateTime.add(now, -1, :day)
+
+    UsageEvent
+    |> where(kind: "daily_run_attempt")
+    |> where([e], e.occurred_at >= ^oldest and e.occurred_at < ^in_flight_cutoff)
+    |> Repo.all()
+    |> Enum.filter(&unsettled?/1)
+    |> Enum.map(&settle/1)
+    |> Enum.count(&(&1 != :skipped))
+  end
+
+  defp unsettled?(attempt) do
+    window_end = DateTime.add(attempt.occurred_at, @in_flight_minutes, :minute)
+
+    outcomes =
+      UsageEvent
+      |> where(user_id: ^attempt.user_id, kind: "daily_run")
+      |> where([e], e.occurred_at >= ^attempt.occurred_at)
+      |> Repo.all()
+
+    # Settled by attempt id, or (rows from before ids were recorded) by a
+    # daily_run inside the attempt's own window.
+    by_id? = Enum.any?(outcomes, &(&1.metadata["attempt_id"] == attempt.id))
+
+    by_window? =
+      Enum.any?(outcomes, fn e ->
+        is_nil(e.metadata["attempt_id"]) and DateTime.compare(e.occurred_at, window_end) != :gt
+      end)
+
+    not by_id? and not by_window? and not Credits.refunded_daily_run?(attempt.user_id, attempt.id)
+  end
+
+  defp settle(attempt) do
+    with %{} = user <- Accounts.get_user(attempt.user_id),
+         %Poet{} = poet <- Repo.get_by(Poet, user_id: user.id) do
+      if Journal.published_since?(poet.id, attempt.occurred_at) do
+        Logger.warning(
+          "DailyJourneyScheduler: attempt #{attempt.id} for poet #{poet.id} was interrupted " <>
+            "but published; counting the day"
+        )
+
+        record_daily_run(user.id, attempt.id, %{"settled" => true})
+        :counted
+      else
+        # An exempt account was never charged: nothing to give back, and
+        # nothing to log on every tick until the attempt ages out.
+        case Credits.refund_daily_run(user, attempt.id) do
+          {:ok, :nothing_to_refund} ->
+            :skipped
+
+          _ ->
+            Logger.warning(
+              "DailyJourneyScheduler: attempt #{attempt.id} for poet #{poet.id} was " <>
+                "interrupted with nothing published; refunded"
+            )
+
+            :refunded
+        end
+      end
+    else
+      _ -> :skipped
     end
   end
 
@@ -279,6 +369,17 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     UsageEvent
     |> where(user_id: ^user_id, kind: "marker_revision_attempt")
     |> where([e], e.occurred_at >= ^cutoff)
+    |> Repo.exists?()
+  end
+
+  # A run started inside the in-flight window may still be going on the
+  # sprite, even when the app lost track of it.
+  defp attempt_in_flight?(user_id, now) do
+    cutoff = DateTime.add(now, -@in_flight_minutes, :minute)
+
+    UsageEvent
+    |> where(user_id: ^user_id, kind: "daily_run_attempt")
+    |> where([e], e.occurred_at > ^cutoff)
     |> Repo.exists?()
   end
 
