@@ -90,13 +90,7 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @doc "Always the announced entry's own page, never the journal index (which would show whatever is newest by the time it is opened)."
-  def entry_link(poet, entry) do
-    base = Application.get_env(:traveling_poet, :phoenix_url, "")
-
-    if poet.is_public,
-      do: "#{base}/p/#{poet.slug}/#{entry.entry_date}",
-      else: "#{base}/journal/#{entry.entry_date}"
-  end
+  def entry_link(poet, entry), do: TravelingPoet.Books.Urls.entry_url(poet, entry)
 
   # The drawing goes with the note when there is one. It is uploaded as bytes:
   # a private poet's /media/:id is owner-only, so Telegram could never fetch

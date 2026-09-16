@@ -3,8 +3,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   import TravelingPoetWeb.NotebookComponents
 
-  alias TravelingPoet.{Guide, Journal, Poets, Topics}
-  alias TravelingPoet.Journal.Spreads
+  alias TravelingPoet.{Guide, Journal, Poets}
+  alias TravelingPoet.Journal.{EntryBundle, Spreads}
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -124,67 +124,32 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       end
 
     journey_start = Journal.first_published_date(poet.id)
-    media_map = entry_media_map(entry)
-    spots = if entry, do: Journal.spot_media(entry), else: []
-    entry = with_unclaimed_spots(entry, spots)
-    extra = extra_media(entry)
-    {places, finds} = side_items(entry)
+    bundle = EntryBundle.load(entry)
+    entry = bundle.entry
 
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
     |> assign(:journey_start, journey_start)
     |> assign(:og, open_graph(poet, entry, journey_start))
-    |> assign(:entry_media, media_map)
-    |> assign(:extra_media, extra)
-    |> assign(:places, places)
-    |> assign(:place_media, place_media_map(places))
-    |> assign(:find_media, place_media_map(finds))
-    |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
-    |> assign_stay(poet, entry)
-    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places ++ finds))
+    |> assign(:entry_media, bundle.media)
+    |> assign(:extra_media, bundle.extra_media)
+    |> assign(:places, bundle.places)
+    |> assign(:place_media, bundle.place_media)
+    |> assign(:find_media, bundle.find_media)
+    |> assign(:spot_media, bundle.spot_media)
+    |> assign_stay(poet, bundle.stay_id)
+    |> assign(:spreads, bundle.spreads)
     |> assign_spread(nil)
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
     |> assign(:path_points, Poets.list_path_points(poet.id))
   end
 
-  defp extra_media(nil), do: []
-  defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
-
-  # Places for a day at the place, finds for an excursion; never both.
-  defp side_items(nil), do: {[], []}
-
-  defp side_items(entry) do
-    if Topics.excursion_of(entry),
-      do: {[], Topics.list_finds_for_entry(entry.id)},
-      else: {Guide.list_places_for_entry(entry.id), []}
-  end
-
-  defp with_unclaimed_spots(nil, _spots), do: nil
-
-  defp with_unclaimed_spots(entry, spots),
-    do: %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
-
-  defp place_media_map(places) do
-    places
-    |> Enum.map(& &1.media_id)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.map(&Journal.get_media/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new(&{&1.id, &1})
-  end
-
   defp assign_stay(socket, _poet, nil), do: assign(socket, stay_id: nil, stay_count: 0)
 
-  defp assign_stay(socket, poet, entry) do
-    case Guide.path_point_for(entry) do
-      nil ->
-        assign(socket, stay_id: nil, stay_count: 0)
-
-      stay_id ->
-        count = poet.id |> Guide.list_places(path_point_id: stay_id) |> length()
-        assign(socket, stay_id: stay_id, stay_count: count)
-    end
+  defp assign_stay(socket, poet, stay_id) do
+    count = poet.id |> Guide.list_places(path_point_id: stay_id) |> length()
+    assign(socket, stay_id: stay_id, stay_count: count)
   end
 
   defp guide_url(poet, nil), do: ~p"/p/#{poet.slug}/guide"
@@ -225,17 +190,6 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       %{status: "published"} = entry -> entry
       _ -> nil
     end
-  end
-
-  defp entry_media_map(nil), do: %{}
-
-  defp entry_media_map(entry) do
-    entry.sections
-    |> Enum.map(& &1.media_id)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.map(&Journal.get_media/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new(&{&1.id, &1})
   end
 
   defp public_reaction_counts(entry_id) do

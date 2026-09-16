@@ -459,6 +459,17 @@ defmodule TravelingPoet.Topics do
     |> Repo.all()
   end
 
+  @doc "`list_finds_for_entry/1` for many entries: `%{entry_id => [find]}`, one query."
+  def list_finds_for_entries([]), do: %{}
+
+  def list_finds_for_entries(entry_ids) do
+    Find
+    |> where([f], f.journal_entry_id in ^entry_ids)
+    |> order_by(asc: :position)
+    |> Repo.all()
+    |> Enum.group_by(& &1.journal_entry_id)
+  end
+
   def get_find(poet_id, id) when is_integer(id), do: Repo.get_by(Find, id: id, poet_id: poet_id)
   def get_find(_poet_id, _id), do: nil
 

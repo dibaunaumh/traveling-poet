@@ -2,7 +2,7 @@ defmodule TravelingPoetWeb.PageController do
   use TravelingPoetWeb, :controller
 
   alias TravelingPoet.Journal
-  alias TravelingPoet.Journal.Spreads
+  alias TravelingPoet.Journal.EntryBundle
   alias TravelingPoet.Poets
 
   def home(conn, _params) do
@@ -91,25 +91,15 @@ defmodule TravelingPoetWeb.PageController do
   # The same Today spread the journal opens to: words left, drawing and poem
   # right. Drawings the entry owns but no section claimed are shown too.
   defp spread(poet, entry) do
-    media =
-      entry.sections
-      |> Enum.map(& &1.media_id)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(&Journal.get_media/1)
-      |> Enum.reject(&is_nil/1)
-      |> Map.new(&{&1.id, &1})
-
-    extra = Journal.unattached_illustrations(entry, entry.sections)
-    spots = Journal.spot_media(entry)
-    entry = %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
+    bundle = EntryBundle.load(entry)
 
     %{
       poet: poet,
-      entry: entry,
-      day: Journal.journey_day(entry),
-      media: media,
-      spread: hd(Spreads.pack(entry, media, extra)),
-      spot_media: Map.new(spots, &{&1.id, &1}),
+      entry: bundle.entry,
+      day: Journal.journey_day(bundle.entry),
+      media: bundle.media,
+      spread: hd(bundle.spreads),
+      spot_media: bundle.spot_media,
       url: entry_url(poet, entry)
     }
   end
