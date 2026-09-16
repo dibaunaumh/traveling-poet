@@ -7,7 +7,7 @@ defmodule TravelingPoet.Credits.CreditTransaction do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(grant_signup grant_referral grant_grandfather grant_admin purchase debit_daily_run refund admin_adjust)
+  @kinds ~w(grant_signup grant_referral grant_grandfather grant_admin purchase debit_daily_run debit_book_compose refund admin_adjust)
 
   schema "credit_transactions" do
     field :amount, :integer

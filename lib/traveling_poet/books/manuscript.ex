@@ -87,6 +87,14 @@ defmodule TravelingPoet.Books.Manuscript do
   @doc "The anchor id of a chapter's opening page."
   def chapter_anchor(n) when is_integer(n), do: "chapter-#{n}"
 
+  @doc """
+  A chapter's stable name for matter written about it: the stay's id, which
+  survives the journey growing (chapter numbers shift when a day lands
+  outside every stay), or "unplaced" for the days that belong to none.
+  """
+  def chapter_key(%{stay: %{id: id}}) when is_integer(id), do: Integer.to_string(id)
+  def chapter_key(_chapter), do: "unplaced"
+
   defp day(poet, bundle, start, stays) do
     entry = bundle.entry
 

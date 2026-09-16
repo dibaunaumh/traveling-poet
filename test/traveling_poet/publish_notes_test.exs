@@ -89,4 +89,11 @@ defmodule TravelingPoet.PublishNotesTest do
       assert payload.body == @entry.teaser
     end
   end
+
+  describe "book ready" do
+    test "names the poet and links straight to the book" do
+      assert Notifier.book_ready_text(@poet, "https://poet.travel/journal/book") ==
+               "📖 Nam has finished composing your book.\nhttps://poet.travel/journal/book"
+    end
+  end
 end

@@ -6,7 +6,17 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   import TravelingPoetWeb.PoetComponents
 
-  alias TravelingPoet.{Accounts, Credits, Geocoder, Payments, Poets, Preferences, Provisioner}
+  alias TravelingPoet.{
+    Accounts,
+    Books,
+    Credits,
+    Geocoder,
+    Payments,
+    Poets,
+    Preferences,
+    Provisioner
+  }
+
   alias TravelingPoet.Poets.{Poet, Presets}
   alias TravelingPoet.Topics
   alias TravelingPoet.Topics.Topic
@@ -41,7 +51,35 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:stop_results, [])
      |> assign(:stop_error, nil)
      |> assign_topics()
-     |> assign_learned()}
+     |> assign_learned()
+     |> assign_book()}
+  end
+
+  # The composed edition: what it would cost, whether it can start, and how
+  # the newest one went. Re-read whenever an edition or the balance changes.
+  defp assign_book(socket) do
+    case socket.assigns.poet do
+      nil ->
+        assign(socket, book: nil)
+
+      poet ->
+        user = socket.assigns.user
+        manuscript = Books.manuscript(poet)
+
+        assign(socket,
+          book: %{
+            edition: Books.current_edition(poet),
+            cost: Books.compose_cost(manuscript),
+            exempt: user.quota_exempt,
+            chapters: length(manuscript.chapters),
+            blocker:
+              case Books.compose_blocker(user, poet, manuscript) do
+                :ok -> nil
+                {:blocked, reason} -> reason
+              end
+          }
+        )
+    end
   end
 
   defp assign_topics(socket) do
@@ -300,6 +338,31 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("compose_book", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    poet = socket.assigns.poet
+
+    socket = assign(socket, :user, user)
+
+    case poet && Books.request_composition(user, poet) do
+      {:ok, _edition} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "#{poet.name} is composing your book. It takes a few minutes.")
+         # the charge just changed the balance the page shows
+         |> assign(:user, Accounts.get_user!(user.id))
+         |> assign_credits()
+         |> assign_book()}
+
+      {:blocked, reason} ->
+        {:noreply, socket |> put_flash(:error, blocker_text(reason, poet)) |> assign_book()}
+
+      nil ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("switch_mode", %{"mode" => mode}, socket) when mode in ["wander", "scout"] do
     poet = socket.assigns.poet
     pending = Enum.count(socket.assigns.stops, &is_nil(&1.visited_at))
@@ -393,7 +456,13 @@ defmodule TravelingPoetWeb.SettingsLive do
     {:noreply,
      socket
      |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
-     |> assign_credits()}
+     |> assign_credits()
+     |> assign_book()}
+  end
+
+  @impl true
+  def handle_info({:book_edition_updated, _edition_id}, socket) do
+    {:noreply, assign_book(socket)}
   end
 
   @impl true
@@ -425,12 +494,32 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp tx_label("grant_admin"), do: "Bonus credits"
   defp tx_label("purchase"), do: "Purchase"
   defp tx_label("debit_daily_run"), do: "Daily journey"
+  defp tx_label("debit_book_compose"), do: "Composed book"
   defp tx_label("refund"), do: "Refund"
   defp tx_label("admin_adjust"), do: "Adjustment"
   defp tx_label(other), do: other
 
+  defp blocker_text(:empty, poet), do: "#{poet.name} has no published pages to bind yet."
+  defp blocker_text(:no_sprite, poet), do: "#{poet.name} is still setting out. Try again soon."
+  defp blocker_text(:already_composing, poet), do: "#{poet.name} is already composing your book."
+  defp blocker_text(:daily_cap, _poet), do: "That is enough books for today. Try again tomorrow."
+
+  defp blocker_text(:insufficient_credits, _poet),
+    do: "Not enough credits for a composed edition. Top up above."
+
+  defp blocker_text(:poet_busy, poet),
+    do: "#{poet.name} is in the middle of something. Try again in a few minutes."
+
   defp signed(milli) when milli >= 0, do: "+" <> Credits.format(milli)
   defp signed(milli), do: "−" <> Credits.format(-milli)
+
+  defp book_status(%{edition: %{status: "composing"}}), do: :composing
+  defp book_status(%{edition: %{status: "ready"}}), do: :ready
+  defp book_status(%{edition: %{status: "failed"}}), do: :failed
+  defp book_status(_book), do: :none
+
+  defp credit_word(1000), do: "credit"
+  defp credit_word(_milli), do: "credits"
 
   defp dollars(cents),
     do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2) |> String.replace(~r/\.00$/, "")}"
@@ -973,15 +1062,79 @@ defmodule TravelingPoetWeb.SettingsLive do
 
           <div class="divider"></div>
 
-          <h2 class="font-semibold mb-2">Your book</h2>
-          <p class="text-sm opacity-70 mb-3">
-            The whole journal as one printable notebook: a chapter for every place,
-            a table of contents, every drawing with what it was drawn from, every
-            source written out. Print it or save it as a PDF from your browser. Free.
-          </p>
-          <a href={~p"/journal/book"} target="_blank" class="btn btn-outline btn-sm" id="open-book">
-            <.icon name="hero-book-open" class="size-4" /> Open the book
-          </a>
+          <section id="book">
+            <h2 class="font-semibold mb-2">Your book</h2>
+            <p class="text-sm opacity-70 mb-3">
+              The whole journal as one printable notebook: a chapter for every place,
+              a table of contents, every drawing with what it was drawn from, every
+              source written out. Print it or save it as a PDF from your browser. Free.
+            </p>
+            <a
+              href={~p"/journal/book"}
+              target="_blank"
+              class="btn btn-outline btn-sm"
+              id="open-book"
+            >
+              <.icon name="hero-book-open" class="size-4" /> Open the book
+            </a>
+
+            <div :if={@book && @book.chapters > 0} class="mt-4" id="compose-book">
+              <h3 class="text-sm font-medium mb-1">A composed edition</h3>
+              <p class="text-sm opacity-70 mb-2">
+                {@poet.name} writes the words around the journal: a dedication to you,
+                a foreword, an opening for each place, an epilogue, and a few of its own
+                lines set on pages of their own. The journal itself is not changed.
+              </p>
+
+              <p :if={book_status(@book) == :composing} class="text-sm" id="book-composing">
+                <span class="loading loading-dots loading-xs align-middle"></span>
+                {@poet.name} is composing your book. It takes a few minutes; this page
+                updates when it is done.
+              </p>
+
+              <p :if={book_status(@book) == :ready} class="text-sm mb-2" id="book-ready">
+                Composed on {Calendar.strftime(@book.edition.composed_at, "%B %-d")}.
+                It is in the book now.
+              </p>
+
+              <p
+                :if={book_status(@book) == :failed}
+                class="text-sm text-warning mb-2"
+                id="book-failed"
+              >
+                The last composition did not finish, so nothing was charged for it.
+              </p>
+
+              <button
+                :if={book_status(@book) != :composing}
+                phx-click="compose_book"
+                class="btn btn-sm btn-primary"
+                disabled={@book.blocker not in [nil, :poet_busy]}
+                id="compose-book-button"
+              >
+                {if book_status(@book) == :ready,
+                  do: "Compose it again",
+                  else: "Ask #{@poet.name} to compose it"}
+                <span class="opacity-80">
+                  ({if @book.exempt,
+                    do: "free",
+                    else: "#{Credits.format(@book.cost)} #{credit_word(@book.cost)}"})
+                </span>
+              </button>
+              <p
+                :if={@book.blocker == :insufficient_credits}
+                class="text-xs text-warning mt-1"
+              >
+                Not enough credits for a composed edition.
+              </p>
+              <p :if={@book.blocker == :daily_cap} class="text-xs opacity-70 mt-1">
+                That is enough books for today. Try again tomorrow.
+              </p>
+              <p :if={@book.blocker == :no_sprite} class="text-xs opacity-70 mt-1">
+                {@poet.name} is still setting out.
+              </p>
+            </div>
+          </section>
 
           <div class="divider"></div>
 

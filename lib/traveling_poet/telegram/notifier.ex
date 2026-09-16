@@ -1,8 +1,9 @@
 defmodule TravelingPoet.Telegram.Notifier do
   @moduledoc """
   Sends a Telegram note to the paired owner when their poet publishes a
-  journal entry, and when their credits run low. Opt-out of publish notes
-  via poet settings `"telegram_notify" => false`.
+  journal entry, when their credits run low, and when a composed book
+  edition is ready. Opt-out of publish notes via poet settings
+  `"telegram_notify" => false`.
   """
 
   use GenServer
@@ -22,6 +23,7 @@ defmodule TravelingPoet.Telegram.Notifier do
     if Client.configured?() do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "credits:low")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       {:ok, %{}}
     else
       :ignore
@@ -67,7 +69,25 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:book_ready, user_id, _edition_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id) do
+      base = Application.get_env(:traveling_poet, :phoenix_url, "")
+      Client.send_message(chat_id, book_ready_text(poet, "#{base}/journal/book"))
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc "The note that says a composed edition is bound. Pure, for tests."
+  def book_ready_text(poet, link),
+    do: "📖 #{poet.name} has finished composing your book.\n#{link}"
 
   @doc """
   The note that goes out with a published entry, pure so it can be tested:

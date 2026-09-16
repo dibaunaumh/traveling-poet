@@ -26,7 +26,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Credits, Accounts, AgentSession, Journal, Poets, Repo, Usage}
+  alias TravelingPoet.{Credits, Accounts, AgentSession, Books, Journal, Poets, Repo, Usage}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
@@ -148,6 +148,8 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     cond do
       not Usage.within_budget?(user, "daily_run") -> {:skip, "over budget"}
       not Credits.can_run?(user, poet) -> {:skip, "out of credits"}
+      # the poet is writing its book in a long turn; two turns interleave
+      Books.composing?(poet) -> {:skip, "composing its book"}
       true -> :ok
     end
   end

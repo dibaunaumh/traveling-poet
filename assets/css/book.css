@@ -279,10 +279,13 @@ body.book .pagedjs_pages .book > article {
    detached from the document, where nothing has a body ancestor. Every
    other rule here applies to the rendered pages and may be scoped. */
 
+.book-dedication,
 .book-toc,
+.book-prose-page,
 .book-chapter,
 .book-day,
 .book-poem,
+.book-pull-quote,
 .book-gazetteer,
 .book-index,
 .book-colophon {
@@ -293,6 +296,8 @@ body.book .pagedjs_pages .book > article {
   page: cover;
 }
 
+.book-dedication,
+.book-pull-quote,
 .book-toc,
 .book-index,
 .book-colophon {
@@ -396,6 +401,95 @@ body.book .book-kicker {
   font-size: 13pt;
   color: #8c7454;
   margin: 0;
+}
+
+/* ---- The poet's own words around the journal (a composed edition) ---- */
+
+body.book .book-dedication {
+  padding-top: 38%;
+  text-align: center;
+}
+
+body.book .book-dedication-text {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14pt;
+  line-height: 1.6;
+  color: #4a3f2d;
+  max-width: 26em;
+  margin: 0 auto;
+}
+
+body.book .book-dedication-text p {
+  margin: 0 0 0.75rem;
+}
+
+body.book .book-matter,
+body.book .book-matter.prose {
+  font-family: "Patrick Hand", cursive;
+  font-size: 12.5pt;
+  line-height: 2rem;
+  color: #3a3226;
+}
+
+body.book .book-matter p {
+  margin: 0 0 1.25rem;
+}
+
+body.book .book-prose-page .book-matter p:first-child::first-letter {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 2.6em;
+  line-height: 1;
+  float: left;
+  margin: 0.1rem 0.4rem 0 0;
+  color: #2f2a1e;
+}
+
+body.book .book-signature {
+  margin-top: 1.5rem;
+  text-align: right;
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 16pt;
+  color: #4a3f2d;
+}
+
+body.book .book-pull-quote {
+  padding: 30% 1.5rem 0;
+  text-align: center;
+}
+
+body.book .book-pull-quote blockquote {
+  margin: 0;
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 22pt;
+  line-height: 1.35;
+  color: #43395f;
+}
+
+body.book .book-pull-quote blockquote::before {
+  content: "\201C";
+  display: block;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 40pt;
+  line-height: 0.6;
+  color: rgba(140, 120, 90, 0.5);
+  margin-bottom: 0.5rem;
+}
+
+body.book .book-pull-quote-foot {
+  margin-top: 1.5rem;
+  font-family: "Caveat", cursive;
+  font-size: 12pt;
+  color: #8c7454;
+}
+
+body.book .book-toolbar-note {
+  opacity: 0.8;
+  font-style: italic;
 }
 
 /* ---- Table of contents ---- */

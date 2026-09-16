@@ -41,6 +41,74 @@ defmodule TravelingPoetWeb.SettingsLiveTest do
     assert render(view) =~ "Purchase"
   end
 
+  describe "a composed book edition" do
+    alias TravelingPoet.{Books, Journal}
+    alias TravelingPoet.Books.Composer
+
+    defp journey(attrs) do
+      user = agent_user_fixture(Map.merge(%{onboarding_completed: true}, attrs))
+      poet = poet_fixture(user, %{name: "Wren"})
+      published_entry_fixture(poet, %{title: "Trams"})
+      {user, poet}
+    end
+
+    test "shows the cost; asking charges it and shows the poet composing", %{conn: conn} do
+      {user, poet} = journey(%{credits: 10})
+
+      {:ok, view, html} = live(sign_in(conn, user), ~p"/settings")
+      assert html =~ "Ask Wren to compose it"
+      # base 2 + 1 chapter (test pricing)
+      assert html =~ "(3 credits)"
+
+      html = view |> element("#compose-book-button") |> render_click()
+      assert html =~ "Wren is composing your book"
+      assert html =~ ~s(id="book-composing")
+      refute html =~ ~s(id="compose-book-button")
+      assert html =~ "≈ 7 days of travel"
+      assert html =~ "Composed book"
+
+      # the poet writes, the turn ends: the page updates by itself
+      [edition] = Books.current_edition(poet) |> List.wrap()
+      {:ok, _, _} = Books.put_matter(poet, %{"foreword" => "Before the road."})
+      Composer.finish(edition.id, {:ok, "done"})
+
+      html = render(view)
+      assert html =~ ~s(id="book-ready")
+      assert html =~ "Compose it again"
+    end
+
+    test "a failed composition says nothing was charged", %{conn: conn} do
+      {user, poet} = journey(%{credits: 10})
+      {:ok, edition} = Books.request_composition(user, poet)
+      Composer.finish(edition.id, {:timeout, ""})
+
+      {:ok, _view, html} = live(sign_in(conn, user), ~p"/settings")
+      assert html =~ "nothing was charged"
+      assert html =~ "Ask Wren to compose it"
+    end
+
+    test "too few credits disables the button and says why; exempt accounts see free", %{
+      conn: conn
+    } do
+      {user, _poet} = journey(%{credits: 2})
+      {:ok, view, html} = live(sign_in(conn, user), ~p"/settings")
+      assert html =~ "Not enough credits for a composed edition."
+      assert has_element?(view, "#compose-book-button[disabled]")
+
+      {exempt, _poet} = journey(%{quota_exempt: true})
+      {:ok, _view, html} = live(sign_in(build_conn(), exempt), ~p"/settings")
+      assert html =~ "(free)"
+    end
+
+    test "no published pages means no composition to offer", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, credits: 10})
+      _poet = poet_fixture(user)
+      {:ok, _view, html} = live(sign_in(conn, user), ~p"/settings")
+      refute html =~ ~s(id="compose-book")
+      _ = Journal
+    end
+  end
+
   test "exhausted balance shows the resting note", %{conn: conn} do
     user = user_fixture(%{onboarding_completed: true})
     _poet = poet_fixture(user)

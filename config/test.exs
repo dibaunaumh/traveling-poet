@@ -45,3 +45,8 @@ config :traveling_poet, link_check_req_options: [plug: {Req.Test, TravelingPoet.
 # the shell it would create a real sprite, and the task runs outside the
 # sandbox owner anyway.
 config :traveling_poet, provision_in_background: false
+
+# A composition request charges and opens the edition, then fires the poet's
+# turn in a task. Never from the suite: the turn would try to wake a sprite.
+# Tests drive Books.Composer.finish/2 directly with the outcome they need.
+config :traveling_poet, book_compose_in_background: false

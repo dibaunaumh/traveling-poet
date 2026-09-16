@@ -139,4 +139,77 @@ defmodule TravelingPoetWeb.BookControllerTest do
     assert html =~ "No pages yet"
     refute html =~ ~s(id="book-index")
   end
+
+  describe "a composed edition" do
+    alias TravelingPoet.Books
+    alias TravelingPoet.Books.Composer
+
+    setup %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, credits: 10})
+      poet = poet_fixture(user, %{name: "Wren"})
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
+      entry = published_entry_fixture(poet, %{title: "Tram 28"})
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{kind: "description", body: "Rails everywhere."},
+          %{kind: "poem", title: "Bell", body: "one bell rings twice\n\ntwo hills answer"}
+        ])
+
+      {:ok, edition} = Books.request_composition(user, poet)
+      key = Integer.to_string(Poets.current_path_point(poet.id).id)
+
+      {:ok, _, _} =
+        Books.put_matter(poet, %{
+          "dedication" => "For Udi, who stayed home",
+          "foreword" => "I set out to find the hills.",
+          "epilogue" => "The hills stayed with me.",
+          "chapter_openers" => %{key => "Lisbon took me in first."},
+          "pull_quotes" => [
+            %{"entry_date" => Date.to_iso8601(entry.entry_date), "text" => "two hills answer"}
+          ]
+        })
+
+      Composer.finish(edition.id, {:ok, "done"})
+
+      %{conn: signed_in(conn, user), poet: poet, entry: entry}
+    end
+
+    test "binds the poet's words around the journal", %{conn: conn} do
+      html = conn |> get(~p"/journal/book") |> html_response(200)
+
+      assert html =~ ~s(id="book-dedication")
+      assert html =~ "For Udi, who stayed home"
+      assert html =~ ~s(id="book-foreword")
+      assert html =~ "I set out to find the hills."
+      assert html =~ "Lisbon took me in first."
+      assert html =~ ~s(class="book-pull-quote")
+      assert html =~ "two hills answer"
+      assert html =~ ~s(id="book-epilogue")
+      assert html =~ ~s(href="#book-foreword")
+      assert html =~ "composed by Wren for this edition"
+      assert html =~ ~s(id="edition-plain")
+    end
+
+    test "?edition=plain prints the journal as written", %{conn: conn} do
+      html = conn |> get(~p"/journal/book?edition=plain") |> html_response(200)
+
+      refute html =~ ~s(id="book-dedication")
+      refute html =~ "Lisbon took me in first."
+      refute html =~ ~s(class="book-pull-quote")
+      assert html =~ "two hills answer"
+
+      assert html =~
+               ~r/id="edition-plain"[^>]*class="active"|class="active"[^>]*id="edition-plain"/s
+    end
+
+    test "a quote whose line was since revised away is not printed", %{conn: conn, entry: entry} do
+      {:ok, _} =
+        Journal.replace_sections(entry, [%{kind: "poem", title: "Bell", body: "one bell only"}])
+
+      html = conn |> get(~p"/journal/book") |> html_response(200)
+      refute html =~ ~s(class="book-pull-quote")
+      assert html =~ "For Udi, who stayed home"
+    end
+  end
 end

@@ -30,7 +30,7 @@ defmodule TravelingPoet.Provisioner do
   @external_resource @heartbeat_path
   @heartbeat_md File.read!(@heartbeat_path)
 
-  @skill_names ~w(travel-and-journal discover poem chat-companion onboard revise-entry)
+  @skill_names ~w(travel-and-journal discover poem chat-companion onboard revise-entry compose-book)
   @skill_contents (for skill <- @skill_names, into: %{} do
                      path = "priv/data/skills/#{skill}/SKILL.md"
                      Module.put_attribute(__MODULE__, :external_resource, path)
@@ -499,7 +499,8 @@ defmodule TravelingPoet.Provisioner do
     `journal_put_places`, `generate_illustration`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
     `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
-    `request_excursion`, `journal_put_finds`.
+    `request_excursion`, `journal_put_finds`, `get_book_context`,
+    `book_put_matter`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -508,7 +509,8 @@ defmodule TravelingPoet.Provisioner do
     and load the matching one before acting. `/travel-and-journal` triggers the
     daily ritual; `/onboard` triggers your first-session bootstrap;
     `/revise-entry` brings the feedback markers your companion left on an
-    entry, for you to act on.
+    entry, for you to act on; `/compose-book` asks you to write the words
+    around your journal for a printed edition your companion paid for.
 
     ## Uploaded files
     Files your companion attaches in chat arrive at #{@workspace}/uploads/.
@@ -928,6 +930,48 @@ defmodule TravelingPoet.Provisioner do
           },
           execute: function(_id, raw) {
             return call("GET", "/api/agent/journal_entries/" + asParams(raw).entry_date);
+          }
+        });
+        ctx.registerTool({
+          name: "get_book_context",
+          description: "Only during /compose-book. Your journey as the book will print it: chapters (one per stay, each with a key), and for each day its title, teaser, place, poem title and the exact lines you may quote (quotable_poem_lines, quotable_sentences). Also what you have already written for this edition and the length limits. On a long journey days are listed per chapter: pass chapter (the chapter number). Answers 409 when no composition is open.",
+          parameters: {
+            type: "object",
+            properties: { chapter: { type: "integer", description: "Chapter number, to list that chapter's days" } }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            var q = a.chapter ? "?chapter=" + encodeURIComponent(a.chapter) : "";
+            return call("GET", "/api/agent/book_context" + q);
+          }
+        });
+        ctx.registerTool({
+          name: "book_put_matter",
+          description: "Only during /compose-book. Save what you wrote for the book: dedication, foreword, epilogue (plain text, paragraphs separated by a blank line), chapter_openers (an object of chapter key to text), pull_quotes (a list of {entry_date, text}, copied word for word from quotable lines; replaces your previous list). Send any subset; call it as often as you like. The reply lists rejected fields, dropped_quotes with the reason, and missing_openers. Answers 409 when no composition is open.",
+          parameters: {
+            type: "object",
+            properties: {
+              dedication: { type: "string" },
+              foreword: { type: "string" },
+              epilogue: { type: "string" },
+              chapter_openers: { type: "object", description: "chapter key -> opener text" },
+              pull_quotes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["entry_date", "text"],
+                  properties: { entry_date: { type: "string" }, text: { type: "string" } }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            var body = {};
+            ["dedication", "foreword", "epilogue", "chapter_openers", "pull_quotes"].forEach(function(k) {
+              if (a[k] !== undefined) body[k] = a[k];
+            });
+            return call("PUT", "/api/agent/book/matter", body);
           }
         });
       }
