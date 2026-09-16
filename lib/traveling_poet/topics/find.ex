@@ -31,6 +31,19 @@ defmodule TravelingPoet.Topics.Find do
 
   def kinds, do: @kinds
 
+  @doc """
+  Which guide filter a kind falls under, the find's twin of
+  `Place.group_for/1`: ideas (talks, papers, sessions), things (products),
+  happenings (events, venues). "other" belongs to no group but All. One
+  function, so the chips, the counts and the stamp inks never disagree.
+  """
+  def group_for(kind) when kind in ~w(talk paper session), do: "ideas"
+  def group_for("product"), do: "things"
+  def group_for(kind) when kind in ~w(event venue), do: "happenings"
+  def group_for(_), do: "other"
+
+  def filter_groups, do: ~w(all ideas things happenings)
+
   @doc "Coerces whatever the model sent into a known kind; unknown becomes other."
   def normalize_kind(value) when is_binary(value) do
     normalized = value |> String.trim() |> String.downcase()

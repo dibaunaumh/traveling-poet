@@ -13,10 +13,13 @@ defmodule TravelingPoetWeb.GuideState do
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [push_event: 3]
 
-  alias TravelingPoet.{Guide, Journal, Poets}
+  alias TravelingPoet.{Guide, Journal, Poets, Topics}
   alias TravelingPoet.Guide.Place
+  alias TravelingPoet.Topics.Find
 
   @views ~w(map list itinerary)
+  # A topic's finds are links, not addresses: nothing to put on a map.
+  @topic_views ~w(list itinerary)
   # List, not map, is the default: coordinates arrive asynchronously and are
   # allowed to fail, so list is the view that always has something in it.
   @default_view "list"
@@ -33,12 +36,41 @@ defmodule TravelingPoetWeb.GuideState do
   list and itinerary updated correctly and only the map lied.
   """
   def apply_params(socket, params) do
+    socket = socket |> assign_journeys() |> assign_topic(params["topic"])
+
+    {views, filters} =
+      if socket.assigns.topic,
+        do: {@topic_views, Find.filter_groups()},
+        else: {@views, Guide.filter_groups()}
+
     socket
-    |> assign(:view, param(params, "view", @views, @default_view))
-    |> assign(:filter, param(params, "filter", Guide.filter_groups(), "all"))
+    |> assign(:view, param(params, "view", views, @default_view))
+    |> assign(:filter, param(params, "filter", filters, "all"))
     |> assign_stay(params["stay"])
+    |> assign(:excursion_param, params["excursion"])
     |> assign_places()
     |> push_map()
+  end
+
+  # Topics are the owner's: the LiveView opts in with `show_topics`. The
+  # public guide never does, so a crafted ?topic= there is simply ignored and
+  # a public page never lists what its poet's companion follows.
+  defp assign_journeys(socket) do
+    journeys =
+      if socket.assigns[:show_topics],
+        do: Topics.list_guide_topics(socket.assigns.poet.id),
+        else: []
+
+    assign(socket, :journeys, journeys)
+  end
+
+  defp assign_topic(socket, requested) do
+    topic =
+      Enum.find_value(socket.assigns.journeys, fn {t, _count} ->
+        to_string(t.id) == requested && t
+      end)
+
+    assign(socket, :topic, topic)
   end
 
   # Whitelisted, never String.to_atom on user input.
@@ -75,6 +107,8 @@ defmodule TravelingPoetWeb.GuideState do
   unreachable from BOTH views -- the owner does not get an early look at what
   the poet has not published yet, and the public view cannot leak one.
   """
+  def assign_places(%{assigns: %{topic: %{} = _topic}} = socket), do: assign_finds(socket)
+
   def assign_places(socket) do
     %{poet: poet, stay: stay, filter: filter} = socket.assigns
 
@@ -92,7 +126,63 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:map_places, Guide.map_payload(shown, poet.name))
     |> assign(:unmapped, Guide.unmapped_count(shown))
     |> assign(:media, media_for(shown))
+    |> assign(:excursions, [])
+    |> assign(:excursion, nil)
+    |> assign(:finds, [])
+    |> assign(:find_days, [])
     |> keep_selection()
+  end
+
+  @doc """
+  A topic's side of the guide: its published excursions (the venue pills),
+  the one picked or all of them, and their finds under the kind filter.
+  Place assigns are emptied so the map hook is told there is nothing to pin.
+  """
+  def assign_finds(socket) do
+    %{poet: poet, topic: topic, filter: filter} = socket.assigns
+    excursions = Topics.list_published_excursions(poet.id, topic.id)
+
+    excursion =
+      Enum.find(excursions, &(to_string(&1.id) == socket.assigns[:excursion_param]))
+
+    picked = if excursion, do: [excursion], else: excursions
+    by_entry = picked |> Enum.map(& &1.journal_entry_id) |> Topics.list_finds_for_entries()
+    all = Enum.flat_map(picked, &Map.get(by_entry, &1.journal_entry_id, []))
+
+    shown =
+      if filter == "all", do: all, else: Enum.filter(all, &(Find.group_for(&1.kind) == filter))
+
+    socket
+    |> assign(:excursions, excursions)
+    |> assign(:excursion, excursion)
+    |> assign(:finds, shown)
+    |> assign(:find_days, find_days(picked, shown))
+    |> assign(:counts, find_counts(all))
+    |> assign(:media, media_for(shown))
+    |> assign(:places, [])
+    |> assign(:days, [])
+    |> assign(:map_places, [])
+    |> assign(:unmapped, 0)
+    |> assign(:selected, nil)
+  end
+
+  # One stop per excursion, numbered in the order they happened, each with
+  # the finds that survived the filter. An excursion the filter emptied
+  # stays, so "Excursion 2" never becomes "Excursion 1" under a chip.
+  defp find_days(excursions, finds) do
+    by_entry = Enum.group_by(finds, & &1.journal_entry_id)
+
+    excursions
+    |> Enum.with_index(1)
+    |> Enum.map(fn {x, n} ->
+      %{n: n, excursion: x, finds: Map.get(by_entry, x.journal_entry_id, [])}
+    end)
+  end
+
+  defp find_counts(finds) do
+    finds
+    |> Enum.frequencies_by(&Find.group_for(&1.kind))
+    |> Map.put("all", length(finds))
   end
 
   # An events tab whose first cards are exhibitions that closed weeks ago is
@@ -148,8 +238,16 @@ defmodule TravelingPoetWeb.GuideState do
   @doc "The query string shared by both guides' push_patch targets."
   def query(socket, overrides) do
     %{view: view, filter: filter, stay: stay} = socket.assigns
+    topic = socket.assigns[:topic]
+    excursion = socket.assigns[:excursion]
 
-    %{"view" => view, "filter" => filter, "stay" => stay && to_string(stay.id)}
+    %{
+      "view" => view,
+      "filter" => filter,
+      "stay" => stay && to_string(stay.id),
+      "topic" => topic && to_string(topic.id),
+      "excursion" => excursion && to_string(excursion.id)
+    }
     |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), to_string(v)} end))
     |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
   end

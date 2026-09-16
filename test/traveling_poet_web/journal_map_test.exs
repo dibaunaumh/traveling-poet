@@ -116,9 +116,12 @@ defmodule TravelingPoetWeb.JournalMapTest do
     assert html =~ "The RV-15 talk"
     assert html =~ "Oshkosh AirVenture"
     assert html =~ "Wren&#39;s pick"
+    # the owner's page points at everything from this topic in the guide
+    assert html =~ ~s|href="/guide?topic=#{topic.id}"|
 
     {:ok, _view, html} = live(conn, ~p"/p/excursionist/2026-08-26?spread=finds")
     assert html =~ "Excursion: Kit airplanes"
+    refute html =~ "/guide?topic="
     assert html =~ "The RV-15 talk"
   end
 

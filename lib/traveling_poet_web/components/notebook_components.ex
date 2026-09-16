@@ -270,6 +270,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :day, :integer, default: nil
   attr :poet, :map, required: true
   attr :find_media, :map, default: %{}, doc: "media by id, for find drawings"
+
+  attr :guide_url, :string,
+    default: nil,
+    doc: "the topic in the owner's guide; nil on public pages"
+
   attr :rest, :global
 
   slot :controls
@@ -346,6 +351,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
         <p :if={@finds == []} class="prose text-sm opacity-60">
           No finds logged for this excursion.
         </p>
+        <div :if={@guide_url} class="spread-actions">
+          <a href={@guide_url} class="link">
+            Everything from excursions into {Topics.label_for_entry(@entry) || "this topic"} &rarr;
+          </a>
+        </div>
       </div>
     </article>
     """

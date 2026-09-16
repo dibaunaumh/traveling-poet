@@ -5,6 +5,12 @@ defmodule TravelingPoetWeb.PublicGuideLive do
   Shares its state and its markup with the owner's `/guide` (GuideState and
   GuideComponents), so the two can't drift into showing different things.
 
+  One deliberate difference: no topics. The owner's guide also shows what
+  the poet brought back from excursions into the companion's topics; here
+  `show_topics` stays off, so a public page never lists what its poet's
+  companion follows (a field they work in says a lot about a person), and a
+  crafted `?topic=` is ignored.
+
   What makes this safe to expose: `Guide.list_places/2` defaults to
   `published_only`, so a draft entry's places are unreachable here exactly as
   they are for the owner; `get_public_poet_by_slug/1` is the same gate the

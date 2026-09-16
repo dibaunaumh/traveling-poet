@@ -448,6 +448,47 @@ defmodule TravelingPoet.Topics do
 
   def delete_excursion(%Excursion{} = excursion), do: Repo.delete(excursion)
 
+  ## The guide's view of excursions
+
+  # Published means both: the excursion was taken and its entry is out. A
+  # draft's finds never reach the guide, as a draft's places never do.
+  defp published_excursions_query(poet_id) do
+    from(x in Excursion,
+      join: e in Entry,
+      on: e.id == x.journal_entry_id,
+      where: x.poet_id == ^poet_id and x.status == "published" and e.status == "published"
+    )
+  end
+
+  @doc """
+  The topics that have something to show in the guide, with how many
+  excursions each has had, in the companion's order. A paused topic with
+  past excursions is still listed: what the poet found stays findable.
+  """
+  def list_guide_topics(poet_id) do
+    counts =
+      published_excursions_query(poet_id)
+      |> group_by([x], x.topic_id)
+      |> select([x], {x.topic_id, count(x.id)})
+      |> Repo.all()
+      |> Map.new()
+
+    Topic
+    |> where([t], t.id in ^Map.keys(counts))
+    |> order_by(asc: :position, asc: :id)
+    |> Repo.all()
+    |> Enum.map(&{&1, Map.fetch!(counts, &1.id)})
+  end
+
+  @doc "A topic's published excursions, oldest first, each with its topic loaded."
+  def list_published_excursions(poet_id, topic_id) do
+    published_excursions_query(poet_id)
+    |> where([x], x.topic_id == ^topic_id)
+    |> order_by([x], asc: x.scheduled_for, asc: x.id)
+    |> preload(:topic)
+    |> Repo.all()
+  end
+
   ## Finds
 
   def list_finds_for_entry(nil), do: []
