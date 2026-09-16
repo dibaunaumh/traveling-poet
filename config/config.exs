@@ -32,7 +32,7 @@ config :esbuild,
   version: "0.25.4",
   traveling_poet: [
     args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/app.js js/book.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
@@ -44,6 +44,15 @@ config :tailwind,
     args: ~w(
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css
+    ),
+    cd: Path.expand("..", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ],
+  # The book's own stylesheet: plain CSS, no Tailwind directives (see book_entry.css)
+  book: [
+    args: ~w(
+      --input=assets/css/book_entry.css
+      --output=priv/static/assets/css/book.css
     ),
     cd: Path.expand("..", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}

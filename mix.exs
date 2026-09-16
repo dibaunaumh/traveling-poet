@@ -89,9 +89,15 @@ defmodule TravelingPoet.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind traveling_poet", "esbuild traveling_poet"],
+      "assets.build": [
+        "compile",
+        "tailwind traveling_poet",
+        "tailwind book",
+        "esbuild traveling_poet"
+      ],
       "assets.deploy": [
         "tailwind traveling_poet --minify",
+        "tailwind book --minify",
         "esbuild traveling_poet --minify",
         "phx.digest"
       ],

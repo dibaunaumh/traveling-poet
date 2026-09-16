@@ -381,10 +381,12 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   # Ideas in indigo, things in ochre, happenings in the events purple.
-  defp find_color(kind) when kind in ~w(paper talk session), do: "#3b4a8c"
-  defp find_color("product"), do: "#b7791f"
-  defp find_color(kind) when kind in ~w(event venue), do: "#8e44ad"
-  defp find_color(_), do: "#0f766e"
+  # Public so the book's gazetteer inks its list the same way.
+  @doc false
+  def find_color(kind) when kind in ~w(paper talk session), do: "#3b4a8c"
+  def find_color("product"), do: "#b7791f"
+  def find_color(kind) when kind in ~w(event venue), do: "#8e44ad"
+  def find_color(_), do: "#0f766e"
 
   attr :place, :map, required: true
   attr :n, :integer, required: true
@@ -421,9 +423,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   # The same three inks as the map pins (poet_map_hook.js GROUP_COLORS).
-  defp stamp_color("food"), do: "#c0392b"
-  defp stamp_color("events"), do: "#8e44ad"
-  defp stamp_color(_), do: "#0f766e"
+  @doc false
+  def stamp_color("food"), do: "#c0392b"
+  def stamp_color("events"), do: "#8e44ad"
+  def stamp_color(_), do: "#0f766e"
 
   attr :spreads, :list, required: true
   attr :active, :string, required: true
@@ -538,7 +541,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
     ~H"""
     <div class={@section.kind == "poem" && "notebook-poem"}>
       <h3 :if={@section.title} class="notebook-section-title mb-1">
-        {section_icon(@section.kind)} {@section.title}
+        <span class="section-icon">{section_icon(@section.kind)}</span> {@section.title}
       </h3>
       <div class={["prose prose-sm max-w-none", @clamp && "spread-clamp"]}>
         {raw_markdown(@section.body, @spot_media, @links)}

@@ -1,0 +1,21 @@
+<%!-- Paper size is a @page rule, which no selector can scope, so it is
+      written here per request. @page_size is whitelisted by the controller. --%>
+<style data-book-page>
+  <%= raw("@page { size: #{@page_size}; }") %>
+</style>
+
+<div id="book" class="book" data-size={@page_size} data-days={@manuscript.entry_count}>
+  <.cover manuscript={@manuscript} />
+  <.toc manuscript={@manuscript} />
+
+  <%= for chapter <- @manuscript.chapters do %>
+    <.chapter_opening chapter={chapter} />
+    <.day :for={day <- chapter.days} day={day} poet={@poet} />
+    <.gazetteer chapter={chapter} poet={@poet} />
+  <% end %>
+
+  <.index_pages :if={@manuscript.chapters != []} index={@manuscript.index} poet={@poet} />
+  <.colophon manuscript={@manuscript} />
+</div>
+
+<.toolbar size={@page_size} sizes={@sizes} />

@@ -1,0 +1,7 @@
+/* The book's stylesheet (/journal/book), built on its own by the `book`
+   tailwind profile: plain CSS only, no Tailwind or daisyUI. paged.js parses
+   every stylesheet it is handed with an old css-tree that chokes on Tailwind
+   4's output (range media queries, nested rules), so the book never loads
+   app.css. Anything a book page needs is written out in book.css. */
+@import "./fonts.css";
+@import "./book.css";

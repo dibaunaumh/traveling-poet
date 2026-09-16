@@ -973,6 +973,18 @@ defmodule TravelingPoetWeb.SettingsLive do
 
           <div class="divider"></div>
 
+          <h2 class="font-semibold mb-2">Your book</h2>
+          <p class="text-sm opacity-70 mb-3">
+            The whole journal as one printable notebook: a chapter for every place,
+            a table of contents, every drawing with what it was drawn from, every
+            source written out. Print it or save it as a PDF from your browser. Free.
+          </p>
+          <a href={~p"/journal/book"} target="_blank" class="btn btn-outline btn-sm" id="open-book">
+            <.icon name="hero-book-open" class="size-4" /> Open the book
+          </a>
+
+          <div class="divider"></div>
+
           <h2 class="font-semibold mb-2">Mission</h2>
           <div class="flex gap-2 mb-3">
             <button
