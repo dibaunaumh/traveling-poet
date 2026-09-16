@@ -95,5 +95,14 @@ defmodule TravelingPoet.PublishNotesTest do
       assert Notifier.book_ready_text(@poet, "https://poet.travel/journal/book") ==
                "📖 Nam has finished composing your book.\nhttps://poet.travel/journal/book"
     end
+
+    test "the push opens the book, one note per edition" do
+      payload = WebPush.book_ready_payload(@poet, 12)
+
+      assert payload.title == "Nam finished composing your book"
+      assert payload.url == "/journal/book"
+      assert payload.tag == "book-12"
+      refute payload.body =~ "—"
+    end
   end
 end

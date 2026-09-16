@@ -1,8 +1,8 @@
 defmodule TravelingPoet.WebPush.Notifier do
   @moduledoc """
-  Listens for published entries and pushes a nudge to the owner's subscribed
-  devices. Sibling of `Telegram.Notifier` on the same topic; no-op unless VAPID
-  keys are configured.
+  Listens for published entries and ready book editions, and pushes a nudge
+  to the owner's subscribed devices. Sibling of `Telegram.Notifier` on the
+  same topics; no-op unless VAPID keys are configured.
   """
 
   use GenServer
@@ -16,6 +16,7 @@ defmodule TravelingPoet.WebPush.Notifier do
   def init(_opts) do
     if WebPush.configured?() and Application.get_env(:traveling_poet, :web_push_notifier, true) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       {:ok, %{}}
     else
       :ignore
@@ -30,6 +31,19 @@ defmodule TravelingPoet.WebPush.Notifier do
 
       if sent + pruned > 0 do
         Logger.info("web push: entry #{entry_id} — #{sent} sent, #{pruned} pruned")
+      end
+    end)
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:book_ready, user_id, edition_id}, state) do
+    Task.start(fn ->
+      {sent, pruned} = WebPush.notify_book_ready(user_id, edition_id)
+
+      if sent + pruned > 0 do
+        Logger.info("web push: book edition #{edition_id} — #{sent} sent, #{pruned} pruned")
       end
     end)
 

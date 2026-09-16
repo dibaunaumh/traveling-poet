@@ -126,6 +126,29 @@ defmodule TravelingPoet.WebPushTest do
     assert %{last_error: "HTTP 500" <> _} = Repo.get(WebPush.Subscription, sub.id)
   end
 
+  test "a ready book edition is pushed to every device, opening the book", %{
+    user: user,
+    poet: poet
+  } do
+    {:ok, _} = WebPush.subscribe(user, browser_subscription("https://push.example/phone"))
+    {:ok, _} = WebPush.subscribe(user, browser_subscription("https://push.example/laptop"))
+    test_pid = self()
+
+    Req.Test.stub(@stub, fn conn ->
+      send(test_pid, {:pushed, conn.request_path})
+      Plug.Conn.send_resp(conn, 201, "")
+    end)
+
+    assert {2, 0} = WebPush.notify_book_ready(user.id, 7)
+    assert_receive {:pushed, "/phone"}
+    assert_receive {:pushed, "/laptop"}
+
+    # nobody else's devices, and no poet means nothing to say
+    other = user_fixture()
+    assert {0, 0} = WebPush.notify_book_ready(other.id, 7)
+    _ = poet
+  end
+
   test "nobody subscribed is a quiet no-op", %{poet: poet} do
     {:ok, entry} = Journal.upsert_entry(poet.id, ~D[2026-09-04], %{title: "T"})
     assert {0, 0} = WebPush.notify_entry(poet.id, entry.id)
