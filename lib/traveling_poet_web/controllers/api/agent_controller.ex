@@ -163,7 +163,7 @@ defmodule TravelingPoetWeb.Api.AgentController do
 
   defp next_stop_for(poet) do
     if Poet.mode(poet) == "scout" do
-      case Poets.next_pending_stop(poet.id) do
+      case Poets.next_stop_to_travel(poet) do
         nil -> nil
         s -> %{id: s.id, position: s.position, place_name: s.place_name, lat: s.lat, lng: s.lng}
       end

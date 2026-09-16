@@ -105,6 +105,56 @@ defmodule TravelingPoet.ItineraryTest do
     assert %{travel_today: true, destination: %{place_name: "Aveiro"}} = Poets.travel_plan(poet)
   end
 
+  describe "a scout's starting stop" do
+    defp scout_at(place, lat, lng, arrived_days_ago) do
+      at =
+        DateTime.utc_now() |> DateTime.add(-arrived_days_ago, :day) |> DateTime.truncate(:second)
+
+      poet_fixture(user_fixture(), %{
+        settings: %{"mode" => "scout"},
+        current_place_name: place,
+        current_lat: lat,
+        current_lng: lng,
+        arrived_at: at
+      })
+    end
+
+    test "the route chosen at signup starts visited at the first stop" do
+      poet = scout_at("Chiang Mai, Thailand", 18.79, 98.99, 5)
+
+      stops =
+        Poets.start_itinerary(poet, [
+          %{place_name: "Chiang Mai, Thailand", lat: 18.79, lng: 98.99, country_code: "TH"},
+          %{place_name: "Da Nang, Vietnam", lat: 16.05, lng: 108.2, country_code: "VN"},
+          %{place_name: "Fukuoka, Japan", lat: 33.59, lng: 130.4, country_code: "JP"}
+        ])
+
+      assert [{:ok, first}, {:ok, second}, {:ok, third}] = stops
+      assert first.visited_at == poet.arrived_at
+      assert is_nil(second.visited_at) and is_nil(third.visited_at)
+
+      # the first stay is over: the poet goes on to Da Nang, not to Chiang Mai again
+      assert %{travel_today: true, destination: %{place_name: "Da Nang, Vietnam"}} =
+               Poets.travel_plan(poet)
+    end
+
+    test "a pending stop at the place the poet already is gets skipped, by name or distance" do
+      # same city, different spelling from the geocoder
+      poet = scout_at("京都市, 京都府, 日本", 35.0116, 135.7681, 5)
+      {:ok, _} = Poets.add_stop(poet.id, %{place_name: "Kyoto, Japan", lat: 35.02, lng: 135.76})
+      {:ok, nara} = Poets.add_stop(poet.id, %{place_name: "Nara, Japan", lat: 34.68, lng: 135.8})
+
+      assert Poets.next_stop_to_travel(poet).id == nara.id
+      assert %{destination: %{place_name: "Nara, Japan"}} = Poets.travel_plan(poet)
+
+      # a later stop in the same city is not skipped: only the leading ones
+      far = scout_at("Nara, Japan", 34.68, 135.8, 5)
+      {:ok, osaka} = Poets.add_stop(far.id, %{place_name: "Osaka, Japan", lat: 34.69, lng: 135.5})
+      {:ok, _} = Poets.add_stop(far.id, %{place_name: "Nara, Japan", lat: 34.68, lng: 135.8})
+      assert Poets.next_stop_to_travel(far).id == osaka.id
+    end
+  end
+
   describe "travel_plan and excursions" do
     setup do
       user = user_fixture()
