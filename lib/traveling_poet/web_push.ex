@@ -104,21 +104,62 @@ defmodule TravelingPoet.WebPush do
   Returns `{sent, pruned}` counts; safe to call when nobody subscribed.
   """
   def notify_entry(poet_id, entry_id) do
-    with poet when not is_nil(poet) <- Poets.get_poet(poet_id),
-         subs when subs != [] <- list_subscriptions(%{id: poet.user_id}) do
-      entry = Journal.get_entry!(entry_id)
-      payload = entry_payload(poet, entry, Journal.journey_day(entry))
+    case Poets.get_poet(poet_id) do
+      nil ->
+        {0, 0}
 
-      Enum.reduce(subs, {0, 0}, fn sub, {sent, pruned} ->
-        case send_notification(sub, payload) do
-          :ok -> {sent + 1, pruned}
-          {:error, :gone} -> {sent, pruned + 1}
-          {:error, _} -> {sent, pruned}
-        end
-      end)
-    else
-      _ -> {0, 0}
+      poet ->
+        notify_user(poet.user_id, fn ->
+          entry = Journal.get_entry!(entry_id)
+          entry_payload(poet, entry, Journal.journey_day(entry))
+        end)
     end
+  end
+
+  @doc """
+  Tells every device of the owner that a composed book edition is ready.
+  Returns `{sent, pruned}`; a quiet no-op when nobody subscribed.
+  """
+  def notify_book_ready(user_id, edition_id) do
+    case Poets.get_poet_by_user(user_id) do
+      nil -> {0, 0}
+      poet -> notify_user(user_id, fn -> book_ready_payload(poet, edition_id) end)
+    end
+  end
+
+  # One payload to each of a user's devices. The payload is built only when
+  # someone is subscribed, so an unsubscribed owner costs no queries.
+  defp notify_user(user_id, build_payload) do
+    case list_subscriptions(%{id: user_id}) do
+      [] ->
+        {0, 0}
+
+      subs ->
+        payload = build_payload.()
+
+        Enum.reduce(subs, {0, 0}, fn sub, {sent, pruned} ->
+          case send_notification(sub, payload) do
+            :ok -> {sent + 1, pruned}
+            {:error, :gone} -> {sent, pruned + 1}
+            {:error, _} -> {sent, pruned}
+          end
+        end)
+    end
+  end
+
+  @doc """
+  What the device shows when a composed edition is ready, pure so it can be
+  tested. Opens the book itself; the tag is per edition, so a second
+  composition is a new note rather than a silent replacement.
+  """
+  def book_ready_payload(poet, edition_id) do
+    %{
+      title: "#{poet.name} finished composing your book",
+      body: "#{poet.name}'s own words are bound into your journal now. Open it to read.",
+      url: "/journal/book",
+      tag: "book-#{edition_id}",
+      icon: "/images/icon-192.png"
+    }
   end
 
   @doc """
