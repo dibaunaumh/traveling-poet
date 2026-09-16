@@ -287,6 +287,13 @@ defmodule TravelingPoet.Poets do
   # follows another excursion, and a row already on today's date wins so a
   # retried run makes the same decision. Otherwise a queued chat request
   # goes before the cadence.
+  #
+  # A poet that already arrived somewhere today is on a move day even though
+  # the route now says "stay, day 1": the move happened in an earlier attempt
+  # that did not publish. Nam, 2026-09-16: moved Seville to Cadiz and drew
+  # Cadiz, stalled, and the retry turned the arrival into an excursion to
+  # Okinawa with the Cadiz drawings still on the page. The arrival day is
+  # the new place's first entry.
   defp with_excursion(route, poet, today) do
     today_row = Topics.excursion_for_today(poet.id, today)
 
@@ -295,6 +302,9 @@ defmodule TravelingPoet.Poets do
         excursion(route, today_row)
 
       route.travel_today ->
+        Map.merge(route, %{day: "move", excursion: nil})
+
+      arrived_on?(poet, today) ->
         Map.merge(route, %{day: "move", excursion: nil})
 
       Topics.excursion_yesterday?(poet.id, today) ->
@@ -315,6 +325,11 @@ defmodule TravelingPoet.Poets do
         Map.merge(route, %{day: "stay", excursion: nil})
     end
   end
+
+  defp arrived_on?(%Poet{arrived_at: %DateTime{} = at}, today),
+    do: Date.compare(DateTime.to_date(at), today) == :eq
+
+  defp arrived_on?(_poet, _today), do: false
 
   defp excursion(route, %Topics.Excursion{} = x) do
     label = x.topic && x.topic.label
