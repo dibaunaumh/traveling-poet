@@ -299,6 +299,23 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     refute render(view) =~ "Not yours"
   end
 
+  test "a place logged on two days of a stay is listed once, as first logged", %{conn: conn} do
+    {user, poet} = guide_poet()
+
+    seed_places(poet, [place("Dylan's Cafe", %{"category" => "cafe"})],
+      entry_date: ~D[2026-09-15]
+    )
+
+    seed_places(poet, [place("Dylan's Café", %{"category" => "cafe"})],
+      entry_date: ~D[2026-09-16]
+    )
+
+    {:ok, view, html} = live(signed_in(conn, user), ~p"/guide?view=itinerary")
+    assert html =~ "Dylan&#39;s Cafe"
+    refute html =~ "Dylan&#39;s Café"
+    assert has_element?(view, "#guide-filter-food", "1")
+  end
+
   describe "topics" do
     alias TravelingPoet.Topics
 

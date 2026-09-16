@@ -25,6 +25,67 @@ defmodule TravelingPoet.Guide do
 
   def filter_groups, do: @filter_groups
 
+  ## One place, once per stay
+
+  @doc """
+  What two place names have in common when they name the same place: no
+  accents, no case, no punctuation. Rafi logged "Dylan's Cafe" on one day
+  and "Dylan's Café" the next.
+  """
+  def name_key(name) when is_binary(name) do
+    name
+    |> String.normalize(:nfd)
+    |> String.replace(~r/\p{Mn}/u, "")
+    |> String.downcase()
+    # "Dylan's" and "Dylans" are one name; an apostrophe is not a word break
+    |> String.replace(~r/['\x{2019}\x{2018}`]/u, "")
+    |> String.replace(~r/[^a-z0-9]+/, " ")
+    |> String.trim()
+  end
+
+  def name_key(_), do: ""
+
+  @doc """
+  Places published on earlier days of the stay this entry belongs to. Each
+  daily run is a fresh session with no memory of yesterday, so on day two
+  the poet found the same good cafe and logged it again: 68 of 737 places
+  across the fleet had been, events included. These are what an entry may
+  not repeat.
+  """
+  def logged_earlier_in_stay(%Entry{} = entry) do
+    case path_point_for(entry) do
+      nil ->
+        []
+
+      stay_id ->
+        entry.poet_id
+        |> list_places(path_point_id: stay_id)
+        |> Enum.filter(&(Date.compare(&1.entry_date, entry.entry_date) == :lt))
+    end
+  end
+
+  @doc """
+  What the poet is told each morning: the places it already logged at the
+  place it is staying, before today. Empty on the day it arrives somewhere
+  new (and read before a move, it describes the stay being left).
+  """
+  def this_stay_payload(poet_id, today \\ Date.utc_today()) do
+    case TravelingPoet.Poets.current_path_point(poet_id) do
+      nil ->
+        []
+
+      stay ->
+        poet_id
+        |> list_places(path_point_id: stay.id)
+        |> Enum.filter(&(Date.compare(&1.entry_date, today) == :lt))
+        |> dedupe_by_name()
+        |> Enum.map(&%{name: &1.name, category: &1.category, logged_on: &1.entry_date})
+    end
+  end
+
+  @doc "Keeps the first place of each name (by `name_key/1`), in order."
+  def dedupe_by_name(places), do: Enum.uniq_by(places, &name_key(&1.name))
+
   ## Writing
 
   @doc """

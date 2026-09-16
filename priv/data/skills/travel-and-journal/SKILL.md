@@ -213,6 +213,14 @@ today" means the places you found today, not the things happening today. A
 festival that opens next week is precisely what someone planning a trip needs;
 an event that has already finished is the one with little value left.
 
+- **Never log the same place twice in a stay.** `guide.this_stay` in
+  `get_poet_context` lists what you already logged on earlier days here
+  (empty the day you arrive somewhere new). Every day's list is new places
+  only, events included: a festival you logged yesterday is already in the
+  guide with its dates. If you go back to a favourite, say so in the prose,
+  not in this list. Your companion saw the same cafe on two days and it read
+  as a poet who forgot. The app drops repeats and names them in
+  `already_logged`.
 - **Two or three real finds beats a padded list of eight.** Your companion is
   going to plan around these.
 - Every place wants a **real postal address**, copied from a page you opened.

@@ -135,6 +135,82 @@ defmodule TravelingPoetWeb.GuideApiTest do
     assert length(Guide.list_places(poet.id, published_only: false)) == 2
   end
 
+  describe "one place, once per stay" do
+    alias TravelingPoet.Poets
+
+    # yesterday's published entry in the stay the poet is on, with its places
+    defp yesterday_with(poet, places) do
+      {:ok, _} = Poets.move_to(poet, %{lat: 25.57, lng: 91.88, place_name: "Shillong, India"})
+      entry = published_entry_fixture(poet, %{entry_date: Date.add(today(), -1)})
+      {:ok, _} = Guide.replace_places(entry, places)
+      entry
+    end
+
+    test "a place or event logged on an earlier day is not logged again, however spelled",
+         %{conn: conn, poet: poet} do
+      yesterday_with(poet, [
+        place("Dylan's Cafe", %{"category" => "cafe"}),
+        place("Autumn Festival", %{"category" => "event"})
+      ])
+
+      with_entry(poet)
+
+      body =
+        conn
+        |> put_places([
+          place("Dylan's Café", %{"category" => "cafe"}),
+          place("AUTUMN festival!", %{"category" => "event"}),
+          place("Police Bazaar", %{"category" => "shop"})
+        ])
+        |> json_response(200)
+
+      assert body["place_count"] == 1
+      assert body["already_logged"] == ["Dylan's Café", "AUTUMN festival!"]
+      assert Map.keys(body["place_ids"]) == ["Police Bazaar"]
+    end
+
+    test "the same place twice in one list is saved once", %{conn: conn, poet: poet} do
+      with_entry(poet)
+
+      body =
+        conn
+        |> put_places([place("Cafe Aloha"), place("CAFÉ ALOHA")])
+        |> json_response(200)
+
+      assert body["place_count"] == 1
+      assert body["already_logged"] == ["CAFÉ ALOHA"]
+    end
+
+    test "a list of nothing but repeats leaves today's places as they were",
+         %{conn: conn, poet: poet} do
+      yesterday_with(poet, [place("Dylan's Cafe")])
+      with_entry(poet)
+      put_places(conn, [place("Police Bazaar")]) |> json_response(200)
+
+      body = conn |> put_places([place("dylans cafe")]) |> json_response(200)
+
+      assert body["kept_existing"] == true
+      assert body["already_logged"] == ["dylans cafe"]
+      assert body["place_count"] == 1
+    end
+
+    test "the morning context lists this stay's places from earlier days, not today's",
+         %{conn: conn, poet: poet} do
+      yesterday_with(poet, [
+        place("Dylan's Cafe", %{"category" => "cafe"}),
+        place("Autumn Festival", %{"category" => "event"})
+      ])
+
+      with_entry(poet)
+      put_places(conn, [place("Police Bazaar")]) |> json_response(200)
+
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+      names = Enum.map(body["guide"]["this_stay"], & &1["name"])
+      assert names == ["Dylan's Cafe", "Autumn Festival"]
+      assert hd(body["guide"]["this_stay"])["logged_on"] == Date.to_iso8601(Date.add(today(), -1))
+    end
+  end
+
   test "a runaway list is capped and the agent is told how much was cut", %{
     conn: conn,
     poet: poet

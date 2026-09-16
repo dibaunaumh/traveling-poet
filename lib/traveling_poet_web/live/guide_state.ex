@@ -115,6 +115,9 @@ defmodule TravelingPoetWeb.GuideState do
     all =
       poet.id
       |> Guide.list_places(path_point_id: stay_id(stay))
+      # Logged again on a later day before the poet knew better: shown once,
+      # as first logged. The data keeps both; the guide lists the place once.
+      |> Guide.dedupe_by_name()
       |> sort_ended_last()
 
     shown = if filter == "all", do: all, else: Enum.filter(all, &in_group?(&1, filter))
