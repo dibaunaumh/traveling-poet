@@ -106,20 +106,37 @@ defmodule TravelingPoet.Journal do
     end
   end
 
+  @doc """
+  A poet's entries, newest first by default.
+
+  Options: `status:` filters; `limit:` caps the list (default 60, `:all` for
+  every entry, which the book needs: a journal past its sixtieth day is not
+  a journal a reader can page through 60 at a time); `order: :asc` reads the
+  journey forwards.
+  """
   def list_entries(poet_id, opts \\ []) do
     status = Keyword.get(opts, :status)
     limit = Keyword.get(opts, :limit, 60)
+    order = Keyword.get(opts, :order, :desc)
 
     Entry
     |> where(poet_id: ^poet_id)
     |> maybe_filter_status(status)
-    |> order_by(desc: :entry_date)
-    |> limit(^limit)
+    |> order_by([{^order, :entry_date}])
+    |> maybe_limit(limit)
     |> Repo.all()
   end
 
   defp maybe_filter_status(query, nil), do: query
   defp maybe_filter_status(query, status), do: where(query, status: ^status)
+
+  defp maybe_limit(query, :all), do: query
+  defp maybe_limit(query, n) when is_integer(n), do: limit(query, ^n)
+
+  @doc "`preload_entry/1` for a list, in the same shape, with one query per association."
+  def preload_entries(entries) when is_list(entries) do
+    Repo.preload(entries, sections: from(s in Section, order_by: s.position), excursion: :topic)
+  end
 
   @doc """
   Whether this poet published anything at or after `since` — the daily run's
@@ -220,6 +237,14 @@ defmodule TravelingPoet.Journal do
 
   def get_media(id), do: Repo.get(Media, id)
 
+  @doc "The media rows for these ids, by id. Nils and unknown ids are simply absent."
+  def media_by_ids(ids) do
+    case ids |> Enum.reject(&is_nil/1) |> Enum.uniq() do
+      [] -> %{}
+      ids -> Media |> where([m], m.id in ^ids) |> Repo.all() |> Map.new(&{&1.id, &1})
+    end
+  end
+
   @doc "An existing media row for this poet with identical bytes, if any."
   def find_media_by_hash(poet_id, content_hash) when is_binary(content_hash) do
     Media
@@ -235,7 +260,23 @@ defmodule TravelingPoet.Journal do
   shows these anyway so a fumble never costs the reader the drawing.
   """
   def unattached_illustrations(%Entry{} = entry, sections) do
-    referenced = sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)
+    Map.get(unattached_illustrations_by_entry([%{entry | sections: sections}]), entry.id, [])
+  end
+
+  @doc """
+  `unattached_illustrations/2` for many entries at once (the book loads a
+  whole journey): `%{entry_id => [media]}`, two queries however many entries.
+  Entries must carry their sections.
+  """
+  def unattached_illustrations_by_entry([]), do: %{}
+
+  def unattached_illustrations_by_entry(entries) do
+    entry_ids = Enum.map(entries, & &1.id)
+
+    referenced_by_entry =
+      Map.new(entries, fn e ->
+        {e.id, e.sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)}
+      end)
 
     # Guide place drawings are excluded. They belong to a place, not to the
     # prose, and this query renders anything it returns as a stray taped photo
@@ -244,15 +285,17 @@ defmodule TravelingPoet.Journal do
     # covers rows the backfill may have linked.
     claimed_by_places =
       from(p in TravelingPoet.Guide.Place,
-        where: p.journal_entry_id == ^entry.id and not is_nil(p.media_id),
+        where: p.journal_entry_id in ^entry_ids and not is_nil(p.media_id),
         select: p.media_id
       )
 
     Media
-    |> where(journal_entry_id: ^entry.id, kind: "illustration")
-    |> where([m], m.id not in ^referenced)
+    |> where([m], m.journal_entry_id in ^entry_ids and m.kind == "illustration")
     |> where([m], m.id not in subquery(claimed_by_places))
+    |> order_by(asc: :id)
     |> Repo.all()
+    |> Enum.reject(fn m -> m.id in Map.get(referenced_by_entry, m.journal_entry_id, []) end)
+    |> Enum.group_by(& &1.journal_entry_id)
   end
 
   @doc """
@@ -262,10 +305,18 @@ defmodule TravelingPoet.Journal do
   exactly these ids and nothing else.
   """
   def spot_media(%Entry{id: entry_id}) do
+    Map.get(spot_media_by_entry([entry_id]), entry_id, [])
+  end
+
+  @doc "`spot_media/1` for many entries: `%{entry_id => [media]}`, one query."
+  def spot_media_by_entry([]), do: %{}
+
+  def spot_media_by_entry(entry_ids) do
     Media
-    |> where(journal_entry_id: ^entry_id, kind: "spot")
+    |> where([m], m.journal_entry_id in ^entry_ids and m.kind == "spot")
     |> order_by(asc: :id)
     |> Repo.all()
+    |> Enum.group_by(& &1.journal_entry_id)
   end
 
   @doc "The markdown the poet pastes into the prose to place a spot drawing."

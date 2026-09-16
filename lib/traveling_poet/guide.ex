@@ -98,13 +98,22 @@ defmodule TravelingPoet.Guide do
   Nil is still a valid answer (a poet with no path points yet). It costs only
   the grouping, never the place.
   """
-  def path_point_for(%Entry{poet_id: poet_id, entry_date: date} = entry) do
+  def path_point_for(%Entry{poet_id: poet_id} = entry) do
     stays =
       PathPoint
       |> where(poet_id: ^poet_id)
       |> order_by(asc: :position)
       |> Repo.all()
 
+    path_point_for(entry, stays)
+  end
+
+  @doc """
+  The same rule, pure: `stays` is the poet's path in position order, loaded
+  once. The book assigns every entry of a journey to its chapter this way
+  without a query per entry.
+  """
+  def path_point_for(%{entry_date: date} = entry, stays) when is_list(stays) do
     started = stays |> Enum.filter(&started_by?(&1, date)) |> List.last()
 
     covering =
@@ -132,9 +141,11 @@ defmodule TravelingPoet.Guide do
   defp best_covering([], _entry), do: nil
   defp best_covering([only], _entry), do: only
 
-  defp best_covering(stays, %Entry{place_name: place_name}) do
+  defp best_covering(stays, %{place_name: place_name}) do
     Enum.find(stays, &same_place?(&1.place_name, place_name)) || List.last(stays)
   end
+
+  defp best_covering(stays, _entry), do: List.last(stays)
 
   defp same_place?(a, b) when is_binary(a) and is_binary(b) do
     String.downcase(String.trim(a)) == String.downcase(String.trim(b))
@@ -171,14 +182,16 @@ defmodule TravelingPoet.Guide do
     end)
   end
 
-  defp started_by?(%PathPoint{arrived_at: nil}, _date), do: false
+  # Stays are matched on their fields, not the struct, so the pure form works
+  # on bare maps in tests and builders too.
+  defp started_by?(%{arrived_at: nil}, _date), do: false
 
-  defp started_by?(%PathPoint{arrived_at: arrived}, date),
+  defp started_by?(%{arrived_at: arrived}, date),
     do: Date.compare(DateTime.to_date(arrived), date) != :gt
 
-  defp covers?(%PathPoint{arrived_at: nil}, _date), do: false
+  defp covers?(%{arrived_at: nil}, _date), do: false
 
-  defp covers?(%PathPoint{arrived_at: arrived, departed_at: departed}, date) do
+  defp covers?(%{arrived_at: arrived, departed_at: departed}, date) do
     Date.compare(DateTime.to_date(arrived), date) != :gt and
       (is_nil(departed) or Date.compare(DateTime.to_date(departed), date) != :lt)
   end
@@ -191,6 +204,17 @@ defmodule TravelingPoet.Guide do
 
   def list_places_for_entry(entry_id) do
     Place |> where(journal_entry_id: ^entry_id) |> order_by(asc: :position) |> Repo.all()
+  end
+
+  @doc "`list_places_for_entry/1` for many entries: `%{entry_id => [place]}`, one query."
+  def list_places_for_entries([]), do: %{}
+
+  def list_places_for_entries(entry_ids) do
+    Place
+    |> where([p], p.journal_entry_id in ^entry_ids)
+    |> order_by(asc: :position)
+    |> Repo.all()
+    |> Enum.group_by(& &1.journal_entry_id)
   end
 
   ## Reading

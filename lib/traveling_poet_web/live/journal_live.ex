@@ -22,8 +22,8 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
-  alias TravelingPoet.{Guide, Topics}
-  alias TravelingPoet.Journal.Spreads
+  alias TravelingPoet.Guide
+  alias TravelingPoet.Journal.{EntryBundle, Spreads}
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
@@ -184,25 +184,22 @@ defmodule TravelingPoetWeb.JournalLive do
         true -> nil
       end
 
-    media_map = entry_media_map(poet, entry)
     entry = record_view(socket, poet, entry)
-    spots = if entry, do: Journal.spot_media(entry), else: []
-    entry = with_unclaimed_spots(entry, spots)
-    extra = extra_media(entry)
-    {places, finds} = side_items(entry)
+    bundle = EntryBundle.load(entry)
+    entry = bundle.entry
 
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
     |> assign(:journey_start, Journal.first_published_date(poet.id))
-    |> assign(:entry_media, media_map)
-    |> assign(:extra_media, extra)
-    |> assign(:places, places)
-    |> assign(:place_media, place_media_map(places))
-    |> assign(:find_media, place_media_map(finds))
-    |> assign(:spot_media, Map.new(spots, &{&1.id, &1}))
-    |> assign_stay(poet, entry)
-    |> assign(:spreads, Spreads.pack(entry, media_map, extra, places ++ finds))
+    |> assign(:entry_media, bundle.media)
+    |> assign(:extra_media, bundle.extra_media)
+    |> assign(:places, bundle.places)
+    |> assign(:place_media, bundle.place_media)
+    |> assign(:find_media, bundle.find_media)
+    |> assign(:spot_media, bundle.spot_media)
+    |> assign_stay(poet, bundle.stay_id)
+    |> assign(:spreads, bundle.spreads)
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
     |> assign_markers(entry)
@@ -259,47 +256,11 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:prompt_answer, Preferences.EntryPrompt.answered_option(prompt))
   end
 
-  defp extra_media(nil), do: []
-  defp extra_media(entry), do: Journal.unattached_illustrations(entry, entry.sections)
-
-  # The second spread's items: the day's places (a day at the place) or its
-  # finds (an excursion). Never both, so the pair is `{places, finds}` and
-  # one side is always empty.
-  defp side_items(nil), do: {[], []}
-
-  defp side_items(entry) do
-    if Topics.excursion_of(entry),
-      do: {[], Topics.list_finds_for_entry(entry.id)},
-      else: {Guide.list_places_for_entry(entry.id), []}
-  end
-
-  # A spot drawing the poet made but never pasted still gets onto the page
-  # (render-time only; the stored body is untouched).
-  defp with_unclaimed_spots(nil, _spots), do: nil
-
-  defp with_unclaimed_spots(entry, spots),
-    do: %{entry | sections: Journal.Spots.embed_unclaimed(entry.sections, spots)}
-
-  defp place_media_map(places) do
-    places
-    |> Enum.map(& &1.media_id)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.map(&Journal.get_media/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new(&{&1.id, &1})
-  end
-
   defp assign_stay(socket, _poet, nil), do: assign(socket, stay_id: nil, stay_count: 0)
 
-  defp assign_stay(socket, poet, entry) do
-    case Guide.path_point_for(entry) do
-      nil ->
-        assign(socket, stay_id: nil, stay_count: 0)
-
-      stay_id ->
-        count = poet.id |> Guide.list_places(path_point_id: stay_id) |> length()
-        assign(socket, stay_id: stay_id, stay_count: count)
-    end
+  defp assign_stay(socket, poet, stay_id) do
+    count = poet.id |> Guide.list_places(path_point_id: stay_id) |> length()
+    assign(socket, stay_id: stay_id, stay_count: count)
   end
 
   defp guide_url(nil), do: ~p"/guide"
@@ -315,17 +276,6 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
-
-  defp entry_media_map(_poet, nil), do: %{}
-
-  defp entry_media_map(_poet, entry) do
-    entry.sections
-    |> Enum.map(& &1.media_id)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.map(&Journal.get_media/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new(&{&1.id, &1})
-  end
 
   defp my_reactions(nil, _user), do: MapSet.new()
 
