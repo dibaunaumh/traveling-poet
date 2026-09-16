@@ -41,6 +41,7 @@ defmodule TravelingPoetWeb.BookController do
         |> assign(:page_title, "#{poet.name}: the book")
         |> render(:show,
           poet: poet,
+          companion: first_name(user.name),
           manuscript: manuscript,
           page_size: page_size(size_key),
           size_key: size_key,
@@ -52,6 +53,15 @@ defmodule TravelingPoetWeb.BookController do
         )
     end
   end
+
+  defp first_name(name) when is_binary(name) do
+    case String.split(String.trim(name)) do
+      [first | _] -> first
+      [] -> nil
+    end
+  end
+
+  defp first_name(_name), do: nil
 
   defp size_key(key) do
     case List.keyfind(@sizes, key || "", 0) do

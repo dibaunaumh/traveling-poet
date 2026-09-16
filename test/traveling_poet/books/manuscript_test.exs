@@ -84,7 +84,14 @@ defmodule TravelingPoet.Books.ManuscriptTest do
       assert m.entry_count == 3 and m.from == ~D[2026-03-01] and m.to == ~D[2026-03-11]
       assert m.colophon.chapter_count == 2 and m.colophon.generated_at == ~U[2026-09-15 12:00:00Z]
       assert m.title == "Wren"
-      assert m.subtitle =~ "March 2026"
+      assert m.subtitle == "March 2026"
+
+      assert Manuscript.build(
+               @poet,
+               [bundle(~D[2026-08-25], "Lisbon"), bundle(~D[2026-09-16], "Seville")],
+               []
+             ).subtitle ==
+               "August to September 2026"
     end
 
     test "a day with no stay of its own is filed by the guide's rule, not dropped" do
@@ -173,6 +180,40 @@ defmodule TravelingPoet.Books.ManuscriptTest do
                books: [%{term: "Pessoa", author: "R. Zenith"}],
                topics: []
              }
+    end
+  end
+
+  describe "cover_drawing" do
+    test "is the journey's first real illustration, never the avatar or a spot" do
+      avatar = %{id: 1, kind: "poet_avatar"}
+      spot = %{id: 2, kind: "spot"}
+      first = %{id: 3, kind: "illustration"}
+      later = %{id: 4, kind: "illustration"}
+
+      bundles = [
+        # day 1 taped in the avatar as its drawing (entry #0 does this)
+        bundle(~D[2026-03-01], "Lisbon, Portugal",
+          sections: [section("illustration", nil, %{media_id: 1})],
+          media: %{1 => avatar},
+          spot_media: %{2 => spot}
+        ),
+        # day 2's drawing was never claimed by a section
+        bundle(~D[2026-03-02], "Lisbon, Portugal", extra_media: [first]),
+        bundle(~D[2026-03-03], "Lisbon, Portugal",
+          sections: [section("illustration", nil, %{media_id: 4})],
+          media: %{4 => later}
+        )
+      ]
+
+      # given out of order, still the earliest day wins
+      assert Manuscript.build(@poet, Enum.reverse(bundles), []).cover_drawing == first
+    end
+
+    test "a journey without drawings has none" do
+      assert Manuscript.build(@poet, [bundle(~D[2026-03-01], "Reno, USA")], []).cover_drawing ==
+               nil
+
+      assert Manuscript.build(@poet, [], []).cover_drawing == nil
     end
   end
 

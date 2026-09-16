@@ -30,18 +30,20 @@ defmodule TravelingPoetWeb.BookComponents do
 
   def cover(assigns) do
     ~H"""
-    <section class="book-cover" id="book-cover">
+    <section
+      class={["book-cover", @manuscript.cover_drawing && "book-cover-drawn"]}
+      id="book-cover"
+    >
       <div class="book-wordmark">Traveling <em>Poet</em></div>
-      <img
-        :if={@manuscript.poet.avatar_url}
-        src={@manuscript.poet.avatar_url}
-        alt=""
-        class="book-avatar"
-      />
       <h1>{@manuscript.title}</h1>
       <p class="book-subtitle">{@manuscript.subtitle}</p>
-      <p :if={@manuscript.chapters != []} class="book-route">{route_line(@manuscript)}</p>
-      <p class="book-route">
+      <figure :if={@manuscript.cover_drawing} class="book-cover-drawing">
+        <img
+          src={~p"/media/#{@manuscript.cover_drawing.id}"}
+          alt={@manuscript.cover_drawing.alt_text || "a drawing from the journey"}
+        />
+      </figure>
+      <p class="book-route book-route-count">
         {days_label(@manuscript.entry_count)}
         <span :if={@manuscript.colophon.chapter_count > 1}>
           in {@manuscript.colophon.chapter_count} places
@@ -50,6 +52,79 @@ defmodule TravelingPoetWeb.BookComponents do
     </section>
     """
   end
+
+  attr :manuscript, :map, required: true
+  attr :companion, :string, default: nil
+
+  @doc """
+  The poet as the book's author, on the page after the cover: its portrait,
+  temperament, interests, what it was reading, where it set out from and
+  for whom. Only what the poet's profile and the journey actually hold.
+  """
+  def author_page(assigns) do
+    poet = assigns.manuscript.poet
+    first = List.first(assigns.manuscript.chapters)
+
+    assigns =
+      assign(assigns,
+        poet: poet,
+        interests: Enum.reject(poet.interests || [], &(String.trim(&1) == "")),
+        reading: reading_items(poet),
+        set_out_from: first && short_place(first.title),
+        set_out_on: assigns.manuscript.from
+      )
+
+    ~H"""
+    <section class="book-author" id="book-author">
+      <p class="book-kicker">About the author</p>
+      <img
+        :if={@poet.avatar_url}
+        src={@poet.avatar_url}
+        alt={@poet.name}
+        class="book-author-portrait"
+      />
+      <h2 class="book-author-name">{@poet.name}</h2>
+      <p class="book-author-role">
+        a Traveling Poet<span :if={@companion}>, writing for {@companion}</span>
+      </p>
+      <p :if={present?(@poet.personality)} class="book-author-temperament">
+        {@poet.personality}
+      </p>
+      <dl class="book-author-facts">
+        <div :if={@interests != []}>
+          <dt>Drawn to</dt>
+          <dd>{Enum.join(@interests, ", ")}</dd>
+        </div>
+        <div :if={@reading != []}>
+          <dt>Reading</dt>
+          <dd>
+            <span :for={{book, i} <- Enum.with_index(@reading)}>
+              <span :if={i > 0}>; </span><em>{book["title"]}</em><span :if={present?(book["author"])}> by {book[
+                "author"
+              ]}</span>
+            </span>
+          </dd>
+        </div>
+        <div :if={@set_out_from && @set_out_on}>
+          <dt>Set out</dt>
+          <dd>from {@set_out_from}, {Calendar.strftime(@set_out_on, "%B %-d, %Y")}</dd>
+        </div>
+        <div :if={length(@manuscript.chapters) > 1}>
+          <dt>Route</dt>
+          <dd>{route_line(@manuscript)}</dd>
+        </div>
+      </dl>
+    </section>
+    """
+  end
+
+  defp reading_items(%{currently_reading: %{"items" => items}}) when is_list(items),
+    do: Enum.filter(items, &(is_map(&1) and present?(&1["title"])))
+
+  defp reading_items(_poet), do: []
+
+  defp present?(s) when is_binary(s), do: String.trim(s) != ""
+  defp present?(_), do: false
 
   defp route_line(%{chapters: chapters}) do
     names = Enum.map(chapters, &short_place(&1.title))
@@ -419,6 +494,9 @@ defmodule TravelingPoetWeb.BookComponents do
           "%B %-d, %Y"
         )}. The journal is as it was written.
       </p>
+      <p :if={@manuscript.cover_drawing} id="book-cover-credit">
+        The cover drawing was made from {cover_sources(@manuscript.cover_drawing)}.
+      </p>
       <p>
         Every drawing was made from a real photograph and says which one.
         The places are the poet's own picks; the ratings are its opinion, not a review score.
@@ -484,6 +562,22 @@ defmodule TravelingPoetWeb.BookComponents do
       <button type="button" id="book-print" disabled>Print / Save as PDF</button>
       <a href={~p"/journal"} title="Back to the journal">Journal</a>
     </div>
+    """
+  end
+
+  # The cover drawing's references, label and url, as the day's sources list
+  # prints them: paper has no hover.
+  defp cover_sources(media) do
+    assigns = %{items: Media.source_items(media)}
+
+    ~H"""
+    <span :for={{src, i} <- Enum.with_index(@items)}>
+      <span :if={i > 0}>, </span>{src["label"] || "a photograph"}
+      <a
+        class="book-url"
+        href={src["url"]}
+      >{src["url"]}</a>
+    </span>
     """
   end
 

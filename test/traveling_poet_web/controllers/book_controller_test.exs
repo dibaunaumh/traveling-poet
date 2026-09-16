@@ -60,6 +60,37 @@ defmodule TravelingPoetWeb.BookControllerTest do
     assert html =~ ~s(data-size="A5")
   end
 
+  test "the author page introduces the poet from its own profile", %{conn: conn} do
+    user = user_fixture(%{onboarding_completed: true, name: "Udi Bauman"})
+
+    poet =
+      poet_fixture(user, %{
+        name: "Wren",
+        avatar_url: "/media/42",
+        personality: "melancholy but funny; notices the small repairs people make",
+        interests: ["tile", "trams", " "],
+        currently_reading: %{
+          "items" => [%{"title" => "The Book of Disquiet", "author" => "Pessoa"}]
+        }
+      })
+
+    {:ok, _} = Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
+    published_entry_fixture(poet, %{entry_date: ~D[2026-03-01]})
+
+    html = conn |> signed_in(user) |> get(~p"/journal/book") |> html_response(200)
+    [_, author] = String.split(html, ~s(id="book-author"), parts: 2)
+    [author | _] = String.split(author, ~s(id="book-toc"), parts: 2)
+
+    assert author =~ "About the author"
+    assert author =~ ~s(src="/media/42")
+    assert author =~ "writing for Udi"
+    assert author =~ "notices the small repairs people make"
+    assert author =~ "tile, trams"
+    assert author =~ "The Book of Disquiet"
+    assert author =~ "by Pessoa"
+    assert author =~ "from Lisbon, March 1, 2026"
+  end
+
   test "?size picks the paper, anything else falls back to A5", %{conn: conn} do
     user = onboarded_user()
     poet_fixture(user)
@@ -108,6 +139,14 @@ defmodule TravelingPoetWeb.BookControllerTest do
     assert html =~ ~s(src="/media/#{drawing.id}")
     assert html =~ "Drawn from the tram"
 
+    # ...and it is the cover, credited on the colophon; the avatar is not
+    [cover | _] = String.split(html, ~s(id="book-toc"))
+    assert cover =~ ~s(class="book-cover-drawing")
+    assert cover =~ ~s(src="/media/#{drawing.id}")
+    refute cover =~ "book-avatar"
+    assert html =~ ~s(id="book-cover-credit")
+    assert html =~ "The cover drawing was made from"
+
     # the day's sources, url written out; the in-prose link stays a link
     assert html =~
              ~s(<a class="book-url" href="https://commons.org/tram.jpg">https://commons.org/tram.jpg</a>)
@@ -133,11 +172,16 @@ defmodule TravelingPoetWeb.BookControllerTest do
 
   test "a poet with nothing published yet gets a cover and a note, not an error", %{conn: conn} do
     user = onboarded_user()
-    poet_fixture(user, %{name: "Wren"})
+    poet_fixture(user, %{name: "Wren", avatar_url: "/media/999"})
 
     html = conn |> signed_in(user) |> get(~p"/journal/book") |> html_response(200)
     assert html =~ "No pages yet"
     refute html =~ ~s(id="book-index")
+    # no drawing yet: a plain title cover; the avatar belongs to the author page
+    refute html =~ "book-cover-drawing"
+    [cover, rest] = String.split(html, ~s(id="book-author"), parts: 2)
+    refute cover =~ "/media/999"
+    assert rest =~ ~s(src="/media/999")
   end
 
   describe "a composed edition" do
