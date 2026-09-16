@@ -335,9 +335,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
       # Record the starting point as path point zero
       if location, do: Poets.move_to(poet, location)
 
-      if assigns.mode == "scout" do
-        Enum.each(assigns.stops, fn stop -> Poets.add_stop(poet.id, stop) end)
-      end
+      # The first stop is where the poet starts: visited on arrival.
+      if assigns.mode == "scout", do: Poets.start_itinerary(poet, assigns.stops)
 
       user_name =
         case String.trim(assigns.user_name) do

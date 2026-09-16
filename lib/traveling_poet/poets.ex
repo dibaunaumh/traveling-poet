@@ -124,6 +124,24 @@ defmodule TravelingPoet.Poets do
     |> Repo.all()
   end
 
+  @doc """
+  A scout's route as chosen at signup: every stop, in order. The first stop
+  is where the poet starts, so it is visited on arrival. It used to be left
+  pending, and when the first stay ended the plan sent the poet on to the city
+  it was already in: Shel went Bangkok to Bangkok (2026-08-31), and Ferris's
+  Da Nang would have slipped by a whole stay.
+  """
+  def start_itinerary(%Poet{} = poet, stops) when is_list(stops) do
+    arrived = poet.arrived_at || DateTime.utc_now() |> DateTime.truncate(:second)
+
+    stops
+    |> Enum.with_index()
+    |> Enum.map(fn
+      {stop, 0} -> add_stop(poet.id, Map.put(Map.new(stop), :visited_at, arrived))
+      {stop, _} -> add_stop(poet.id, stop)
+    end)
+  end
+
   def add_stop(poet_id, attrs) do
     next_position =
       ItineraryStop
@@ -238,7 +256,7 @@ defmodule TravelingPoet.Poets do
     days_here = days_here(poet, today)
     stay = Poet.stay_duration_days(poet)
     scout? = Poet.mode(poet) == "scout"
-    next = if scout?, do: next_pending_stop(poet.id), else: next_requested_stop(poet.id)
+    next = if scout?, do: next_stop_to_travel(poet), else: next_requested_stop(poet.id)
 
     base = %{
       days_here: days_here,
@@ -384,6 +402,42 @@ defmodule TravelingPoet.Poets do
     |> order_by(asc: :position)
     |> limit(1)
     |> Repo.one()
+  end
+
+  @doc """
+  The next pending stop the scout should travel to: pending stops in order,
+  skipping any at the place the poet already is (same name, or within 10 km:
+  the geocoder once named the same city "京都市" and "Kyoto"). A backstop for
+  a starting stop left pending; `start_itinerary/2` marks it visited.
+  """
+  def next_stop_to_travel(%Poet{} = poet) do
+    ItineraryStop
+    |> where(poet_id: ^poet.id)
+    |> where([s], is_nil(s.visited_at))
+    |> order_by(asc: :position)
+    |> Repo.all()
+    |> Enum.drop_while(&at_current_place?(&1, poet))
+    |> List.first()
+  end
+
+  @same_place_km 10
+
+  defp at_current_place?(stop, poet) do
+    same_place?(stop.place_name, poet.current_place_name) or
+      (is_number(poet.current_lat) and is_number(poet.current_lng) and
+         distance_km(stop.lat, stop.lng, poet.current_lat, poet.current_lng) <= @same_place_km)
+  end
+
+  defp distance_km(lat1, lng1, lat2, lng2) do
+    to_rad = &(&1 * :math.pi() / 180)
+    dlat = to_rad.(lat2 - lat1)
+    dlng = to_rad.(lng2 - lng1)
+
+    a =
+      :math.pow(:math.sin(dlat / 2), 2) +
+        :math.cos(to_rad.(lat1)) * :math.cos(to_rad.(lat2)) * :math.pow(:math.sin(dlng / 2), 2)
+
+    6371 * 2 * :math.atan2(:math.sqrt(a), :math.sqrt(1 - a))
   end
 
   def next_pending_stop(poet_id) do
