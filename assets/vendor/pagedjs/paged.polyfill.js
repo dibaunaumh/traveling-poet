@@ -1,9 +1,11 @@
 /**
  * @license Paged.js v0.4.3 | MIT | https://gitlab.coko.foundation/pagedjs/pagedjs
  */
-/* Vendored for poet.travel with one local patch, marked "tpoet:" in
- * PrintMedia.onAtMedia (a guard for @media preludes css-tree cannot parse).
- * Re-apply it when upgrading. */
+/* Vendored for poet.travel with local patches, each marked "tpoet:":
+ *  - PrintMedia.onAtMedia: a guard for @media preludes css-tree cannot parse;
+ *  - Chunker.layout + isEmptyPage: drop the empty page a double-honoured
+ *    break-before leaves behind.
+ * Re-apply them when upgrading. */
 
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
@@ -2840,6 +2842,18 @@
 	 * Chop up text into flows
 	 * @class
 	 */
+	// tpoet: a laid-out page with no words and nothing drawn on it.
+	function isEmptyPage(page) {
+		let wrapper = page && page.wrapper;
+		if (!wrapper) {
+			return false;
+		}
+		if (wrapper.textContent.trim().length > 0) {
+			return false;
+		}
+		return !wrapper.querySelector("img, svg, video, canvas, iframe, hr, object");
+	}
+
 	class Chunker {
 		constructor(content, renderTo, options) {
 			// this.preview = preview;
@@ -3102,6 +3116,20 @@
 					} else {
 						tokens.push(newToken);
 					}
+				}
+
+				// tpoet: when the content before a `break-before: page` element
+				// fills its page exactly, the break is honoured twice and a page
+				// holding only an empty fragment of that element is left behind
+				// (every blank page seen in the journal book sat before a poem).
+				// Drop such a page before any handler sees it: the next page takes
+				// its number, so page counters, left/right and target-counter stay
+				// right. Only mid-flow pages; the loop check above still guards.
+				if (breakToken && isEmptyPage(page)) {
+					this.pages.pop();
+					page.destroy();
+					this.total = this.pages.length;
+					continue;
 				}
 
 				await this.hooks.afterPageLayout.trigger(page.element, page, breakToken, this);
