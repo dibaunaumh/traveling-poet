@@ -4,7 +4,9 @@
 /* Vendored for poet.travel with local patches, each marked "tpoet:":
  *  - PrintMedia.onAtMedia: a guard for @media preludes css-tree cannot parse;
  *  - Chunker.layout + isEmptyPage: drop the empty page a double-honoured
- *    break-before leaves behind.
+ *    break-before leaves behind;
+ *  - Breaks.processBreaks: never drop an explicit break-before between
+ *    siblings on the same named page.
  * Re-apply them when upgrading. */
 
 (function (global, factory) {
@@ -30085,10 +30087,13 @@
 							// If we cannot find a node before we should not break!
 							// https://drafts.csswg.org/css-break-3/#break-propagation
 							if (nodeBefore) {
-								if (prop.value === "page" && needsPageBreak(elements[i], nodeBefore)) {
-									// we ignore this explicit page break because an implicit page break is already needed
-									continue;
-								}
+								// tpoet: upstream dropped an explicit page break here when the two
+								// siblings seemed to sit on different named pages. The check runs
+								// before every `page` rule has stamped data-page, so two siblings
+								// on the SAME named page (the book's author page and contents,
+								// index and colophon) looked different, lost their break, and ran
+								// onto one page. Keeping the explicit break is safe: shouldBreak
+								// breaks once however many reasons an element has.
 								elements[i].setAttribute("data-break-before", prop.value);
 								nodeBefore.setAttribute("data-next-break-before", prop.value);
 							}

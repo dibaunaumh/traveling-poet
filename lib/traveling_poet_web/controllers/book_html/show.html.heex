@@ -6,6 +6,7 @@
 
 <div id="book" class="book" data-size={@page_size} data-days={@manuscript.entry_count}>
   <.cover manuscript={@manuscript} />
+  <.author_page manuscript={@manuscript} companion={@companion} />
   <.dedication :if={@matter && @matter.dedication} text={@matter.dedication} />
   <.toc manuscript={@manuscript} matter={@matter} />
   <.prose_page

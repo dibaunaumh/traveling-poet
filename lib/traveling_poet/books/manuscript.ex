@@ -33,6 +33,7 @@ defmodule TravelingPoet.Books.Manuscript do
             from: nil,
             to: nil,
             entry_count: 0,
+            cover_drawing: nil,
             chapters: [],
             index: %{},
             colophon: %{}
@@ -65,6 +66,7 @@ defmodule TravelingPoet.Books.Manuscript do
       from: start,
       to: finish,
       entry_count: length(days),
+      cover_drawing: cover_drawing(bundles),
       chapters: chapters,
       index: Index.build(chapters, poet),
       colophon: %{
@@ -79,6 +81,26 @@ defmodule TravelingPoet.Books.Manuscript do
         journal_url: Urls.journal_url(poet)
       }
     }
+  end
+
+  @doc """
+  The drawing for the cover: the journey's first real illustration, in day
+  order, the day's own drawing before any it left unclaimed. Only kind
+  "illustration": a spot is too small for a cover, and some first entries
+  reuse the poet's avatar as their drawing, which is a portrait, not a place.
+  """
+  def cover_drawing(bundles) do
+    Enum.find_value(bundles, fn bundle ->
+      sections = (bundle.entry && bundle.entry.sections) || []
+
+      from_sections =
+        sections
+        |> Enum.filter(&(&1.kind == "illustration"))
+        |> Enum.map(&Map.get(bundle.media, &1.media_id))
+
+      (from_sections ++ bundle.extra_media)
+      |> Enum.find(&match?(%{kind: "illustration"}, &1))
+    end)
   end
 
   @doc "The anchor id of a day's page, shared by the TOC and the index."
@@ -157,12 +179,22 @@ defmodule TravelingPoet.Books.Manuscript do
   defp name_key(name) when is_binary(name), do: name |> String.trim() |> String.downcase()
   defp name_key(other), do: other
 
-  defp subtitle(nil, _finish), do: "A Traveling Poet's journal"
+  # Only the dates: the wordmark above the title already says what it is,
+  # and a cover subtitle that wraps crowds the drawing off the page.
+  defp subtitle(nil, _finish), do: "A journal"
 
-  defp subtitle(start, finish),
-    do: "A Traveling Poet's journal, #{season(start)} to #{season(finish)}"
+  defp subtitle(%Date{} = start, %Date{} = finish) do
+    cond do
+      start.year == finish.year and start.month == finish.month ->
+        Calendar.strftime(start, "%B %Y")
 
-  defp season(%Date{} = d), do: "#{Calendar.strftime(d, "%B %Y")}"
+      start.year == finish.year ->
+        "#{Calendar.strftime(start, "%B")} to #{Calendar.strftime(finish, "%B %Y")}"
+
+      true ->
+        "#{Calendar.strftime(start, "%B %Y")} to #{Calendar.strftime(finish, "%B %Y")}"
+    end
+  end
 
   defp site_url do
     case Urls.base() do

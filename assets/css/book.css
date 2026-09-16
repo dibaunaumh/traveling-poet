@@ -279,6 +279,7 @@ body.book .pagedjs_pages .book > article {
    detached from the document, where nothing has a body ancestor. Every
    other rule here applies to the rendered pages and may be scoped. */
 
+.book-author,
 .book-dedication,
 .book-toc,
 .book-prose-page,
@@ -296,6 +297,7 @@ body.book .pagedjs_pages .book > article {
   page: cover;
 }
 
+.book-author,
 .book-dedication,
 .book-pull-quote,
 .book-toc,
@@ -380,13 +382,44 @@ body.book .book-cover .book-subtitle {
   color: #6b5b40;
 }
 
-body.book .book-cover .book-avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin: 2rem auto 0;
-  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+/* With a drawing the cover starts higher: title, then the drawing as large
+   as the page allows. Sized in mm against the page box (A5 content area is
+   about 118 x 176 mm), never height: 100%, which paged.js cannot break. */
+body.book .book-cover.book-cover-drawn {
+  padding-top: 4%;
+}
+
+body.book .book-cover.book-cover-drawn h1 {
+  margin-top: 1rem;
+}
+
+body.book .book-cover-drawing {
+  margin: 1.25rem auto 0;
+  padding: 0.6rem 0.6rem 0.8rem;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(60, 45, 20, 0.28);
+  width: fit-content;
+  max-width: 100%;
+  break-inside: avoid;
+}
+
+body.book .book-cover-drawing img {
+  display: block;
+  max-width: 100%;
+  max-height: var(--book-cover-img-max, 92mm);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  mix-blend-mode: multiply;
+}
+
+body.book .book[data-size="A4"],
+body.book .book[data-size="letter"] {
+  --book-cover-img-max: 160mm;
+}
+
+body.book .book-cover.book-cover-drawn .book-route-count {
+  margin-top: 1rem;
 }
 
 body.book .book-cover .book-route {
@@ -411,6 +444,79 @@ body.book .book-kicker {
   font-size: 13pt;
   color: #8c7454;
   margin: 0;
+}
+
+/* ---- The author: the poet, introduced on the page after the cover ---- */
+
+body.book .book-author {
+  padding-top: 14%;
+  text-align: center;
+}
+
+body.book .book-author-portrait {
+  width: 34mm;
+  height: 34mm;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 1.25rem auto 0;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+}
+
+body.book .book-author-name {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 30pt;
+  line-height: 1.1;
+  color: #2f2a1e;
+  margin: 1rem 0 0;
+}
+
+body.book .book-author-role {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 12pt;
+  color: #6b5b40;
+  margin: 0.25rem 0 0;
+}
+
+body.book .book-author-temperament {
+  font-family: "Patrick Hand", cursive;
+  font-size: 12.5pt;
+  line-height: 1.7;
+  color: #3a3226;
+  max-width: 26em;
+  margin: 1.5rem auto 0;
+}
+
+body.book .book-author-facts {
+  margin: 1.5rem auto 0;
+  max-width: 26em;
+  text-align: left;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+body.book .book-author-facts > div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0 0.75rem;
+  margin-bottom: 0.5rem;
+  break-inside: avoid;
+}
+
+body.book .book-author-facts dt {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 13pt;
+  color: #8c7454;
+  text-align: right;
+}
+
+body.book .book-author-facts dd {
+  margin: 0;
+  color: #3a3226;
 }
 
 /* ---- The poet's own words around the journal (a composed edition) ---- */
