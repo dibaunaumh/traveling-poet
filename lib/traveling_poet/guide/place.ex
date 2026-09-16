@@ -113,6 +113,7 @@ defmodule TravelingPoet.Guide.Place do
     ])
     |> update_change(:category, &normalize_category/1)
     |> update_change(:name, &String.trim/1)
+    |> update_change(:blurb, &TravelingPoet.Journal.Blank.clean/1)
     |> validate_required([:poet_id, :journal_entry_id, :entry_date, :name, :category, :position])
     |> validate_inclusion(:category, @categories)
     |> validate_inclusion(:geocode_status, @geocode_statuses)

@@ -8,11 +8,19 @@ defmodule TravelingPoet.LinkCheck do
   This is a liveness check, not an endorsement: a parked domain still passes.
   The skill-side rule ("only cite URLs from pages you actually fetched")
   covers semantic correctness; this covers the dead ones.
+
+  A site that refuses non-browser clients (401, 403, 429 on both HEAD and
+  GET) tells us nothing about whether the page exists: openai.com answers 403
+  for any path, real or made up. Those count as unknown and pass, so a real
+  article is never dropped for its host's bot wall. 404, 410, 5xx and hosts
+  that do not resolve are still dead.
   """
 
   require Logger
 
   @timeout_ms 6_000
+  # Answers that say "not for you", not "not here".
+  @bot_walls [401, 403, 429]
   # basic SSRF hygiene: the app fetches agent-supplied URLs
   @blocked_host_suffixes [".internal", ".local", ".localhost"]
 
@@ -70,7 +78,7 @@ defmodule TravelingPoet.LinkCheck do
         :ok
 
       # some servers reject HEAD; retry as a cheap GET
-      {:ok, %{status: status}} when status in [405, 403, 501] ->
+      {:ok, %{status: status}} when status in [401, 403, 405, 429, 501] ->
         probe_get(url)
 
       {:ok, %{status: status}} ->
@@ -87,9 +95,21 @@ defmodule TravelingPoet.LinkCheck do
            url,
            [receive_timeout: @timeout_ms, redirect: true, retry: false] ++ req_options()
          ) do
-      {:ok, %{status: status}} when status in 200..399 -> :ok
-      {:ok, %{status: status}} -> {:error, {:http, status}}
-      {:error, _} -> {:error, :unreachable}
+      {:ok, %{status: status}} when status in 200..399 ->
+        :ok
+
+      {:ok, %{status: status}} when status in @bot_walls ->
+        Logger.debug(
+          "LinkCheck: #{url} refused a non-browser client (#{status}); counting as unknown"
+        )
+
+        :ok
+
+      {:ok, %{status: status}} ->
+        {:error, {:http, status}}
+
+      {:error, _} ->
+        {:error, :unreachable}
     end
   end
 end

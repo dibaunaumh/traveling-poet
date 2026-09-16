@@ -132,6 +132,9 @@ stay.
   `blurb` for this companion, and your own `poet_rating`. Pass `venue_name`
   and `venue_url` for the venue itself. It replaces the day's list, as
   places do. Never `journal_put_places` on an excursion day.
+  A find in the reply's `dropped` had a dead link and is gone: leave it
+  out and never re-send it alone, which would erase every other find. If
+  you must change the list, send all of it again.
 - Then 5 (illustrate), 5a (spot drawings of details from the venue, drawn
   from Commons references of the venue or host place) and 6 (publish). Do
   not include a `prompt` in `journal_upsert_entry`: the app asks its own
@@ -229,8 +232,10 @@ an event that has already finished is the one with little value left.
   set both to that day. Never guess a date; omit it instead.
 - This call **replaces** the day's whole list, so send it complete.
 - The response tells you which addresses could not be located (`not_located`)
-  and which links were dead (`dropped`). Use it to do better tomorrow; do not
-  retry in a loop.
+  and which links were dead (`dropped`). A dropped place is gone: leave it
+  out. Never re-send it on its own to retry it; this call replaces the whole
+  list, so a call carrying only that place would erase the rest. Use it to do
+  better tomorrow.
 
 ## 5. Illustrate
 - ONE drawing of today's place in your consistent style (see IDENTITY.md),

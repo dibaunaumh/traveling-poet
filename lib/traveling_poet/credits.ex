@@ -173,6 +173,17 @@ defmodule TravelingPoet.Credits do
   def refund_daily_run(%User{} = user, ref),
     do: refund_debit(user, "debit_daily_run", "usage_event:#{ref}")
 
+  @doc "Whether the debit for this attempt was already refunded."
+  def refunded_daily_run?(user_id, ref) do
+    Repo.exists?(
+      from(t in CreditTransaction,
+        where:
+          t.user_id == ^user_id and t.kind == "refund" and
+            t.reference == ^"refund:usage_event:#{ref}"
+      )
+    )
+  end
+
   @doc """
   Charges a composed book edition up front; `{:ok, :exempt}` for free
   accounts. The reference is the edition, so a retried request can never be

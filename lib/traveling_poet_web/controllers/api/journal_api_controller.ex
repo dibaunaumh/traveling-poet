@@ -233,7 +233,16 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   defp do_replace_places(conn, poet, entry, places) do
     {kept, over_cap} = Enum.split(places, @max_places)
     {usable, dropped} = reject_dead_links(kept, "source_url")
+    existing = Guide.list_places_for_entry(entry.id)
 
+    if wipe_by_rejection?(kept, usable, existing) do
+      json(conn, kept_existing_reply(:place, existing, dropped, over_cap))
+    else
+      save_places(conn, poet, entry, usable, dropped, over_cap)
+    end
+  end
+
+  defp save_places(conn, poet, entry, usable, dropped, over_cap) do
     case Guide.replace_places(entry, usable) do
       {:ok, saved} ->
         city = entry.place_name || poet.current_place_name
@@ -291,7 +300,47 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   defp do_put_finds(conn, entry, excursion, finds, params) do
     {kept, over_cap} = Enum.split(finds, @max_places)
     {usable, dropped} = reject_dead_links(kept, "url")
+    existing = Topics.list_finds_for_entry(entry.id)
 
+    if wipe_by_rejection?(kept, usable, existing) do
+      {:ok, _} = Topics.set_venue(excursion, Map.take(params, ["venue_name", "venue_url"]))
+      json(conn, kept_existing_reply(:find, existing, dropped, over_cap))
+    else
+      save_finds(conn, entry, excursion, usable, dropped, over_cap, params)
+    end
+  end
+
+  # The list replaces the day's whole list, and a model retrying one dropped
+  # item sends that item alone. Hilma, 2026-09-16: four finds saved, one
+  # dropped, then the dropped one re-sent twice on its own; each retry wiped
+  # the four and saved nothing. A call whose every item was rejected changes
+  # nothing when the entry already has a list. An empty list sent on purpose
+  # still clears it.
+  defp wipe_by_rejection?(sent, usable, existing),
+    do: sent != [] and usable == [] and existing != []
+
+  defp kept_existing_reply(kind, existing, dropped, over_cap) do
+    {count_key, ids_key, noun, tool} =
+      case kind do
+        :find -> {:find_count, :find_ids, "finds", "journal_put_finds"}
+        :place -> {:place_count, :place_ids, "places", "journal_put_places"}
+      end
+
+    %{
+      :ok => true,
+      count_key => length(existing),
+      ids_key => Map.new(existing, &{&1.name, &1.id}),
+      :dropped => dropped,
+      :over_cap => length(over_cap),
+      :kept_existing => true,
+      :note =>
+        "Every item in this call was dropped, so nothing changed: your #{length(existing)} " <>
+          "#{noun} already saved are kept. A dropped item is gone; do not re-send it alone. " <>
+          "#{tool} replaces the whole list, so any later call must carry all of them."
+    }
+  end
+
+  defp save_finds(conn, entry, excursion, usable, dropped, over_cap, params) do
     with {:ok, saved} <- Topics.replace_finds(entry, usable),
          {:ok, _} <- Topics.set_venue(excursion, Map.take(params, ["venue_name", "venue_url"])) do
       json(conn, %{

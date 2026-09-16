@@ -25,6 +25,7 @@ defmodule TravelingPoet.Journal.Section do
   def changeset(section, attrs) do
     section
     |> cast(attrs, [:journal_entry_id, :kind, :position, :title, :body, :media_id, :metadata])
+    |> update_change(:title, &TravelingPoet.Journal.Blank.clean/1)
     |> validate_required([:journal_entry_id, :kind, :position])
     |> validate_inclusion(:kind, @kinds)
   end

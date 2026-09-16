@@ -468,6 +468,37 @@ defmodule TravelingPoetWeb.AgentApiTest do
       assert TravelingPoet.Guide.list_places(poet.id, published_only: false) == []
     end
 
+    test "a call whose every find is dropped keeps the finds already saved",
+         %{conn: conn, topic: topic} do
+      %{"entry_id" => entry_id} = upsert_excursion(conn, %{"topic_id" => topic.id})
+
+      conn
+      |> put_finds(%{
+        "finds" => [
+          %{"name" => "RV-15 talk", "url" => "https://example.com/rv15"},
+          %{"name" => "Kit prices", "url" => "https://example.com/prices"}
+        ]
+      })
+      |> json_response(200)
+
+      # the retry of one dropped find, sent alone
+      body =
+        conn
+        |> put_finds(%{"finds" => [%{"name" => "Ghost page", "url" => "http://localhost:9/nope"}]})
+        |> json_response(200)
+
+      assert body["kept_existing"] == true
+      assert body["dropped"] == ["Ghost page"]
+      assert body["find_count"] == 2
+      assert body["note"] =~ "do not re-send it alone"
+      assert length(Topics.list_finds_for_entry(entry_id)) == 2
+
+      # an empty list sent on purpose still clears
+      body = conn |> put_finds(%{"finds" => []}) |> json_response(200)
+      assert body["find_count"] == 0
+      assert Topics.list_finds_for_entry(entry_id) == []
+    end
+
     test "finds are refused on a day at the place, and need an entry first", %{conn: conn} do
       body =
         conn
