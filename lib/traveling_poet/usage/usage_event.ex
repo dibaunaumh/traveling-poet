@@ -2,7 +2,7 @@ defmodule TravelingPoet.Usage.UsageEvent do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(daily_run daily_run_attempt first_entry_attempt marker_revision_attempt chat_turn image_gen exec tokens)
+  @kinds ~w(daily_run daily_run_attempt first_entry_attempt marker_revision_attempt book_compose_attempt book_compose chat_turn image_gen exec tokens)
 
   schema "usage_events" do
     field :kind, :string

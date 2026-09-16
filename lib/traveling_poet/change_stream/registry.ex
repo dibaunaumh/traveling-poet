@@ -12,6 +12,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
 
   alias TravelingPoet.{
     Accounts,
+    Books,
     Chat,
     Credits,
     Geocoder,
@@ -29,6 +30,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Poets.PathPoint,
     Poets.ItineraryStop,
     Topics.Topic,
+    Books.Edition,
     Journal.Entry,
     Topics.Excursion,
     Topics.Find,

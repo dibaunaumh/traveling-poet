@@ -18,6 +18,7 @@ defmodule TravelingPoetWeb.BookComponents do
   import TravelingPoetWeb.NotebookComponents,
     only: [section: 1, raw_markdown: 3, entry_title: 1, excursion_label: 1]
 
+  alias TravelingPoet.Books.Manuscript
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.Media
   alias TravelingPoet.Topics
@@ -68,7 +69,61 @@ defmodule TravelingPoetWeb.BookComponents do
   defp days_label(1), do: "One day"
   defp days_label(n), do: "#{n} days"
 
+  attr :text, :string, required: true
+
+  @doc "The dedication, alone on the page after the cover."
+  def dedication(assigns) do
+    ~H"""
+    <section class="book-dedication" id="book-dedication">
+      <div class="book-dedication-text">{raw_markdown(@text, [], [])}</div>
+    </section>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :kicker, :string, required: true
+  attr :title, :string, required: true
+  attr :text, :string, required: true
+  attr :signature, :string, required: true
+
+  @doc "A page of the poet's own words around the journal: the foreword, the epilogue."
+  def prose_page(assigns) do
+    ~H"""
+    <section class="book-prose-page" id={@id}>
+      <p class="book-kicker">{@kicker}</p>
+      <h2 class="book-h">{@title}</h2>
+      <div class="book-matter prose">{raw_markdown(@text, [], [])}</div>
+      <p class="book-signature">{@signature}</p>
+    </section>
+    """
+  end
+
+  attr :text, :string, required: true
+  attr :day, :map, required: true
+  attr :poet, :map, required: true
+
+  @doc "A line the poet chose from its own page, set on a page of its own."
+  def pull_quote(assigns) do
+    ~H"""
+    <section class="book-pull-quote">
+      <blockquote>{@text}</blockquote>
+      <p class="book-pull-quote-foot">
+        {@poet.name}, day {@day.number}<span :if={@day.entry.place_name}>, {@day.entry.place_name}</span>
+      </p>
+    </section>
+    """
+  end
+
+  @doc "The chapter's opener from a composed edition, if the poet wrote one."
+  def opener(nil, _chapter), do: nil
+  def opener(matter, chapter), do: Map.get(matter.openers, Manuscript.chapter_key(chapter))
+
+  @doc "The verified pull quotes that follow a day."
+  def quotes_for(nil, _day), do: []
+  def quotes_for(matter, day), do: Map.get(matter.quotes_by_date, day.date, [])
+
   attr :manuscript, :map, required: true
+  attr :matter, :map, default: nil
 
   def toc(assigns) do
     ~H"""
@@ -79,6 +134,9 @@ defmodule TravelingPoetWeb.BookComponents do
         No pages yet. The first one lands the morning after the poet sets out.
       </p>
       <ol>
+        <li :if={@matter && @matter.foreword} class="toc-chapter">
+          <a href="#book-foreword"><span class="toc-title">Foreword</span></a>
+        </li>
         <li :for={ch <- @manuscript.chapters} class="toc-chapter">
           <a href={"##{ch.anchor}"}>
             <span class="toc-title">{ch.number}. {ch.title}</span>
@@ -92,6 +150,9 @@ defmodule TravelingPoetWeb.BookComponents do
             </li>
           </ol>
         </li>
+        <li :if={@matter && @matter.epilogue} class="toc-chapter">
+          <a href="#book-epilogue"><span class="toc-title">Epilogue</span></a>
+        </li>
         <li :if={@manuscript.chapters != []} class="toc-chapter">
           <a href="#book-index"><span class="toc-title">Index</span></a>
         </li>
@@ -101,6 +162,7 @@ defmodule TravelingPoetWeb.BookComponents do
   end
 
   attr :chapter, :map, required: true
+  attr :opener, :string, default: nil
 
   def chapter_opening(assigns) do
     ~H"""
@@ -110,6 +172,7 @@ defmodule TravelingPoetWeb.BookComponents do
       <p class="book-chapter-dates">
         {date_range(@chapter.from, @chapter.to)} · {days_label(length(@chapter.days))}
       </p>
+      <div :if={@opener} class="book-opener book-matter">{raw_markdown(@opener, [], [])}</div>
     </section>
     """
   end
@@ -333,6 +396,8 @@ defmodule TravelingPoetWeb.BookComponents do
   defp day_of(%{date: %Date{} = d}), do: Calendar.strftime(d, "%b %-d")
 
   attr :manuscript, :map, required: true
+  attr :edition, :map, default: nil
+  attr :poet, :map, required: true
 
   def colophon(assigns) do
     ~H"""
@@ -346,6 +411,13 @@ defmodule TravelingPoetWeb.BookComponents do
           {@manuscript.colophon.chapter_count} {if @manuscript.colophon.chapter_count == 1,
             do: "chapter",
             else: "chapters"}</span>.
+      </p>
+      <p :if={@edition && @edition.composed_at}>
+        The dedication, foreword, chapter openings, epilogue and chosen lines were
+        composed by {@poet.name} for this edition on {Calendar.strftime(
+          @edition.composed_at,
+          "%B %-d, %Y"
+        )}. The journal is as it was written.
       </p>
       <p>
         Every drawing was made from a real photograph and says which one.
@@ -368,16 +440,42 @@ defmodule TravelingPoetWeb.BookComponents do
   end
 
   attr :size, :string, required: true
+  attr :size_key, :string, required: true
   attr :sizes, :list, required: true
+  attr :has_composed, :boolean, default: false
+  attr :plain, :boolean, default: true
+  attr :composing, :boolean, default: false
+  attr :poet, :map, required: true
 
-  @doc "Print, paper size, back: on screen only."
+  @doc "Print, paper size, edition, back: on screen only."
   def toolbar(assigns) do
     ~H"""
     <div class="book-toolbar no-print" id="book-toolbar">
       <span id="book-status" class="book-status-busy">Laying out your book</span>
+      <span :if={@composing} class="book-toolbar-note" id="book-composing-note">
+        {@poet.name} is composing a new edition
+      </span>
+      <%= if @has_composed do %>
+        <a
+          href={~p"/journal/book?#{[size: @size_key]}"}
+          class={!@plain && "active"}
+          id="edition-composed"
+          title={"With the words #{@poet.name} composed for the book"}
+        >
+          Composed
+        </a>
+        <a
+          href={~p"/journal/book?#{[size: @size_key, edition: "plain"]}"}
+          class={@plain && "active"}
+          id="edition-plain"
+          title="The journal as it was written"
+        >
+          As written
+        </a>
+      <% end %>
       <a
         :for={{key, label} <- @sizes}
-        href={~p"/journal/book?#{[size: key]}"}
+        href={~p"/journal/book?#{size_params(key, @plain and @has_composed)}"}
         class={label == @size && "active"}
         title={"Paper size #{label}"}
       >
@@ -388,6 +486,9 @@ defmodule TravelingPoetWeb.BookComponents do
     </div>
     """
   end
+
+  defp size_params(key, true), do: [size: key, edition: "plain"]
+  defp size_params(key, false), do: [size: key]
 
   defp date_range(nil, _to), do: ""
   defp date_range(%Date{} = from, %Date{} = to) when from == to, do: long_date(from)

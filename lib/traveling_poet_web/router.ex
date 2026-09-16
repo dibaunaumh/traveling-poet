@@ -69,6 +69,9 @@ defmodule TravelingPoetWeb.Router do
     post "/journal_entries/:date/publish", JournalApiController, :publish
     post "/media", MediaApiController, :create
     post "/illustrations", MediaApiController, :generate
+    # A composed book edition: readable and writable only while one is open
+    get "/book_context", BookApiController, :context
+    put "/book/matter", BookApiController, :put_matter
   end
 
   scope "/auth", TravelingPoetWeb do

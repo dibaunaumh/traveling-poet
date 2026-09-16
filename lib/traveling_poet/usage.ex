@@ -18,6 +18,10 @@ defmodule TravelingPoet.Usage do
     "first_entry_attempt" => 0,
     # a revision turn after feedback markers; not credit-billed, capped per day
     "marker_revision_attempt" => 0,
+    # A book composition turn. Credit-billed, so zero here: the cents budget
+    # also gates the daily run, and a book must never cost tomorrow's entry.
+    "book_compose_attempt" => 0,
+    "book_compose" => 0,
     "chat_turn" => 2,
     "image_gen" => 4,
     "exec" => 0,
@@ -80,6 +84,9 @@ defmodule TravelingPoet.Usage do
 
   defp cap("marker_revision_attempt"),
     do: Application.get_env(:traveling_poet, :daily_marker_revisions_cap, 4)
+
+  defp cap("book_compose_attempt"),
+    do: Application.get_env(:traveling_poet, :daily_book_compose_cap, 2)
 
   defp cap(_), do: 1_000_000
 

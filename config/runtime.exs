@@ -144,6 +144,22 @@ config :traveling_poet,
     "scout" => String.to_integer(System.get_env("CREDIT_RATE_SCOUT") || "5")
   },
   signup_credits: String.to_integer(System.get_env("SIGNUP_CREDITS") || "10"),
+  # A composed book edition: base + per chapter (stay), capped. Pinned in
+  # test so the pricing tests assert these numbers, not whatever .env holds.
+  book_compose_credits:
+    if(config_env() == :test,
+      do: %{base: 2, per_chapter: 1, max: 5},
+      else: %{
+        base: String.to_integer(System.get_env("BOOK_COMPOSE_CREDITS_BASE") || "2"),
+        per_chapter: String.to_integer(System.get_env("BOOK_COMPOSE_CREDITS_PER_CHAPTER") || "1"),
+        max: String.to_integer(System.get_env("BOOK_COMPOSE_CREDITS_MAX") || "10")
+      }
+    ),
+  daily_book_compose_cap:
+    if(config_env() == :test,
+      do: 2,
+      else: String.to_integer(System.get_env("DAILY_BOOK_COMPOSE_CAP") || "2")
+    ),
   low_credits_days: String.to_integer(System.get_env("LOW_CREDITS_DAYS") || "3"),
   # nil in test so a live key in .env can never reach Stripe from the suite
   stripe_secret_key:

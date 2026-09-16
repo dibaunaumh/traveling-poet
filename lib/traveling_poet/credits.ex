@@ -24,6 +24,10 @@ defmodule TravelingPoet.Credits do
   # Credits per daily run, by mission.
   @default_rates %{"wander" => 1, "scout" => 5}
 
+  # A composed book edition: one long agent turn that reads the whole journey
+  # and writes the front and back matter. Priced by the journey's size, capped.
+  @default_book_compose %{base: 2, per_chapter: 1, max: 10}
+
   @default_packs [
     %{id: "p10", credits: 10, cents: 500},
     %{id: "p50", credits: 50, cents: 2000},
@@ -63,6 +67,24 @@ defmodule TravelingPoet.Credits do
     rates = Application.get_env(:traveling_poet, :credit_rates, @default_rates)
     to_milli(Map.get(rates, mode, Map.fetch!(@default_rates, "wander")))
   end
+
+  @doc """
+  Milli-credits a composed book edition costs for a journey of `chapters`
+  stays: a base, plus one step per chapter (the poet writes an opener for
+  each), never more than the cap.
+  """
+  def book_compose_cost(chapters) when is_integer(chapters) do
+    rates = Application.get_env(:traveling_poet, :book_compose_credits, @default_book_compose)
+    base = Map.get(rates, :base, @default_book_compose.base)
+    per = Map.get(rates, :per_chapter, @default_book_compose.per_chapter)
+    max = Map.get(rates, :max, @default_book_compose.max)
+
+    to_milli(min(base + per * max(chapters, 0), max))
+  end
+
+  @doc "Whether this account can pay for a composition of that cost."
+  def can_afford?(%User{quota_exempt: true}, _milli), do: true
+  def can_afford?(%User{} = user, milli) when is_integer(milli), do: balance(user) >= milli
 
   def can_run?(%User{quota_exempt: true}, _poet), do: true
   def can_run?(%User{} = user, poet), do: balance(user) >= daily_run_cost(poet)
@@ -148,19 +170,36 @@ defmodule TravelingPoet.Credits do
   end
 
   @doc "Refunds the debit recorded for `ref` (failed run). No-op if none."
-  def refund_daily_run(%User{} = user, ref) do
-    debit_ref = "usage_event:#{ref}"
+  def refund_daily_run(%User{} = user, ref),
+    do: refund_debit(user, "debit_daily_run", "usage_event:#{ref}")
 
-    case Repo.get_by(CreditTransaction,
-           user_id: user.id,
-           kind: "debit_daily_run",
-           reference: debit_ref
-         ) do
-      nil ->
-        {:ok, :nothing_to_refund}
+  @doc """
+  Charges a composed book edition up front; `{:ok, :exempt}` for free
+  accounts. The reference is the edition, so a retried request can never be
+  charged twice.
+  """
+  def debit_book_compose(user, edition_id, milli, chapters)
 
-      tx ->
-        apply(user, -tx.amount, "refund", reference: "refund:" <> debit_ref)
+  def debit_book_compose(%User{quota_exempt: true}, _edition_id, _milli, _chapters),
+    do: {:ok, :exempt}
+
+  def debit_book_compose(%User{} = user, edition_id, milli, chapters) do
+    apply(user, -milli, "debit_book_compose",
+      reference: "book_compose:#{edition_id}",
+      metadata: %{"edition_id" => edition_id, "chapters" => chapters}
+    )
+  end
+
+  @doc "Refunds a composition that did not land. No-op if it was never charged."
+  def refund_book_compose(%User{} = user, edition_id),
+    do: refund_debit(user, "debit_book_compose", "book_compose:#{edition_id}")
+
+  # One refund per debit: the refund's own reference is derived from the
+  # debit's, so a second refund of the same debit is a ledger duplicate.
+  defp refund_debit(%User{} = user, kind, debit_ref) do
+    case Repo.get_by(CreditTransaction, user_id: user.id, kind: kind, reference: debit_ref) do
+      nil -> {:ok, :nothing_to_refund}
+      tx -> apply(user, -tx.amount, "refund", reference: "refund:" <> debit_ref)
     end
   end
 

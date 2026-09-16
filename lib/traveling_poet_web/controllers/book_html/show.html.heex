@@ -6,16 +6,44 @@
 
 <div id="book" class="book" data-size={@page_size} data-days={@manuscript.entry_count}>
   <.cover manuscript={@manuscript} />
-  <.toc manuscript={@manuscript} />
+  <.dedication :if={@matter && @matter.dedication} text={@matter.dedication} />
+  <.toc manuscript={@manuscript} matter={@matter} />
+  <.prose_page
+    :if={@matter && @matter.foreword}
+    id="book-foreword"
+    kicker="Before the road"
+    title="Foreword"
+    text={@matter.foreword}
+    signature={@poet.name}
+  />
 
   <%= for chapter <- @manuscript.chapters do %>
-    <.chapter_opening chapter={chapter} />
-    <.day :for={day <- chapter.days} day={day} poet={@poet} />
+    <.chapter_opening chapter={chapter} opener={opener(@matter, chapter)} />
+    <%= for day <- chapter.days do %>
+      <.day day={day} poet={@poet} />
+      <.pull_quote :for={q <- quotes_for(@matter, day)} text={q} day={day} poet={@poet} />
+    <% end %>
     <.gazetteer chapter={chapter} poet={@poet} />
   <% end %>
 
+  <.prose_page
+    :if={@matter && @matter.epilogue}
+    id="book-epilogue"
+    kicker="After the road"
+    title="Epilogue"
+    text={@matter.epilogue}
+    signature={@poet.name}
+  />
   <.index_pages :if={@manuscript.chapters != []} index={@manuscript.index} poet={@poet} />
-  <.colophon manuscript={@manuscript} />
+  <.colophon manuscript={@manuscript} edition={@edition} poet={@poet} />
 </div>
 
-<.toolbar size={@page_size} sizes={@sizes} />
+<.toolbar
+  size={@page_size}
+  size_key={@size_key}
+  sizes={@sizes}
+  has_composed={@has_composed}
+  plain={is_nil(@edition)}
+  composing={@composing}
+  poet={@poet}
+/>

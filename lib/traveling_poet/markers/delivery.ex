@@ -34,7 +34,7 @@ defmodule TravelingPoet.Markers.Delivery do
   @trigger "/revise-entry"
   @attempt_kind "marker_revision_attempt"
   # Anything that holds the sprite in a long turn.
-  @busy_kinds ~w(daily_run_attempt first_entry_attempt marker_revision_attempt)
+  @busy_kinds ~w(daily_run_attempt first_entry_attempt marker_revision_attempt book_compose_attempt)
   @busy_window_minutes 15
   @chat_window_minutes 5
   @reply_timeout_ms 10 * 60 * 1000
@@ -183,7 +183,12 @@ defmodule TravelingPoet.Markers.Delivery do
 
   # -- guards --
 
-  defp busy?(user_id, now) do
+  @doc """
+  Whether a long turn (a daily run, a first entry, a revision, a book
+  composition) or a live chat turn is recent enough that another turn would
+  interleave with it. There is no lock on a sprite.
+  """
+  def busy?(user_id, now \\ DateTime.utc_now()) do
     long_cutoff = DateTime.add(now, -@busy_window_minutes, :minute)
     chat_cutoff = DateTime.add(now, -@chat_window_minutes, :minute)
 
