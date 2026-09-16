@@ -305,12 +305,22 @@ body.book .pagedjs_pages .book > article {
 }
 
 .taped-photo,
-.book-poem-body,
 .book-sources,
 .book-stop,
 .book-ticket,
 .idx-entry {
   break-inside: avoid;
+}
+
+/* A poem keeps its stanzas whole, not the whole poem: a poem longer than the
+   room under its title would otherwise jump to the next page and leave the
+   title alone on a blank one (Hilma's "無", eight stanzas). */
+.book-poem-body p {
+  break-inside: avoid;
+}
+
+.book-poem .notebook-section-title {
+  break-after: avoid;
 }
 
 .book h1,
