@@ -1033,10 +1033,22 @@ defmodule TravelingPoetWeb.JournalLive do
                 </span>
               </p>
             </div>
+            <a
+              :if={@entries != []}
+              href={~p"/journal/book"}
+              target="_blank"
+              class="ml-auto btn btn-ghost btn-sm"
+              title="The whole journal as a printable book"
+            >
+              <.icon name="hero-book-open" class="size-4" /> Book
+            </a>
             <button
               :if={!provisioning?(assigns)}
               phx-click="toggle_chat"
-              class="ml-auto hidden lg:inline-flex btn btn-ghost btn-sm"
+              class={[
+                "hidden lg:inline-flex btn btn-ghost btn-sm",
+                @entries == [] && "ml-auto"
+              ]}
               aria-label="Toggle chat"
             >
               💬 {if @sidebar_open, do: "Hide chat", else: "Chat"}

@@ -1,0 +1,850 @@
+/* ---- The book: the journal laid out for paper ------------------------- */
+/* Every rule lives under body.book (the /journal/book root layout), so the
+   notebook's screen styles and this print layout never meet. paged.js does
+   the pagination (page breaks are CSS, the polyfill only makes Chrome obey
+   the margin boxes, string-set and target-counter it lacks).
+
+   Two things are decided here on purpose:
+   - a source is printed as label AND url, always, so a page pulled out of
+     the printer still leads somewhere;
+   - a poem gets a page to itself. */
+
+@page {
+  size: A5;
+  margin: 16mm 14mm 18mm 16mm;
+
+  @top-center {
+    content: string(book-chapter);
+    font-family: "Caveat", cursive;
+    font-size: 11pt;
+    color: #8c7454;
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: "Caveat", cursive;
+    font-size: 11pt;
+    color: #8c7454;
+  }
+}
+
+/* Front matter and the ends of the book: no running head. */
+@page quiet {
+  @top-center {
+    content: none;
+  }
+}
+
+@page cover {
+  @top-center {
+    content: none;
+  }
+
+  @bottom-center {
+    content: none;
+  }
+}
+
+/* No Tailwind here, so the little of its reset the book relies on. */
+body.book *,
+body.book *::before,
+body.book *::after {
+  box-sizing: border-box;
+}
+
+body.book img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+body.book h1,
+body.book h2,
+body.book h3,
+body.book p,
+body.book ol,
+body.book ul,
+body.book figure {
+  margin: 0;
+}
+
+body.book a {
+  color: inherit;
+}
+
+/* The pieces NotebookComponents.section/1 emits, as the journal draws them
+   (assets/css/app.css, "Notebook look"), without the Tailwind utilities. */
+body.book .notebook-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 2rem;
+  color: #2f2a1e;
+}
+
+body.book .notebook-date {
+  font-family: "Caveat", cursive;
+  font-size: 1.25rem;
+  color: #8c7454;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+body.book .notebook-day {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #8c7454;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+body.book .notebook-day::after {
+  content: "\00b7";
+  margin-left: 0.5rem;
+  opacity: 0.6;
+}
+
+body.book .notebook-section-title {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  color: #4a3f2d;
+  margin-bottom: 0.25rem;
+}
+
+body.book .prose {
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+  font-size: 1.15rem;
+  line-height: 2rem;
+  color: #3a3226;
+}
+
+body.book .prose p,
+body.book .prose ul,
+body.book .prose ol,
+body.book .prose blockquote {
+  margin: 0 0 2rem;
+}
+
+body.book .prose ul,
+body.book .prose ol {
+  padding-left: 1.5rem;
+}
+
+body.book .prose blockquote {
+  padding-left: 1rem;
+  border-left: 2px solid rgba(140, 120, 90, 0.4);
+  color: #6b5b40;
+}
+
+body.book .prose h1,
+body.book .prose h2,
+body.book .prose h3,
+body.book .prose h4 {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.4rem;
+  line-height: 2rem;
+  color: #4a3f2d;
+}
+
+body.book .prose p:has(> img:only-child),
+body.book .prose p:has(> a:only-child > img:only-child) {
+  margin: 0;
+  line-height: 0;
+}
+
+body.book .spot-sources {
+  clear: both;
+  font-family: "Caveat", cursive;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  color: #8c7454;
+  margin: 0.25rem 0 1rem;
+}
+
+body.book .link {
+  color: #4a5f8c;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* A drawing "taped" onto the page: white border, slight tilt, two tapes. */
+body.book .taped-photo {
+  position: relative;
+  background: #fff;
+  padding: 0.75rem 0.75rem 1rem;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+}
+
+body.book .taped-photo:nth-of-type(even) {
+  transform: rotate(0.8deg);
+}
+
+body.book .taped-photo img {
+  border-radius: 2px;
+}
+
+body.book .taped-photo::before,
+body.book .taped-photo::after {
+  content: "";
+  position: absolute;
+  width: 5.5rem;
+  height: 1.6rem;
+  background: rgba(255, 244, 200, 0.6);
+  border-left: 1px dashed rgba(160, 140, 90, 0.3);
+  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
+}
+
+body.book .taped-photo::before {
+  top: -0.8rem;
+  left: -1.5rem;
+  transform: rotate(-38deg);
+}
+
+body.book .taped-photo::after {
+  top: -0.8rem;
+  right: -1.5rem;
+  transform: rotate(38deg);
+}
+
+body.book .taped-photo figcaption {
+  font-family: "Caveat", cursive;
+  color: #6b5b40;
+}
+
+body.book {
+  margin: 0;
+  background: #e9e2d3;
+  color: #3a3226;
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+  font-size: 12pt;
+  line-height: 1.6;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body.book .book {
+  --book-img-max: 95mm;
+}
+
+body.book .book[data-size="A4"],
+body.book .book[data-size="letter"] {
+  --book-img-max: 140mm;
+}
+
+/* Cream paper on every page paged.js cuts, ruled like the journal. */
+body.book .pagedjs_page {
+  background: #fdf8ec;
+  box-shadow: 0 1px 3px rgba(60, 45, 20, 0.25), 0 8px 24px rgba(60, 45, 20, 0.15);
+  margin: 1rem auto;
+}
+
+body.book .pagedjs_page_content {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent calc(2rem - 1px),
+    rgba(140, 120, 90, 0.12) calc(2rem - 1px),
+    rgba(140, 120, 90, 0.12) 2rem
+  );
+}
+
+/* Before paged.js has run (and if it never does) the flow still reads as
+   pages of paper. */
+body.book .book > section,
+body.book .book > article {
+  background: #fdf8ec;
+  max-width: 48rem;
+  margin: 1rem auto;
+  padding: 2rem 2.5rem;
+}
+
+body.book .pagedjs_pages .book > section,
+body.book .pagedjs_pages .book > article {
+  background: transparent;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- Breaks, named pages, running heads ---- */
+/* These selectors carry NO body.book prefix on purpose: paged.js resolves
+   break, page and string-set rules against the source content while it is
+   detached from the document, where nothing has a body ancestor. Every
+   other rule here applies to the rendered pages and may be scoped. */
+
+.book-toc,
+.book-chapter,
+.book-day,
+.book-poem,
+.book-gazetteer,
+.book-index,
+.book-colophon {
+  break-before: page;
+}
+
+.book-cover {
+  page: cover;
+}
+
+.book-toc,
+.book-index,
+.book-colophon {
+  page: quiet;
+}
+
+.taped-photo,
+.book-poem-body,
+.book-sources,
+.book-stop,
+.book-ticket,
+.idx-entry {
+  break-inside: avoid;
+}
+
+.book h1,
+.book h2,
+.book h3 {
+  break-after: avoid;
+}
+
+/* The running head reads the chapter's title. */
+.book-chapter-title {
+  string-set: book-chapter content(text);
+}
+
+/* ---- Type ---- */
+
+body.book .hand {
+  font-family: "Caveat", cursive;
+}
+
+/* Nothing in the flow is sized to the page (no height: 100%, no vh):
+   paged.js decides where a page ends, and an element that claims the whole
+   box overflows it by a hair and is split forever. Room is made with
+   padding, which is safe to break after. */
+body.book .book-cover {
+  text-align: center;
+  padding-top: 28%;
+}
+
+body.book .book-wordmark {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 12pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8c7454;
+}
+
+body.book .book-wordmark em {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+body.book .book-cover h1 {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 44pt;
+  line-height: 1.05;
+  color: #2f2a1e;
+  margin: 2rem 0 0.5rem;
+}
+
+body.book .book-cover .book-subtitle {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 14pt;
+  color: #6b5b40;
+}
+
+body.book .book-cover .book-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 2rem auto 0;
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+}
+
+body.book .book-cover .book-route {
+  margin-top: 2.5rem;
+  font-family: "Caveat", cursive;
+  font-size: 15pt;
+  color: #8c7454;
+}
+
+body.book .book-h {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 26pt;
+  line-height: 1.1;
+  color: #2f2a1e;
+  margin: 0 0 1rem;
+}
+
+body.book .book-kicker {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 13pt;
+  color: #8c7454;
+  margin: 0;
+}
+
+/* ---- Table of contents ---- */
+
+body.book .book-toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+body.book .book-toc .toc-chapter {
+  margin-top: 1.25rem;
+}
+
+body.book .book-toc .toc-chapter > a {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 16pt;
+  color: #2f2a1e;
+}
+
+body.book .book-toc .toc-days {
+  margin: 0.25rem 0 0 1.25rem;
+}
+
+body.book .book-toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+body.book .book-toc .toc-title {
+  flex: 1;
+  border-bottom: 1px dotted rgba(140, 120, 90, 0.5);
+  padding-bottom: 1px;
+}
+
+body.book .book-toc .toc-day {
+  font-family: "Caveat", cursive;
+  color: #8c7454;
+  min-width: 3.5rem;
+}
+
+body.book .book-muted {
+  opacity: 0.7;
+}
+
+body.book .book-toc a::after {
+  content: target-counter(attr(href url), page);
+  font-family: "Caveat", cursive;
+  color: #8c7454;
+}
+
+/* ---- Chapter opening ---- */
+
+body.book .book-chapter {
+  text-align: center;
+  padding-top: 3rem;
+}
+
+body.book .book-chapter .book-chapter-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 34pt;
+  line-height: 1.1;
+  color: #2f2a1e;
+  margin: 0.5rem 0;
+}
+
+body.book .book-chapter .book-chapter-dates {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 13pt;
+  color: #6b5b40;
+}
+
+body.book .book-opener {
+  margin: 2.5rem auto 0;
+  max-width: 34em;
+  text-align: left;
+  font-family: "Patrick Hand", cursive;
+  font-size: 12.5pt;
+  line-height: 2rem;
+}
+
+/* ---- A day ---- */
+
+body.book .book-day-head {
+  margin-bottom: 1rem;
+}
+
+body.book .book-day-head .notebook-title {
+  font-size: 22pt;
+  line-height: 1.15;
+}
+
+body.book .book-day .prose {
+  font-family: "Patrick Hand", cursive;
+  font-size: 12.5pt;
+  line-height: 2rem;
+  color: #3a3226;
+  max-width: none;
+}
+
+body.book .book-day .prose p {
+  margin: 0 0 2rem;
+}
+
+body.book .book-day .prose img {
+  display: block;
+  max-width: 55%;
+  max-height: 60mm;
+  height: auto;
+  margin: 0.5rem 0 0.5rem auto;
+  mix-blend-mode: multiply;
+}
+
+body.book .book-day .notebook-section-title {
+  font-size: 16pt;
+  margin-top: 1.5rem;
+}
+
+/* No emoji in the book: Chromium in the render image has no emoji font,
+   and the hand-lettered page does not want them. */
+body.book .section-icon {
+  display: none;
+}
+
+body.book .taped-photo {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 1rem auto 1.5rem;
+}
+
+body.book .taped-photo img {
+  max-width: 100%;
+  max-height: var(--book-img-max);
+  width: auto;
+  height: auto;
+}
+
+body.book .taped-photo figcaption {
+  font-size: 11pt;
+  line-height: 1.4;
+  margin-top: 0.4rem;
+}
+
+body.book .taped-photo figcaption .src {
+  display: block;
+  color: #8c7454;
+  font-size: 10pt;
+}
+
+/* An outbound link inside the prose keeps its address on paper. Anchors
+   into the book itself (TOC, index) and the structured lists do not need
+   it: those print their own urls. */
+body.book .book-day .prose a[href^="http"]::after {
+  content: " (" attr(href) ")";
+  font-size: 0.8em;
+  color: #8c7454;
+  word-break: break-all;
+}
+
+body.book .book-day .prose a,
+body.book .spot-sources a,
+body.book .book-day a.link {
+  color: #4a5f8c;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* The excursion's ticket, as on the journal, without the tape. */
+body.book .book-ticket {
+  border: 1px dashed rgba(140, 120, 90, 0.6);
+  padding: 0.5rem 0.9rem;
+  margin: 0 0 1.25rem;
+  font-family: "Caveat", cursive;
+  color: #6b5b40;
+}
+
+body.book .book-ticket .ticket-kicker {
+  font-size: 10pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.book .book-ticket .ticket-topic {
+  font-size: 15pt;
+  font-weight: 700;
+  color: #2f2a1e;
+}
+
+/* ---- A poem, alone on its page ---- */
+
+body.book .book-poem {
+  padding-top: 18%;
+}
+
+body.book .book-poem .notebook-section-title {
+  font-size: 18pt;
+  margin-bottom: 1.5rem;
+}
+
+body.book .book-poem-body {
+  font-family: "Caveat", cursive;
+  font-size: 17pt;
+  line-height: 2rem;
+  color: #43395f;
+  padding-left: 1.5rem;
+  white-space: pre-line;
+}
+
+body.book .book-poem-body p {
+  margin: 0 0 2rem;
+}
+
+body.book .book-poem-foot {
+  margin-top: 2rem;
+  font-family: "Caveat", cursive;
+  font-size: 11pt;
+  color: #8c7454;
+  padding-left: 1.5rem;
+}
+
+/* ---- Sources under a day ---- */
+
+body.book .book-sources {
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(140, 120, 90, 0.35);
+  font-size: 10pt;
+  line-height: 1.45;
+  color: #6b5b40;
+}
+
+body.book .book-sources h3 {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 13pt;
+  margin: 0 0 0.35rem;
+  color: #8c7454;
+}
+
+body.book .book-sources ol {
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+body.book .book-sources li {
+  margin: 0 0 0.2rem;
+}
+
+body.book .book-url {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 8.5pt;
+  color: #4a5f8c;
+  word-break: break-all;
+  text-decoration: none;
+}
+
+body.book .book-day-foot {
+  margin-top: 1rem;
+  font-family: "Caveat", cursive;
+  font-size: 11pt;
+  color: #8c7454;
+}
+
+/* ---- The chapter's places ---- */
+
+body.book .book-stop {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0 0.75rem;
+  margin: 0 0 1.1rem;
+}
+
+body.book .book-stop .stop-n {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 16pt;
+  color: var(--stamp-c, #0f766e);
+  line-height: 1.3;
+}
+
+body.book .book-stop .stop-name {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 15pt;
+  line-height: 1.3;
+  color: #2f2a1e;
+}
+
+body.book .book-stop .stop-cat {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 10pt;
+  color: var(--stamp-c, #0f766e);
+  margin-left: 0.5rem;
+}
+
+body.book .book-stop .stop-address,
+body.book .book-stop .stop-blurb {
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #4a3f2d;
+}
+
+body.book .book-stop .stop-pick {
+  font-family: "Caveat", cursive;
+  font-size: 11pt;
+  color: #8c7454;
+}
+
+body.book .book-stop .stop-pick .stars {
+  color: #b7791f;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Index ---- */
+
+body.book .book-index .idx-section {
+  margin-top: 1.5rem;
+}
+
+body.book .book-index h3 {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 16pt;
+  color: #4a3f2d;
+  margin: 0 0 0.5rem;
+}
+
+body.book .book-index ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2;
+  column-gap: 2rem;
+}
+
+body.book .book-index .idx-entry {
+  font-size: 10.5pt;
+  line-height: 1.5;
+  margin-bottom: 0.15rem;
+}
+
+body.book .book-index .idx-ref {
+  color: #8c7454;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+body.book .book-index .idx-ref::after {
+  content: " p. " target-counter(attr(href url), page);
+}
+
+body.book .book-index .idx-author {
+  color: #8c7454;
+}
+
+/* ---- Colophon ---- */
+
+body.book .book-colophon {
+  text-align: center;
+  padding-top: 20%;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: 11pt;
+  line-height: 1.7;
+  color: #6b5b40;
+}
+
+body.book .book-colophon p {
+  margin: 0 0 0.75rem;
+}
+
+/* ---- The toolbar, never printed ---- */
+
+body.book .book-toolbar {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(47, 42, 30, 0.92);
+  color: #fdf8ec;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+body.book .book-toolbar a,
+body.book .book-toolbar button {
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgba(253, 248, 236, 0.4);
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+body.book .book-toolbar a.active {
+  background: rgba(253, 248, 236, 0.2);
+}
+
+body.book .book-toolbar button#book-print {
+  background: #fdf8ec;
+  color: #2f2a1e;
+  font-weight: 600;
+  border-color: transparent;
+}
+
+body.book .book-toolbar button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+body.book #book-status {
+  opacity: 0.8;
+}
+
+body.book .book-status-busy::after {
+  content: "...";
+}
+
+@media print {
+  body.book {
+    background: white;
+  }
+
+  body.book .no-print {
+    display: none !important;
+  }
+
+  body.book .pagedjs_page {
+    box-shadow: none;
+    margin: 0;
+  }
+}

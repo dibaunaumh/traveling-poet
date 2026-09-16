@@ -23,7 +23,8 @@ config :traveling_poet, TravelingPoetWeb.Endpoint,
   secret_key_base: "NRoo1ynoNHHkvwyF6EJ9nh+fIi8DFAEIypruSjkUNJe4/p99Qo1zhHOrQd5skzKl",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:traveling_poet, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:traveling_poet, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:traveling_poet, ~w(--watch)]},
+    book_css: {Tailwind, :install_and_run, [:book, ~w(--watch)]}
   ]
 
 # ## SSL Support

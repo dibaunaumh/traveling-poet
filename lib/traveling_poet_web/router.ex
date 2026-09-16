@@ -88,6 +88,11 @@ defmodule TravelingPoetWeb.Router do
     get "/credits/mock-checkout", CreditsController, :mock_checkout
     post "/credits/mock-checkout/confirm", CreditsController, :mock_confirm
 
+    # The whole journal laid out for paper. A plain page, not a LiveView:
+    # paged.js rewrites the DOM into pages and LiveView would patch it back.
+    # Declared ahead of /journal/:date so "book" is never read as a date.
+    get "/journal/book", BookController, :show
+
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do
       live "/onboarding", OnboardingLive
