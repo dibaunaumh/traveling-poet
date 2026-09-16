@@ -14,7 +14,10 @@ defmodule TravelingPoet.Books.Pdf.Storage do
   @callback delete(key :: String.t()) :: :ok | {:error, term}
 
   @upload_ttl 3600
-  @download_ttl 300
+  # The app's own download link (/journal/book/pdf/:id) never expires; each
+  # click mints this bucket link, which lasts an hour so a slow start or a
+  # copied link still works.
+  @download_ttl 3600
   # sanity bound; a 300-page book with drawings compresses to tens of MB
   @max_bytes 250_000_000
 
