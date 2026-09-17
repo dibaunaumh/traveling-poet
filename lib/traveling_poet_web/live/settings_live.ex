@@ -764,6 +764,53 @@ defmodule TravelingPoetWeb.SettingsLive do
     ]
   end
 
+  attr :sections, :list, required: true
+
+  @doc """
+  The side menu: one link per section, sticky beside the page on a wide
+  screen, a row of chips above it on a phone. The hook marks the section
+  being read.
+  """
+  def settings_nav(assigns) do
+    ~H"""
+    <nav class="settings-nav" id="settings-nav" phx-hook="SettingsNav" phx-update="ignore">
+      <a :for={{id, label} <- @sections} href={"##{id}"} data-section={id}>{label}</a>
+    </nav>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :note, :string, default: nil
+  slot :inner_block, required: true
+
+  @doc "One card of settings, with the heading the side menu points at."
+  def settings_section(assigns) do
+    ~H"""
+    <section class="settings-section" id={@id}>
+      <div class="settings-section-head">
+        <h2>{@title}</h2>
+        <p :if={@note}>{@note}</p>
+      </div>
+      {render_slot(@inner_block)}
+    </section>
+    """
+  end
+
+  # The menu's order is the page's order.
+  defp nav_sections(poet) do
+    [
+      {"poet", poet.name},
+      {"journey", "Journey"},
+      {"book", "Your book"},
+      {"topics", "Topics"},
+      {"learned", "Learned"},
+      {"credits", "Credits"},
+      {"notifications", "Notifications"},
+      {"account", "Account"}
+    ]
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -773,682 +820,677 @@ defmodule TravelingPoetWeb.SettingsLive do
       credits_low={assigns[:credits_low]}
       active_tab={:settings}
     >
-      <div class="mx-auto max-w-xl py-8">
+      <div class="mx-auto max-w-5xl px-4 py-8">
         <div class="flex items-center justify-between mb-6">
           <h1 class="text-2xl font-semibold">Settings</h1>
           <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">← Journal</.link>
         </div>
 
-        <div :if={@poet}>
-          <p class="text-xs opacity-60 -mt-4 mb-4">Changes save automatically.</p>
+        <div :if={@poet} class="settings-layout">
+          <.settings_nav sections={nav_sections(@poet)} />
 
-          <form id="user-settings-form" phx-change="save_user" class="mb-4">
-            <label class="block">
-              <span class="text-sm font-medium">Your name</span>
-              <input
-                type="text"
-                name="name"
-                phx-debounce="750"
-                value={@user.name}
-                class="input input-bordered w-full mt-1"
-              />
-              <span class="text-xs opacity-50">How {@poet.name} addresses you.</span>
-            </label>
-          </form>
-
-          <form id="poet-settings-form" phx-change="save_poet" class="space-y-4">
-            <label class="block">
-              <span class="text-sm font-medium">Poet's name</span>
-              <input
-                type="text"
-                name="poet_name"
-                phx-debounce="750"
-                value={@poet.name}
-                class="input input-bordered w-full mt-1"
-              />
-              <span class="text-xs opacity-50">
-                Shows in the journal right away; the poet's own introduction updates on
-                the next repack, and the journal link keeps its current address.
-              </span>
-            </label>
-
-            <label class="block">
-              <span class="text-sm font-medium">{@poet.name}'s personality</span>
-              <textarea
-                name="personality"
-                phx-debounce="750"
-                class="textarea textarea-bordered w-full mt-1"
-              >{@poet.personality}</textarea>
-            </label>
-
-            <label class="block">
-              <span class="text-sm font-medium">What you want {@poet.name} to look for</span>
-              <input
-                type="text"
-                name="interests"
-                phx-debounce="750"
-                value={Enum.join(@poet.interests || [], ", ")}
-                placeholder="street food, bridges, hidden gardens"
-                class="input input-bordered w-full mt-1"
-              />
-              <span class="text-xs opacity-50">
-                Comma separated. Takes effect on tomorrow's entry.
-              </span>
-            </label>
-
-            <div>
-              <span class="text-sm font-medium">What {@poet.name} is reading</span>
-              <div class="mt-2">
-                <.book_chips
-                  books={@reading_list}
-                  selected={selected_book_indices(@poet, @reading_list)}
-                  event="toggle_book"
-                />
-              </div>
-              <ul :if={custom_books(@poet, @reading_list) != []} class="mt-2 space-y-1">
-                <li
-                  :for={book <- custom_books(@poet, @reading_list)}
-                  class="flex items-center gap-2 text-sm"
-                >
-                  <span class="flex-1">{book["title"]}</span>
-                  <button
-                    type="button"
-                    phx-click="remove_book"
-                    phx-value-title={book["title"]}
-                    class="btn btn-ghost btn-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <label class="block">
-              <span class="text-sm font-medium">Days to stay in each place</span>
-              <input
-                type="number"
-                name="stay_duration_days"
-                min="1"
-                max="30"
-                value={Map.get(@poet.settings || %{}, "stay_duration_days", 3)}
-                phx-debounce="500"
-                class="input input-bordered w-24 mt-1"
-              />
-            </label>
-
-            <p :if={@poet.hold_until} class="text-sm flex items-center gap-2">
-              <span>
-                Staying put through {Calendar.strftime(@poet.hold_until, "%B %-d")}, as you asked in chat.
-              </span>
-              <button type="button" phx-click="release_hold" class="btn btn-ghost btn-xs">
-                Let it move on
-              </button>
-            </p>
-
-            <label class="block">
-              <span class="text-sm font-medium">Journal chattiness</span>
-              <select name="verbosity" class="select select-bordered w-full mt-1">
-                <option
-                  :for={{value, label} <- verbosity_options()}
-                  value={value}
-                  selected={Map.get(@poet.settings || %{}, "verbosity", "balanced") == value}
-                >
-                  {label}
-                </option>
-              </select>
-            </label>
-
-            <label class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="is_public"
-                class="toggle toggle-primary"
-                checked={@poet.is_public}
-              />
-              <span>
-                <b>Public journal</b>
-                <span class="block text-sm opacity-60">
-                  Show {@poet.name} on the world map; anyone can read the journal
-                </span>
-              </span>
-            </label>
-
-            <label class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="telegram_notify"
-                class="toggle"
-                checked={Map.get(@poet.settings || %{}, "telegram_notify", true)}
-              />
-              <span>Telegram note when a new entry is published</span>
-            </label>
-          </form>
-
-          <form id="add-book-form" phx-submit="add_book" class="flex gap-2 mt-3">
-            <input
-              type="text"
-              name="title"
-              class="input input-bordered input-sm flex-1"
-              placeholder="Add another book for the road…"
-            />
-            <button type="submit" class="btn btn-sm">Add</button>
-          </form>
-
-          <div class="divider"></div>
-
-          <section id="topics">
-            <h2 class="text-lg font-semibold mb-1">Topics {@poet.name} follows for you</h2>
-            <p class="text-sm opacity-60 mb-3">
-              Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
-            </p>
-
-            <p :if={@topics == []} class="text-sm opacity-50 mb-2">
-              None yet.
-            </p>
-
-            <ul class="space-y-2">
-              <li
-                :for={topic <- @topics}
-                id={"topic-#{topic.id}"}
-                class={[
-                  "p-2 rounded-lg border border-base-200",
-                  topic.status == "paused" && "opacity-60"
-                ]}
-              >
-                <form
-                  id={"topic-form-#{topic.id}"}
-                  phx-change="save_topic"
-                  phx-value-id={topic.id}
-                  class="flex flex-wrap items-center gap-2"
-                >
-                  <input type="hidden" name="topic_id" value={topic.id} />
+          <div class="settings-main">
+            <.settings_section id="poet" title={@poet.name} note="Changes save automatically.">
+              <form id="poet-settings-form" phx-change="save_poet" class="space-y-4">
+                <label class="block">
+                  <span class="text-sm font-medium">Poet's name</span>
                   <input
                     type="text"
-                    name="label"
+                    name="poet_name"
                     phx-debounce="750"
-                    value={topic.label}
-                    class="input input-bordered input-sm flex-1 min-w-40"
+                    value={@poet.name}
+                    class="input input-bordered w-full mt-1"
                   />
-                  <select name="kind" class="select select-bordered select-sm">
+                  <span class="text-xs opacity-50">
+                    Shows in the journal right away; the poet's own introduction updates on
+                    the next repack, and the journal link keeps its current address.
+                  </span>
+                </label>
+
+                <label class="block">
+                  <span class="text-sm font-medium">{@poet.name}'s personality</span>
+                  <textarea
+                    name="personality"
+                    phx-debounce="750"
+                    class="textarea textarea-bordered w-full mt-1"
+                  >{@poet.personality}</textarea>
+                </label>
+
+                <label class="block">
+                  <span class="text-sm font-medium">What you want {@poet.name} to look for</span>
+                  <input
+                    type="text"
+                    name="interests"
+                    phx-debounce="750"
+                    value={Enum.join(@poet.interests || [], ", ")}
+                    placeholder="street food, bridges, hidden gardens"
+                    class="input input-bordered w-full mt-1"
+                  />
+                  <span class="text-xs opacity-50">
+                    Comma separated. Takes effect on tomorrow's entry.
+                  </span>
+                </label>
+
+                <label class="block">
+                  <span class="text-sm font-medium">Days to stay in each place</span>
+                  <input
+                    type="number"
+                    name="stay_duration_days"
+                    min="1"
+                    max="30"
+                    value={Map.get(@poet.settings || %{}, "stay_duration_days", 3)}
+                    phx-debounce="500"
+                    class="input input-bordered w-24 mt-1"
+                  />
+                </label>
+
+                <p :if={@poet.hold_until} class="text-sm flex items-center gap-2">
+                  <span>
+                    Staying put through {Calendar.strftime(@poet.hold_until, "%B %-d")}, as you asked in chat.
+                  </span>
+                  <button type="button" phx-click="release_hold" class="btn btn-ghost btn-xs">
+                    Let it move on
+                  </button>
+                </p>
+
+                <label class="block">
+                  <span class="text-sm font-medium">Journal chattiness</span>
+                  <select name="verbosity" class="select select-bordered w-full mt-1">
                     <option
-                      :for={{value, label} <- kind_options()}
+                      :for={{value, label} <- verbosity_options()}
                       value={value}
-                      selected={(topic.kind || "") == value}
+                      selected={Map.get(@poet.settings || %{}, "verbosity", "balanced") == value}
                     >
                       {label}
                     </option>
                   </select>
-                  <select
-                    name="every_days"
-                    class="select select-bordered select-sm"
-                    disabled={topic.status == "proposed"}
-                  >
-                    <option
-                      :for={{days, label} <- cadence_options()}
-                      value={days}
-                      selected={topic.every_days == days}
-                    >
-                      {label}
-                    </option>
-                  </select>
-                </form>
-                <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
-                  <span :if={topic_status_label(topic)}>{topic_status_label(topic)}</span>
-                  <span :if={topic_schedule(topic, @poet.name)}>{topic_schedule(topic, @poet.name)}</span>
-                  <span :if={topic.evidence["quote"]} class="italic">
-                    &ldquo;{topic.evidence["quote"]}&rdquo;
-                  </span>
-                  <span class="flex-1"></span>
-                  <button
-                    :if={topic.status == "proposed"}
-                    type="button"
-                    phx-click="keep_topic"
-                    phx-value-id={topic.id}
-                    class="btn btn-primary btn-xs"
-                  >
-                    Keep
-                  </button>
-                  <button
-                    :if={topic.status == "proposed"}
-                    type="button"
-                    phx-click="remove_topic"
-                    phx-value-id={topic.id}
-                    class="btn btn-ghost btn-xs"
-                  >
-                    Not this
-                  </button>
-                  <button
-                    :if={topic.status == "active"}
-                    type="button"
-                    phx-click="pause_topic"
-                    phx-value-id={topic.id}
-                    class="btn btn-ghost btn-xs"
-                  >
-                    Pause
-                  </button>
-                  <button
-                    :if={topic.status == "paused"}
-                    type="button"
-                    phx-click="resume_topic"
-                    phx-value-id={topic.id}
-                    class="btn btn-ghost btn-xs"
-                  >
-                    Resume
-                  </button>
-                  <button
-                    :if={topic.status != "proposed"}
-                    type="button"
-                    phx-click="remove_topic"
-                    phx-value-id={topic.id}
-                    class="btn btn-ghost btn-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </li>
-            </ul>
+                </label>
 
-            <div :if={@queued_excursions != []} class="mt-3">
-              <h3 class="text-sm font-medium mb-1">Asked for in chat</h3>
-              <ul id="queued-excursions" class="space-y-1">
-                <li
-                  :for={x <- @queued_excursions}
-                  id={"excursion-#{x.id}"}
-                  class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
-                >
-                  <span class="flex-1">
-                    {x.requested_venue}
-                    <span class="opacity-60">for {x.topic.label}</span>
-                  </span>
-                  <span class="text-xs opacity-60">on the next day {@poet.name} stays put</span>
-                  <button
-                    type="button"
-                    phx-click="remove_excursion"
-                    phx-value-id={x.id}
-                    class="btn btn-ghost btn-xs"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            <form id="add-topic-form" phx-submit="add_topic" class="flex gap-2 mt-3">
-              <input
-                type="text"
-                name="label"
-                class="input input-bordered input-sm flex-1"
-                placeholder="Add a topic, like kit airplanes or embodied minds"
-              />
-              <select name="kind" class="select select-bordered select-sm">
-                <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
-              </select>
-              <button type="submit" class="btn btn-sm">Add</button>
-            </form>
-          </section>
-
-          <div class="divider"></div>
-
-          <section id="learned">
-            <h2 class="text-lg font-semibold mb-1">What {@poet.name} has learned about you</h2>
-            <p class="text-sm opacity-60 mb-3">
-              Picked up from what you tap under an entry and what you say in chat. {@poet.name} applies these on its own — remove anything that isn't right.
-            </p>
-
-            <p :if={@learned == []} class="text-sm opacity-50">
-              Nothing yet. Answer a question under an entry, or just tell {@poet.name} in chat what you'd rather read about.
-            </p>
-
-            <ul class="space-y-2">
-              <li
-                :for={pref <- @learned}
-                class="flex items-start gap-2 p-2 rounded-lg border border-base-200"
-              >
-                <div class="flex-1">
-                  <div class="text-sm">
-                    <span :if={pref.polarity == "avoid"} class="opacity-60">less: </span>{pref.label}
-                  </div>
-                  <div class="text-xs opacity-50">
-                    {source_label(pref.source)}
-                    <span :if={pref.weight > 1}>· mentioned {pref.weight}×</span>
-                    <span :if={pref.evidence["quote"]} class="italic">
-                      · &ldquo;{pref.evidence["quote"]}&rdquo;
+                <label class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="is_public"
+                    class="toggle toggle-primary"
+                    checked={@poet.is_public}
+                  />
+                  <span>
+                    <b>Public journal</b>
+                    <span class="block text-sm opacity-60">
+                      Show {@poet.name} on the world map; anyone can read the journal
                     </span>
-                  </div>
+                  </span>
+                </label>
+
+                <label class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="telegram_notify"
+                    class="toggle"
+                    checked={Map.get(@poet.settings || %{}, "telegram_notify", true)}
+                  />
+                  <span>Telegram note when a new entry is published</span>
+                </label>
+              </form>
+
+              <div class="mt-5">
+                <span class="text-sm font-medium">What {@poet.name} is reading</span>
+                <div class="mt-2">
+                  <.book_chips
+                    books={@reading_list}
+                    selected={selected_book_indices(@poet, @reading_list)}
+                    event="toggle_book"
+                  />
                 </div>
-                <button
-                  phx-click="dismiss_preference"
-                  phx-value-id={pref.id}
-                  class="btn btn-ghost btn-xs"
-                  title="Remove"
-                >
-                  ✕
-                </button>
-              </li>
-            </ul>
-
-            <details :if={@dismissed != []} class="mt-3">
-              <summary class="text-xs opacity-50 cursor-pointer">
-                Removed ({length(@dismissed)})
-              </summary>
-              <ul class="mt-2 space-y-1">
-                <li :for={pref <- @dismissed} class="flex items-center gap-2 text-sm opacity-60">
-                  <span class="flex-1">{pref.label}</span>
-                  <button
-                    phx-click="restore_preference"
-                    phx-value-id={pref.id}
-                    class="btn btn-ghost btn-xs"
+                <ul :if={custom_books(@poet, @reading_list) != []} class="mt-2 space-y-1">
+                  <li
+                    :for={book <- custom_books(@poet, @reading_list)}
+                    class="flex items-center gap-2 text-sm"
                   >
-                    restore
-                  </button>
-                </li>
-              </ul>
-            </details>
-          </section>
-
-          <div class="divider"></div>
-
-          <h2 class="font-semibold mb-2">Credits</h2>
-          <div class="flex items-baseline gap-3">
-            <span class="text-3xl font-semibold" id="credits-balance">
-              {Credits.format(@balance)}
-            </span>
-            <span class="text-sm opacity-60">credits</span>
-          </div>
-          <p class={["text-sm mt-1", @credits_low && "text-warning"]}>{runway_text(@runway)}</p>
-          <p :if={@credits_exhausted} class="text-sm text-error mt-1">
-            Your poet is resting until you top up.
-          </p>
-          <p class="text-xs opacity-60 mt-2 mb-3">
-            Each day's journey costs {Credits.format(Credits.daily_run_cost(@poet))}
-            {if Poet.mode(@poet) == "scout", do: "credits (Trip Scout)", else: "credit (Wanderer)"};
-            chatting and drawings are included.
-          </p>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-            <form :for={pack <- @packs} method="post" action={~p"/credits/checkout"}>
-              <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-              <input type="hidden" name="pack" value={pack.id} />
-              <button type="submit" class="btn btn-outline btn-sm w-full flex-col h-auto py-2">
-                <span class="font-semibold">{pack.credits} credits</span>
-                <span class="text-xs opacity-70">{dollars(pack.cents)}</span>
-              </button>
-            </form>
-          </div>
-          <p :if={@payments_mock} class="text-xs text-warning mb-3">
-            Payments are in test mode — purchases are mocked and free.
-          </p>
-
-          <details :if={@transactions != []} class="text-sm">
-            <summary class="cursor-pointer opacity-70">Recent activity</summary>
-            <ul class="mt-2 space-y-1">
-              <li :for={tx <- @transactions} class="flex justify-between gap-2">
-                <span>{tx_label(tx.kind)}</span>
-                <span class="opacity-60 text-xs">
-                  {Calendar.strftime(tx.inserted_at, "%b %-d")}
-                </span>
-                <span class={["tabular-nums", tx.amount < 0 && "opacity-70"]}>
-                  {signed(tx.amount)}
-                </span>
-              </li>
-            </ul>
-          </details>
-
-          <div class="divider"></div>
-
-          <section id="book">
-            <h2 class="font-semibold mb-2">Your book</h2>
-            <p class="text-sm opacity-70 mb-3">
-              The whole journal as one printable notebook: a chapter for every place,
-              a table of contents, every drawing with what it was drawn from, every
-              source written out. Print it or save it as a PDF from your browser. Free.
-            </p>
-            <a
-              href={~p"/journal/book"}
-              target="_blank"
-              class="btn btn-outline btn-sm"
-              id="open-book"
-            >
-              <.icon name="hero-book-open" class="size-4" /> Open the book
-            </a>
-
-            <div :if={@book && @book.pdf_enabled && @book.chapters > 0} class="mt-4" id="book-pdf">
-              <h3 class="text-sm font-medium mb-1">A PDF to keep</h3>
-              <p class="text-sm opacity-70 mb-2">
-                The book as a PDF file, made on {@poet.name}'s own machine, ready to download,
-                print or share. Free.
-              </p>
-
-              <div :if={@book.last_ready_pdf} class="text-sm mb-2" id="book-pdf-ready">
-                <a
-                  href={~p"/journal/book/pdf/#{@book.last_ready_pdf.id}"}
-                  class="link font-medium"
-                  id="book-pdf-download"
-                >
-                  <.icon name="hero-arrow-down-tray" class="size-4" /> Download the PDF
-                </a>
-                <.drive_save pdf={@book.last_ready_pdf} connected={@book.drive_connected} />
-                <span class="opacity-60 block">
-                  ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
-                    @book.last_ready_pdf.page_size
-                  )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
-                    @book.last_ready_pdf.rendered_at,
-                    "%b %-d"
-                  )})
-                </span>
+                    <span class="flex-1">{book["title"]}</span>
+                    <button
+                      type="button"
+                      phx-click="remove_book"
+                      phx-value-title={book["title"]}
+                      class="btn btn-ghost btn-xs"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                </ul>
               </div>
 
-              <p
-                :if={match?(%{status: "rendering"}, @book.pdf)}
-                class="text-sm mb-2"
-                id="book-pdf-rendering"
-              >
-                <span class="loading loading-dots loading-xs align-middle"></span>
-                Making your PDF. The first one takes a couple of minutes longer while {@poet.name}'s machine gets ready.
-              </p>
-
-              <p
-                :if={match?(%{status: "failed"}, @book.pdf)}
-                class="text-sm text-warning mb-2"
-                id="book-pdf-failed"
-              >
-                The last PDF did not come out. You can try again.
-              </p>
-
-              <form
-                :if={!match?(%{status: "rendering"}, @book.pdf)}
-                phx-submit="make_pdf"
-                id="make-pdf-form"
-                class="flex flex-wrap items-end gap-2"
-              >
-                <label class="text-xs">
-                  <span class="block opacity-70 mb-1">Paper</span>
-                  <select name="page_size" class="select select-sm">
-                    <option value="a5">A5</option>
-                    <option value="a4">A4</option>
-                    <option value="letter">Letter</option>
-                  </select>
-                </label>
-                <label :if={@book.has_composed} class="text-xs">
-                  <span class="block opacity-70 mb-1">Edition</span>
-                  <select name="variant" class="select select-sm">
-                    <option value="composed">Composed</option>
-                    <option value="plain">As written</option>
-                  </select>
-                </label>
-                <button
-                  type="submit"
-                  class="btn btn-sm btn-outline"
-                  disabled={@book.pdf_blocker not in [nil, :poet_busy]}
-                  id="make-pdf-button"
-                >
-                  {if @book.last_ready_pdf, do: "Make a new PDF", else: "Make the PDF"}
-                </button>
+              <form id="add-book-form" phx-submit="add_book" class="flex gap-2 mt-3">
+                <input
+                  type="text"
+                  name="title"
+                  class="input input-bordered input-sm flex-1"
+                  placeholder="Add another book for the road…"
+                />
+                <button type="submit" class="btn btn-sm">Add</button>
               </form>
-              <p :if={@book.pdf_blocker == :daily_cap} class="text-xs opacity-70 mt-1">
-                That is enough PDFs for today. Try again tomorrow.
+            </.settings_section>
+
+            <.settings_section id="journey" title="Journey">
+              <div class="flex gap-2 mb-3">
+                <button
+                  phx-click="switch_mode"
+                  phx-value-mode="wander"
+                  class={["btn btn-sm flex-1", Poet.mode(@poet) == "wander" && "btn-primary"]}
+                >
+                  🧭 Wanderer
+                </button>
+                <button
+                  phx-click="switch_mode"
+                  phx-value-mode="scout"
+                  class={["btn btn-sm flex-1", Poet.mode(@poet) == "scout" && "btn-primary"]}
+                >
+                  🗺️ Trip Scout
+                </button>
+              </div>
+              <p class="text-xs opacity-60 mb-4">
+                Switching missions repacks your poet (~2 minutes). Trip Scouts follow the
+                itinerary below, in order, on a more careful model.
               </p>
-              <button
-                :if={@book.drive_connected}
-                type="button"
-                phx-click="disconnect_drive"
-                class="link text-xs opacity-60 mt-2 block"
-                id="disconnect-drive"
+
+              <h3 class="text-sm font-medium mb-2">
+                Trip itinerary {if Poet.mode(@poet) != "scout", do: "(used in Trip Scout mode)"}
+              </h3>
+              <form phx-submit="search_stop" class="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  name="query"
+                  value={@stop_query}
+                  class="input input-bordered input-sm flex-1"
+                  placeholder="Add a place…"
+                />
+                <button type="submit" class="btn btn-sm">Search</button>
+              </form>
+              <p :if={@stop_error} class="text-error text-xs mb-2">{@stop_error}</p>
+              <div :if={@stop_results != []} class="space-y-1 mb-2">
+                <button
+                  :for={{result, idx} <- Enum.with_index(@stop_results)}
+                  phx-click="add_stop"
+                  phx-value-idx={idx}
+                  class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
+                >
+                  + {result.place_name}
+                </button>
+              </div>
+              <ol :if={@stops != []} class="space-y-1 mb-2">
+                <li
+                  :for={stop <- @stops}
+                  class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
+                >
+                  <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
+                  <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
+                    {stop.place_name}
+                    <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
+                      asked in chat
+                    </span>
+                  </span>
+                  <button
+                    :if={is_nil(stop.visited_at)}
+                    phx-click="remove_stop"
+                    phx-value-id={stop.id}
+                    class="btn btn-ghost btn-xs"
+                  >
+                    ✕
+                  </button>
+                </li>
+              </ol>
+              <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
+            </.settings_section>
+
+            <.settings_section id="book" title="Your book">
+              <p class="text-sm opacity-70 mb-3">
+                The whole journal as one printable notebook: a chapter for every place,
+                a table of contents, every drawing with what it was drawn from, every
+                source written out. Print it or save it as a PDF from your browser. Free.
+              </p>
+              <a
+                href={~p"/journal/book"}
+                target="_blank"
+                class="btn btn-outline btn-sm"
+                id="open-book"
               >
-                Disconnect Google Drive
-              </button>
-              <p :if={@book.pdf_blocker == :no_sprite} class="text-xs opacity-70 mt-1">
-                {@poet.name} is still setting out.
-              </p>
-            </div>
+                <.icon name="hero-book-open" class="size-4" /> Open the book
+              </a>
 
-            <div :if={@book && @book.chapters > 0} class="mt-4" id="compose-book">
-              <h3 class="text-sm font-medium mb-1">A composed edition</h3>
-              <p class="text-sm opacity-70 mb-2">
-                {@poet.name} writes the words around the journal: a dedication to you,
-                a foreword, an opening for each place, an epilogue, and a few of its own
-                lines set on pages of their own. The journal itself is not changed.
+              <div :if={@book && @book.pdf_enabled && @book.chapters > 0} class="mt-4" id="book-pdf">
+                <h3 class="text-sm font-medium mb-1">A PDF to keep</h3>
+                <p class="text-sm opacity-70 mb-2">
+                  The book as a PDF file, made on {@poet.name}'s own machine, ready to download,
+                  print or share. Free.
+                </p>
+
+                <div :if={@book.last_ready_pdf} class="text-sm mb-2" id="book-pdf-ready">
+                  <a
+                    href={~p"/journal/book/pdf/#{@book.last_ready_pdf.id}"}
+                    class="link font-medium"
+                    id="book-pdf-download"
+                  >
+                    <.icon name="hero-arrow-down-tray" class="size-4" /> Download the PDF
+                  </a>
+                  <.drive_save pdf={@book.last_ready_pdf} connected={@book.drive_connected} />
+                  <span class="opacity-60 block">
+                    ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
+                      @book.last_ready_pdf.page_size
+                    )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
+                      @book.last_ready_pdf.rendered_at,
+                      "%b %-d"
+                    )})
+                  </span>
+                </div>
+
+                <p
+                  :if={match?(%{status: "rendering"}, @book.pdf)}
+                  class="text-sm mb-2"
+                  id="book-pdf-rendering"
+                >
+                  <span class="loading loading-dots loading-xs align-middle"></span>
+                  Making your PDF. The first one takes a couple of minutes longer while {@poet.name}'s machine gets ready.
+                </p>
+
+                <p
+                  :if={match?(%{status: "failed"}, @book.pdf)}
+                  class="text-sm text-warning mb-2"
+                  id="book-pdf-failed"
+                >
+                  The last PDF did not come out. You can try again.
+                </p>
+
+                <form
+                  :if={!match?(%{status: "rendering"}, @book.pdf)}
+                  phx-submit="make_pdf"
+                  id="make-pdf-form"
+                  class="flex flex-wrap items-end gap-2"
+                >
+                  <label class="text-xs">
+                    <span class="block opacity-70 mb-1">Paper</span>
+                    <select name="page_size" class="select select-sm">
+                      <option value="a5">A5</option>
+                      <option value="a4">A4</option>
+                      <option value="letter">Letter</option>
+                    </select>
+                  </label>
+                  <label :if={@book.has_composed} class="text-xs">
+                    <span class="block opacity-70 mb-1">Edition</span>
+                    <select name="variant" class="select select-sm">
+                      <option value="composed">Composed</option>
+                      <option value="plain">As written</option>
+                    </select>
+                  </label>
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-outline"
+                    disabled={@book.pdf_blocker not in [nil, :poet_busy]}
+                    id="make-pdf-button"
+                  >
+                    {if @book.last_ready_pdf, do: "Make a new PDF", else: "Make the PDF"}
+                  </button>
+                </form>
+                <p :if={@book.pdf_blocker == :daily_cap} class="text-xs opacity-70 mt-1">
+                  That is enough PDFs for today. Try again tomorrow.
+                </p>
+                <button
+                  :if={@book.drive_connected}
+                  type="button"
+                  phx-click="disconnect_drive"
+                  class="link text-xs opacity-60 mt-2 block"
+                  id="disconnect-drive"
+                >
+                  Disconnect Google Drive
+                </button>
+                <p :if={@book.pdf_blocker == :no_sprite} class="text-xs opacity-70 mt-1">
+                  {@poet.name} is still setting out.
+                </p>
+              </div>
+
+              <div :if={@book && @book.chapters > 0} class="mt-4" id="compose-book">
+                <h3 class="text-sm font-medium mb-1">A composed edition</h3>
+                <p class="text-sm opacity-70 mb-2">
+                  {@poet.name} writes the words around the journal: a dedication to you,
+                  a foreword, an opening for each place, an epilogue, and a few of its own
+                  lines set on pages of their own. The journal itself is not changed.
+                </p>
+
+                <p :if={book_status(@book) == :composing} class="text-sm" id="book-composing">
+                  <span class="loading loading-dots loading-xs align-middle"></span>
+                  {@poet.name} is composing your book. It takes a few minutes; this page
+                  updates when it is done.
+                </p>
+
+                <p :if={book_status(@book) == :ready} class="text-sm mb-2" id="book-ready">
+                  Composed on {Calendar.strftime(@book.edition.composed_at, "%B %-d")}.
+                  It is in the book now.
+                </p>
+
+                <p
+                  :if={book_status(@book) == :failed}
+                  class="text-sm text-warning mb-2"
+                  id="book-failed"
+                >
+                  The last composition did not finish, so nothing was charged for it.
+                </p>
+
+                <button
+                  :if={book_status(@book) != :composing}
+                  phx-click="compose_book"
+                  class="btn btn-sm btn-primary"
+                  disabled={@book.blocker not in [nil, :poet_busy]}
+                  id="compose-book-button"
+                >
+                  {if book_status(@book) == :ready,
+                    do: "Compose it again",
+                    else: "Ask #{@poet.name} to compose it"}
+                  <span class="opacity-80">
+                    ({if @book.exempt,
+                      do: "free",
+                      else: "#{Credits.format(@book.cost)} #{credit_word(@book.cost)}"})
+                  </span>
+                </button>
+                <p
+                  :if={@book.blocker == :insufficient_credits}
+                  class="text-xs text-warning mt-1"
+                >
+                  Not enough credits for a composed edition.
+                </p>
+                <p :if={@book.blocker == :daily_cap} class="text-xs opacity-70 mt-1">
+                  That is enough books for today. Try again tomorrow.
+                </p>
+                <p :if={@book.blocker == :no_sprite} class="text-xs opacity-70 mt-1">
+                  {@poet.name} is still setting out.
+                </p>
+              </div>
+            </.settings_section>
+
+            <.settings_section id="topics" title={"Topics " <> @poet.name <> " follows for you"}>
+              <p class="text-sm opacity-60 mb-3">
+                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
               </p>
 
-              <p :if={book_status(@book) == :composing} class="text-sm" id="book-composing">
-                <span class="loading loading-dots loading-xs align-middle"></span>
-                {@poet.name} is composing your book. It takes a few minutes; this page
-                updates when it is done.
+              <p :if={@topics == []} class="text-sm opacity-50 mb-2">
+                None yet.
               </p>
 
-              <p :if={book_status(@book) == :ready} class="text-sm mb-2" id="book-ready">
-                Composed on {Calendar.strftime(@book.edition.composed_at, "%B %-d")}.
-                It is in the book now.
+              <ul class="space-y-2">
+                <li
+                  :for={topic <- @topics}
+                  id={"topic-#{topic.id}"}
+                  class={[
+                    "p-2 rounded-lg border border-base-200",
+                    topic.status == "paused" && "opacity-60"
+                  ]}
+                >
+                  <form
+                    id={"topic-form-#{topic.id}"}
+                    phx-change="save_topic"
+                    phx-value-id={topic.id}
+                    class="flex flex-wrap items-center gap-2"
+                  >
+                    <input type="hidden" name="topic_id" value={topic.id} />
+                    <input
+                      type="text"
+                      name="label"
+                      phx-debounce="750"
+                      value={topic.label}
+                      class="input input-bordered input-sm flex-1 min-w-40"
+                    />
+                    <select name="kind" class="select select-bordered select-sm">
+                      <option
+                        :for={{value, label} <- kind_options()}
+                        value={value}
+                        selected={(topic.kind || "") == value}
+                      >
+                        {label}
+                      </option>
+                    </select>
+                    <select
+                      name="every_days"
+                      class="select select-bordered select-sm"
+                      disabled={topic.status == "proposed"}
+                    >
+                      <option
+                        :for={{days, label} <- cadence_options()}
+                        value={days}
+                        selected={topic.every_days == days}
+                      >
+                        {label}
+                      </option>
+                    </select>
+                  </form>
+                  <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
+                    <span :if={topic_status_label(topic)}>{topic_status_label(topic)}</span>
+                    <span :if={topic_schedule(topic, @poet.name)}>{topic_schedule(topic, @poet.name)}</span>
+                    <span :if={topic.evidence["quote"]} class="italic">
+                      &ldquo;{topic.evidence["quote"]}&rdquo;
+                    </span>
+                    <span class="flex-1"></span>
+                    <button
+                      :if={topic.status == "proposed"}
+                      type="button"
+                      phx-click="keep_topic"
+                      phx-value-id={topic.id}
+                      class="btn btn-primary btn-xs"
+                    >
+                      Keep
+                    </button>
+                    <button
+                      :if={topic.status == "proposed"}
+                      type="button"
+                      phx-click="remove_topic"
+                      phx-value-id={topic.id}
+                      class="btn btn-ghost btn-xs"
+                    >
+                      Not this
+                    </button>
+                    <button
+                      :if={topic.status == "active"}
+                      type="button"
+                      phx-click="pause_topic"
+                      phx-value-id={topic.id}
+                      class="btn btn-ghost btn-xs"
+                    >
+                      Pause
+                    </button>
+                    <button
+                      :if={topic.status == "paused"}
+                      type="button"
+                      phx-click="resume_topic"
+                      phx-value-id={topic.id}
+                      class="btn btn-ghost btn-xs"
+                    >
+                      Resume
+                    </button>
+                    <button
+                      :if={topic.status != "proposed"}
+                      type="button"
+                      phx-click="remove_topic"
+                      phx-value-id={topic.id}
+                      class="btn btn-ghost btn-xs"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              </ul>
+
+              <div :if={@queued_excursions != []} class="mt-3">
+                <h3 class="text-sm font-medium mb-1">Asked for in chat</h3>
+                <ul id="queued-excursions" class="space-y-1">
+                  <li
+                    :for={x <- @queued_excursions}
+                    id={"excursion-#{x.id}"}
+                    class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
+                  >
+                    <span class="flex-1">
+                      {x.requested_venue}
+                      <span class="opacity-60">for {x.topic.label}</span>
+                    </span>
+                    <span class="text-xs opacity-60">on the next day {@poet.name} stays put</span>
+                    <button
+                      type="button"
+                      phx-click="remove_excursion"
+                      phx-value-id={x.id}
+                      class="btn btn-ghost btn-xs"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <form id="add-topic-form" phx-submit="add_topic" class="flex gap-2 mt-3">
+                <input
+                  type="text"
+                  name="label"
+                  class="input input-bordered input-sm flex-1"
+                  placeholder="Add a topic, like kit airplanes or embodied minds"
+                />
+                <select name="kind" class="select select-bordered select-sm">
+                  <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
+                </select>
+                <button type="submit" class="btn btn-sm">Add</button>
+              </form>
+            </.settings_section>
+
+            <.settings_section id="learned" title={"What " <> @poet.name <> " has learned about you"}>
+              <p class="text-sm opacity-60 mb-3">
+                Picked up from what you tap under an entry and what you say in chat. {@poet.name} applies these on its own — remove anything that isn't right.
               </p>
 
-              <p
-                :if={book_status(@book) == :failed}
-                class="text-sm text-warning mb-2"
-                id="book-failed"
-              >
-                The last composition did not finish, so nothing was charged for it.
+              <p :if={@learned == []} class="text-sm opacity-50">
+                Nothing yet. Answer a question under an entry, or just tell {@poet.name} in chat what you'd rather read about.
               </p>
 
-              <button
-                :if={book_status(@book) != :composing}
-                phx-click="compose_book"
-                class="btn btn-sm btn-primary"
-                disabled={@book.blocker not in [nil, :poet_busy]}
-                id="compose-book-button"
-              >
-                {if book_status(@book) == :ready,
-                  do: "Compose it again",
-                  else: "Ask #{@poet.name} to compose it"}
-                <span class="opacity-80">
-                  ({if @book.exempt,
-                    do: "free",
-                    else: "#{Credits.format(@book.cost)} #{credit_word(@book.cost)}"})
+              <ul class="space-y-2">
+                <li
+                  :for={pref <- @learned}
+                  class="flex items-start gap-2 p-2 rounded-lg border border-base-200"
+                >
+                  <div class="flex-1">
+                    <div class="text-sm">
+                      <span :if={pref.polarity == "avoid"} class="opacity-60">less: </span>{pref.label}
+                    </div>
+                    <div class="text-xs opacity-50">
+                      {source_label(pref.source)}
+                      <span :if={pref.weight > 1}>· mentioned {pref.weight}×</span>
+                      <span :if={pref.evidence["quote"]} class="italic">
+                        · &ldquo;{pref.evidence["quote"]}&rdquo;
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    phx-click="dismiss_preference"
+                    phx-value-id={pref.id}
+                    class="btn btn-ghost btn-xs"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                </li>
+              </ul>
+
+              <details :if={@dismissed != []} class="mt-3">
+                <summary class="text-xs opacity-50 cursor-pointer">
+                  Removed ({length(@dismissed)})
+                </summary>
+                <ul class="mt-2 space-y-1">
+                  <li :for={pref <- @dismissed} class="flex items-center gap-2 text-sm opacity-60">
+                    <span class="flex-1">{pref.label}</span>
+                    <button
+                      phx-click="restore_preference"
+                      phx-value-id={pref.id}
+                      class="btn btn-ghost btn-xs"
+                    >
+                      restore
+                    </button>
+                  </li>
+                </ul>
+              </details>
+            </.settings_section>
+
+            <.settings_section id="credits" title="Credits">
+              <div class="flex items-baseline gap-3">
+                <span class="text-3xl font-semibold" id="credits-balance">
+                  {Credits.format(@balance)}
                 </span>
-              </button>
-              <p
-                :if={@book.blocker == :insufficient_credits}
-                class="text-xs text-warning mt-1"
-              >
-                Not enough credits for a composed edition.
+                <span class="text-sm opacity-60">credits</span>
+              </div>
+              <p class={["text-sm mt-1", @credits_low && "text-warning"]}>{runway_text(@runway)}</p>
+              <p :if={@credits_exhausted} class="text-sm text-error mt-1">
+                Your poet is resting until you top up.
               </p>
-              <p :if={@book.blocker == :daily_cap} class="text-xs opacity-70 mt-1">
-                That is enough books for today. Try again tomorrow.
+              <p class="text-xs opacity-60 mt-2 mb-3">
+                Each day's journey costs {Credits.format(Credits.daily_run_cost(@poet))}
+                {if Poet.mode(@poet) == "scout", do: "credits (Trip Scout)", else: "credit (Wanderer)"};
+                chatting and drawings are included.
               </p>
-              <p :if={@book.blocker == :no_sprite} class="text-xs opacity-70 mt-1">
-                {@poet.name} is still setting out.
-              </p>
-            </div>
-          </section>
 
-          <div class="divider"></div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <form :for={pack <- @packs} method="post" action={~p"/credits/checkout"}>
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value={Plug.CSRFProtection.get_csrf_token()}
+                  />
+                  <input type="hidden" name="pack" value={pack.id} />
+                  <button type="submit" class="btn btn-outline btn-sm w-full flex-col h-auto py-2">
+                    <span class="font-semibold">{pack.credits} credits</span>
+                    <span class="text-xs opacity-70">{dollars(pack.cents)}</span>
+                  </button>
+                </form>
+              </div>
+              <p :if={@payments_mock} class="text-xs text-warning mb-3">
+                Payments are in test mode — purchases are mocked and free.
+              </p>
 
-          <h2 class="font-semibold mb-2">Mission</h2>
-          <div class="flex gap-2 mb-3">
-            <button
-              phx-click="switch_mode"
-              phx-value-mode="wander"
-              class={["btn btn-sm flex-1", Poet.mode(@poet) == "wander" && "btn-primary"]}
-            >
-              🧭 Wanderer
-            </button>
-            <button
-              phx-click="switch_mode"
-              phx-value-mode="scout"
-              class={["btn btn-sm flex-1", Poet.mode(@poet) == "scout" && "btn-primary"]}
-            >
-              🗺️ Trip Scout
-            </button>
+              <details :if={@transactions != []} class="text-sm">
+                <summary class="cursor-pointer opacity-70">Recent activity</summary>
+                <ul class="mt-2 space-y-1">
+                  <li :for={tx <- @transactions} class="flex justify-between gap-2">
+                    <span>{tx_label(tx.kind)}</span>
+                    <span class="opacity-60 text-xs">
+                      {Calendar.strftime(tx.inserted_at, "%b %-d")}
+                    </span>
+                    <span class={["tabular-nums", tx.amount < 0 && "opacity-70"]}>
+                      {signed(tx.amount)}
+                    </span>
+                  </li>
+                </ul>
+              </details>
+            </.settings_section>
+
+            <.settings_section id="notifications" title="Notifications">
+              <.push_settings push={@push} poet={@poet} />
+              <div class="settings-rule"></div>
+              <.telegram_settings telegram={@telegram} user={@user} />
+            </.settings_section>
+
+            <.settings_section id="account" title="Account">
+              <form id="user-settings-form" phx-change="save_user" class="mb-4">
+                <label class="block">
+                  <span class="text-sm font-medium">Your name</span>
+                  <input
+                    type="text"
+                    name="name"
+                    phx-debounce="750"
+                    value={@user.name}
+                    class="input input-bordered w-full mt-1"
+                  />
+                  <span class="text-xs opacity-50">How {@poet.name} addresses you.</span>
+                </label>
+              </form>
+
+              <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm mt-4">Sign out</a>
+            </.settings_section>
           </div>
-          <p class="text-xs opacity-60 mb-4">
-            Switching missions repacks your poet (~2 minutes). Trip Scouts follow the
-            itinerary below, in order, on a more careful model.
-          </p>
-
-          <h3 class="text-sm font-medium mb-2">
-            Trip itinerary {if Poet.mode(@poet) != "scout", do: "(used in Trip Scout mode)"}
-          </h3>
-          <form phx-submit="search_stop" class="flex gap-2 mb-2">
-            <input
-              type="text"
-              name="query"
-              value={@stop_query}
-              class="input input-bordered input-sm flex-1"
-              placeholder="Add a place…"
-            />
-            <button type="submit" class="btn btn-sm">Search</button>
-          </form>
-          <p :if={@stop_error} class="text-error text-xs mb-2">{@stop_error}</p>
-          <div :if={@stop_results != []} class="space-y-1 mb-2">
-            <button
-              :for={{result, idx} <- Enum.with_index(@stop_results)}
-              phx-click="add_stop"
-              phx-value-idx={idx}
-              class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
-            >
-              + {result.place_name}
-            </button>
-          </div>
-          <ol :if={@stops != []} class="space-y-1 mb-2">
-            <li
-              :for={stop <- @stops}
-              class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
-            >
-              <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
-              <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
-                {stop.place_name}
-                <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
-                  asked in chat
-                </span>
-              </span>
-              <button
-                :if={is_nil(stop.visited_at)}
-                phx-click="remove_stop"
-                phx-value-id={stop.id}
-                class="btn btn-ghost btn-xs"
-              >
-                ✕
-              </button>
-            </li>
-          </ol>
-          <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
-
-          <div class="divider"></div>
-
-          <.push_settings push={@push} poet={@poet} />
-
-          <div class="divider"></div>
-
-          <.telegram_settings telegram={@telegram} user={@user} />
-
-          <div class="divider"></div>
-
-          <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">Sign out</a>
         </div>
 
-        <div :if={is_nil(@poet)}>
+        <div :if={is_nil(@poet)} class="max-w-xl">
           <p class="opacity-70">
             No poet yet — <.link navigate={~p"/onboarding"} class="link">set one up</.link>.
           </p>

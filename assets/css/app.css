@@ -121,6 +121,119 @@ h1, h2, h3 {
   letter-spacing: -0.005em;
 }
 
+/* ---- Settings: a side menu and one card per section --------------------- */
+/* The page grew to a dozen blocks in one column. Each is a card now, with a
+   menu beside it that follows the reader (settings_nav_hook.js). */
+
+.settings-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .settings-layout {
+    grid-template-columns: 12rem 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.settings-nav {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.settings-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-nav a {
+  flex: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--color-base-content);
+  opacity: 0.65;
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--color-base-200);
+}
+
+.settings-nav a:hover {
+  opacity: 1;
+}
+
+.settings-nav a[aria-current="true"] {
+  opacity: 1;
+  font-weight: 600;
+  background: var(--color-base-300);
+}
+
+@media (min-width: 64rem) {
+  .settings-nav {
+    position: sticky;
+    top: 1.5rem;
+    display: block;
+    overflow: visible;
+    border-left: 1px solid var(--color-base-300);
+  }
+
+  .settings-nav a {
+    display: block;
+    border-radius: 0;
+    background: none;
+    padding: 0.4rem 0.75rem;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+  }
+
+  .settings-nav a[aria-current="true"] {
+    background: none;
+    border-left-color: var(--color-primary);
+  }
+}
+
+.settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.settings-section {
+  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  /* a little air above a section the menu jumped to */
+  scroll-margin-top: 1.5rem;
+}
+
+.settings-section-head {
+  margin-bottom: 1rem;
+}
+
+.settings-section-head h2 {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.settings-section-head p {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.15rem;
+}
+
+/* A quiet line between two halves of one section (push and Telegram). */
+.settings-rule {
+  height: 1px;
+  background: var(--color-base-300);
+  margin: 1.25rem 0;
+}
+
 /* ---- Notebook look for journal entries ---------------------------------- */
 /* Cream ruled paper, handwritten text, drawings "taped" onto the page.
    The paper stays paper-colored in dark mode — only the desk around darkens. */
