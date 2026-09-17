@@ -59,3 +59,10 @@ config :traveling_poet,
   book_pdf_runner: TravelingPoet.FakePdfRunner,
   book_pdf_storage: TravelingPoet.FakePdfStorage,
   book_pdf_poll_ms: 0
+
+# Google Drive: every request through Req.Test, the save runs inline when a
+# test calls Books.run_drive_save/2, and PDF bytes never come from the bucket.
+config :traveling_poet,
+  drive_req_options: [plug: {Req.Test, TravelingPoet.GoogleDrive}],
+  book_drive_in_background: false,
+  book_pdf_bytes: &TravelingPoet.FakePdfStorage.bytes/1

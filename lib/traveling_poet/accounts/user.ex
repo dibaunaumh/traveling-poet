@@ -45,6 +45,13 @@ defmodule TravelingPoet.Accounts.User do
     field :credits_balance, :integer, default: 0
     field :low_credits_notified_at, :utc_datetime
 
+    # Google Drive (drive.file grant), for saving the book's PDF
+    field :drive_refresh_token, :string
+    field :drive_access_token, :string
+    field :drive_token_expires_at, :utc_datetime
+    field :drive_connected_at, :utc_datetime
+    field :drive_folder_id, :string
+
     has_one :poet, TravelingPoet.Poets.Poet
 
     timestamps()
@@ -82,7 +89,12 @@ defmodule TravelingPoet.Accounts.User do
       :daily_budget_cents,
       :quota_exempt,
       :credits_balance,
-      :low_credits_notified_at
+      :low_credits_notified_at,
+      :drive_refresh_token,
+      :drive_access_token,
+      :drive_token_expires_at,
+      :drive_connected_at,
+      :drive_folder_id
     ])
     |> validate_required([:email])
     |> validate_has_identity()

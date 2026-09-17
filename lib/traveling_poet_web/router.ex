@@ -100,6 +100,7 @@ defmodule TravelingPoetWeb.Router do
     # Declared ahead of /journal/:date so "book" is never read as a date.
     get "/journal/book", BookController, :show
     get "/journal/book/pdf/:id", BookController, :download_pdf
+    get "/journal/book/drive/connect", BookController, :connect_drive
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do

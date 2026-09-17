@@ -44,4 +44,6 @@ defmodule TravelingPoet.FakePdfStorage do
 
   def verify(_key), do: Application.get_env(:traveling_poet, :fake_pdf_verify, {:ok, 4096})
   def delete(_key), do: :ok
+
+  def bytes(_key), do: {:ok, "%PDF-1.7 fake book"}
 end
