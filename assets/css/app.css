@@ -1836,8 +1836,10 @@ mark.marker.marker-sent {
   font-size: 1.5rem;
 }
 
+/* A venue's name is the point of the line: give it the width of the card,
+   at a size that still fits the longest one the poet is likely to write. */
 .route-svg.is-compact .route-venue-label {
-  font-size: 1.15rem;
+  font-size: 1.02rem;
 }
 
 .route-spine {
