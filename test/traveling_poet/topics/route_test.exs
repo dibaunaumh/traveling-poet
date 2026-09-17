@@ -61,6 +61,36 @@ defmodule TravelingPoet.Topics.RouteTest do
     assert d.height > 160
   end
 
+  test "a venue named at length runs onto a second line rather than vanishing" do
+    long = "Anthropic — Automated Alignment Researchers program"
+
+    [venue] = Route.build("AI alignment", [excursion(1, long, ~D[2026-09-16])]).venues
+    assert length(venue.lines) == 2
+    assert Enum.join(venue.lines, " ") =~ "Automated Alignment"
+    assert Enum.all?(venue.lines, &(String.length(&1) <= 34))
+    # the date clears the second line
+    assert venue.sub_y > venue.label_y + 18
+
+    # two of them do not collide
+    d =
+      Route.build("AI alignment", [
+        excursion(1, long, ~D[2026-09-16]),
+        excursion(2, long, ~D[2026-09-17])
+      ])
+
+    [a, b] = d.venues
+    assert b.y - a.y > 54
+    assert d.height > b.y
+
+    # one that runs on past two lines ends in an ellipsis
+    longer =
+      "ECogS 2026 — International Conference on Embodied Cognitive Science and Its Many Friends"
+
+    [only] = Route.build("Embodied minds", [excursion(1, longer, ~D[2026-09-09])]).venues
+    assert length(only.lines) == 2
+    assert String.ends_with?(List.last(only.lines), "…")
+  end
+
   test "long names are cut on a word, and an empty journey still has a drawing" do
     assert Route.clip("An Alien Mind and the Long Road After It", 20) == "An Alien Mind and…"
     assert Route.clip("Short", 20) == "Short"

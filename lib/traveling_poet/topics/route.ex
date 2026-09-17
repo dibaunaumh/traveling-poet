@@ -20,8 +20,8 @@ defmodule TravelingPoet.Topics.Route do
   # full
   @root_x 108
   @venue_x 300
-  @find_dot_x 566
-  @width 880
+  @find_dot_x 624
+  @width 960
   @row 34
   @block_padding 26
   @top 30
@@ -45,36 +45,39 @@ defmodule TravelingPoet.Topics.Route do
   end
 
   defp compact(topic_label, excursions) do
-    venues =
+    {venues, bottom} =
       excursions
       |> Enum.with_index(1)
-      |> Enum.map(fn {x, n} ->
-        y = @c_first_y + (n - 1) * @c_step
+      |> Enum.map_reduce(@c_first_y, fn {x, n}, y ->
+        lines = wrap(x.label, 32, 2)
 
-        %{
+        venue = %{
           kind: :venue,
           id: x.id,
           n: n,
-          label: clip(x.label, 36),
+          label: Enum.join(lines, " "),
+          lines: lines,
           sub: x.date && Calendar.strftime(x.date, "%b %-d"),
           href: x.url,
           current?: Map.get(x, :current?, false),
           x: @c_spine_x,
           y: y,
           label_x: @c_spine_x + 24,
-          label_y: y - 1,
-          sub_y: y + 16,
+          label_y: y - 1 - (length(lines) - 1) * 9,
+          sub_y: y + 16 + (length(lines) - 1) * 9,
           finds: []
         }
+
+        {venue, y + @c_step + (length(lines) - 1) * 20}
       end)
 
-    height = max(@c_first_y + length(venues) * @c_step, 130)
+    height = max(bottom - @c_step + 60, 130)
 
     %{
       layout: :compact,
       width: @c_width,
       height: height,
-      root: %{kind: :topic, label: clip(topic_label, 34), x: 18, y: 34, ring?: false},
+      root: %{kind: :topic, label: clip(topic_label, 38), x: 18, y: 34, ring?: false},
       venues: venues,
       edges: spine(venues)
     }
@@ -102,22 +105,24 @@ defmodule TravelingPoet.Topics.Route do
       |> Enum.with_index(1)
       |> Enum.map_reduce(@top, fn {x, n}, y ->
         finds = Map.get(finds_by_excursion, x.id, [])
-        block = max(length(finds), 1) * @row + @block_padding
+        lines = wrap(x.label, 30, 2)
+        block = max(max(length(finds), 1) * @row, length(lines) * 22 + 10) + @block_padding
         centre = round(y + block / 2)
 
         venue = %{
           kind: :venue,
           id: x.id,
           n: n,
-          label: clip(x.label, 20),
+          label: Enum.join(lines, " "),
+          lines: lines,
           sub: x.date && Calendar.strftime(x.date, "%b %-d"),
           href: x.url,
           current?: Map.get(x, :current?, false),
           x: @venue_x,
           y: centre,
           label_x: @venue_x + 26,
-          label_y: centre - 2,
-          sub_y: centre + 15,
+          label_y: centre - 2 - (length(lines) - 1) * 9,
+          sub_y: centre + 15 + (length(lines) - 1) * 9,
           finds: place_finds(finds, y, block)
         }
 
@@ -190,6 +195,35 @@ defmodule TravelingPoet.Topics.Route do
             "#{find.dot_x - 6} #{find.y}"
       }
     end)
+  end
+
+  @doc """
+  A name over as many lines as it needs, up to `max_lines`, broken between
+  words. The last line is cut with an ellipsis when the name runs on: venues
+  come back named "ECogS 2026 — International Conference on Embodied Cognitive
+  Science", and one line of that in a notebook column is unreadable.
+  """
+  def wrap(nil, _per_line, _max_lines), do: [""]
+
+  def wrap(text, per_line, max_lines) do
+    text
+    |> String.trim()
+    |> String.split(~r/\s+/)
+    |> Enum.reduce([""], fn word, [line | done] ->
+      cond do
+        line == "" -> [word | done]
+        String.length(line) + 1 + String.length(word) <= per_line -> [line <> " " <> word | done]
+        true -> [word, line | done]
+      end
+    end)
+    |> Enum.reverse()
+    |> then(fn lines ->
+      case Enum.split(lines, max_lines) do
+        {kept, []} -> kept
+        {kept, _rest} -> List.update_at(kept, -1, &clip(&1 <> " …", per_line + 1))
+      end
+    end)
+    |> Enum.map(&clip(&1, per_line + 2))
   end
 
   @doc "Text that fits the node, cut on a whole word with an ellipsis."

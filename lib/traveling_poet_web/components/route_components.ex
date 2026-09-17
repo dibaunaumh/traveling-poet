@@ -59,7 +59,7 @@ defmodule TravelingPoetWeb.RouteComponents do
             x={venue.label_x}
             y={venue.label_y}
             class="route-venue-label"
-            label={venue.label}
+            lines={venue.lines}
             href={venue.href}
           />
           <text :if={venue.sub} x={venue.label_x} y={venue.sub_y} class="route-venue-date">
@@ -72,7 +72,7 @@ defmodule TravelingPoetWeb.RouteComponents do
               x={find.x}
               y={find.y + 4}
               class="route-find-label"
-              label={find.label}
+              lines={[find.label]}
               href={find.href}
             />
           </g>
@@ -89,17 +89,26 @@ defmodule TravelingPoetWeb.RouteComponents do
   attr :x, :integer, required: true
   attr :y, :integer, required: true
   attr :class, :string, required: true
-  attr :label, :string, required: true
+  attr :lines, :list, required: true, doc: "the label, already broken into lines"
   attr :href, :string, default: nil
 
-  # A label, linked when the poet gave a page for it. The anchor is inside
-  # the SVG, so it needs the xlink-free SVG2 form plus the usual rel.
+  # A label over one or more lines, linked when the poet gave a page for it.
+  # The anchor is inside the SVG, so it needs the xlink-free SVG2 form plus
+  # the usual rel.
   defp route_text(assigns) do
     ~H"""
     <a :if={@href} href={@href} target="_blank" rel="noopener noreferrer nofollow">
-      <text x={@x} y={@y} class={[@class, "is-link"]}>{@label}</text>
+      <text x={@x} y={@y} class={[@class, "is-link"]}>
+        <tspan :for={{line, i} <- Enum.with_index(@lines)} x={@x} dy={(i == 0 && 0) || 18}>
+          {line}
+        </tspan>
+      </text>
     </a>
-    <text :if={is_nil(@href)} x={@x} y={@y} class={@class}>{@label}</text>
+    <text :if={is_nil(@href)} x={@x} y={@y} class={@class}>
+      <tspan :for={{line, i} <- Enum.with_index(@lines)} x={@x} dy={(i == 0 && 0) || 18}>
+        {line}
+      </tspan>
+    </text>
     """
   end
 
