@@ -1686,3 +1686,160 @@ mark.marker.marker-sent {
 @media (prefers-reduced-motion: reduce) {
   .tour-slide { transition: none; }
 }
+
+/* ---- The excursion route: a topic, its venues, what they gave back ------- */
+
+.route-figure {
+  position: relative;
+  background: #fff;
+  padding: 0.8rem 0.6rem 0.4rem;
+  margin: 0.75rem 0 0.5rem;
+  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
+}
+
+/* the same tape as the map, so the two read as one notebook */
+.route-figure::before,
+.route-figure::after {
+  content: "";
+  position: absolute;
+  width: 5.5rem;
+  height: 1.6rem;
+  background: rgba(255, 244, 200, 0.6);
+  border-left: 1px dashed rgba(160, 140, 90, 0.3);
+  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
+  z-index: 1;
+}
+
+.route-figure::before {
+  top: -0.8rem;
+  left: -1.5rem;
+  transform: rotate(-38deg);
+}
+
+.route-figure::after {
+  top: -0.8rem;
+  right: -1.5rem;
+  transform: rotate(38deg);
+}
+
+.route-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.route-edge {
+  fill: none;
+  stroke: #6b5b40;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.65;
+}
+
+.route-twig {
+  stroke-width: 1.1;
+  stroke-dasharray: 4 5;
+  opacity: 0.5;
+}
+
+.route-root-ring {
+  fill: rgba(59, 74, 140, 0.07);
+  stroke: #3b4a8c;
+  stroke-width: 2;
+}
+
+.route-root-label,
+.route-venue-label,
+.route-find-label,
+.route-node-n,
+.route-root-kicker,
+.route-venue-date {
+  fill: #3a3226;
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+}
+
+.route-root-label {
+  font-family: "Caveat", cursive;
+  font-size: 1.35rem;
+  font-weight: 700;
+  fill: #3b4a8c;
+  text-anchor: middle;
+}
+
+.route-root-kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  opacity: 0.55;
+}
+
+.route-node {
+  fill: #fdf8ea;
+  stroke: #2f5d62;
+  stroke-width: 2;
+}
+
+.is-current .route-node {
+  fill: #2f5d62;
+}
+
+.is-current .route-node-n {
+  fill: #fdf8ea;
+}
+
+.is-current .route-venue-label {
+  font-weight: 700;
+}
+
+.route-node-n {
+  font-size: 0.85rem;
+  text-anchor: middle;
+}
+
+.route-venue-label {
+  font-family: "Caveat", cursive;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.route-venue-date {
+  font-size: 0.78rem;
+  opacity: 0.6;
+}
+
+.route-find-dot {
+  fill: #b7791f;
+  opacity: 0.8;
+}
+
+.route-find-label {
+  font-size: 0.92rem;
+  opacity: 0.85;
+}
+
+.route-svg a .is-link {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.route-svg a:hover .is-link {
+  fill: #2f5d62;
+}
+
+/* The compact route on a notebook page: a spine with the topic above it. */
+.route-svg.is-compact .route-root-label.is-left {
+  text-anchor: start;
+  font-size: 1.5rem;
+}
+
+.route-svg.is-compact .route-venue-label {
+  font-size: 1.15rem;
+}
+
+.route-spine {
+  stroke-dasharray: 7 6;
+}

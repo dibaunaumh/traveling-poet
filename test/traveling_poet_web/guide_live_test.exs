@@ -385,7 +385,8 @@ defmodule TravelingPoetWeb.GuideLiveTest do
       {user, poet} = guide_poet()
       {topic, first, _second} = with_two_excursions(poet)
 
-      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}")
+      # a topic opens on its route; this is about the lists
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=list")
       assert has_element?(view, "#guide-venue-all.btn-secondary")
       assert has_element?(view, "#guide-venue-#{first.id}", "ECogS 2026")
 
@@ -430,18 +431,32 @@ defmodule TravelingPoetWeb.GuideLiveTest do
       assert has_element?(view, "#guide-excursion-#{second.id}", "Nothing under this filter.")
     end
 
-    test "a map view asked for a topic falls back to the list", %{conn: conn} do
+    test "a topic has no map: the route drawing takes its place", %{conn: conn} do
       {user, poet} = guide_poet()
       seed_places(poet, [place("Tasca do Chico")])
-      {topic, _, _} = with_two_excursions(poet)
+      {topic, first, second} = with_two_excursions(poet)
 
       {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?view=map")
       view |> element("#guide-journey-topic-#{topic.id}") |> render_click()
-      assert has_element?(view, "#guide-finds")
+      html = render(view)
       refute has_element?(view, "#guide-map")
+      assert html =~ "route-svg"
+      # the whole journey: the topic, both venues, and the finds hanging off them
+      assert html =~ "Embodied minds"
+      assert html =~ "ECogS 2026"
+      assert html =~ "Machine Consciousness 0001"
+      assert html =~ "Shanahan keynote"
+      assert html =~ "Froese reflection"
+      assert has_element?(view, "#guide-view-route.btn-primary")
+      refute has_element?(view, "#guide-view-map")
 
-      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=map")
-      assert has_element?(view, "#guide-finds")
+      # the drawing stays whole when a venue or a chip narrows the lists
+      view |> element("#guide-venue-#{first.id}") |> render_click()
+      assert render(view) =~ "Froese reflection"
+      assert second.id > 0
+
+      {:ok, _view, html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=map")
+      assert html =~ "route-svg"
     end
 
     test "no row at all without a topic that has a published excursion", %{conn: conn} do

@@ -13,6 +13,7 @@ defmodule TravelingPoetWeb.GuideLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.GuideComponents
+  import TravelingPoetWeb.RouteComponents
 
   alias TravelingPoetWeb.GuideState
 
@@ -49,9 +50,9 @@ defmodule TravelingPoetWeb.GuideLive do
     do: {:noreply, push_patch(socket, to: guide_path(socket, stay: stay))}
 
   # Switching journey starts the new one fresh: all its filters, all its
-  # venues. A topic has no map, so a reader on the map lands on the list.
+  # venues. A topic has no map, so a reader on the map lands on its route.
   def handle_event("set_journey", %{"topic" => topic}, socket) do
-    view = if topic != "" and socket.assigns.view == "map", do: "list", else: socket.assigns.view
+    view = if topic != "" and socket.assigns.view == "map", do: "route", else: socket.assigns.view
     overrides = [topic: topic, excursion: "", filter: "all", view: view]
     {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
   end
@@ -86,6 +87,13 @@ defmodule TravelingPoetWeb.GuideLive do
       <div :if={@topic}>
         <.filter_chips filter={@filter} counts={@counts} options={topic_filters()} />
         <.venue_switcher excursions={@excursions} excursion={@excursion} />
+
+        <.excursion_route
+          :if={@view == "route"}
+          diagram={@route}
+          title={"Every excursion into #{@topic.label}, and what it brought back"}
+          empty={"No excursions into #{@topic.label} yet."}
+        />
 
         <p
           :if={@finds == [] and @view == "list"}

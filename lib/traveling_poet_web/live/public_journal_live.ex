@@ -2,8 +2,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents
+  import TravelingPoetWeb.RouteComponents
 
-  alias TravelingPoet.{Guide, Journal, Poets}
+  alias TravelingPoet.{Guide, Journal, Poets, Topics}
   alias TravelingPoet.Journal.{EntryBundle, Spreads}
 
   @impl true
@@ -139,6 +140,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
     |> assign_stay(poet, bundle.stay_id)
+    |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
     |> assign_spread(nil)
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
@@ -165,6 +167,17 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
+
+  # No coordinates to pin on an excursion: the journey is drawn instead.
+  defp assign_route(socket, poet, entry) do
+    case entry && Topics.excursion_of(entry) do
+      %{topic_id: id} = excursion when is_integer(id) ->
+        assign(socket, :route, Topics.journey_diagram(poet.id, excursion))
+
+      _ ->
+        assign(socket, :route, nil)
+    end
+  end
 
   # Link previews for a shared public entry: the day and title, the poet's
   # teaser, and the drawing. Only public poets reach this view, and their
@@ -226,8 +239,14 @@ defmodule TravelingPoetWeb.PublicJournalLive do
           </div>
         </div>
 
+        <.excursion_route
+          :if={not is_nil(@route) and !finds_spread?(assigns)}
+          diagram={@route}
+          title={"#{@poet.name}'s journey through this topic"}
+        />
+
         <div
-          :if={!places_spread?(assigns)}
+          :if={!places_spread?(assigns) and is_nil(@route)}
           id="public-poet-map"
           phx-hook="PoetMap"
           phx-update="ignore"

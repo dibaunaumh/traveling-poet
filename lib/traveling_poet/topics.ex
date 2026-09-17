@@ -14,7 +14,7 @@ defmodule TravelingPoet.Topics do
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Preferences.EntryPrompt
   alias TravelingPoet.Repo
-  alias TravelingPoet.Topics.{Excursion, Find, Topic}
+  alias TravelingPoet.Topics.{Excursion, Find, Route, Topic}
 
   @taken ~w(written published)
 
@@ -487,6 +487,44 @@ defmodule TravelingPoet.Topics do
     |> order_by([x], asc: x.scheduled_for, asc: x.id)
     |> preload(:topic)
     |> Repo.all()
+  end
+
+  ## The journey's shape
+
+  @doc """
+  The drawing for an excursion entry: this topic's published excursions, the
+  one being read marked. A topic has no coordinates, so this replaces the map.
+  """
+  def journey_diagram(poet_id, %Excursion{} = current) do
+    label = (current.topic && current.topic.label) || "this topic"
+
+    poet_id
+    |> list_published_excursions(current.topic_id)
+    |> Enum.map(&route_node(&1, current.id))
+    |> then(&Route.build(label, &1))
+  end
+
+  @doc "The same drawing for the guide, with every find hanging off its venue."
+  def guide_diagram(topic, excursions, finds_by_entry) do
+    finds =
+      Map.new(excursions, fn x ->
+        {x.id,
+         finds_by_entry
+         |> Map.get(x.journal_entry_id, [])
+         |> Enum.map(&%{id: &1.id, name: &1.name, url: &1.url, kind: &1.kind})}
+      end)
+
+    Route.build(topic.label, Enum.map(excursions, &route_node(&1, nil)), finds, mode: :full)
+  end
+
+  defp route_node(%Excursion{} = x, current_id) do
+    %{
+      id: x.id,
+      label: (x.venue_name && String.trim(x.venue_name)) || "an excursion",
+      date: x.scheduled_for,
+      url: x.venue_url,
+      current?: x.id == current_id
+    }
   end
 
   ## Finds
