@@ -47,13 +47,14 @@ defmodule TravelingPoetWeb.Layouts do
   def app(assigns) do
     ~H"""
     <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-200">
-      <div class="flex-1">
-        <a href="/" class="wordmark">
+      <div class="flex-1 min-w-0">
+        <a href="/" class="wordmark truncate">
           Traveling <em>Poet</em>
         </a>
       </div>
       <div class="flex-none">
-        <ul class="flex px-1 space-x-2 items-center">
+        <%!-- Wide: every destination in a row. --%>
+        <ul class="hidden sm:flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
             <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>Journal</.link>
           </li>
@@ -85,6 +86,51 @@ defmodule TravelingPoetWeb.Layouts do
             <.theme_toggle />
           </li>
         </ul>
+
+        <%!-- Narrow: the same destinations behind one button. The row of them
+              pushed the header wider than a phone screen. --%>
+        <div class="flex sm:hidden items-center gap-1">
+          <.link
+            :if={@current_user && @credits_low}
+            navigate={~p"/settings"}
+            class="badge badge-warning badge-sm gap-1"
+            title="Running low on credits"
+          >
+            <.icon name="hero-sparkles" class="size-3" />
+            {TravelingPoet.Credits.format(@current_user.credits_balance || 0)}
+          </.link>
+          <.theme_toggle />
+          <a
+            :if={is_nil(@current_user)}
+            href={~p"/auth/google"}
+            class="btn btn-primary btn-sm"
+          >
+            Sign in
+          </a>
+          <details :if={@current_user} class="dropdown dropdown-end" id="nav-menu">
+            <summary class="btn btn-ghost btn-sm" aria-label="Menu" aria-haspopup="menu">
+              <.icon name="hero-bars-3" class="size-5" />
+            </summary>
+            <ul class="menu dropdown-content bg-base-100 rounded-box z-10 mt-1 w-40 p-2 shadow">
+              <li>
+                <.link navigate={~p"/journal"} class={@active_tab == :journal && "font-semibold"}>
+                  Journal
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/guide"} class={@active_tab == :guide && "font-semibold"}>
+                  Guide
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/settings"} class={@active_tab == :settings && "font-semibold"}>
+                  Settings
+                </.link>
+              </li>
+              <li><a href={~p"/auth/logout"}>Sign out</a></li>
+            </ul>
+          </details>
+        </div>
       </div>
     </header>
 
