@@ -2,6 +2,7 @@ defmodule TravelingPoetWeb.JournalLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents
+  import TravelingPoetWeb.RouteComponents
   import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
@@ -199,6 +200,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
     |> assign_stay(poet, bundle.stay_id)
+    |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
     |> assign(:my_reactions, my_reactions(entry, socket.assigns.current_user))
     |> assign(:path_points, Poets.list_path_points(poet.id))
@@ -276,6 +278,18 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
+
+  # An excursion has no coordinates to pin; its journey is a drawing, and it
+  # takes the map's place at the top of the page.
+  defp assign_route(socket, poet, entry) do
+    case entry && Topics.excursion_of(entry) do
+      %{topic_id: id} = excursion when is_integer(id) ->
+        assign(socket, :route, Topics.journey_diagram(poet.id, excursion))
+
+      _ ->
+        assign(socket, :route, nil)
+    end
+  end
 
   defp finds_guide_url(entry) do
     case Topics.excursion_of(entry) do
@@ -1062,8 +1076,14 @@ defmodule TravelingPoetWeb.JournalLive do
             </button>
           </div>
 
+          <.excursion_route
+            :if={!awaiting_first_entry?(assigns) and not is_nil(@route) and !finds_spread?(assigns)}
+            diagram={@route}
+            title={"#{@poet.name}'s journey through this topic"}
+          />
+
           <div
-            :if={!awaiting_first_entry?(assigns) and !places_spread?(assigns)}
+            :if={!awaiting_first_entry?(assigns) and !places_spread?(assigns) and is_nil(@route)}
             id="poet-map"
             phx-hook="PoetMap"
             phx-update="ignore"

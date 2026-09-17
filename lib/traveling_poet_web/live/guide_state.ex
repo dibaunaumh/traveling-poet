@@ -18,8 +18,9 @@ defmodule TravelingPoetWeb.GuideState do
   alias TravelingPoet.Topics.Find
 
   @views ~w(map list itinerary)
-  # A topic's finds are links, not addresses: nothing to put on a map.
-  @topic_views ~w(list itinerary)
+  # A topic's finds are links, not addresses: nothing to put on a map. The
+  # route drawing takes its place.
+  @topic_views ~w(route list itinerary)
   # List, not map, is the default: coordinates arrive asynchronously and are
   # allowed to fail, so list is the view that always has something in it.
   @default_view "list"
@@ -38,13 +39,15 @@ defmodule TravelingPoetWeb.GuideState do
   def apply_params(socket, params) do
     socket = socket |> assign_journeys() |> assign_topic(params["topic"])
 
-    {views, filters} =
+    # A topic opens on its route: the drawing stands where the map does for
+    # places, and a map asked for by URL lands there too.
+    {views, filters, default_view} =
       if socket.assigns.topic,
-        do: {@topic_views, Find.filter_groups()},
-        else: {@views, Guide.filter_groups()}
+        do: {@topic_views, Find.filter_groups(), "route"},
+        else: {@views, Guide.filter_groups(), @default_view}
 
     socket
-    |> assign(:view, param(params, "view", views, @default_view))
+    |> assign(:view, param(params, "view", views, default_view))
     |> assign(:filter, param(params, "filter", filters, "all"))
     |> assign_stay(params["stay"])
     |> assign(:excursion_param, params["excursion"])
@@ -131,6 +134,7 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:media, media_for(shown))
     |> assign(:excursions, [])
     |> assign(:excursion, nil)
+    |> assign(:route, nil)
     |> assign(:finds, [])
     |> assign(:find_days, [])
     |> keep_selection()
@@ -148,6 +152,10 @@ defmodule TravelingPoetWeb.GuideState do
     excursion =
       Enum.find(excursions, &(to_string(&1.id) == socket.assigns[:excursion_param]))
 
+    # The drawing shows the whole journey, whichever venue or chip is picked.
+    all_by_entry =
+      excursions |> Enum.map(& &1.journal_entry_id) |> Topics.list_finds_for_entries()
+
     picked = if excursion, do: [excursion], else: excursions
     by_entry = picked |> Enum.map(& &1.journal_entry_id) |> Topics.list_finds_for_entries()
     all = Enum.flat_map(picked, &Map.get(by_entry, &1.journal_entry_id, []))
@@ -158,6 +166,7 @@ defmodule TravelingPoetWeb.GuideState do
     socket
     |> assign(:excursions, excursions)
     |> assign(:excursion, excursion)
+    |> assign(:route, Topics.guide_diagram(topic, excursions, all_by_entry))
     |> assign(:finds, shown)
     |> assign(:find_days, find_days(picked, shown))
     |> assign(:counts, find_counts(all))

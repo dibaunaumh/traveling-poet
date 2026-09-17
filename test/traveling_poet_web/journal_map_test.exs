@@ -105,6 +105,10 @@ defmodule TravelingPoetWeb.JournalMapTest do
 
     {:ok, view, html} = live(signed_in(conn, user), ~p"/journal/2026-08-26")
     assert html =~ "Excursion: Kit airplanes"
+    # a topic has no coordinates: the journey is drawn where the map would be
+    assert html =~ "route-svg"
+    assert html =~ "Oshkosh AirVenture"
+    refute html =~ ~s(id="poet-map")
     assert html =~ ~r/spread-tab[^>]*>\s*Finds\s*</
     refute html =~ ~r/spread-tab[^>]*>\s*Places\s*</
     assert_push_event(view, "map:update", %{focus: nil})

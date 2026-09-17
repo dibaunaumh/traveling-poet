@@ -36,7 +36,10 @@ defmodule TravelingPoetWeb.GuideComponents do
       assign(
         assigns,
         :view_options,
-        if(assigns.topic, do: Enum.reject(@views, &(elem(&1, 0) == "map")), else: @views)
+        if(assigns.topic,
+          do: [{"route", "Route"} | Enum.reject(@views, &(elem(&1, 0) == "map"))],
+          else: @views
+        )
       )
 
     ~H"""
