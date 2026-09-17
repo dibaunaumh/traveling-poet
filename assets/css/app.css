@@ -1689,38 +1689,17 @@ mark.marker.marker-sent {
 
 /* ---- The excursion route: a topic, its venues, what they gave back ------- */
 
+/* No tape here. Tape means something was stuck onto the page -- a map print,
+   a photo, a ticket stub -- and this is drawn in ink on the paper itself.
+   The paper stays: it is the notebook's own ivory (see .notebook-page), which
+   keeps the ink readable whichever theme the reader is in. */
 .route-figure {
   position: relative;
-  background: #fff;
-  padding: 0.8rem 0.6rem 0.4rem;
-  margin: 0.75rem 0 0.5rem;
-  box-shadow: 0 3px 10px rgba(60, 45, 20, 0.3);
-}
-
-/* the same tape as the map, so the two read as one notebook */
-.route-figure::before,
-.route-figure::after {
-  content: "";
-  position: absolute;
-  width: 5.5rem;
-  height: 1.6rem;
-  background: rgba(255, 244, 200, 0.6);
-  border-left: 1px dashed rgba(160, 140, 90, 0.3);
-  border-right: 1px dashed rgba(160, 140, 90, 0.3);
-  box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
-  z-index: 1;
-}
-
-.route-figure::before {
-  top: -0.8rem;
-  left: -1.5rem;
-  transform: rotate(-38deg);
-}
-
-.route-figure::after {
-  top: -0.8rem;
-  right: -1.5rem;
-  transform: rotate(38deg);
+  background-color: #fdf8ec;
+  padding: 0.9rem 0.8rem 0.4rem;
+  margin: 0.5rem 0 0.75rem;
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(60, 45, 20, 0.18);
 }
 
 .route-svg {
@@ -1844,4 +1823,16 @@ mark.marker.marker-sent {
 
 .route-spine {
   stroke-dasharray: 7 6;
+}
+
+/* The guide's wide route would shrink to unreadable on a phone: let it keep
+   its size and be swiped instead. The compact one on an entry page fits. */
+@media (max-width: 640px) {
+  .route-figure {
+    overflow-x: auto;
+  }
+
+  .route-svg.is-full {
+    min-width: 620px;
+  }
 }
