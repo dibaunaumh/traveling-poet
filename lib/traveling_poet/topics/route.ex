@@ -27,7 +27,7 @@ defmodule TravelingPoet.Topics.Route do
   @top 30
 
   # compact
-  @c_width 420
+  @c_width 470
   @c_spine_x 34
   @c_first_y 78
   @c_step 54
@@ -55,7 +55,7 @@ defmodule TravelingPoet.Topics.Route do
           kind: :venue,
           id: x.id,
           n: n,
-          label: clip(x.label, 26),
+          label: clip(x.label, 36),
           sub: x.date && Calendar.strftime(x.date, "%b %-d"),
           href: x.url,
           current?: Map.get(x, :current?, false),
@@ -74,7 +74,7 @@ defmodule TravelingPoet.Topics.Route do
       layout: :compact,
       width: @c_width,
       height: height,
-      root: %{kind: :topic, label: clip(topic_label, 30), x: 18, y: 34, ring?: false},
+      root: %{kind: :topic, label: clip(topic_label, 34), x: 18, y: 34, ring?: false},
       venues: venues,
       edges: spine(venues)
     }
