@@ -80,6 +80,7 @@ defmodule TravelingPoetWeb.SettingsLive do
             pdf_enabled: Books.pdf_enabled?(user),
             pdf: Books.current_pdf(poet),
             last_ready_pdf: Books.latest_ready_pdf(poet),
+            drive_connected: TravelingPoet.GoogleDrive.connected?(user),
             has_composed: not is_nil(Books.latest_ready_edition(poet)),
             pdf_blocker:
               case Books.pdf_blocker(user, poet, manuscript) do
@@ -394,6 +395,39 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("save_to_drive", %{"id" => id}, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+
+    with {pdf_id, ""} <- Integer.parse(id),
+         %{} = pdf <- Books.get_owned_pdf(user, pdf_id) do
+      case Books.save_pdf_to_drive(user, pdf) do
+        {:ok, _} ->
+          {:noreply, socket |> assign(:user, user) |> assign_book()}
+
+        {:error, :not_connected} ->
+          {:noreply, redirect(socket, to: ~p"/journal/book/drive/connect?#{[pdf: pdf.id]}")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "That PDF cannot be saved right now.")}
+      end
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("disconnect_drive", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    {:ok, user} = TravelingPoet.GoogleDrive.disconnect(user)
+
+    {:noreply,
+     socket
+     |> assign(:user, user)
+     |> put_flash(:info, "Google Drive disconnected. Files already saved there stay yours.")
+     |> assign_book()}
+  end
+
+  @impl true
   def handle_event("switch_mode", %{"mode" => mode}, socket) when mode in ["wander", "scout"] do
     poet = socket.assigns.poet
     pending = Enum.count(socket.assigns.stops, &is_nil(&1.visited_at))
@@ -556,6 +590,54 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   defp pdf_blocker_text(:poet_busy, poet),
     do: "#{poet.name} is composing your book. Make the PDF once it is done."
+
+  attr :pdf, :map, required: true
+  attr :connected, :boolean, required: true
+
+  # Save to Drive, as far as this PDF has got: saved (open it), saving,
+  # the grant gone (reconnect), failed (try again), or not yet.
+  defp drive_save(assigns) do
+    ~H"""
+    <span class="ml-2" id="drive-save">
+      <a
+        :if={@pdf.drive_status == "saved" && @pdf.drive_web_link}
+        href={@pdf.drive_web_link}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link"
+        id="drive-open"
+      >
+        Open in Google Drive
+      </a>
+      <span :if={@pdf.drive_status == "saving"} class="opacity-70" id="drive-saving">
+        <span class="loading loading-dots loading-xs align-middle"></span> Saving to Google Drive
+      </span>
+      <a
+        :if={@pdf.drive_status == "failed" && @pdf.drive_error == "reconnect"}
+        href={~p"/journal/book/drive/connect?#{[pdf: @pdf.id]}"}
+        class="link text-warning"
+        id="drive-reconnect"
+      >
+        Reconnect Google Drive to save it
+      </a>
+      <button
+        :if={
+          @pdf.drive_status in [nil, "failed"] &&
+            !(@pdf.drive_status == "failed" && @pdf.drive_error == "reconnect")
+        }
+        type="button"
+        phx-click="save_to_drive"
+        phx-value-id={@pdf.id}
+        class="link"
+        id="drive-save-button"
+      >
+        {if @pdf.drive_status == "failed",
+          do: "Saving to Drive failed. Try again",
+          else: "Save to Google Drive"}
+      </button>
+    </span>
+    """
+  end
 
   defp megabytes(nil), do: ""
   defp megabytes(bytes), do: :erlang.float_to_binary(bytes / 1_000_000, decimals: 1) <> " MB"
@@ -1148,7 +1230,8 @@ defmodule TravelingPoetWeb.SettingsLive do
                 >
                   <.icon name="hero-arrow-down-tray" class="size-4" /> Download the PDF
                 </a>
-                <span class="opacity-60">
+                <.drive_save pdf={@book.last_ready_pdf} connected={@book.drive_connected} />
+                <span class="opacity-60 block">
                   ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
                     @book.last_ready_pdf.page_size
                   )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
@@ -1208,6 +1291,15 @@ defmodule TravelingPoetWeb.SettingsLive do
               <p :if={@book.pdf_blocker == :daily_cap} class="text-xs opacity-70 mt-1">
                 That is enough PDFs for today. Try again tomorrow.
               </p>
+              <button
+                :if={@book.drive_connected}
+                type="button"
+                phx-click="disconnect_drive"
+                class="link text-xs opacity-60 mt-2 block"
+                id="disconnect-drive"
+              >
+                Disconnect Google Drive
+              </button>
               <p :if={@book.pdf_blocker == :no_sprite} class="text-xs opacity-70 mt-1">
                 {@poet.name} is still setting out.
               </p>

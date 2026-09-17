@@ -278,10 +278,15 @@ defmodule TravelingPoet.MarkersTest do
       {user, _poet, entry} = ready_poet()
 
       for _ <- 1..4, do: {:ok, _} = Usage.record(user.id, Delivery.attempt_kind())
-      # push those attempts out of the busy window
-      Repo.update_all(TravelingPoet.Usage.UsageEvent,
-        set: [occurred_at: DateTime.add(DateTime.utc_now(), -60, :minute)]
-      )
+      # push those attempts out of the busy window (15 min) but not out of
+      # today: a flat hour back made them yesterday's for the first hour of
+      # every UTC day, and the cap stopped counting them
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      midnight = DateTime.new!(DateTime.to_date(now), ~T[00:00:00], "Etc/UTC")
+      earlier = DateTime.add(now, -16, :minute)
+      at = if DateTime.compare(earlier, midnight) == :lt, do: midnight, else: earlier
+
+      Repo.update_all(TravelingPoet.Usage.UsageEvent, set: [occurred_at: at])
 
       text_marker(user, entry)
       backdate(entry, Delivery.quiet_minutes() + 1)

@@ -14,7 +14,7 @@ defmodule TravelingPoetWeb.BookController do
 
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Accounts, Books, Poets}
+  alias TravelingPoet.{Accounts, Books, GoogleDrive, Poets}
   alias TravelingPoet.Books.Matter
   alias TravelingPoet.Books.Pdf.Storage
   alias TravelingPoetWeb.Layouts
@@ -78,6 +78,19 @@ defmodule TravelingPoetWeb.BookController do
     else
       _ -> conn |> put_status(403) |> text("This link has expired.")
     end
+  end
+
+  @doc """
+  Sends the owner to Google to add Drive access (drive.file) on top of
+  sign-in. The PDF to save is parked in the session and picked up by
+  AuthController.callback/2 on the way back.
+  """
+  def connect_drive(conn, params) do
+    user = conn.assigns.current_user
+
+    conn
+    |> put_session(:drive_connect, %{"pdf" => params["pdf"], "user_id" => user.id})
+    |> redirect(to: "/auth/google?" <> URI.encode_query(GoogleDrive.consent_params(user.email)))
   end
 
   @doc "Hands the owner a short-lived link to their stored PDF."

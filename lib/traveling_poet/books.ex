@@ -320,6 +320,79 @@ defmodule TravelingPoet.Books do
     Enum.join(Enum.reject([safe, "Traveling Poet", date], &is_nil/1), " - ") <> ".pdf"
   end
 
+  @doc """
+  Saves a ready PDF to the owner's Google Drive, in the background unless
+  configured off (as in test). `{:ok, pdf}` once it is saving;
+  `{:error, :not_connected}` when there is no Drive grant yet (the caller
+  sends them through consent first).
+  """
+  def save_pdf_to_drive(%User{} = user, %Pdf{status: "ready"} = pdf) do
+    cond do
+      not TravelingPoet.GoogleDrive.connected?(user) ->
+        {:error, :not_connected}
+
+      pdf.drive_status == "saving" ->
+        {:ok, pdf}
+
+      true ->
+        {:ok, pdf} =
+          pdf |> Pdf.changeset(%{drive_status: "saving", drive_error: nil}) |> Repo.update()
+
+        broadcast_pdf_updated(pdf)
+
+        if Application.get_env(:traveling_poet, :book_drive_in_background, true),
+          do: Task.start(fn -> run_drive_save(user.id, pdf.id) end)
+
+        {:ok, pdf}
+    end
+  end
+
+  def save_pdf_to_drive(_user, _pdf), do: {:error, :not_ready}
+
+  @doc false
+  # Downloads the PDF from the bucket and uploads it to Drive; settles the row.
+  def run_drive_save(user_id, pdf_id) do
+    user = Accounts.get_user!(user_id)
+    pdf = Repo.get!(Pdf, pdf_id)
+    poet = Poets.get_poet(pdf.poet_id)
+
+    result =
+      with {:ok, bytes} <- pdf_bytes().(pdf.s3_key) do
+        TravelingPoet.GoogleDrive.upload_pdf(user, bytes, pdf_filename(poet, pdf))
+      end
+
+    attrs =
+      case result do
+        {:ok, %{id: id, web_link: link}} ->
+          %{
+            drive_status: "saved",
+            drive_file_id: id,
+            drive_web_link: link,
+            drive_error: nil,
+            drive_saved_at: DateTime.utc_now() |> DateTime.truncate(:second)
+          }
+
+        {:error, :reconnect} ->
+          %{drive_status: "failed", drive_error: "reconnect"}
+
+        {:error, reason} ->
+          Logger.warning("Books: saving pdf #{pdf.id} to Drive failed: #{inspect(reason)}")
+          %{drive_status: "failed", drive_error: inspect(reason)}
+      end
+
+    {:ok, pdf} = pdf |> Pdf.changeset(attrs) |> Repo.update()
+    broadcast_pdf_updated(pdf)
+    pdf
+  end
+
+  defp pdf_bytes,
+    do:
+      Application.get_env(
+        :traveling_poet,
+        :book_pdf_bytes,
+        &TravelingPoet.Storage.S3.download_file/1
+      )
+
   @doc "Every stored PDF object of a poet, for the account purge."
   def pdf_keys(nil), do: []
 
