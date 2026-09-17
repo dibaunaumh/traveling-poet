@@ -15,9 +15,17 @@ const SettingsNav = {
       const active = byId.get(id)
       if (!active) return
       active.setAttribute("aria-current", "true")
-      // on a phone the menu is a scrolling row: keep the mark in sight
+      // On a phone the menu is a row that scrolls sideways: keep the mark in
+      // sight by moving the row itself. scrollIntoView would scroll the page
+      // as well, which on load jumped past the header.
       if (this.el.scrollWidth > this.el.clientWidth) {
-        active.scrollIntoView({block: "nearest", inline: "nearest"})
+        const left = active.offsetLeft
+        const right = left + active.offsetWidth
+        if (left < this.el.scrollLeft) {
+          this.el.scrollLeft = Math.max(0, left - 16)
+        } else if (right > this.el.scrollLeft + this.el.clientWidth) {
+          this.el.scrollLeft = right - this.el.clientWidth + 16
+        }
       }
     }
 
