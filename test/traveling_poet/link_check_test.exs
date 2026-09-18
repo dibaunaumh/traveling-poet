@@ -5,6 +5,19 @@ defmodule TravelingPoet.LinkCheckTest do
 
   defp stub(fun), do: Req.Test.stub(TravelingPoet.LinkCheck, fun)
 
+  test "validate_all checks past the eighth link and names every dead one" do
+    stub(fn conn ->
+      if conn.request_path in ["/9", "/15"],
+        do: Plug.Conn.send_resp(conn, 404, "no"),
+        else: Plug.Conn.send_resp(conn, 200, "ok")
+    end)
+
+    urls = for i <- 1..15, do: "https://example.com/#{i}"
+    assert {:error, bad} = LinkCheck.validate_all(urls)
+    assert Enum.sort(bad) == ["https://example.com/15", "https://example.com/9"]
+    assert LinkCheck.validate_all(Enum.take(urls, 8)) == :ok
+  end
+
   test "a live page passes" do
     stub(&Plug.Conn.send_resp(&1, 200, "ok"))
     assert LinkCheck.check("https://example.com/page") == :ok

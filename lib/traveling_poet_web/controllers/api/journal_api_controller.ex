@@ -3,6 +3,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   require Logger
 
+  alias TravelingPoet.DeadLinks
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Guide.Geocoding
@@ -27,20 +28,26 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
         |> trim_teaser()
 
+      {attrs, dropped} = prune_sources(attrs)
+
       case Journal.upsert_entry(poet.id, date, attrs) do
         {:ok, entry} ->
           case Topics.link_entry(entry, params) do
             {:ok, excursion} ->
               prompt = maybe_attach_prompt(entry, params["prompt"])
 
-              json(conn, %{
-                ok: true,
-                entry_id: entry.id,
-                entry_date: entry.entry_date,
-                status: entry.status,
-                prompt_accepted: prompt,
-                excursion_linked: not is_nil(excursion)
-              })
+              json(
+                conn,
+                %{
+                  ok: true,
+                  entry_id: entry.id,
+                  entry_date: entry.entry_date,
+                  status: entry.status,
+                  prompt_accepted: prompt,
+                  excursion_linked: not is_nil(excursion)
+                }
+                |> with_dead_note(:dropped_dead_sources, dropped, "were dropped from sources")
+              )
 
             # The entry is saved; only the excursion id was wrong. Loud, so
             # the poet fixes the id instead of publishing a place entry on a
@@ -64,6 +71,27 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   def upsert_entry(conn, _params) do
     conn |> put_status(422) |> json(%{error: "entry_date (YYYY-MM-DD) is required"})
+  end
+
+  # A dead grounding source is dropped, never fatal: the entry is the poet's
+  # whole day, and these print as the book's footnotes.
+  defp prune_sources(%{sources: sources} = attrs) do
+    {sources, dropped} = DeadLinks.prune_sources(sources)
+    {%{attrs | sources: sources}, dropped}
+  end
+
+  defp prune_sources(attrs), do: {attrs, []}
+
+  defp with_dead_note(result, _key, [], _what), do: result
+
+  defp with_dead_note(result, key, urls, what) do
+    note =
+      "These links are unreachable and #{what}: #{Enum.join(urls, ", ")}. " <>
+        "Only cite pages you fetched and read."
+
+    result
+    |> Map.put(key, urls)
+    |> Map.update(:note, note, &(&1 <> " " <> note))
   end
 
   defp trim_teaser(%{teaser: teaser} = attrs) when is_binary(teaser) do
@@ -135,11 +163,17 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
 
       entry ->
+        {sections, unlinked} = DeadLinks.unlink_sections(sections)
         {sections, kept} = guard_revision(entry, sections)
 
         case Journal.replace_sections(entry, sections) do
           {:ok, saved} ->
-            json(conn, put_sections_result(saved, kept))
+            json(
+              conn,
+              saved
+              |> put_sections_result(kept)
+              |> with_dead_note(:unlinked_dead_links, unlinked, "were unlinked in your prose")
+            )
 
           {:error, reason} ->
             conn |> put_status(422) |> json(%{error: inspect(reason)})
