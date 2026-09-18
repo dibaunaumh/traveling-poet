@@ -69,6 +69,9 @@ config :traveling_poet,
       do: "test/judge-model",
       else: System.get_env("EVAL_JUDGE_MODEL", "anthropic/claude-sonnet-4.6")
     ),
+  # Search eval only (mix tpoet.eval_search); the fleet has no Tavily key.
+  # nil in test so no suite run can spend Tavily credits.
+  tavily_api_key: if(config_env() == :test, do: nil, else: System.get_env("TAVILY_API_KEY")),
   # Used only by the one-off places backfill. Pinned in test for the same
   # reason the model slugs above are: .env loads in every env, so whatever the
   # fleet happens to run today must not decide what the tests assert.
