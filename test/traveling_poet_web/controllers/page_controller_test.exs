@@ -101,6 +101,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
     # no poet yet: the box and the mode buttons still lead into onboarding
     assert html =~ ~s(action="/start")
     assert html =~ "Scout a trip"
+    assert html =~ "connect your Google Calendar"
     refute html =~ "Open your journal"
     refute html =~ "/auth/google"
 
