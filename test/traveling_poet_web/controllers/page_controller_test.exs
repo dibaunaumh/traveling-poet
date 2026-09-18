@@ -102,6 +102,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
     assert html =~ ~s(action="/start")
     assert html =~ "Scout a trip"
     assert html =~ "connect your Google Calendar"
+    assert html =~ "a day off the road"
     refute html =~ "Open your journal"
     refute html =~ "/auth/google"
 
