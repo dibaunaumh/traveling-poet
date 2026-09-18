@@ -1,0 +1,34 @@
+# Keep the build context to what the Dockerfile copies. Local secrets and
+# databases must never be uploaded to the remote builder.
+
+# Secrets (loaded by config/runtime.exs in every env); .env.example is harmless
+.env
+.env.*
+!.env.example
+
+# Local SQLite databases
+*.db
+*.db-*
+
+# Build output and dependencies (rebuilt inside the image)
+_build/
+deps/
+assets/node_modules/
+priv/static/assets/
+priv/static/cache_manifest.json
+cover/
+doc/
+tmp/
+erl_crash.dump
+*.ez
+
+# Not needed to build or run
+.git/
+.github/
+.claude/
+test/
+poet-217/
+/AGENTS.md
+/CLAUDE.md
+/README.md
+.DS_Store
