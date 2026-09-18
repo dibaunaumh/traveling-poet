@@ -46,7 +46,9 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Usage.UsageEvent,
     Guide.Place,
     Preferences.Preference,
-    Preferences.EntryPrompt
+    Preferences.EntryPrompt,
+    # aggregates only; the raw visit_events below stay excluded
+    TravelingPoet.Analytics.FunnelDay
   ]
 
   # geocode_cache: shared infrastructure holding raw address text typed by
