@@ -38,25 +38,6 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   never lives on the sprite), enforces the image quota, uploads to Tigris,
   and records the media row — one tool call for the agent.
   """
-  # The model reads "travel-journal sketch" literally and paints a sketchbook
-  # around the scene: spiral binding, page edges, a hand. The drawing is
-  # taped into a notebook already; the scene has to fill the image. Added
-  # app-side so it holds whatever the poet's own prompt says.
-  @framing " The image is the scene itself, filling the frame edge to edge:" <>
-             " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
-
-  # A spot drawing sits inside the prose, blended onto the paper with CSS
-  # multiply, which makes pure white vanish and lets a wash sit on the paper
-  # like real watercolour. Colour is welcome where it carries the meaning (a
-  # textile, a fruit, a sky); the background is the thing that must stay
-  # clean, and the model cannot be trusted with that from the poet's prompt
-  # alone, so the app says it every time.
-  @ink " A small drawing of one detail: black ink line, with a light watercolour wash" <>
-         " where colour carries the meaning, otherwise plain ink." <>
-         " The background must be pure white (#FFFFFF), the white of the page itself:" <>
-         " no paper texture, no grey, no vignette, no shadow, no border, no frame, no text." <>
-         " The subject sits alone on blank white."
-
   def generate(conn, %{"prompt" => prompt} = params) when is_binary(prompt) do
     user = conn.assigns.agent_user
 
@@ -72,7 +53,7 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
       true ->
         case TravelingPoet.Illustrations.generate(
-               String.trim(prompt) <> style_rules(params["kind"])
+               String.trim(prompt) <> TravelingPoet.Illustrations.style_suffix(params["kind"])
              ) do
           {:ok, bytes, content_type} ->
             do_create(
@@ -92,9 +73,6 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
   def generate(conn, _params) do
     conn |> put_status(422) |> json(%{error: "prompt is required"})
   end
-
-  defp style_rules("spot"), do: @ink <> @framing
-  defp style_rules(_kind), do: @framing
 
   defp do_create(conn, user, b64, content_type, params) do
     with %Poets.Poet{} = poet <- Poets.get_poet_by_user(user.id),
