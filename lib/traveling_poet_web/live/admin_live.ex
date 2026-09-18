@@ -214,6 +214,7 @@ defmodule TravelingPoetWeb.AdminLive do
             <span class="text-sm opacity-70">
               {@health_summary}
             </span>
+            <.link navigate={~p"/admin/funnel"} class="btn btn-sm btn-ghost">Funnel</.link>
             <.link navigate={~p"/admin/change-stream"} class="btn btn-sm btn-ghost">
               Change stream
             </.link>

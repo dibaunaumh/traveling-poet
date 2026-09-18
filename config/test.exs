@@ -69,3 +69,6 @@ config :traveling_poet,
   # a calendar sync after connect or "Check now" runs inline
   calendar_sync_in_background: false,
   book_pdf_bytes: &TravelingPoet.FakePdfStorage.bytes/1
+
+# Visit-event pruning runs on a timer; tests call Analytics.prune/1 directly.
+config :traveling_poet, analytics_prune: false
