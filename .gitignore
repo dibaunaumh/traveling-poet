@@ -45,3 +45,6 @@ npm-debug.log
 
 # macOS
 .DS_Store
+
+# Eval runs (mix tpoet.eval_*): images, reports, raw artifacts
+/evals/

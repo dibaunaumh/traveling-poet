@@ -47,6 +47,13 @@ config :traveling_poet,
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
+  # Used only by the eval Mix tasks (Evals.ImageJudge). Pinned in test like
+  # the slugs above.
+  eval_judge_model:
+    if(config_env() == :test,
+      do: "test/judge-model",
+      else: System.get_env("EVAL_JUDGE_MODEL", "anthropic/claude-sonnet-4.6")
+    ),
   # Used only by the one-off places backfill. Pinned in test for the same
   # reason the model slugs above are: .env loads in every env, so whatever the
   # fleet happens to run today must not decide what the tests assert.
