@@ -7,6 +7,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
+  import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_nudge: 1]
 
   alias TravelingPoet.{
     Accounts,
@@ -100,6 +101,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:held_message, nil)
           |> assign(:last_sent, nil)
           |> assign_telegram()
+          |> assign_trips()
           |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
@@ -326,6 +328,10 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   @impl true
+  def handle_event("trip_" <> _ = event, params, socket),
+    do: TravelingPoetWeb.TripSuggestions.handle_event(event, params, socket)
+
+  @impl true
   def handle_event("telegram_" <> _ = event, params, socket),
     do: TravelingPoetWeb.TelegramPairing.handle_event(event, params, socket)
 
@@ -549,6 +555,10 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_info({:telegram_paired, _} = msg, socket),
     do: TravelingPoetWeb.TelegramPairing.handle_info(msg, socket)
+
+  @impl true
+  def handle_info({:trips_updated} = msg, socket),
+    do: TravelingPoetWeb.TripSuggestions.handle_info(msg, socket)
 
   @impl true
   def handle_info({:gateway_event, :disconnected}, socket) do
@@ -1093,6 +1103,7 @@ defmodule TravelingPoetWeb.JournalLive do
           </div>
 
           <.push_nudge push={@push} poet={@poet} entry={@entry} />
+          <.trip_nudge trips={@trips} poet={@poet} />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
           <.first_entry_placeholder

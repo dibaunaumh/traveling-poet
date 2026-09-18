@@ -135,6 +135,29 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells every device of the owner that a trip was found on their calendar."
+  def notify_trip_suggested(user_id, trip_id) do
+    with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),
+         trip when not is_nil(trip) <- TravelingPoet.Trips.get(poet.id, trip_id) do
+      notify_user(user_id, fn -> trip_suggested_payload(poet, trip) end)
+    else
+      _ -> {0, 0}
+    end
+  end
+
+  @doc "What the device shows when a trip was found on the calendar. Pure, for tests."
+  def trip_suggested_payload(poet, trip) do
+    %{
+      title: "A trip to #{trip.name} is on your calendar",
+      body:
+        "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}. " <>
+          "Should #{poet.name} scout it first? Tap to decide.",
+      url: "/settings#trips",
+      tag: "trip-#{trip.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
   @doc "What the device shows when a PDF of the book is ready. Pure, for tests."
   def book_pdf_payload(poet, pdf_id) do
     %{

@@ -17,6 +17,8 @@ defmodule TravelingPoet.Geocoder.CacheEntry do
     field :lng, :float
     field :place_name, :string
     field :country_code, :string
+    field :city, :string
+    field :country, :string
     field :found, :boolean, default: false
     field :looked_up_at, :utc_datetime
 
@@ -44,6 +46,8 @@ defmodule TravelingPoet.Geocoder.CacheEntry do
       :lng,
       :place_name,
       :country_code,
+      :city,
+      :country,
       :found,
       :looked_up_at
     ])

@@ -85,13 +85,25 @@ defmodule TravelingPoetWeb.AuthController do
   end
 
   defp feature("drive"), do: :drive
+  defp feature("calendar"), do: :calendar
   defp feature(_), do: nil
 
   defp feature_name(:drive), do: "Google Drive"
+  defp feature_name(:calendar), do: "Google Calendar"
 
   defp return_to(:drive), do: ~p"/settings#book"
+  defp return_to(:calendar), do: ~p"/settings#trips"
 
   defp not_allowed_note(:drive), do: "Google Drive was not allowed, so nothing was saved."
+
+  defp not_allowed_note(:calendar),
+    do: "Reading your Google Calendar was not allowed, so nothing was read."
+
+  # Calendar connected: look for trips straight away.
+  defp connected_note(:calendar, user, _intent) do
+    TravelingPoet.Trips.CalendarSync.sync_soon(user)
+    "Google Calendar connected. Looking for trips now."
+  end
 
   # Drive connected with a PDF in hand: start saving it straight away.
   defp connected_note(:drive, user, intent) do

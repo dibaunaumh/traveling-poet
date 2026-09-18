@@ -9,8 +9,9 @@ defmodule TravelingPoet.Poets.ItineraryStop do
   import Ecto.Changeset
 
   # "settings": typed into the itinerary by the user. "chat": a detour the poet
-  # added because the companion asked for it in conversation.
-  @sources ~w(settings chat)
+  # added because the companion asked for it in conversation. "trip": a
+  # destination of a trip the companion asked the poet to scout (`trip_id`).
+  @sources ~w(settings chat trip)
 
   schema "itinerary_stops" do
     field :position, :integer
@@ -22,6 +23,7 @@ defmodule TravelingPoet.Poets.ItineraryStop do
     field :source, :string, default: "settings"
 
     belongs_to :poet, TravelingPoet.Poets.Poet
+    belongs_to :trip, TravelingPoet.Trips.Trip
 
     timestamps()
   end
@@ -39,7 +41,8 @@ defmodule TravelingPoet.Poets.ItineraryStop do
       :lng,
       :country_code,
       :visited_at,
-      :source
+      :source,
+      :trip_id
     ])
     |> validate_required([:poet_id, :position, :place_name, :lat, :lng])
     |> validate_inclusion(:source, @sources)

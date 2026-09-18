@@ -56,6 +56,16 @@ defmodule TravelingPoet.Accounts.User do
     field :drive_connected_at, :utc_datetime
     field :drive_folder_id, :string
 
+    # Google Calendar (calendar.events.readonly), read for upcoming trips,
+    # and the home the companion sets out from (a trip is time far from it)
+    field :calendar_connected_at, :utc_datetime
+    field :calendar_synced_at, :utc_datetime
+    field :calendar_error, :string
+    field :home_place_name, :string
+    field :home_lat, :float
+    field :home_lng, :float
+    field :home_country_code, :string
+
     has_one :poet, TravelingPoet.Poets.Poet
 
     timestamps()
@@ -99,7 +109,14 @@ defmodule TravelingPoet.Accounts.User do
       :google_token_expires_at,
       :google_scopes,
       :drive_connected_at,
-      :drive_folder_id
+      :drive_folder_id,
+      :calendar_connected_at,
+      :calendar_synced_at,
+      :calendar_error,
+      :home_place_name,
+      :home_lat,
+      :home_lng,
+      :home_country_code
     ])
     |> validate_required([:email])
     |> validate_has_identity()

@@ -91,6 +91,22 @@ config :traveling_poet,
       else: String.to_integer(System.get_env("FLEET_HEALTH_CHECK_INTERVAL_MINUTES") || "0")
     ),
   alert_telegram_chat_id: System.get_env("ALERT_TELEGRAM_CHAT_ID"),
+  # Google Calendar trips: how often connected calendars are read (0 in
+  # test: the suite calls Trips.CalendarSync.sync_user/1 directly), how far
+  # ahead, and who may connect one: "admins" while Google verifies the
+  # calendar scope, then "all"; "off" hides the card.
+  calendar_sync_interval_minutes:
+    if(config_env() == :test,
+      do: 0,
+      else: String.to_integer(System.get_env("CALENDAR_SYNC_INTERVAL_MINUTES") || "0")
+    ),
+  calendar_lookahead_days: String.to_integer(System.get_env("CALENDAR_LOOKAHEAD_DAYS") || "120"),
+  calendar_enabled:
+    if(config_env() == :test, do: "all", else: System.get_env("CALENDAR_ENABLED") || "admins"),
+  # what counts as away from home, as one city, and as a trip rather than a move
+  trip_away_km: String.to_integer(System.get_env("TRIP_AWAY_KM") || "150"),
+  trip_same_city_km: String.to_integer(System.get_env("TRIP_SAME_CITY_KM") || "50"),
+  trip_max_days: String.to_integer(System.get_env("TRIP_MAX_DAYS") || "45"),
   # First-entry retries. On by default (5m): unlike the schedulers above this
   # one is the difference between a new poet publishing and sitting silent
   # until tomorrow, so it should not need a secret set to work.

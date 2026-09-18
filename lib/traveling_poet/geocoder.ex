@@ -39,11 +39,16 @@ defmodule TravelingPoet.Geocoder do
   end
 
   defp normalize(result) do
+    address = result["address"] || %{}
+
     %{
       place_name: result["display_name"],
       lat: parse_float(result["lat"]),
       lng: parse_float(result["lon"]),
-      country_code: get_in(result, ["address", "country_code"]) |> upcase_or_nil()
+      country_code: address["country_code"] |> upcase_or_nil(),
+      # the city behind a street address, for naming a trip's destination
+      city: address["city"] || address["town"] || address["village"] || address["municipality"],
+      country: address["country"]
     }
   end
 
@@ -94,7 +99,15 @@ defmodule TravelingPoet.Geocoder do
   defp handle_lookup({:ok, [%{lat: lat, lng: lng} = result | _]}, query)
        when is_number(lat) and is_number(lng) do
     remember(query, result, true)
-    {:ok, %{lat: lat, lng: lng, country_code: result[:country_code]}}
+
+    {:ok,
+     %{
+       lat: lat,
+       lng: lng,
+       country_code: result[:country_code],
+       city: result[:city],
+       country: result[:country]
+     }}
   end
 
   defp handle_lookup({:ok, _empty_or_unusable}, query) do
@@ -123,7 +136,15 @@ defmodule TravelingPoet.Geocoder do
   end
 
   defp from_cache(%CacheEntry{found: true} = entry),
-    do: {:ok, %{lat: entry.lat, lng: entry.lng, country_code: entry.country_code}}
+    do:
+      {:ok,
+       %{
+         lat: entry.lat,
+         lng: entry.lng,
+         country_code: entry.country_code,
+         city: entry.city,
+         country: entry.country
+       }}
 
   defp from_cache(%CacheEntry{}), do: :not_found
 
@@ -136,6 +157,8 @@ defmodule TravelingPoet.Geocoder do
       lng: result[:lng],
       place_name: result[:place_name],
       country_code: result[:country_code],
+      city: result[:city],
+      country: result[:country],
       found: found?,
       looked_up_at: DateTime.utc_now() |> DateTime.truncate(:second)
     })
