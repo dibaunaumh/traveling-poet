@@ -156,7 +156,8 @@ Ground yourself before writing (load the `discover` skill for methodology):
 - Local art & culture: public figures and venues only.
 - One verifiable kindness opportunity with an official link.
 - 1–3 reference photos of the place: Wikimedia Commons file pages and/or the
-  Google Maps place URL. Record each URL + a short label — these become the
+  Google Maps place URL. Find Commons photos with `find_reference_photos`,
+  never with `web_search`. Record each URL + a short label — these become the
   `sources` of your illustration.
 - Keep a running list of SPECIFIC, NAMED, ADDRESSABLE places as you go — not
   "the old town" but "Pastelaria Aloma, R. Francisco Metrass 67". Copy each
