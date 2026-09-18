@@ -86,6 +86,7 @@ defmodule TravelingPoetWeb.AdminLive do
         %{
           user: user,
           poet: poet,
+          trip: trip_summary(user, poet),
           today_cost: Usage.today_cost(user.id),
           week_cost: usage.week_cost,
           runs_today: Usage.today_count(user.id, "daily_run"),
@@ -104,6 +105,24 @@ defmodule TravelingPoetWeb.AdminLive do
     |> assign(:health, health)
     |> assign(:health_summary, health_summary(health))
     |> assign(:openrouter, openrouter_banner())
+  end
+
+  # The calendar connection and the nearest trip on the books, for the row.
+  defp trip_summary(user, poet) do
+    calendar =
+      cond do
+        not TravelingPoet.GoogleCalendar.connected?(user) -> nil
+        user.calendar_error -> "calendar: #{user.calendar_error}"
+        true -> "calendar"
+      end
+
+    trip =
+      poet &&
+        poet.id
+        |> TravelingPoet.Trips.list_by_status(~w(suggested planned scouting))
+        |> List.first()
+
+    %{calendar: calendar, trip: trip}
   end
 
   # The whole fleet runs on one OpenRouter key. When it is spent every model
@@ -274,6 +293,7 @@ defmodule TravelingPoetWeb.AdminLive do
                 <th>Last seen</th>
                 <th>Poet</th>
                 <th>Status</th>
+                <th>Trip</th>
                 <th>Today</th>
                 <th>7 days</th>
                 <th>Runs today</th>
@@ -300,6 +320,18 @@ defmodule TravelingPoetWeb.AdminLive do
                   ]}>
                     {(row.poet && row.poet.status) || "no poet"}
                   </span>
+                </td>
+                <td class="text-xs">
+                  <span :if={row.trip.calendar} class="badge badge-ghost badge-xs">
+                    {row.trip.calendar}
+                  </span>
+                  <span :if={row.trip.trip}>
+                    {row.trip.trip.name} {row.trip.trip.status}
+                    <span :if={row.trip.trip.scout_from} class="opacity-60">
+                      from {row.trip.trip.scout_from}
+                    </span>
+                  </span>
+                  <span :if={!row.trip.calendar and !row.trip.trip} class="opacity-40">—</span>
                 </td>
                 <td>{cents(row.today_cost)}</td>
                 <td>{cents(row.week_cost)}</td>

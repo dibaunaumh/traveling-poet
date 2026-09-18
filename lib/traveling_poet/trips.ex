@@ -72,27 +72,41 @@ defmodule TravelingPoet.Trips do
 
     * unmatched -> a new suggestion (broadcast `{:trip_suggested, ...}`);
     * suggested -> updated; `changed_at` set when dates or cities moved;
-    * dismissed, planned, scouting, done -> only the event ids follow, so the
-      decision stands and the trip keeps matching.
+    * dismissed -> the event ids follow so it keeps matching; it is offered
+      again only when the trip changed materially (start moved by more than
+      a week, or a different first city);
+    * planned, scouting -> the dates follow the calendar and the poet's
+      departure is rescheduled (broadcast `{:trip_changed, ...}` when so);
+      one whose events left the calendar is marked `calendar_gone_at` for
+      the companion to keep or call off, never dropped here;
+    * done -> only the event ids follow.
 
   Suggestions nothing matched, or already started, are withdrawn (deleted);
-  a decided trip is never deleted here. Returns `%{new, updated, withdrawn}`.
+  a decided trip is never deleted here. Returns `%{new, updated, changed,
+  withdrawn}`.
   """
   def reconcile(%Poet{} = poet, detected, home_place_name, now \\ DateTime.utc_now()) do
     now = DateTime.truncate(now, :second)
     today = DateTime.to_date(now)
     existing = list(poet.id)
 
-    {new, updated, matched_ids} =
-      Enum.reduce(detected, {[], 0, MapSet.new()}, fn found, {new, updated, matched} ->
+    {new, changed, updated, matched_ids} =
+      Enum.reduce(detected, {[], [], 0, MapSet.new()}, fn found,
+                                                          {new, changed, updated, matched} ->
         case match(found, Enum.reject(existing, &MapSet.member?(matched, &1.id))) do
           nil ->
             {:ok, trip} = insert_suggestion(poet, found, home_place_name, now)
-            {[trip | new], updated, matched}
+            {[trip | new], changed, updated, matched}
 
           trip ->
-            {:ok, _} = follow(trip, found, now)
-            {new, updated + 1, MapSet.put(matched, trip.id)}
+            {:ok, trip, effect} = follow(trip, found, now)
+            matched = MapSet.put(matched, trip.id)
+
+            case effect do
+              :resurfaced -> {[trip | new], changed, updated, matched}
+              :moved -> {new, [trip | changed], updated + 1, matched}
+              _ -> {new, changed, updated + 1, matched}
+            end
         end
       end)
 
@@ -105,6 +119,16 @@ defmodule TravelingPoet.Trips do
       |> Enum.map(&Repo.delete!/1)
       |> length()
 
+    gone =
+      existing
+      |> Enum.filter(&(&1.status in ~w(planned scouting) and is_nil(&1.calendar_gone_at)))
+      |> Enum.reject(&MapSet.member?(matched_ids, &1.id))
+      |> Enum.map(fn t ->
+        {:ok, _} = t |> Trip.changeset(%{calendar_gone_at: now}) |> Repo.update()
+        t
+      end)
+      |> length()
+
     new = Enum.reverse(new)
 
     for trip <- new do
@@ -115,9 +139,17 @@ defmodule TravelingPoet.Trips do
       )
     end
 
-    if new != [] or updated > 0 or withdrawn > 0, do: broadcast_updated(poet)
+    for trip <- changed do
+      Phoenix.PubSub.broadcast(
+        TravelingPoet.PubSub,
+        "trips",
+        {:trip_changed, poet.user_id, trip.id}
+      )
+    end
 
-    %{new: new, updated: updated, withdrawn: withdrawn}
+    if new != [] or updated > 0 or withdrawn > 0 or gone > 0, do: broadcast_updated(poet)
+
+    %{new: new, updated: updated, changed: Enum.reverse(changed), withdrawn: withdrawn}
   end
 
   defp match(found, candidates) do
@@ -152,24 +184,49 @@ defmodule TravelingPoet.Trips do
     |> Repo.insert()
   end
 
+  # Each clause returns {:ok, trip, effect}: :followed, :moved (a planned
+  # trip's dates changed) or :resurfaced (a dismissed trip offered again).
   defp follow(%Trip{status: "suggested"} = trip, found, now) do
     attrs = found_attrs(found)
+    attrs = if changed?(trip, found), do: Map.put(attrs, :changed_at, now), else: attrs
+    {:ok, trip} = trip |> Trip.changeset(attrs) |> Repo.update()
+    {:ok, trip, :followed}
+  end
 
-    changed? =
-      trip.start_date != found.start_date or trip.end_date != found.end_date or
-        Enum.map(Trip.destinations(trip), & &1["place_name"]) !=
-          Enum.map(found.destinations, & &1.place_name)
+  # "Not this trip" holds while it is the same trip. A start moved by more
+  # than a week, or a different first city, is a trip they have not seen.
+  defp follow(%Trip{status: "dismissed"} = trip, found, now) do
+    if materially_different?(trip, found) do
+      {:ok, trip} =
+        trip
+        |> Trip.changeset(
+          Map.merge(found_attrs(found), %{
+            status: "suggested",
+            changed_at: now,
+            suggested_at: now,
+            decided_at: nil
+          })
+        )
+        |> Repo.update()
 
-    attrs = if changed?, do: Map.put(attrs, :changed_at, now), else: attrs
-    trip |> Trip.changeset(attrs) |> Repo.update()
+      {:ok, trip, :resurfaced}
+    else
+      {:ok, trip} =
+        trip
+        |> Trip.changeset(%{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)})
+        |> Repo.update()
+
+      {:ok, trip, :followed}
+    end
   end
 
   # A planned trip follows the calendar's dates (the poet must set out in
-  # time); its stops and decision stand.
+  # time); its stops and decision stand. Events back on the calendar clear a
+  # "gone" mark.
   defp follow(%Trip{status: status} = trip, found, now) when status in ["planned", "scouting"] do
     moved? = trip.start_date != found.start_date or trip.end_date != found.end_date
 
-    attrs = %{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)}
+    attrs = %{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids), calendar_gone_at: nil}
 
     attrs =
       if moved?,
@@ -183,14 +240,35 @@ defmodule TravelingPoet.Trips do
           }),
         else: attrs
 
-    trip |> Trip.changeset(attrs) |> Repo.update()
+    {:ok, trip} = trip |> Trip.changeset(attrs) |> Repo.update()
+    {:ok, trip, if(moved?, do: :moved, else: :followed)}
   end
 
   defp follow(%Trip{} = trip, found, _now) do
-    trip
-    |> Trip.changeset(%{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)})
-    |> Repo.update()
+    {:ok, trip} =
+      trip
+      |> Trip.changeset(%{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)})
+      |> Repo.update()
+
+    {:ok, trip, :followed}
   end
+
+  defp changed?(trip, found) do
+    trip.start_date != found.start_date or trip.end_date != found.end_date or
+      Enum.map(Trip.destinations(trip), & &1["place_name"]) !=
+        Enum.map(found.destinations, & &1.place_name)
+  end
+
+  @resurface_after_days 7
+
+  defp materially_different?(trip, found) do
+    abs(Date.diff(found.start_date, trip.start_date)) > @resurface_after_days or
+      first_city(Trip.destinations(trip)) != first_city(found.destinations)
+  end
+
+  defp first_city([%{"place_name" => name} | _]), do: name
+  defp first_city([%{place_name: name} | _]), do: name
+  defp first_city(_), do: nil
 
   defp found_attrs(found) do
     %{
@@ -371,6 +449,13 @@ defmodule TravelingPoet.Trips do
   @doc "Not this trip. Kept, so the next sync does not suggest it again."
   def dismiss(%Trip{} = trip) do
     trip |> Trip.changeset(%{status: "dismissed", decided_at: now()}) |> Repo.update()
+  end
+
+  @doc "The companion keeps a planned trip that left their calendar."
+  def keep(%Poet{} = poet, %Trip{poet_id: poet_id} = trip) when poet_id == poet.id do
+    result = trip |> Trip.changeset(%{calendar_gone_at: nil, source: "settings"}) |> Repo.update()
+    broadcast_updated(poet)
+    result
   end
 
   @doc "Calls off a planned trip: its unvisited stops go, the trip is dismissed."

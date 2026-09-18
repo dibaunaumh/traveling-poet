@@ -64,5 +64,11 @@ defmodule TravelingPoet.WebPush.Notifier do
   end
 
   @impl true
+  def handle_info({:trip_changed, user_id, trip_id}, state) do
+    Task.start(fn -> WebPush.notify_trip_changed(user_id, trip_id) end)
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
 end

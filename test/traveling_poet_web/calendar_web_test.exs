@@ -189,6 +189,25 @@ defmodule TravelingPoetWeb.CalendarWebTest do
     assert Poets.list_stops(poet.id) == []
   end
 
+  test "Settings: a planned trip gone from the calendar can be kept", %{
+    conn: conn,
+    user: user,
+    poet: poet
+  } do
+    trip = trip_fixture(poet)
+    {:ok, _} = Trips.accept(poet, trip)
+    Trips.reconcile(poet, [], "Lisbon")
+
+    {:ok, view, html} = live(signed_in(conn, user), ~p"/settings")
+    assert html =~ ~s(id="trip-gone-#{trip.id}")
+    assert html =~ "No longer on your calendar"
+
+    html = view |> element("#trip-keep-#{trip.id}") |> render_click()
+    refute html =~ ~s(id="trip-gone-#{trip.id}")
+    assert html =~ "Kept."
+    assert Trips.get(poet.id, trip.id).calendar_gone_at == nil
+  end
+
   test "the journal nudges about the nearest trip until it is answered", %{
     conn: conn,
     user: user,
