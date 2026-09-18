@@ -86,9 +86,14 @@ particulars:
   was; never guess a date, omit it instead.
 
 ## Reference photos for illustrations
-- Prefer Wikimedia Commons (search the place name; use the FILE PAGE URL like
-  https://commons.wikimedia.org/wiki/File:..., not the raw image URL) and the
-  Google Maps place URL (https://www.google.com/maps/place/...).
+- Prefer Wikimedia Commons and the Google Maps place URL
+  (https://www.google.com/maps/place/...).
+- Find Commons photos with `find_reference_photos`, not `web_search`: pass
+  the place's plain name as `query` (no site: or filetype:), and its lat/lng
+  to see what was photographed right there. It is free and returns the FILE
+  PAGE URL (`page_url`, like https://commons.wikimedia.org/wiki/File:...) to
+  cite; never cite `thumb_url` or a raw image URL. Read each description:
+  cite only a photo that shows what you drew.
 - Pick 1–3 that show what you actually drew. The label should say what and
   where, e.g. "Ponte Vecchio at dusk — Wikimedia Commons".
 - You look at references to draw; you never copy, embed, or upload them.
