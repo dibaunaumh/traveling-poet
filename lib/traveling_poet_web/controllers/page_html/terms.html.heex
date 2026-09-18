@@ -1,0 +1,119 @@
+<Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+  <article class="legal">
+    <h1>Terms of Service</h1>
+    <p class="legal-date">Last updated {@updated}</p>
+
+    <p>
+      These terms cover your use of Traveling Poet at poet.travel. The service is run by
+      Udi Bauman as an individual. Using it means accepting them. Questions: <a
+        class="link"
+        href={"mailto:#{@contact}"}
+      >{@contact}</a>.
+    </p>
+
+    <h2>What the service is</h2>
+    <p>
+      You are given an AI poet that travels virtually through real places and writes you
+      a daily illustrated journal. The travel is imagined; the places are real. What the
+      poet writes and draws is made by a language model from sources it consulted, and
+      it can be mistaken, out of date or incomplete. Read it as a letter from a
+      traveller, not as travel advice, and check anything you plan to act on: opening
+      hours, prices, safety, visas and the rest.
+    </p>
+    <p>
+      The service is an early beta. Features change, entries and drawings may be lost,
+      and the whole thing may be paused or stopped. There is no uptime promise.
+    </p>
+
+    <h2>Your account</h2>
+    <p>
+      Sign in with Google, one account per person, and keep it to yourself. You must be
+      16 or older. You are responsible for what is done through your account.
+    </p>
+
+    <h2>What you write, and what your poet writes</h2>
+    <p>
+      Your journal is yours. You keep the rights to what you write and to what your poet
+      writes for you. You give the service permission to store, process and display that
+      content so it can run: to show you the journal, to make books and PDFs from it,
+      and, if you make the journal public, to show it to anyone with the link and on the
+      home page map.
+    </p>
+    <p>
+      The service will not use your journal or chats to advertise to you, and will not
+      sell them. Anonymous, aggregated counts, such as how many entries the fleet wrote,
+      may be used to describe or improve the service.
+    </p>
+
+    <h2>Using it fairly</h2>
+    <p>Do not use Traveling Poet to:</p>
+    <ul>
+      <li>break the law, or produce content that is illegal where you are</li>
+      <li>harass, profile or expose private individuals</li>
+      <li>
+        push the poet into work outside the journal: no mass scraping, no contacting
+        third parties, no attempt to read another account's data or the poet's own
+        credentials
+      </li>
+      <li>
+        resell, automate or overwhelm the service, or work around its quotas and caps
+      </li>
+    </ul>
+    <p>
+      Accounts that do these things can be suspended or deleted, and the sandbox behind
+      them shut down.
+    </p>
+
+    <h2>Credits and payment</h2>
+    <p>
+      Days of travel are paid for in credits. A day as a Wanderer costs one credit and a
+      day as a Trip Scout costs five; chatting and drawings are included in the day. A
+      composed book edition costs a few credits; PDFs cost none. Rates are shown in
+      Settings and can change, with notice in the app.
+    </p>
+    <p>
+      Credits are prepaid, have no cash value, and are not transferable. Payments are
+      handled by Stripe. If something goes wrong on the service's side, such as a day
+      charged but never written, the credit comes back automatically; if it does not,
+      write and it will be put right. Refunds of unused credits are at the operator's
+      discretion, and nothing here limits rights you have by law where you live.
+    </p>
+
+    <h2>Your poet's sandbox</h2>
+    <p>
+      Each poet runs in its own sandbox, and what you ask it in chat steers what it
+      does. Ask it to travel and write. Do not use it as general-purpose compute, and do
+      not try to make it reach systems or people beyond the journal.
+    </p>
+
+    <h2>Ending it</h2>
+    <p>
+      You can stop at any time, and you can have everything deleted by writing to
+      <a class="link" href={"mailto:#{@contact}"}>{@contact}</a>
+      from your account's email address. Deletion removes your account, poet, journal,
+      drawings, chats, ledger and sandbox, and cannot be undone. Unused credits are not
+      refunded on deletion unless the law says otherwise. The service may end an account
+      that breaks these terms, or wind down with reasonable notice to account holders.
+    </p>
+
+    <h2>No warranty, and the limit of liability</h2>
+    <p>
+      The service is provided as it is, without warranties of any kind, to the extent
+      the law allows. It is not liable for indirect or consequential loss, or for
+      decisions taken on what a poet wrote. Where liability cannot be excluded, it is
+      limited to what you paid in the twelve months before the claim.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      These terms can change. The date at the top changes with them, and account holders
+      are told by email or in the app before a material change takes effect. Continuing
+      to use the service after that means accepting the new terms.
+    </p>
+
+    <p class="legal-foot">
+      <.link navigate={~p"/privacy"} class="link">Privacy Policy</.link>
+      · <.link navigate={~p"/"} class="link">Home</.link>
+    </p>
+  </article>
+</Layouts.app>

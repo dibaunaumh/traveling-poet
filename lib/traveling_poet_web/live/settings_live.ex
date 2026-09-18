@@ -1486,6 +1486,15 @@ defmodule TravelingPoetWeb.SettingsLive do
               </form>
 
               <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm mt-4">Sign out</a>
+
+              <p class="text-xs opacity-60 mt-4">
+                <.link navigate={~p"/privacy"} class="link">Privacy policy</.link>
+                · <.link navigate={~p"/terms"} class="link">Terms of service</.link>
+                · To delete your account and everything in it, write to <a
+                  class="link"
+                  href="mailto:dibaunaumh@gmail.com"
+                >dibaunaumh@gmail.com</a>.
+              </p>
             </.settings_section>
           </div>
         </div>
