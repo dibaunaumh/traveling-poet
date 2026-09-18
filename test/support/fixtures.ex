@@ -101,6 +101,84 @@ defmodule TravelingPoet.Fixtures do
     place
   end
 
+  @doc "A user with a home (Lisbon) and a Google Calendar grant stored."
+  def calendar_user_fixture(attrs \\ %{}) do
+    user =
+      user_fixture(
+        Map.merge(
+          %{
+            home_place_name: "Lisbon, Portugal",
+            home_lat: 38.7223,
+            home_lng: -9.1393,
+            home_country_code: "PT"
+          },
+          attrs
+        )
+      )
+
+    {:ok, user} =
+      TravelingPoet.GoogleAuth.store_credentials(
+        user,
+        %Ueberauth.Auth.Credentials{
+          token: "access-1",
+          refresh_token: "refresh-1",
+          expires_at: System.os_time(:second) + 3600,
+          scopes: ["email", TravelingPoet.GoogleAuth.scope(:calendar)]
+        },
+        :calendar
+      )
+
+    user
+  end
+
+  @doc "A suggested trip to Rome in three weeks, four days long."
+  def trip_fixture(poet, attrs \\ %{}) do
+    start = Date.add(Date.utc_today(), 21)
+
+    {:ok, trip} =
+      %TravelingPoet.Trips.Trip{}
+      |> TravelingPoet.Trips.Trip.changeset(
+        Map.merge(
+          %{
+            poet_id: poet.id,
+            name: "Rome",
+            status: "suggested",
+            source: "calendar",
+            start_date: start,
+            end_date: Date.add(start, 3),
+            destinations: %{
+              "items" => [
+                %{
+                  "place_name" => "Rome, Italy",
+                  "lat" => 41.9028,
+                  "lng" => 12.4964,
+                  "country_code" => "IT",
+                  "arrive_on" => Date.to_iso8601(start),
+                  "depart_on" => Date.to_iso8601(Date.add(start, 3))
+                }
+              ]
+            },
+            event_ids: ["evt-#{System.unique_integer([:positive])}"],
+            suggested_at: DateTime.utc_now() |> DateTime.truncate(:second)
+          },
+          attrs
+        )
+      )
+      |> Repo.insert()
+
+    trip
+  end
+
+  def stop_fixture(poet, attrs \\ %{}) do
+    {:ok, stop} =
+      Poets.add_stop(
+        poet.id,
+        Map.merge(%{place_name: "Porto, Portugal", lat: 41.1579, lng: -8.6291}, attrs)
+      )
+
+    stop
+  end
+
   def topic_fixture(poet, attrs \\ %{}) do
     n = System.unique_integer([:positive])
 

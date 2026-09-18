@@ -103,6 +103,7 @@ defmodule TravelingPoetWeb.Router do
     get "/journal/book", BookController, :show
     get "/journal/book/pdf/:id", BookController, :download_pdf
     get "/journal/book/drive/connect", BookController, :connect_drive
+    get "/settings/calendar/connect", CalendarController, :connect
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do

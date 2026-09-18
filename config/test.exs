@@ -66,4 +66,6 @@ config :traveling_poet,
 config :traveling_poet,
   google_req_options: [plug: {Req.Test, TravelingPoet.Google}],
   book_drive_in_background: false,
+  # a calendar sync after connect or "Check now" runs inline
+  calendar_sync_in_background: false,
   book_pdf_bytes: &TravelingPoet.FakePdfStorage.bytes/1

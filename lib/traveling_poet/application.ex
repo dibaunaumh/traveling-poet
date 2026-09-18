@@ -28,6 +28,9 @@ defmodule TravelingPoet.Application do
       TravelingPoet.WebPush.Notifier,
       # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.FleetHealth.Alerter,
+      # Reads connected Google Calendars for upcoming trips (no-op unless
+      # CALENDAR_SYNC_INTERVAL_MINUTES > 0)
+      TravelingPoet.Trips.CalendarSync,
       # Webhook mirror of the DB (no-op unless CHANGE_STREAM_POLL_SECONDS > 0
       # AND an endpoint is registered)
       TravelingPoet.ChangeStream.Worker,

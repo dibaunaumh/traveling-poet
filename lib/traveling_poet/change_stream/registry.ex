@@ -21,6 +21,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Poets,
     Preferences,
     Topics,
+    Trips,
     Usage
   }
 
@@ -28,6 +29,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Accounts.User,
     Poets.Poet,
     Poets.PathPoint,
+    Trips.Trip,
     Poets.ItineraryStop,
     Topics.Topic,
     Books.Edition,

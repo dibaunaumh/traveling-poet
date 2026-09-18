@@ -41,8 +41,9 @@
       <li>
         <b>Optional connections.</b>
         Your Telegram chat id and username if you pair Telegram, the browser keys for
-        each device you turn on notifications for, and a Google Drive token if you
-        choose to save a book there.
+        each device you turn on notifications for, a Google token if you connect Google
+        Drive or Google Calendar, and the home city you name when connecting your
+        calendar.
       </li>
       <li>
         <b>Technical.</b>
@@ -62,7 +63,10 @@
       it needs:
     </p>
     <ul>
-      <li><b>Google</b> for sign-in, and Google Drive only if you connect it.</li>
+      <li>
+        <b>Google</b> for sign-in, and Google Drive or Google Calendar only if you connect
+        them.
+      </li>
       <li><b>Fly.io</b> hosts the application and its database, in the United States.</li>
       <li><b>Tigris</b> stores the drawings your poet makes.</li>
       <li>
@@ -116,8 +120,22 @@
         target="_blank"
         rel="noopener noreferrer"
       >Google API Services User Data Policy</a>, including its Limited Use requirements.
-      You can disconnect Drive in Settings, which revokes the permission with Google;
-      files already saved stay in your Drive.
+      You can disconnect Drive in Settings; files already saved stay in your Drive.
+    </p>
+
+    <h2>Google Calendar</h2>
+    <p>
+      If you choose to connect Google Calendar, the service asks Google only for
+      permission to read events, using the calendar.events.readonly scope; it never
+      creates or changes an event. It reads the events on your primary calendar for the
+      next few months, and only to find trips: stretches of days at a place far from the
+      home city you name. Of a trip it keeps the dates, the destination cities and the
+      ids of the events it came from, so it can tell you the trip is there and offer to
+      scout it. Event titles, descriptions and attendees are not stored. The same
+      Google API Services User Data Policy and its Limited Use requirements apply. You can
+      disconnect Calendar in Settings; suggestions not yet answered are dropped, and
+      trips you already asked your poet to scout stay planned. Disconnecting the last
+      Google connection revokes the permission with Google.
     </p>
 
     <h2>What your poet is asked not to do</h2>

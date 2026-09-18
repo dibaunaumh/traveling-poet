@@ -70,6 +70,7 @@ The Phoenix app never writes journal prose itself. The only server-side text LLM
 | `Markers.Watchdog` | `MARKER_DELIVERY_INTERVAL_MINUTES` (+ `MARKER_QUIET_MINUTES`, default 15) | Sends the reader's feedback markers to the poet as one `/revise-entry` turn once the reader has been quiet |
 | `FleetHealth.Alerter` | `FLEET_HEALTH_CHECK_INTERVAL_MINUTES` | Pages admins over Telegram about poets that stopped publishing; also surfaces `OpenRouter.key_status` because an exhausted key looks like a silent sprite |
 | `ChangeStream.Worker` | `CHANGE_STREAM_POLL_SECONDS` + a registered endpoint | Snapshot-diff outbox + signed webhook delivery for external agents |
+| `Trips.CalendarSync` | `CALENDAR_SYNC_INTERVAL_MINUTES` (+ `CALENDAR_ENABLED`: admins / all / off) | Reads connected Google Calendars, runs the pure `Trips.Detector` over the events, and stores trip suggestions via `Trips.reconcile/4`; tests call `sync_user/1` |
 | `Telegram.Poller` / `Telegram.Notifier` | `TELEGRAM_BOT_TOKEN` | Pairing, chat relay, publish notes |
 | `WebPush.Notifier` | VAPID keys | Browser push on publish |
 | `Geocoder.Limiter` | always on | Serialises every Nominatim call to 1 req/s app-wide. All geocoding must go through it |
@@ -84,6 +85,7 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 - `"poet:#{poet_id}"`: `{:journal_published, entry_id}`, geocoding results; subscribed by owner and public journal/guide LiveViews.
 - `"journal:published"`: `{:journal_published, poet_id, entry_id}` for cross-cutting listeners (notifiers, landing map).
 - `"credits:low"`.
+- `"trips"`: `{:trip_suggested, user_id, trip_id}` for the notifiers; `{:trips_updated}` goes on the user topic.
 
 ### Contexts worth knowing before touching them
 
@@ -98,6 +100,7 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 - `Artifacts` / `SpriteUploads` move files out of and into a sprite's `~/.openclaw/workspace` over `SpritesClient.exec` (base64 through the shell, size-capped, path-validated). `GET /api/artifacts` serves them behind a 5-minute `SessionToken`. The `SessionToken` moduledoc still cites an `/api/generate_token` route that no longer exists.
 - `ChangeStream.Registry` must list every Ecto schema as streamed or excluded; `registry_test.exs` fails the build otherwise. `Serializer` redacts by field name (anything token/secret/key-like, emails, chat content) and OMITS the key rather than masking it.
 - `Accounts.Purge` relies on `on_delete: :delete_all` everywhere and `PRAGMA foreign_keys` being on. New tables hanging off `users` must cascade.
+- `GoogleAuth` owns the ONE Google grant per account (`users.google_*` + `google_scopes`); Drive and Calendar are features of it. A feature's consent must ask for every scope the account already holds (Ueberauth only forwards `include_granted_scopes` from strategy options), and disconnecting a feature revokes with Google only when it was the last one. `Trips` is the calendar side: suggestions and plans are one `trips` row, accepted trips add `itinerary_stops` with `source: "trip"`, and `Trips.Detector` is pure (no Repo, no HTTP) so detection rules are unit-tested.
 
 ### Web layer
 

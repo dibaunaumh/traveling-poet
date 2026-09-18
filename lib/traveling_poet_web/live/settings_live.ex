@@ -3,6 +3,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_settings: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_settings: 1]
+  import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_settings: 1]
 
   import TravelingPoetWeb.PoetComponents
 
@@ -52,7 +53,8 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:stop_error, nil)
      |> assign_topics()
      |> assign_learned()
-     |> assign_book()}
+     |> assign_book()
+     |> assign_trips()}
   end
 
   # The composed edition: what it would cost, whether it can start, and how
@@ -131,6 +133,13 @@ defmodule TravelingPoetWeb.SettingsLive do
   @impl true
   def handle_event("telegram_" <> _ = event, params, socket),
     do: TravelingPoetWeb.TelegramPairing.handle_event(event, params, socket)
+
+  @impl true
+  def handle_event("trip_" <> _ = event, params, socket) do
+    {:noreply, socket} = TravelingPoetWeb.TripSuggestions.handle_event(event, params, socket)
+    # a planned trip's stops join the itinerary; a called-off one leaves it
+    {:noreply, assign(socket, :stops, Poets.list_stops(socket.assigns.poet.id))}
+  end
 
   @impl true
   def handle_event("dismiss_preference", %{"id" => id}, socket) do
@@ -536,6 +545,10 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_info({:trips_updated} = msg, socket),
+    do: TravelingPoetWeb.TripSuggestions.handle_info(msg, socket)
+
+  @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp assign_credits(socket) do
@@ -802,6 +815,7 @@ defmodule TravelingPoetWeb.SettingsLive do
     [
       {"poet", poet.name},
       {"journey", "Journey"},
+      {"trips", "Trips"},
       {"book", "Your book"},
       {"topics", "Topics"},
       {"learned", "Learned"},
@@ -1028,6 +1042,9 @@ defmodule TravelingPoetWeb.SettingsLive do
                     <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
                       asked in chat
                     </span>
+                    <span :if={stop.source == "trip"} class="badge badge-ghost badge-xs ml-1">
+                      for your trip
+                    </span>
                   </span>
                   <button
                     :if={is_nil(stop.visited_at)}
@@ -1040,6 +1057,15 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </li>
               </ol>
               <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
+            </.settings_section>
+
+            <.settings_section
+              :if={@trips.enabled?}
+              id="trips"
+              title="Trips"
+              note="Trips on your calendar, scouted before you go."
+            >
+              <.trip_settings trips={@trips} user={@user} poet={@poet} />
             </.settings_section>
 
             <.settings_section id="book" title="Your book">

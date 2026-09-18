@@ -17,6 +17,7 @@ defmodule TravelingPoet.WebPush.Notifier do
     if WebPush.configured?() and Application.get_env(:traveling_poet, :web_push_notifier, true) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       {:ok, %{}}
     else
       :ignore
@@ -53,6 +54,12 @@ defmodule TravelingPoet.WebPush.Notifier do
   @impl true
   def handle_info({:book_pdf_ready, user_id, pdf_id}, state) do
     Task.start(fn -> WebPush.notify_book_pdf_ready(user_id, pdf_id) end)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:trip_suggested, user_id, trip_id}, state) do
+    Task.start(fn -> WebPush.notify_trip_suggested(user_id, trip_id) end)
     {:noreply, state}
   end
 

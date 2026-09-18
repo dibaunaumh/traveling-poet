@@ -24,6 +24,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "credits:low")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       {:ok, %{}}
     else
       :ignore
@@ -97,7 +98,29 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:trip_suggested, user_id, trip_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
+         trip when not is_nil(trip) <- TravelingPoet.Trips.get(poet.id, trip_id) do
+      base = Application.get_env(:traveling_poet, :phoenix_url, "")
+      Client.send_message(chat_id, trip_suggested_text(poet, trip, "#{base}/settings#trips"))
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc "The note that says a trip was found on the calendar, to scout or not. Pure, for tests."
+  def trip_suggested_text(poet, trip, link) do
+    "Your calendar has a trip to #{trip.name}, " <>
+      "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}. " <>
+      "Should #{poet.name} scout it first? Decide here: #{link}"
+  end
 
   @doc "The note that says the book's PDF is ready. A link, not the file: it can be large. Pure, for tests."
   def book_pdf_text(poet, link),
