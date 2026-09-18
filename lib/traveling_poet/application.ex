@@ -20,6 +20,8 @@ defmodule TravelingPoet.Application do
       # Serializes every Nominatim call to OSM's 1 req/s policy. Onboarding and
       # settings geocode on submit too, so a ban would break signup itself.
       TravelingPoet.Geocoder.Limiter,
+      # Visit-event rate counter + daily prune (see TravelingPoet.Analytics)
+      TravelingPoet.Analytics.Server,
       TravelingPoet.DailyJourneyScheduler,
       # Telegram long-poller + publish notifier (no-op unless TELEGRAM_BOT_TOKEN set)
       TravelingPoet.Telegram.Poller,

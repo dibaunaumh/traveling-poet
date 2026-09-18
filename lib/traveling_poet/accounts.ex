@@ -35,6 +35,11 @@ defmodule TravelingPoet.Accounts do
     end
   end
 
+  def get_user_by_google_id(google_id) when is_binary(google_id),
+    do: Repo.get_by(User, google_id: google_id)
+
+  def get_user_by_google_id(_), do: nil
+
   def get_user!(id), do: Repo.get!(User, id)
   def get_user(id), do: Repo.get(User, id)
 

@@ -7,7 +7,12 @@
       <a :if={!@signed_out?} href="/journal" class="home-btn home-btn-sm">
         {if @my_poet, do: "#{@my_poet.name}'s journal", else: "My poet's journal"}
       </a>
-      <a :if={@signed_out?} href="/auth/google" class="home-btn home-btn-sm">
+      <a
+        :if={@signed_out?}
+        href="/auth/google"
+        class="home-btn home-btn-sm"
+        data-track="cta-signin-header"
+      >
         Sign in with Google
       </a>
     </div>
@@ -37,6 +42,7 @@
           method="get"
           class="home-hero-ask"
           role="search"
+          data-track="cta-hero-place"
         >
           <label for="hero-place" class="home-hero-ask-label">Where should your poet set out from?</label>
           <div class="home-hero-ask-row">
@@ -52,10 +58,15 @@
           </div>
         </form>
         <div class="home-hero-actions">
-          <a :if={!@signed_out? && @my_poet} href="/journal" class="home-hero-cta">
+          <a
+            :if={!@signed_out? && @my_poet}
+            href="/journal"
+            class="home-hero-cta"
+            data-track="open-journal"
+          >
             Open your journal
           </a>
-          <a href="#how-it-works" class="home-hero-more">See how it works &darr;</a>
+          <a href="#how-it-works" class="home-hero-more" data-track="how-it-works">See how it works &darr;</a>
         </div>
       </div>
     </section>
@@ -71,6 +82,7 @@
 
       <div
         id="landing-map"
+        data-track="landing-map"
         data-static-map
         data-spread={@spreads != [] && "landing-spread"}
         class="w-full h-96 rounded-2xl border border-base-300 z-0"
@@ -94,6 +106,7 @@
             class="spread-chip"
             data-spread-pick={s.poet.slug}
             aria-selected={to_string(idx == 0)}
+            data-track="spread-pick"
           >
             <img
               :if={s.poet.avatar_url}
@@ -141,8 +154,13 @@
           </:meta>
           <:right_footer>
             <div class="spread-actions">
-              <a href={s.url} class="link">Read the whole page &rarr;</a>
-              <button type="button" class="spread-locate" data-spread-locate>
+              <a href={s.url} class="link" data-track="read-spread">Read the whole page &rarr;</a>
+              <button
+                type="button"
+                class="spread-locate"
+                data-spread-locate
+                data-track="spread-locate"
+              >
                 📍 Show on the map
               </button>
             </div>
@@ -168,7 +186,12 @@
             &ldquo;Seville &rarr; Ronda &rarr; M&aacute;laga, ten days in September.&rdquo;
             Or just the flights on your calendar.
           </blockquote>
-          <a :if={@signed_out? || is_nil(@my_poet)} href={~p"/start"} class="home-btn">
+          <a
+            :if={@signed_out? || is_nil(@my_poet)}
+            href={~p"/start"}
+            class="home-btn"
+            data-track="cta-scout"
+          >
             Scout a trip
           </a>
         </div>
@@ -189,6 +212,7 @@
             :if={@signed_out? || is_nil(@my_poet)}
             href={~p"/start"}
             class="home-btn home-btn-quiet"
+            data-track="cta-wander"
           >
             Start wandering
           </a>
@@ -254,7 +278,9 @@
     <!-- Closing -->
     <section :if={@signed_out? || is_nil(@my_poet)} class="home-closing">
       <p class="home-lede">Somewhere in the world, a page is being written for you.</p>
-      <a href={~p"/start"} class="home-btn home-btn-lg">Send out your poet</a>
+      <a href={~p"/start"} class="home-btn home-btn-lg" data-track="cta-closing">
+        Send out your poet
+      </a>
       <p class="home-closing-note">
         Your first days of travel are on us. Sign in with Google to send it off.
       </p>
@@ -266,8 +292,8 @@
       <span class="wordmark wordmark-sm">Traveling <em>Poet</em></span>
       <span>Trips scouted, not sold. No ads, no affiliate links.</span>
       <span class="home-footer-links">
-        <.link navigate={~p"/privacy"}>Privacy</.link>
-        <.link navigate={~p"/terms"}>Terms</.link>
+        <.link navigate={~p"/privacy"} data-track="footer-privacy">Privacy</.link>
+        <.link navigate={~p"/terms"} data-track="footer-terms">Terms</.link>
       </span>
       <span class="opacity-60">&copy; {Date.utc_today().year}</span>
     </div>

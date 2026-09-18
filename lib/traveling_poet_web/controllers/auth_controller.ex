@@ -2,7 +2,7 @@ defmodule TravelingPoetWeb.AuthController do
   use TravelingPoetWeb, :controller
   plug Ueberauth
 
-  alias TravelingPoet.{Accounts, Books, GoogleAuth}
+  alias TravelingPoet.{Accounts, Analytics, Books, GoogleAuth}
   alias TravelingPoetWeb.UserAuth
 
   @doc """
@@ -117,9 +117,18 @@ defmodule TravelingPoetWeb.AuthController do
   end
 
   defp sign_in(conn, user_info, start_place) do
+    new? = is_nil(Accounts.get_user_by_google_id(user_info["sub"]))
+
     case Accounts.find_or_create_from_oauth(:google, user_info) do
       {:ok, user} ->
         name = user_info["name"] || user.name || "there"
+
+        # Joins today's anonymous visit to the account (see Analytics).
+        Analytics.record(%{
+          name: if(new?, do: "signup", else: "login"),
+          visitor: Analytics.visitor_id(conn),
+          user_id: user.id
+        })
 
         conn
         |> UserAuth.log_in_user(user)

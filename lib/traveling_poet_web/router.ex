@@ -24,6 +24,17 @@ defmodule TravelingPoetWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Page-event beacon: no session, no CSRF (sendBeacon cannot carry the
+  # token, and the endpoint only appends capped rows). The body is read raw.
+  pipeline :beacon do
+  end
+
+  scope "/", TravelingPoetWeb do
+    pipe_through :beacon
+
+    post "/e", Api.BeaconController, :create
+  end
+
   scope "/webhooks", TravelingPoetWeb do
     pipe_through :webhooks
 
@@ -118,6 +129,7 @@ defmodule TravelingPoetWeb.Router do
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_admin}] do
       live "/admin", AdminLive
       live "/admin/change-stream", ChangeStreamAdminLive
+      live "/admin/funnel", FunnelAdminLive
     end
   end
 
