@@ -173,7 +173,10 @@ defmodule TravelingPoetWeb.CalendarWebTest do
 
     html = view |> element("#trip-accept-#{trip.id}") |> render_click()
     assert html =~ "Wren will scout Rome"
+    assert html =~ "setting out on"
     assert html =~ ~s(id="trip-planned")
+    assert html =~ ~s(id="trip-timing-#{trip.id}")
+    assert html =~ "scouting from"
     assert html =~ "for your trip"
     assert [%{source: "trip", place_name: "Rome, Italy"}] = Poets.list_stops(poet.id)
 

@@ -131,7 +131,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
         {:error, :no_user}
 
       user ->
-        if Credits.can_run?(user, poet) do
+        if Credits.can_run?(user, poet, scouting: Poets.scouting?(poet)) do
           do_run(user, poet)
           :ok
         else
@@ -154,14 +154,21 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     end
   end
 
-  @doc "Whether a daily run may start now: daily caps, then credits."
+  @doc "Whether a daily run may start now: daily caps, then credits (at the trip rate on a trip day)."
   def eligible(user, poet) do
     cond do
-      not Usage.within_budget?(user, "daily_run") -> {:skip, "over budget"}
-      not Credits.can_run?(user, poet) -> {:skip, "out of credits"}
+      not Usage.within_budget?(user, "daily_run") ->
+        {:skip, "over budget"}
+
+      not Credits.can_run?(user, poet, scouting: Poets.scouting?(poet)) ->
+        {:skip, "out of credits"}
+
       # the poet is writing its book in a long turn; two turns interleave
-      Books.composing?(poet) -> {:skip, "composing its book"}
-      true -> :ok
+      Books.composing?(poet) ->
+        {:skip, "composing its book"}
+
+      true ->
+        :ok
     end
   end
 
@@ -170,12 +177,17 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     started_at = DateTime.utc_now() |> DateTime.truncate(:second)
     {:ok, attempt} = Usage.record(user.id, "daily_run_attempt")
 
+    # A planned trip whose day has come starts (and a finished one closes)
+    # before the day is decided and priced.
+    TravelingPoet.Trips.activate(poet)
+
     # Charge up front so a half-day balance can't buy a free run; refund
     # below when the run demonstrably failed. The day's kind goes on the
-    # ledger row so admin can tell an excursion run from a travel run.
-    day = Poets.travel_plan(poet).day
+    # ledger row so admin can tell an excursion run from a travel run, and a
+    # trip day is priced as a scout's.
+    plan = Poets.travel_plan(poet)
 
-    case Credits.debit_daily_run(user, poet, attempt.id, day: day) do
+    case Credits.debit_daily_run(user, poet, attempt.id, day: plan.day, scouting: plan.scouting) do
       {:ok, _} ->
         outcome =
           AgentSession.run(user, @trigger,

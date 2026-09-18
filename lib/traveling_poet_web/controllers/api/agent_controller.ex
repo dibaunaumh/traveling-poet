@@ -142,27 +142,27 @@ defmodule TravelingPoetWeb.Api.AgentController do
     end
   end
 
+  # The route the poet follows today: a trip being scouted (any mission), or
+  # a scout's own itinerary; a wanderer between trips has none.
   defp itinerary_for(poet) do
-    if Poet.mode(poet) == "scout" do
-      Poets.list_stops(poet.id)
-      |> Enum.map(fn s ->
-        %{
-          id: s.id,
-          position: s.position,
-          place_name: s.place_name,
-          lat: s.lat,
-          lng: s.lng,
-          country_code: s.country_code,
-          visited_at: s.visited_at
-        }
-      end)
-    else
-      []
-    end
+    poet
+    |> Poets.route_stops()
+    |> Enum.map(fn s ->
+      %{
+        id: s.id,
+        position: s.position,
+        place_name: s.place_name,
+        lat: s.lat,
+        lng: s.lng,
+        country_code: s.country_code,
+        visited_at: s.visited_at,
+        trip_id: s.trip_id
+      }
+    end)
   end
 
   defp next_stop_for(poet) do
-    if Poet.mode(poet) == "scout" do
+    if Poets.scouting?(poet) do
       case Poets.next_stop_to_travel(poet) do
         nil -> nil
         s -> %{id: s.id, position: s.position, place_name: s.place_name, lat: s.lat, lng: s.lng}

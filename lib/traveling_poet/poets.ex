@@ -4,7 +4,7 @@ defmodule TravelingPoet.Poets do
   """
 
   import Ecto.Query
-  alias TravelingPoet.{Repo, Topics}
+  alias TravelingPoet.{Repo, Topics, Trips}
   alias TravelingPoet.Poets.{ItineraryStop, Poet, PathPoint}
 
   def get_poet!(id), do: Repo.get!(Poet, id)
@@ -255,8 +255,17 @@ defmodule TravelingPoet.Poets do
   def travel_plan(%Poet{} = poet, today \\ Date.utc_today()) do
     days_here = days_here(poet, today)
     stay = Poet.stay_duration_days(poet)
-    scout? = Poet.mode(poet) == "scout"
-    next = if scout?, do: next_stop_to_travel(poet), else: next_requested_stop(poet.id)
+    # A planned trip whose day has come makes any poet a scout for its stops.
+    trip = Trips.active_trip(poet, today)
+    scout? = Poet.mode(poet) == "scout" or trip != nil
+
+    next =
+      cond do
+        chat = next_requested_stop(poet.id) -> chat
+        trip -> Trips.next_stop(poet, trip)
+        scout? -> next_stop_to_travel(poet, today)
+        true -> nil
+      end
 
     base = %{
       days_here: days_here,
@@ -264,7 +273,9 @@ defmodule TravelingPoet.Poets do
       hold_until: poet.hold_until,
       destination: next && stop_payload(next),
       # Where the poet has already stayed, so a free choice is a new place.
-      visited: poet.id |> visited_stays() |> Enum.map(& &1.place_name) |> Enum.uniq()
+      visited: poet.id |> visited_stays() |> Enum.map(& &1.place_name) |> Enum.uniq(),
+      scouting: scout?,
+      trip: Trips.payload(trip)
     }
 
     route =
@@ -275,8 +286,28 @@ defmodule TravelingPoet.Poets do
         next && next.source == "chat" ->
           decide(base, true, "your companion asked for this stop in chat; go there today")
 
+        # The trip's day has come and the poet is not on its route yet: set
+        # out now, whatever the stay count says.
+        trip && next && not Trips.at_trip_stop?(poet, trip) ->
+          decide(
+            base,
+            true,
+            "your companion's trip to #{trip.name} starts on #{trip.start_date}; " <>
+              "set out now and scout it ahead of them, stop by stop"
+          )
+
         days_here < stay ->
           decide(base, false, "day #{days_here + 1} of #{stay} here; not yet time to move")
+
+        trip && is_nil(next) ->
+          decide(
+            base,
+            false,
+            "the trip to #{trip.name} is scouted; finish this stay here, then your own road again"
+          )
+
+        trip ->
+          decide(base, true, "your stay here is done; advance to the trip's next stop")
 
         scout? and is_nil(next) ->
           decide(
@@ -405,22 +436,44 @@ defmodule TravelingPoet.Poets do
   end
 
   @doc """
-  The next pending stop the scout should travel to: pending stops in order,
-  skipping any at the place the poet already is (same name, or within 10 km:
-  the geocoder once named the same city "京都市" and "Kyoto"). A backstop for
-  a starting stop left pending; `start_itinerary/2` marks it visited.
+  The next pending stop the scout should travel to: the trip being scouted
+  today comes first; otherwise the route's own pending stops in order (a
+  future trip's stops wait for their day), skipping any at the place the
+  poet already is (same name, or within 10 km: the geocoder once named the
+  same city "京都市" and "Kyoto"). A backstop for a starting stop left
+  pending; `start_itinerary/2` marks it visited.
   """
-  def next_stop_to_travel(%Poet{} = poet) do
-    ItineraryStop
-    |> where(poet_id: ^poet.id)
-    |> where([s], is_nil(s.visited_at))
-    |> order_by(asc: :position)
-    |> Repo.all()
-    |> Enum.drop_while(&at_current_place?(&1, poet))
-    |> List.first()
+  def next_stop_to_travel(%Poet{} = poet, today \\ Date.utc_today()) do
+    case Trips.active_trip(poet, today) do
+      nil -> poet |> route_stops(today) |> Enum.reject(& &1.visited_at) |> next_from(poet)
+      trip -> Trips.next_stop(poet, trip)
+    end
   end
 
+  defp next_from(stops, poet) do
+    stops |> Enum.drop_while(&at_current_place?(&1, poet)) |> List.first()
+  end
+
+  @doc """
+  The stops the poet is following today: the trip being scouted, if any;
+  else, for a scout, the itinerary minus any trip's stops; nothing for a
+  wanderer.
+  """
+  def route_stops(%Poet{} = poet, today \\ Date.utc_today()) do
+    case {Trips.active_trip(poet, today), Poet.mode(poet)} do
+      {%{id: trip_id}, _mode} -> Trips.stops(trip_id)
+      {nil, "scout"} -> Enum.reject(list_stops(poet.id), & &1.trip_id)
+      {nil, _mode} -> []
+    end
+  end
+
+  @doc "Whether today's run scouts: scout mission, or a trip whose day has come."
+  def scouting?(%Poet{} = poet, today \\ Date.utc_today()), do: Trips.scouting?(poet, today)
+
   @same_place_km 10
+
+  @doc "Whether the stop is where the poet now stands (same name, or within 10 km)."
+  def at_place?(stop, %Poet{} = poet), do: at_current_place?(stop, poet)
 
   defp at_current_place?(stop, poet) do
     same_place?(stop.place_name, poet.current_place_name) or
