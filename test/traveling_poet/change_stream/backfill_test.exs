@@ -61,7 +61,7 @@ defmodule TravelingPoet.ChangeStream.BackfillTest do
     done = Repo.get!(Endpoint, endpoint.id)
     assert done.backfill_status == "done"
     assert done.backfilled_at
-    assert done.backfill_progress["entity"] == "entry_prompts"
+    assert done.backfill_progress["entity"] == "funnel_days"
   end
 
   test "a receiver that keeps failing ends the run as failed", %{endpoint: endpoint} do

@@ -1,8 +1,9 @@
 defmodule TravelingPoet.Analytics.Server do
   @moduledoc """
-  Owns the per-visitor rate counter (an ETS table) and prunes visit events
-  past `Analytics.retention_days/0` once a day. Pruning is off in test
-  (`:analytics_prune`), where the sandbox owns the Repo.
+  Owns the per-visitor rate counter (an ETS table), rebuilds the
+  `funnel_days` rollups every 15 minutes (`Analytics.Rollup`), and prunes
+  visit events past `Analytics.retention_days/0` once a day. Both database
+  jobs are off in test (`:analytics_prune`), where the sandbox owns the Repo.
   """
   use GenServer
 
@@ -12,6 +13,7 @@ defmodule TravelingPoet.Analytics.Server do
 
   @day :timer.hours(24)
   @sweep :timer.minutes(5)
+  @rollup :timer.minutes(15)
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -22,6 +24,7 @@ defmodule TravelingPoet.Analytics.Server do
 
     if Application.get_env(:traveling_poet, :analytics_prune, true) do
       Process.send_after(self(), :prune, :timer.hours(1))
+      Process.send_after(self(), :rollup, :timer.minutes(1))
     end
 
     {:ok, %{}}
@@ -38,6 +41,17 @@ defmodule TravelingPoet.Analytics.Server do
 
     Process.send_after(self(), :sweep, @sweep)
     {:noreply, state}
+  end
+
+  def handle_info(:rollup, state) do
+    TravelingPoet.Analytics.Rollup.run()
+    Process.send_after(self(), :rollup, @rollup)
+    {:noreply, state}
+  rescue
+    e ->
+      Logger.warning("analytics: rollup failed: #{Exception.message(e)}")
+      Process.send_after(self(), :rollup, @rollup)
+      {:noreply, state}
   end
 
   def handle_info(:prune, state) do
