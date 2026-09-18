@@ -159,12 +159,14 @@
         <div class="home-mode">
           <h3>Trips coming up?</h3>
           <p>
-            Give your poet the itinerary. It visits each stop before you do &ndash; food
-            stalls, overlooked museums, the view nobody mentions &ndash; and reports back in
-            order, so you land knowing where to go.
+            Give your poet the itinerary, or connect your Google Calendar and it notices the
+            trips on it and offers to scout them. It sets out in time to visit each stop
+            just before you do: food stalls, overlooked museums, the view nobody mentions.
+            It reports back in order, so you land knowing where to go.
           </p>
           <blockquote class="home-example">
             &ldquo;Seville &rarr; Ronda &rarr; M&aacute;laga, ten days in September.&rdquo;
+            Or just the flights on your calendar.
           </blockquote>
           <a :if={@signed_out? || is_nil(@my_poet)} href={~p"/start"} class="home-btn">
             Scout a trip
