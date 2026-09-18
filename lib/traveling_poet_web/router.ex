@@ -36,6 +36,8 @@ defmodule TravelingPoetWeb.Router do
     get "/", PageController, :home
     # The hero's destination box: remembers the place across Google sign-in
     get "/start", PageController, :start
+    get "/privacy", PageController, :privacy
+    get "/terms", PageController, :terms
     get "/media/:id", MediaController, :show
     # The book page, opened by the poet's sprite to print a PDF. No session:
     # a signed token for one rendering PDF, which also lets that page's

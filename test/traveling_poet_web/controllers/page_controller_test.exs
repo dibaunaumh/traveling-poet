@@ -224,4 +224,45 @@ defmodule TravelingPoetWeb.PageControllerTest do
       assert redirected_to(conn) == "/journal"
     end
   end
+
+  describe "the documents Google's consent screen points at" do
+    test "GET /privacy says what is stored, who sees it, and how to have it deleted",
+         %{conn: conn} do
+      html = conn |> get(~p"/privacy") |> html_response(200)
+
+      assert html =~ "Privacy Policy"
+      assert html =~ "Last updated"
+      # the providers that actually see something
+      for third_party <- ["Google", "Fly.io", "Tigris", "sprites.dev", "OpenRouter", "Stripe"] do
+        assert html =~ third_party
+      end
+
+      # Google's verification looks for the Limited Use wording and the scope
+      assert html =~ "Google API Services User Data Policy"
+      assert html =~ "Limited Use"
+      assert html =~ "drive.file"
+
+      assert html =~ "dibaunaumh@gmail.com"
+      assert html =~ "deleted"
+      assert html =~ ~s(href="/terms")
+    end
+
+    test "GET /terms covers the service, credits, fair use and liability", %{conn: conn} do
+      html = conn |> get(~p"/terms") |> html_response(200)
+
+      assert html =~ "Terms of Service"
+      assert html =~ "not as travel advice"
+      assert html =~ "Credits"
+      assert html =~ "16 or older"
+      assert html =~ "without warranties"
+      assert html =~ "dibaunaumh@gmail.com"
+      assert html =~ ~s(href="/privacy")
+    end
+
+    test "both are reachable signed out, and linked from the home page", %{conn: conn} do
+      html = conn |> get(~p"/") |> html_response(200)
+      assert html =~ ~s(href="/privacy")
+      assert html =~ ~s(href="/terms")
+    end
+  end
 end

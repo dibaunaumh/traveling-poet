@@ -84,6 +84,24 @@ defmodule TravelingPoetWeb.PageController do
   defp maybe_park_place(conn, ""), do: conn
   defp maybe_park_place(conn, place), do: put_session(conn, :start_place, place)
 
+  @contact "dibaunaumh@gmail.com"
+  # Bumped by hand when either document changes in a way that matters.
+  @legal_updated "17 September 2026"
+
+  @doc "The privacy policy, at the url Google's OAuth consent screen points at."
+  def privacy(conn, _params) do
+    conn
+    |> assign(:page_title, "Privacy Policy")
+    |> render(:privacy, contact: @contact, updated: @legal_updated)
+  end
+
+  @doc "The terms of service, alongside the privacy policy."
+  def terms(conn, _params) do
+    conn
+    |> assign(:page_title, "Terms of Service")
+    |> render(:terms, contact: @contact, updated: @legal_updated)
+  end
+
   @doc "Onboarding, with the requested starting place when there is one."
   def onboarding_path(place) when place in [nil, ""], do: ~p"/onboarding"
   def onboarding_path(place), do: ~p"/onboarding?#{[place: place]}"

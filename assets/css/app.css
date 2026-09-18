@@ -121,6 +121,66 @@ h1, h2, h3 {
   letter-spacing: -0.005em;
 }
 
+/* ---- Privacy policy and terms: plain reading pages ---------------------- */
+
+.legal {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1rem 0 4rem;
+  line-height: 1.65;
+}
+
+.legal h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.legal h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 2rem 0 0.5rem;
+}
+
+.legal p,
+.legal ul {
+  margin-bottom: 1rem;
+}
+
+.legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.legal li {
+  margin-bottom: 0.5rem;
+}
+
+.legal .legal-date {
+  font-size: 0.875rem;
+  opacity: 0.6;
+  margin-bottom: 2rem;
+}
+
+.legal .legal-foot {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-base-300);
+  font-size: 0.875rem;
+}
+
+.home-footer-links {
+  display: inline-flex;
+  gap: 1rem;
+}
+
+.home-footer-links a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* ---- Settings: a side menu and one card per section --------------------- */
 /* The page grew to a dozen blocks in one column. Each is a card now, with a
    menu beside it that follows the reader (settings_nav_hook.js). */
