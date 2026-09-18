@@ -30,6 +30,25 @@ defmodule TravelingPoet.Illustrations do
   # FLUX, Seedream, Qwen Image) is image-only and answers 404 there.
   @chat_model_prefixes ["google/gemini-", "openai/gpt-5"]
 
+  # The model reads "travel-journal sketch" literally and paints a sketchbook
+  # around the scene: spiral binding, page edges, a hand. The drawing is
+  # taped into a notebook already; the scene has to fill the image. Added
+  # app-side so it holds whatever the poet's own prompt says.
+  @framing " The image is the scene itself, filling the frame edge to edge:" <>
+             " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
+
+  # A spot drawing sits inside the prose, blended onto the paper with CSS
+  # multiply, which makes pure white vanish and lets a wash sit on the paper
+  # like real watercolour. Colour is welcome where it carries the meaning (a
+  # textile, a fruit, a sky); the background is the thing that must stay
+  # clean, and the model cannot be trusted with that from the poet's prompt
+  # alone, so the app says it every time.
+  @ink " A small drawing of one detail: black ink line, with a light watercolour wash" <>
+         " where colour carries the meaning, otherwise plain ink." <>
+         " The background must be pure white (#FFFFFF), the white of the page itself:" <>
+         " no paper texture, no grey, no vignette, no shadow, no border, no frame, no text." <>
+         " The subject sits alone on blank white."
+
   def configured? do
     Application.get_env(:traveling_poet, :openrouter_api_key) not in [nil, ""]
   end
@@ -47,6 +66,10 @@ defmodule TravelingPoet.Illustrations do
   @doc "The model that draws this media kind."
   def model_for("spot"), do: spot_model()
   def model_for(_kind), do: model()
+
+  @doc "The style rules the app appends to every poet prompt, by media kind."
+  def style_suffix("spot"), do: @ink <> @framing
+  def style_suffix(_kind), do: @framing
 
   @doc "Which OpenRouter API a model answers on."
   def endpoint_for(model) when is_binary(model) do
@@ -69,7 +92,13 @@ defmodule TravelingPoet.Illustrations do
 
   Returns `{:ok, %{bytes, content_type, cost, ms}}` or `{:error, reason}`.
   `cost` is OpenRouter's reported USD for the call (nil when it reports none).
-  Options: `:model` (default `model/0`), `:api_key` (default the fleet key).
+  Options:
+    * `:model` (default `model/0`)
+    * `:api_key` (default the fleet key)
+    * `:endpoint` - override `endpoint_for/1`, which production never needs
+      but the image eval does: it puts every candidate on the Image API so
+      they are compared on one route
+    * `:params` - extra Image API fields (`resolution`, `aspect_ratio`)
   """
   def request(prompt, opts \\ []) when is_binary(prompt) do
     key = Keyword.get(opts, :api_key, Application.get_env(:traveling_poet, :openrouter_api_key))
@@ -78,7 +107,8 @@ defmodule TravelingPoet.Illustrations do
     if key in [nil, ""] do
       {:error, :not_configured}
     else
-      {url, body} = request_body(endpoint_for(model), model, prompt)
+      endpoint = Keyword.get(opts, :endpoint, endpoint_for(model))
+      {url, body} = request_body(endpoint, model, prompt, opts)
       t0 = System.monotonic_time(:millisecond)
 
       req_opts =
@@ -114,7 +144,7 @@ defmodule TravelingPoet.Illustrations do
     end
   end
 
-  defp request_body(:chat, model, prompt) do
+  defp request_body(:chat, model, prompt, _opts) do
     {@api_url,
      %{
        model: model,
@@ -124,7 +154,10 @@ defmodule TravelingPoet.Illustrations do
      }}
   end
 
-  defp request_body(:images, model, prompt), do: {@images_url, %{model: model, prompt: prompt}}
+  defp request_body(:images, model, prompt, opts) do
+    {@images_url,
+     Map.merge(Map.new(Keyword.get(opts, :params, %{})), %{model: model, prompt: prompt})}
+  end
 
   # Image API: `data: [%{b64_json, media_type}]`
   defp extract_image(%{"data" => [%{"b64_json" => b64} = img | _]}) when is_binary(b64) do
