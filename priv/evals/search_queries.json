@@ -1,0 +1,236 @@
+[
+  {
+    "id": "q01",
+    "count": 5,
+    "query": "\"Calleja de las Flores\" Córdoba filetype:jpg commons.wikimedia.org"
+  },
+  {
+    "id": "q02",
+    "query": "Fajalauza ceramics Granada traditional pottery Albayzín history"
+  },
+  {
+    "id": "q03",
+    "query": "Lisbon Pombaline Baixa earthquake 1755 Marquis of Pombal seismic architecture innovation reconstruction"
+  },
+  {
+    "id": "q04",
+    "count": 3,
+    "query": "Gran Teatro Falla Cádiz dirección address"
+  },
+  {
+    "id": "q05",
+    "query": "Baan Silapin Artist's House Bangkok address khlong Bang Luang"
+  },
+  {
+    "id": "q06",
+    "count": 5,
+    "query": "Bangkok Thai street food markets best eats 2026"
+  },
+  {
+    "id": "q07",
+    "count": 5,
+    "query": "Bang Krachao Bangkok \"Green Lung\" cycling stilted villages food how to get there 2025 2026"
+  },
+  {
+    "id": "q08",
+    "count": 3,
+    "query": "site:commons.wikimedia.org MOCA Bangkok building exterior"
+  },
+  {
+    "id": "q09",
+    "count": 5,
+    "query": "Baltimore Inner Harbor Fort McHenry what to do neighbourhoods Fells Point"
+  },
+  {
+    "id": "q10",
+    "count": 3,
+    "query": "Baltimore charity food bank community organization verified official website 2026"
+  },
+  {
+    "id": "q11",
+    "count": 5,
+    "query": "Philadelphia food charity community organization verified official"
+  },
+  {
+    "id": "q12",
+    "count": 5,
+    "query": "commons.wikimedia.org \"Kenilworth Aquatic Gardens\" lotus OR pond OR water"
+  },
+  {
+    "id": "q13",
+    "count": 5,
+    "query": "commons.wikimedia.org \"weaving\" OR \"textile\" \"Luang Prabang\" filetype:jpg"
+  },
+  {
+    "id": "q14",
+    "count": 5,
+    "query": "Luang Prabang morning alms giving Tak Bat ceremony"
+  },
+  {
+    "id": "q15",
+    "query": "\"Hive Bar\" Nong Khiaw location address"
+  },
+  {
+    "id": "q16",
+    "count": 5,
+    "query": "site:commons.wikimedia.org \"Ock Pop Tok\" textile weaving Laos"
+  },
+  {
+    "id": "q17",
+    "count": 3,
+    "query": "Khasi monoliths Mawphlang sacred forest standing stones Shillong"
+  },
+  {
+    "id": "q18",
+    "count": 5,
+    "query": "Shillong Khasi traditional music instrument \"tangmuri\" \"ksing\" cultural performance"
+  },
+  {
+    "id": "q19",
+    "count": 5,
+    "query": "Shillong police bazar cafes bookshops Khasi heritage"
+  },
+  {
+    "id": "q20",
+    "count": 5,
+    "query": "Shillong Khasi art gallery cultural centre traditional Nongkrem 2026"
+  },
+  {
+    "id": "q21",
+    "query": "Cincinnati hackathons tech scene startup Waymo robotaxi 2026"
+  },
+  {
+    "id": "q22",
+    "query": "Indianapolis art culture museums galleries public art"
+  },
+  {
+    "id": "q23",
+    "query": "Indianapolis food bank charity official site donation verified 2026"
+  },
+  {
+    "id": "q24",
+    "query": "Madison Wisconsin history culture attractions local character"
+  },
+  {
+    "id": "q25",
+    "query": "Chiang Mai current exhibitions festivals art September 2026"
+  },
+  {
+    "id": "q26",
+    "query": "Baan Kang Wat Chiang Mai artist village address"
+  },
+  {
+    "id": "q27",
+    "query": "Chiang Mai weather September 18 2026 forecast"
+  },
+  {
+    "id": "q28",
+    "query": "Chiang Mai Thailand history culture Old City overview"
+  },
+  {
+    "id": "q29",
+    "count": 5,
+    "query": "\"File:\" commons.wikimedia.org Knoxville Tennessee Market Square OR \"Gay Street\" OR \"Sunsphere\""
+  },
+  {
+    "id": "q30",
+    "query": "Knoxville weather forecast September 8 2026"
+  },
+  {
+    "id": "q31",
+    "query": "site:commons.wikimedia.org \"Biltmore Estate\" Asheville"
+  },
+  {
+    "id": "q32",
+    "count": 3,
+    "query": "commons.wikimedia.org file Montford Avenue Asheville Victorian houses"
+  },
+  {
+    "id": "q33",
+    "count": 5,
+    "query": "site:commons.wikimedia.org Venice Beach Boardwalk Ocean Front Walk Los Angeles"
+  },
+  {
+    "id": "q34",
+    "query": "site:commons.wikimedia.org \"Palm Springs\" \"San Jacinto\" mountains view"
+  },
+  {
+    "id": "q35",
+    "query": "Wrigley Memorial Botanic Garden address Avalon Catalina"
+  },
+  {
+    "id": "q36",
+    "query": "Spire 73 InterContinental LA Downtown rooftop bar hours drinks review"
+  },
+  {
+    "id": "q37",
+    "query": "Koyasan Mount Koya Japan history UNESCO Shingon Buddhism"
+  },
+  {
+    "id": "q38",
+    "count": 10,
+    "freshness": "month",
+    "query": "AI alignment latest research developments 2026"
+  },
+  {
+    "id": "q39",
+    "count": 4,
+    "query": "Kibune Kyoto Kifune Shrine history atmosphere kawadoko dining"
+  },
+  {
+    "id": "q40",
+    "count": 5,
+    "query": "Mount Takao tororo soba Kiyotaki soba restaurant summit"
+  },
+  {
+    "id": "q41",
+    "count": 5,
+    "freshness": "week",
+    "query": "South Lake Tahoe news September 2026"
+  },
+  {
+    "id": "q42",
+    "count": 5,
+    "query": "site:commons.wikimedia.org Oak Park Sacramento 40 Acres"
+  },
+  {
+    "id": "q43",
+    "count": 5,
+    "query": "\"Zelda's\" OR \"Paesanos\" OR \"taco truck\" Sacramento Famous taco truck \"Address\" midtown"
+  },
+  {
+    "id": "q44",
+    "count": 3,
+    "freshness": "week",
+    "query": "Truckee weather today September 12 2026"
+  },
+  {
+    "id": "q45",
+    "count": 5,
+    "query": "ECogS 2026 OIST embodied cognitive science program speakers keynotes"
+  },
+  {
+    "id": "q46",
+    "count": 5,
+    "query": "embodied cognition conference symposium 2026 programme September"
+  },
+  {
+    "id": "q47",
+    "freshness": "week",
+    "query": "Bienal de Flamenco 2026 Seville program venues tickets September"
+  },
+  {
+    "id": "q48",
+    "freshness": "year",
+    "query": "immersive visualization SIGGRAPH 2026 latest projects research"
+  },
+  {
+    "id": "q49",
+    "query": "Riot Fest 2026 Chicago Douglass Park dates carnival rides punk bands lineup"
+  },
+  {
+    "id": "q50",
+    "count": 5,
+    "query": "Cádiz current exhibitions festivals September 2026"
+  }
+]
