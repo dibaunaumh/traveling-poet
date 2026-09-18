@@ -3,80 +3,48 @@ defmodule TravelingPoet.GoogleDrive do
   The companion's Google Drive, for saving the book's PDF.
 
   The grant is `drive.file`: the app can see and change only files it made
-  there, nothing else in their Drive. It is asked for separately from sign-in
-  (incremental consent through the same Google OAuth client), with
-  `access_type=offline` so a save can run in the background later.
+  there, nothing else in their Drive. It is one feature of the account's
+  Google grant (`TravelingPoet.GoogleAuth`), asked for separately from
+  sign-in with offline access so a save can run in the background later.
 
   Uploads go into a "Traveling Poet" folder the app makes once, by
   resumable upload: Drive's single-request upload stops at 5 MB and a book
   is more.
 
-  Every request goes through `req_options/0`, stubbed with `Req.Test` in the
-  suite (`:drive_req_options`); nothing here reaches Google from a test.
+  Every request goes through `GoogleAuth.req_options/0`, stubbed with
+  `Req.Test` in the suite; nothing here reaches Google from a test.
   """
-
-  require Logger
 
   alias TravelingPoet.Accounts
   alias TravelingPoet.Accounts.User
+  alias TravelingPoet.GoogleAuth
 
-  @scope "https://www.googleapis.com/auth/drive.file"
-  @token_url "https://oauth2.googleapis.com/token"
-  @revoke_url "https://oauth2.googleapis.com/revoke"
   @files_url "https://www.googleapis.com/drive/v3/files"
   @upload_url "https://www.googleapis.com/upload/drive/v3/files"
   @folder_name "Traveling Poet"
   @folder_mime "application/vnd.google-apps.folder"
 
-  def scope, do: @scope
+  def scope, do: GoogleAuth.scope(:drive)
 
-  @doc "The Google sign-in path that asks for Drive access on top of sign-in."
-  def consent_params(email) do
-    [
-      scope: "email profile #{@scope}",
-      access_type: "offline",
-      prompt: "consent",
-      login_hint: email
-    ]
-  end
+  @doc "The Google sign-in query that asks for Drive access on top of sign-in."
+  def consent_params(%User{} = user), do: GoogleAuth.consent_params(user, :drive)
 
-  def connected?(%User{drive_refresh_token: t}) when is_binary(t) and t != "", do: true
-  def connected?(_user), do: false
+  def connected?(user), do: GoogleAuth.connected?(user, :drive)
 
   @doc """
   Keeps the Drive grant from an OAuth callback. `{:error, :no_drive_scope}`
   when the companion unticked Drive on the consent screen, `{:error,
   :no_refresh_token}` when Google gave no offline access.
   """
-  def store_credentials(%User{} = user, %{scopes: scopes} = credentials) do
-    cond do
-      @scope not in List.wrap(scopes) ->
-        {:error, :no_drive_scope}
-
-      credentials.refresh_token in [nil, ""] ->
-        {:error, :no_refresh_token}
-
-      true ->
-        Accounts.update_user(user, %{
-          drive_refresh_token: credentials.refresh_token,
-          drive_access_token: credentials.token,
-          drive_token_expires_at: expires_at(credentials.expires_at),
-          drive_connected_at: now()
-        })
+  def store_credentials(%User{} = user, credentials) do
+    case GoogleAuth.store_credentials(user, credentials, :drive) do
+      {:error, :scope_not_granted} -> {:error, :no_drive_scope}
+      other -> other
     end
   end
 
-  @doc "Revokes the grant with Google (best effort) and forgets it."
-  def disconnect(%User{} = user) do
-    if connected?(user) do
-      case Req.post(@revoke_url, [form: [token: user.drive_refresh_token]] ++ req_options()) do
-        {:ok, %{status: s}} when s in 200..299 -> :ok
-        other -> Logger.info("GoogleDrive: revoke answered #{inspect(other)}; forgetting anyway")
-      end
-    end
-
-    forget(user)
-  end
+  @doc "Forgets Drive; the grant is revoked with Google once no feature uses it."
+  def disconnect(%User{} = user), do: GoogleAuth.disconnect(user, :drive)
 
   @doc """
   Uploads a PDF into the companion's "Traveling Poet" folder. Returns
@@ -84,54 +52,11 @@ defmodule TravelingPoet.GoogleDrive do
   or `{:error, reason}`.
   """
   def upload_pdf(%User{} = user, bytes, filename) when is_binary(bytes) do
-    with {:ok, user, token} <- access_token(user),
+    with {:ok, user, token} <- GoogleAuth.access_token(user),
          {:ok, _user, folder_id} <- ensure_folder(user, token),
          {:ok, location} <- start_upload(token, folder_id, filename, byte_size(bytes)),
          {:ok, file} <- finish_upload(token, location, bytes) do
       {:ok, %{id: file["id"], web_link: file["webViewLink"]}}
-    end
-  end
-
-  @doc false
-  # A usable access token, refreshed when it is within a minute of expiring.
-  def access_token(%User{} = user) do
-    fresh? =
-      user.drive_access_token not in [nil, ""] and user.drive_token_expires_at &&
-        DateTime.compare(user.drive_token_expires_at, DateTime.add(DateTime.utc_now(), 60)) == :gt
-
-    if fresh?, do: {:ok, user, user.drive_access_token}, else: refresh(user)
-  end
-
-  defp refresh(%User{drive_refresh_token: refresh}) when refresh in [nil, ""],
-    do: {:error, :reconnect}
-
-  defp refresh(%User{} = user) do
-    oauth = Application.get_env(:ueberauth, Ueberauth.Strategy.Google.OAuth, [])
-
-    form = [
-      grant_type: "refresh_token",
-      refresh_token: user.drive_refresh_token,
-      client_id: oauth[:client_id],
-      client_secret: oauth[:client_secret]
-    ]
-
-    case Req.post(@token_url, [form: form] ++ req_options()) do
-      {:ok, %{status: 200, body: %{"access_token" => token} = body}} ->
-        {:ok, user} =
-          Accounts.update_user(user, %{
-            drive_access_token: token,
-            drive_token_expires_at: DateTime.add(now(), body["expires_in"] || 3600)
-          })
-
-        {:ok, user, token}
-
-      {:ok, %{status: status, body: %{"error" => "invalid_grant"}}} when status in 400..401 ->
-        # revoked in their Google account, or expired: ask them to reconnect
-        forget(user)
-        {:error, :reconnect}
-
-      other ->
-        {:error, {:token, summarize(other)}}
     end
   end
 
@@ -215,27 +140,11 @@ defmodule TravelingPoet.GoogleDrive do
     end
   end
 
-  defp forget(user) do
-    Accounts.update_user(user, %{
-      drive_refresh_token: nil,
-      drive_access_token: nil,
-      drive_token_expires_at: nil,
-      drive_connected_at: nil
-    })
-  end
-
   defp summarize({:ok, %{status: status, body: body}}),
     do: "HTTP #{status}: #{inspect(body) |> String.slice(0, 200)}"
 
   defp summarize({:error, reason}), do: inspect(reason) |> String.slice(0, 200)
   defp summarize(other), do: inspect(other) |> String.slice(0, 200)
 
-  defp expires_at(unix) when is_integer(unix),
-    do: DateTime.from_unix!(unix) |> DateTime.truncate(:second)
-
-  defp expires_at(_), do: nil
-
-  defp now, do: DateTime.utc_now() |> DateTime.truncate(:second)
-
-  def req_options, do: Application.get_env(:traveling_poet, :drive_req_options, [])
+  defp req_options, do: GoogleAuth.req_options()
 end

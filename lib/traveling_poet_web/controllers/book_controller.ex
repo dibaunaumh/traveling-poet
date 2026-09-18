@@ -89,8 +89,12 @@ defmodule TravelingPoetWeb.BookController do
     user = conn.assigns.current_user
 
     conn
-    |> put_session(:drive_connect, %{"pdf" => params["pdf"], "user_id" => user.id})
-    |> redirect(to: "/auth/google?" <> URI.encode_query(GoogleDrive.consent_params(user.email)))
+    |> put_session(:google_connect, %{
+      "feature" => "drive",
+      "pdf" => params["pdf"],
+      "user_id" => user.id
+    })
+    |> redirect(to: "/auth/google?" <> URI.encode_query(GoogleDrive.consent_params(user)))
   end
 
   @doc "Hands the owner a short-lived link to their stored PDF."
