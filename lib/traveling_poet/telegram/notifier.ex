@@ -113,7 +113,30 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:trip_changed, user_id, trip_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
+         trip when not is_nil(trip) <- TravelingPoet.Trips.get(poet.id, trip_id) do
+      base = Application.get_env(:traveling_poet, :phoenix_url, "")
+      Client.send_message(chat_id, trip_changed_text(poet, trip, "#{base}/settings#trips"))
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc "The note that says a planned trip moved on the calendar. Pure, for tests."
+  def trip_changed_text(poet, trip, link) do
+    "Your trip to #{trip.name} is now " <>
+      "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}; " <>
+      "#{poet.name} will set out on " <>
+      "#{TravelingPoet.Trips.date_range(trip.scout_from, trip.scout_from)}. #{link}"
+  end
 
   @doc "The note that says a trip was found on the calendar, to scout or not. Pure, for tests."
   def trip_suggested_text(poet, trip, link) do

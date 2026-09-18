@@ -204,6 +204,34 @@ defmodule TravelingPoet.Trips.DetectorTest do
     assert big.name == "Rome, Florence and 1 more"
   end
 
+  test "a Gmail flight with no location is read from its title, and only then" do
+    flight = ev(%{event_type: "fromGmail", summary: "Flight to Rome (FCO)", location: nil})
+    assert Detector.location_of(flight) == "Rome"
+    assert Detector.location_of(%{flight | summary: "Train to Florence"}) == "Florence"
+
+    assert Detector.location_of(%{flight | location: "Fiumicino Airport (FCO)"}) ==
+             "Fiumicino Airport (FCO)"
+
+    assert Detector.location_of(%{flight | summary: "Dinner with Rome"}) == nil
+    # an ordinary event's title is never read
+    assert Detector.location_of(ev(%{summary: "Flight to Rome (FCO)", location: nil})) == nil
+
+    assert Detector.locations([flight], @today) == ["Rome"]
+
+    resolved = Map.put(@resolved, "Rome", @rome)
+
+    assert [trip] =
+             Detector.detect(
+               [%{flight | start_on: Date.add(@today, 20), end_on: Date.add(@today, 20)}],
+               resolved,
+               @home,
+               @today
+             )
+
+    assert trip.name == "Rome"
+    assert [%{location: "Rome", kind: "gmail"}] = trip.signals
+  end
+
   test "locations/2 lists each candidate's location once, before anything is geocoded" do
     events = [
       ev(%{location: "Rome, Italy"}),

@@ -135,6 +135,75 @@ defmodule TravelingPoet.TripsTest do
       assert Trips.get(poet.id, rome.id) == nil
     end
 
+    test "a dismissed trip is offered again only when it changed materially", %{poet: poet} do
+      %{new: [trip]} = Trips.reconcile(poet, [found()], "Lisbon")
+      assert_receive {:trip_suggested, _, _}
+      {:ok, _} = Trips.dismiss(trip)
+
+      # a few days later, or a different end: still the trip they declined
+      nudged = found(%{start_date: Date.add(@today, 25), end_date: Date.add(@today, 30)})
+      assert %{new: [], updated: 1} = Trips.reconcile(poet, [nudged], "Lisbon")
+      assert [%{status: "dismissed"}] = Trips.list(poet.id)
+      refute_receive {:trip_suggested, _, _}
+
+      # moved by more than a week: a trip they have not seen
+      moved = found(%{start_date: Date.add(@today, 35), end_date: Date.add(@today, 38)})
+      assert %{new: [again], updated: 0} = Trips.reconcile(poet, [moved], "Lisbon")
+      assert again.id == trip.id
+      assert again.status == "suggested"
+      assert again.changed_at
+      assert again.start_date == Date.add(@today, 35)
+      assert_receive {:trip_suggested, _, id}
+      assert id == trip.id
+    end
+
+    test "a planned trip that left the calendar is marked, kept or called off, never dropped",
+         %{poet: poet} do
+      %{new: [trip]} = Trips.reconcile(poet, [found()], "Lisbon")
+      assert_receive {:trip_suggested, _, _}
+      {:ok, trip} = Trips.accept(poet, trip)
+
+      assert %{withdrawn: 0} = Trips.reconcile(poet, [], "Lisbon")
+      gone = Trips.get(poet.id, trip.id)
+      assert gone.status == "planned"
+      assert gone.calendar_gone_at
+
+      # back on the calendar: the mark clears
+      assert %{updated: 1} = Trips.reconcile(poet, [found()], "Lisbon")
+      assert Trips.get(poet.id, trip.id).calendar_gone_at == nil
+
+      # gone again, and kept by hand: it is theirs now, whatever the calendar says
+      Trips.reconcile(poet, [], "Lisbon")
+      {:ok, kept} = Trips.keep(poet, Trips.get(poet.id, trip.id))
+      assert kept.calendar_gone_at == nil
+      assert kept.source == "settings"
+      assert [stop] = Trips.stops(trip.id)
+      assert stop.source == "trip"
+    end
+
+    test "a planned trip that moves on the calendar is announced", %{poet: poet} do
+      %{new: [trip]} = Trips.reconcile(poet, [found()], "Lisbon")
+      assert_receive {:trip_suggested, _, _}
+      {:ok, _} = Trips.accept(poet, trip)
+
+      moved = found(%{start_date: Date.add(@today, 30), end_date: Date.add(@today, 33)})
+      assert %{changed: [changed], updated: 1} = Trips.reconcile(poet, [moved], "Lisbon")
+      assert changed.id == trip.id
+      assert changed.scout_from == Date.add(@today, 26)
+      assert_receive {:trip_changed, _, id}
+      assert id == trip.id
+
+      text = Notifier.trip_changed_text(poet, changed, "https://poet.travel/settings#trips")
+      assert text =~ "is now"
+      assert text =~ "will set out on"
+      payload = WebPush.trip_changed_payload(poet, changed)
+      assert payload.title =~ "moved"
+
+      # the same dates again: nothing to say
+      assert %{changed: []} = Trips.reconcile(poet, [moved], "Lisbon")
+      refute_receive {:trip_changed, _, _}
+    end
+
     test "a suggestion for a trip already under way is withdrawn", %{poet: poet} do
       stale = found(%{start_date: Date.add(@today, -1), end_date: Date.add(@today, 2)})
       %{new: [_]} = Trips.reconcile(poet, [stale], "Lisbon")

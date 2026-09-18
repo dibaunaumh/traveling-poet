@@ -127,6 +127,17 @@ defmodule TravelingPoetWeb.TripSuggestions do
     end
   end
 
+  def handle_event("trip_keep", %{"id" => id}, socket) do
+    poet = socket.assigns.poet
+
+    with %Trip{calendar_gone_at: %DateTime{}} = trip <- Trips.get(poet.id, String.to_integer(id)),
+         {:ok, _} <- Trips.keep(poet, trip) do
+      {:noreply, socket |> assign_trips() |> put_flash(:info, "Kept. #{poet.name} still goes.")}
+    else
+      _ -> {:noreply, assign_trips(socket)}
+    end
+  end
+
   def handle_event("trip_sync_now", _params, socket) do
     user = Accounts.get_user!(socket.assigns.user.id)
     synced_at = user.calendar_synced_at
@@ -354,8 +365,25 @@ defmodule TravelingPoetWeb.TripSuggestions do
               <span class="badge badge-ghost badge-xs" id={"trip-timing-#{trip.id}"}>
                 {timing(trip)}
               </span>
+              <span :if={trip.changed_at} class="badge badge-ghost badge-xs">dates updated</span>
             </div>
             <p class="text-xs opacity-60 mt-1">Its stops are on the itinerary above.</p>
+            <div
+              :if={trip.calendar_gone_at}
+              class="text-xs text-warning mt-1 flex items-center gap-2 flex-wrap"
+              id={"trip-gone-#{trip.id}"}
+            >
+              <span>No longer on your calendar. Still going?</span>
+              <button
+                type="button"
+                phx-click="trip_keep"
+                phx-value-id={trip.id}
+                class="btn btn-outline btn-xs"
+                id={"trip-keep-#{trip.id}"}
+              >
+                Keep
+              </button>
+            </div>
             <button
               type="button"
               phx-click="trip_cancel"

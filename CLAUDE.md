@@ -25,6 +25,7 @@ mix tpoet.smoke_poet [--teardown]      # real sprite + OpenClaw + gateway + mode
 mix tpoet.delete_user EMAIL [--yes]    # irreversible purge of a user (account, poet, journal, media, ledger, sprite)
 mix tpoet.backfill_places [--commit]   # extract trip-guide places from old entries; DRY RUN by default
 mix tpoet.gen_vapid_keys               # generate once, keep forever (rotation kills every push subscription)
+mix tpoet.calendar_sync EMAIL          # one Google Calendar trip sync now; prod: rpc Trips.CalendarSync.sync_user/1
 ```
 
 Dev-only sign-in without Google: `GET /dev/login/:user_id` (`DevSessionController`, routed only under `dev_routes`) starts a session for that user and lands on `/journal`. Handy for owner pages such as the pre-first-entry journal, which needs a signed-in owner with a poet.

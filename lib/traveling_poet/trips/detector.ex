@@ -90,6 +90,7 @@ defmodule TravelingPoet.Trips.Detector do
   defp candidate(%{event_type: "outOfOffice"} = event, _opts), do: [Map.put(event, :kind, :ooo)]
 
   defp candidate(%{event_type: "fromGmail"} = event, _opts) do
+    event = %{event | location: location_of(event)}
     if located?(event), do: [Map.put(event, :kind, :gmail)], else: []
   end
 
@@ -100,6 +101,31 @@ defmodule TravelingPoet.Trips.Detector do
   end
 
   defp located?(event), do: is_binary(event[:location]) and String.trim(event.location) != ""
+
+  @doc """
+  Where a Gmail booking event points. Its location when it has one; else,
+  for a flight, train, bus or ferry, the destination in its title ("Flight
+  to Rome (FCO)" -> "Rome"). The one place a title is read, and only for
+  events Gmail wrote.
+  """
+  def location_of(%{event_type: "fromGmail"} = event) do
+    cond do
+      located?(event) -> event.location
+      is_binary(event[:summary]) -> destination_in(event.summary)
+      true -> nil
+    end
+  end
+
+  def location_of(event), do: event[:location]
+
+  @leg ~r/^\s*(?:flight|train|bus|ferry|coach)\s+to\s+(.+?)(?:\s*\([A-Z]{3}\))?\s*$/iu
+
+  defp destination_in(summary) do
+    case Regex.run(@leg, summary) do
+      [_, city] -> String.trim(city)
+      _ -> nil
+    end
+  end
 
   defp days(from, to), do: Date.diff(to, from) + 1
 
