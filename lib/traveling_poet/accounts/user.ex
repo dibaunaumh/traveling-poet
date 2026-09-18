@@ -45,10 +45,14 @@ defmodule TravelingPoet.Accounts.User do
     field :credits_balance, :integer, default: 0
     field :low_credits_notified_at, :utc_datetime
 
-    # Google Drive (drive.file grant), for saving the book's PDF
-    field :drive_refresh_token, :string
-    field :drive_access_token, :string
-    field :drive_token_expires_at, :utc_datetime
+    # The Google grant (one per account, shared by every Google feature; see
+    # TravelingPoet.GoogleAuth) and the feature scopes it carries
+    field :google_refresh_token, :string
+    field :google_access_token, :string
+    field :google_token_expires_at, :utc_datetime
+    field :google_scopes, {:array, :string}, default: []
+
+    # Google Drive (drive.file), for saving the book's PDF
     field :drive_connected_at, :utc_datetime
     field :drive_folder_id, :string
 
@@ -90,9 +94,10 @@ defmodule TravelingPoet.Accounts.User do
       :quota_exempt,
       :credits_balance,
       :low_credits_notified_at,
-      :drive_refresh_token,
-      :drive_access_token,
-      :drive_token_expires_at,
+      :google_refresh_token,
+      :google_access_token,
+      :google_token_expires_at,
+      :google_scopes,
       :drive_connected_at,
       :drive_folder_id
     ])

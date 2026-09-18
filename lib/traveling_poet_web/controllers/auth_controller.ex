@@ -2,7 +2,7 @@ defmodule TravelingPoetWeb.AuthController do
   use TravelingPoetWeb, :controller
   plug Ueberauth
 
-  alias TravelingPoet.{Accounts, Books, GoogleDrive}
+  alias TravelingPoet.{Accounts, Books, GoogleAuth}
   alias TravelingPoetWeb.UserAuth
 
   @doc """
@@ -27,10 +27,10 @@ defmodule TravelingPoetWeb.AuthController do
     # Parked by the home page's destination box; log_in_user clears the
     # session, so read it first.
     start_place = get_session(conn, :start_place)
-    drive_connect = get_session(conn, :drive_connect)
+    google_connect = get_session(conn, :google_connect)
 
-    if drive_connect do
-      connect_drive(conn, auth, user_info, drive_connect)
+    if google_connect do
+      connect_google(conn, auth, user_info, google_connect)
     else
       sign_in(conn, user_info, start_place)
     end
@@ -38,47 +38,64 @@ defmodule TravelingPoetWeb.AuthController do
 
   def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
     conn
-    |> delete_session(:drive_connect)
+    |> delete_session(:google_connect)
     |> put_flash(:error, "Failed to authenticate.")
     |> redirect(to: "/")
   end
 
-  # Back from Google with Drive access asked for. This is not a sign-in: a
-  # different Google account picked on the consent screen must not switch
-  # who is signed in, and its grant is not kept.
-  defp connect_drive(conn, auth, user_info, %{"user_id" => user_id} = intent) do
-    conn = delete_session(conn, :drive_connect)
+  # Back from Google with a feature (Drive, Calendar) asked for on top of
+  # sign-in. This is not a sign-in: a different Google account picked on the
+  # consent screen must not switch who is signed in, and its grant is not
+  # kept.
+  defp connect_google(conn, auth, user_info, %{"user_id" => user_id} = intent) do
+    conn = delete_session(conn, :google_connect)
+    feature = feature(intent["feature"])
     current = Accounts.get_user(user_id)
 
     cond do
+      is_nil(feature) ->
+        conn |> put_flash(:error, "Failed to authenticate.") |> redirect(to: ~p"/settings")
+
       is_nil(current) or current.google_id != user_info["sub"] ->
         conn
         |> put_flash(:error, "Please choose the Google account you sign in with.")
-        |> redirect(to: ~p"/settings#book")
+        |> redirect(to: return_to(feature))
 
       true ->
-        case GoogleDrive.store_credentials(current, auth.credentials) do
+        case GoogleAuth.store_credentials(current, auth.credentials, feature) do
           {:ok, user} ->
             conn
-            |> put_flash(:info, drive_connected_note(user, intent["pdf"]))
-            |> redirect(to: ~p"/settings#book")
+            |> put_flash(:info, connected_note(feature, user, intent))
+            |> redirect(to: return_to(feature))
 
-          {:error, :no_drive_scope} ->
+          {:error, :scope_not_granted} ->
             conn
-            |> put_flash(:error, "Google Drive was not allowed, so nothing was saved.")
-            |> redirect(to: ~p"/settings#book")
+            |> put_flash(:error, not_allowed_note(feature))
+            |> redirect(to: return_to(feature))
 
           {:error, _} ->
             conn
-            |> put_flash(:error, "Google did not grant Drive access. Please try again.")
-            |> redirect(to: ~p"/settings#book")
+            |> put_flash(
+              :error,
+              "Google did not grant #{feature_name(feature)} access. Please try again."
+            )
+            |> redirect(to: return_to(feature))
         end
     end
   end
 
-  # Connected with a PDF in hand: start saving it straight away.
-  defp drive_connected_note(user, pdf_id) do
-    with {id, ""} <- Integer.parse(to_string(pdf_id)),
+  defp feature("drive"), do: :drive
+  defp feature(_), do: nil
+
+  defp feature_name(:drive), do: "Google Drive"
+
+  defp return_to(:drive), do: ~p"/settings#book"
+
+  defp not_allowed_note(:drive), do: "Google Drive was not allowed, so nothing was saved."
+
+  # Drive connected with a PDF in hand: start saving it straight away.
+  defp connected_note(:drive, user, intent) do
+    with {id, ""} <- Integer.parse(to_string(intent["pdf"])),
          %{} = pdf <- Books.get_owned_pdf(user, id),
          {:ok, _} <- Books.save_pdf_to_drive(user, pdf) do
       "Connected to Google Drive. Saving your PDF there now."

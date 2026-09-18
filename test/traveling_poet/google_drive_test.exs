@@ -4,9 +4,10 @@ defmodule TravelingPoet.GoogleDriveTest do
   import TravelingPoet.Fixtures
 
   alias TravelingPoet.{Accounts, GoogleDrive}
+  alias TravelingPoet.Accounts.User
   alias TravelingPoet.ChangeStream.Serializer
 
-  @stub TravelingPoet.GoogleDrive
+  @stub TravelingPoet.Google
   @scope "https://www.googleapis.com/auth/drive.file"
 
   defp creds(attrs \\ %{}) do
@@ -92,12 +93,12 @@ defmodule TravelingPoet.GoogleDriveTest do
 
       assert {:ok, user} = GoogleDrive.store_credentials(user, creds())
       assert GoogleDrive.connected?(user)
-      assert user.drive_refresh_token == "refresh-1"
+      assert user.google_refresh_token == "refresh-1"
       assert user.drive_connected_at
     end
 
     test "the consent request asks for drive.file with offline access for this account" do
-      params = GoogleDrive.consent_params("udi@example.com")
+      params = GoogleDrive.consent_params(%User{email: "udi@example.com", google_scopes: []})
       assert params[:scope] =~ @scope
       assert params[:scope] =~ "email"
       assert params[:access_type] == "offline"
@@ -147,7 +148,7 @@ defmodule TravelingPoet.GoogleDriveTest do
     test "an expired access token is refreshed first" do
       user =
         connected_user(%{
-          drive_token_expires_at:
+          google_token_expires_at:
             DateTime.add(DateTime.utc_now(), -10) |> DateTime.truncate(:second)
         })
 
@@ -157,13 +158,13 @@ defmodule TravelingPoet.GoogleDriveTest do
       assert_receive {:google, "POST", "oauth2.googleapis.com", "/token", _, form}
       assert form =~ "grant_type=refresh_token"
       assert form =~ "refresh_token=refresh-1"
-      assert Accounts.get_user!(user.id).drive_access_token == "access-2"
+      assert Accounts.get_user!(user.id).google_access_token == "access-2"
     end
 
     test "a grant revoked in Google asks to reconnect and is forgotten" do
       user =
         connected_user(%{
-          drive_token_expires_at:
+          google_token_expires_at:
             DateTime.add(DateTime.utc_now(), -10) |> DateTime.truncate(:second)
         })
 
@@ -186,11 +187,11 @@ defmodule TravelingPoet.GoogleDriveTest do
     assert_receive {:google, "POST", "oauth2.googleapis.com", "/revoke", _, form}
     assert form =~ "token=refresh-1"
     refute GoogleDrive.connected?(user)
-    assert user.drive_access_token == nil
+    assert user.google_access_token == nil
   end
 
   test "the Drive tokens never leave the app through the change stream" do
-    for field <- ~w(drive_refresh_token drive_access_token) do
+    for field <- ~w(google_refresh_token google_access_token) do
       assert Serializer.redacted_field?("users", field)
     end
 

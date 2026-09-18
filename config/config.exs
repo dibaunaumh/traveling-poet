@@ -69,7 +69,10 @@ config :phoenix, :json_library, Jason
 # OAuth login providers (google only in v1; apple slots in later)
 config :ueberauth, Ueberauth,
   providers: [
-    google: {Ueberauth.Strategy.Google, [default_scope: "email profile"]}
+    # include_granted_scopes: a feature asked for on top of sign-in (Drive,
+    # Calendar) keeps what the account already granted; see GoogleAuth
+    google:
+      {Ueberauth.Strategy.Google, [default_scope: "email profile", include_granted_scopes: true]}
   ]
 
 # Import environment specific config. This must remain at the bottom

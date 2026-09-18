@@ -23,7 +23,7 @@ defmodule TravelingPoetWeb.BookDriveWebTest do
     {:ok, pdf} = Books.request_pdf(user, poet)
     pdf = PdfRenderer.run(pdf.id)
 
-    Req.Test.stub(TravelingPoet.GoogleDrive, fn conn ->
+    Req.Test.stub(TravelingPoet.Google, fn conn ->
       case {conn.method, conn.request_path} do
         {"POST", "/drive/v3/files"} ->
           Req.Test.json(conn, %{"id" => "folder-1"})
@@ -83,7 +83,8 @@ defmodule TravelingPoetWeb.BookDriveWebTest do
     assert query["scope"] =~ @scope
     assert query["access_type"] == "offline"
 
-    assert get_session(conn, :drive_connect) == %{
+    assert get_session(conn, :google_connect) == %{
+             "feature" => "drive",
              "pdf" => Integer.to_string(pdf.id),
              "user_id" => user.id
            }
@@ -97,14 +98,18 @@ defmodule TravelingPoetWeb.BookDriveWebTest do
       callback(
         %{
           user_id: user.id,
-          drive_connect: %{"pdf" => Integer.to_string(pdf.id), "user_id" => user.id}
+          google_connect: %{
+            "feature" => "drive",
+            "pdf" => Integer.to_string(pdf.id),
+            "user_id" => user.id
+          }
         },
         google_auth("google-udi", ["email", @scope])
       )
 
     assert redirected_to(conn) == "/settings#book"
     assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Saving your PDF there now"
-    assert get_session(conn, :drive_connect) == nil
+    assert get_session(conn, :google_connect) == nil
     assert GoogleDrive.connected?(Accounts.get_user!(user.id))
 
     # the save runs inline in test
@@ -119,7 +124,11 @@ defmodule TravelingPoetWeb.BookDriveWebTest do
       callback(
         %{
           user_id: user.id,
-          drive_connect: %{"pdf" => Integer.to_string(pdf.id), "user_id" => user.id}
+          google_connect: %{
+            "feature" => "drive",
+            "pdf" => Integer.to_string(pdf.id),
+            "user_id" => user.id
+          }
         },
         google_auth("google-someone-else", ["email", @scope])
       )
@@ -137,7 +146,11 @@ defmodule TravelingPoetWeb.BookDriveWebTest do
       callback(
         %{
           user_id: user.id,
-          drive_connect: %{"pdf" => Integer.to_string(pdf.id), "user_id" => user.id}
+          google_connect: %{
+            "feature" => "drive",
+            "pdf" => Integer.to_string(pdf.id),
+            "user_id" => user.id
+          }
         },
         google_auth("google-udi", ["email"])
       )
