@@ -86,10 +86,16 @@ defmodule TravelingPoetWeb.TripSuggestions do
 
     with %Trip{status: "suggested"} = trip <- Trips.get(poet.id, String.to_integer(id)),
          {:ok, trip} <- Trips.accept(poet, trip) do
-      {:noreply,
-       socket
-       |> assign_trips()
-       |> put_flash(:info, "#{poet.name} will scout #{trip.name} for your trip.")}
+      note =
+        if trip.status == "scouting",
+          do:
+            "#{poet.name} sets out for #{trip.name} now; there is not enough time for a full " <>
+              "stay at every stop before you go.",
+          else:
+            "#{poet.name} will scout #{trip.name} for your trip, setting out on " <>
+              "#{Trips.date_range(trip.scout_from, trip.scout_from)}."
+
+      {:noreply, socket |> assign_trips() |> put_flash(:info, note)}
     else
       _ -> {:noreply, assign_trips(socket)}
     end
@@ -345,6 +351,9 @@ defmodule TravelingPoetWeb.TripSuggestions do
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium">{trip.name}</span>
               <span class="opacity-70">{Trips.date_range(trip.start_date, trip.end_date)}</span>
+              <span class="badge badge-ghost badge-xs" id={"trip-timing-#{trip.id}"}>
+                {timing(trip)}
+              </span>
             </div>
             <p class="text-xs opacity-60 mt-1">Its stops are on the itinerary above.</p>
             <button
@@ -370,6 +379,16 @@ defmodule TravelingPoetWeb.TripSuggestions do
     </div>
     """
   end
+
+  defp timing(%Trip{status: "scouting"}), do: "scouting now"
+
+  defp timing(%Trip{scout_from: %Date{} = from}) do
+    if Date.compare(from, Date.utc_today()) == :gt,
+      do: "scouting from #{Trips.date_range(from, from)}",
+      else: "scouting now"
+  end
+
+  defp timing(_trip), do: "planned"
 
   defp ago(%DateTime{} = at) do
     minutes = div(DateTime.diff(DateTime.utc_now(), at), 60)

@@ -19,6 +19,11 @@ defmodule TravelingPoet.Trips do
   alias TravelingPoet.Poets.{ItineraryStop, Poet}
   alias TravelingPoet.Trips.Trip
 
+  @doc "Whether the poet scouts today: its mission is scout, or a planned trip's day has come."
+  def scouting?(%Poet{} = poet, today \\ Date.utc_today()) do
+    Poet.mode(poet) == "scout" or active_trip(poet, today) != nil
+  end
+
   @same_city_km 50
 
   # -- reading --
@@ -159,6 +164,28 @@ defmodule TravelingPoet.Trips do
     trip |> Trip.changeset(attrs) |> Repo.update()
   end
 
+  # A planned trip follows the calendar's dates (the poet must set out in
+  # time); its stops and decision stand.
+  defp follow(%Trip{status: status} = trip, found, now) when status in ["planned", "scouting"] do
+    moved? = trip.start_date != found.start_date or trip.end_date != found.end_date
+
+    attrs = %{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)}
+
+    attrs =
+      if moved?,
+        do:
+          Map.merge(attrs, %{
+            start_date: found.start_date,
+            end_date: found.end_date,
+            changed_at: now,
+            scout_from:
+              scout_from(found.start_date, stay_count(trip), Poets.get_poet(trip.poet_id))
+          }),
+        else: attrs
+
+    trip |> Trip.changeset(attrs) |> Repo.update()
+  end
+
   defp follow(%Trip{} = trip, found, _now) do
     trip
     |> Trip.changeset(%{event_ids: Enum.uniq(trip.event_ids ++ found.event_ids)})
@@ -187,9 +214,12 @@ defmodule TravelingPoet.Trips do
 
   @doc """
   The companion wants the poet to scout this trip: the destinations become
-  itinerary stops (source "trip") and the trip is planned. Idempotent.
+  itinerary stops (source "trip") and the trip is planned, with the day the
+  poet sets out (`scout_from`) computed from the stops and the poet's stay
+  length. Idempotent.
   """
-  def accept(%Poet{} = poet, %Trip{poet_id: poet_id} = trip) when poet_id == poet.id do
+  def accept(%Poet{} = poet, %Trip{poet_id: poet_id} = trip, today \\ Date.utc_today())
+      when poet_id == poet.id do
     if stops(trip.id) == [] do
       for d <- Trip.destinations(trip) do
         {:ok, _} =
@@ -204,13 +234,138 @@ defmodule TravelingPoet.Trips do
       end
     end
 
+    from = scout_from(trip.start_date, stay_count(trip), poet)
+    status = if Date.compare(from, today) == :gt, do: "planned", else: "scouting"
+
     result =
       trip
-      |> Trip.changeset(%{status: "planned", decided_at: now()})
+      |> Trip.changeset(%{status: status, scout_from: from, decided_at: now()})
       |> Repo.update()
 
     broadcast_updated(poet)
     result
+  end
+
+  # -- timing --
+
+  @doc """
+  The day the poet sets out to scout a trip starting on `start_date`: one
+  full stay at each of `stays` stops, plus a day, before the companion
+  leaves. Never before today's caller decides otherwise.
+  """
+  def scout_from(%Date{} = start_date, stays, %Poet{} = poet) when is_integer(stays) do
+    Date.add(start_date, -(max(stays, 1) * Poet.stay_duration_days(poet) + 1))
+  end
+
+  # The stops still to be scouted (or the destinations, before any stop exists).
+  defp stay_count(%Trip{} = trip) do
+    case stops(trip.id) do
+      [] -> length(Trip.destinations(trip))
+      stops -> max(Enum.count(stops, &is_nil(&1.visited_at)), 1)
+    end
+  end
+
+  @doc """
+  The trip the poet is scouting today, if any: the earliest planned or
+  scouting trip whose `scout_from` has come and that still has a stop to
+  reach, or whose last stop is where the poet now stands (the stay there is
+  part of the trip). Read-only; `activate/2` records the state change.
+  """
+  def active_trip(%Poet{} = poet, today \\ Date.utc_today()) do
+    poet.id
+    |> list_by_status(~w(planned scouting))
+    |> Enum.filter(&(&1.scout_from && Date.compare(&1.scout_from, today) != :gt))
+    |> Enum.sort_by(&{Date.to_iso8601(&1.scout_from), &1.id})
+    |> Enum.find(fn trip ->
+      stops = stops(trip.id)
+      Enum.any?(stops, &is_nil(&1.visited_at)) or at_last_stop?(poet, stops)
+    end)
+  end
+
+  @doc "The trip's next stop still to be reached, skipping one the poet already stands at."
+  def next_stop(%Poet{} = poet, %Trip{} = trip) do
+    trip.id
+    |> stops()
+    |> Enum.filter(&is_nil(&1.visited_at))
+    |> Enum.drop_while(&Poets.at_place?(&1, poet))
+    |> List.first()
+  end
+
+  @doc "Whether the poet stands at one of the trip's stops already reached."
+  def at_trip_stop?(%Poet{} = poet, %Trip{} = trip) do
+    trip.id |> stops() |> Enum.any?(&(&1.visited_at && Poets.at_place?(&1, poet)))
+  end
+
+  defp at_last_stop?(poet, stops) do
+    case List.last(stops) do
+      nil -> false
+      last -> last.visited_at != nil and Poets.at_place?(last, poet)
+    end
+  end
+
+  @doc """
+  Records the day's state before a run: a planned trip whose day has come
+  becomes `scouting`; a scouting trip whose stops are all reached and whose
+  last stay is over (or whose start date has passed) is `done`. Returns the
+  trip being scouted today, if any.
+  """
+  def activate(%Poet{} = poet, today \\ Date.utc_today()) do
+    for trip <- list_by_status(poet.id, ~w(planned scouting)), finished?(poet, trip, today) do
+      {:ok, _} = trip |> Trip.changeset(%{status: "done"}) |> Repo.update()
+    end
+
+    case active_trip(poet, today) do
+      %Trip{status: "planned"} = trip ->
+        {:ok, trip} = trip |> Trip.changeset(%{status: "scouting"}) |> Repo.update()
+        broadcast_updated(poet)
+        trip
+
+      other ->
+        other
+    end
+  end
+
+  defp finished?(poet, trip, today) do
+    stops = stops(trip.id)
+    all_reached? = stops != [] and Enum.all?(stops, & &1.visited_at)
+
+    all_reached? and
+      (Date.compare(today, trip.start_date) == :gt or
+         not at_last_stop?(poet, stops) or
+         Poets.days_here(poet, today) >= Poet.stay_duration_days(poet))
+  end
+
+  @doc "A trip stop was removed in Settings: the trip is rescheduled, or called off with its last stop."
+  def after_stop_removed(%Poet{} = poet, trip_id) when is_integer(trip_id) do
+    case get(poet.id, trip_id) do
+      %Trip{status: status} = trip when status in ["planned", "scouting"] ->
+        if Enum.any?(stops(trip.id), &is_nil(&1.visited_at)) do
+          trip
+          |> Trip.changeset(%{scout_from: scout_from(trip.start_date, stay_count(trip), poet)})
+          |> Repo.update()
+        else
+          dismiss(trip)
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  def after_stop_removed(_poet, _trip_id), do: :ok
+
+  @doc "What the agent is told about the trip it is scouting."
+  def payload(nil), do: nil
+
+  def payload(%Trip{} = trip) do
+    %{
+      id: trip.id,
+      name: trip.name,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      scout_from: trip.scout_from,
+      destinations: Enum.map(Trip.destinations(trip), & &1["place_name"])
+    }
   end
 
   @doc "Not this trip. Kept, so the next sync does not suggest it again."

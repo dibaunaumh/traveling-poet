@@ -857,6 +857,33 @@ defmodule TravelingPoetWeb.AgentApiTest do
     body = conn |> get(~p"/api/agent/context") |> json_response(200)
     assert %{"travel_today" => false, "reason" => reason, "destination" => nil} = body["travel"]
     assert reason =~ "day 1 of"
+    assert body["travel"]["scouting"] == false
+    assert body["travel"]["trip"] == nil
+    assert body["itinerary"] == []
+    assert body["next_stop"] == nil
+  end
+
+  test "on a trip day a wanderer's context is a scout's: the trip, its stops, the next one",
+       %{conn: conn, poet: poet} do
+    trip =
+      trip_fixture(poet, %{
+        start_date: Date.add(Date.utc_today(), 3),
+        end_date: Date.add(Date.utc_today(), 6)
+      })
+
+    {:ok, trip} = TravelingPoet.Trips.accept(poet, trip)
+    assert trip.status == "scouting"
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["poet"]["mode"] == "wander"
+    assert body["travel"]["scouting"] == true
+    assert body["travel"]["trip"]["name"] == "Rome"
+    assert body["travel"]["trip"]["destinations"] == ["Rome, Italy"]
+    assert body["travel"]["travel_today"] == true
+    assert body["travel"]["destination"]["place_name"] == "Rome, Italy"
+    assert [%{"place_name" => "Rome, Italy", "trip_id" => trip_id}] = body["itinerary"]
+    assert trip_id == trip.id
+    assert body["next_stop"]["place_name"] == "Rome, Italy"
   end
 
   test "the poet can hold and add a detour from chat", %{conn: conn, poet: poet} do

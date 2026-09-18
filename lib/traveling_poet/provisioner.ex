@@ -627,7 +627,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_poet_context",
-          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode), recent feedback, learned_profile (what your companion has actually asked for), topics (subjects they follow beyond places), and travel: the app's decision for today, with travel.day = move | stay | excursion. Read it every run: it outranks your instincts and the interests baked into your workspace.",
+          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode, or a planned trip), recent feedback, learned_profile (what your companion has actually asked for), topics (subjects they follow beyond places), and travel: the app's decision for today, with travel.day = move | stay | excursion and travel.scouting + travel.trip when your companion's own upcoming trip is being scouted. Read it every run: it outranks your instincts and the interests baked into your workspace.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/context"); }
         });

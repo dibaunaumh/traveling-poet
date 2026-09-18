@@ -61,12 +61,19 @@ defmodule TravelingPoet.Credits do
 
   def low_credits_days, do: Application.get_env(:traveling_poet, :low_credits_days, 3)
 
-  @doc "Milli-credits one daily run costs for this poet's mission."
-  def daily_run_cost(poet) do
-    mode = if poet, do: Poet.mode(poet), else: "wander"
+  @doc """
+  Milli-credits one daily run costs for this poet's mission. `scouting: true`
+  prices the run as a scout's: a wanderer scouting a planned trip pays the
+  scout rate on those days.
+  """
+  def daily_run_cost(poet, opts \\ []) do
     rates = Application.get_env(:traveling_poet, :credit_rates, @default_rates)
-    to_milli(Map.get(rates, mode, Map.fetch!(@default_rates, "wander")))
+    to_milli(Map.get(rates, rate_mode(poet, opts), Map.fetch!(@default_rates, "wander")))
   end
+
+  defp rate_mode(_poet, scouting: true), do: "scout"
+  defp rate_mode(nil, _opts), do: "wander"
+  defp rate_mode(poet, opts), do: if(opts[:scouting], do: "scout", else: Poet.mode(poet))
 
   @doc """
   Milli-credits a composed book edition costs for a journey of `chapters`
@@ -86,8 +93,9 @@ defmodule TravelingPoet.Credits do
   def can_afford?(%User{quota_exempt: true}, _milli), do: true
   def can_afford?(%User{} = user, milli) when is_integer(milli), do: balance(user) >= milli
 
-  def can_run?(%User{quota_exempt: true}, _poet), do: true
-  def can_run?(%User{} = user, poet), do: balance(user) >= daily_run_cost(poet)
+  def can_run?(user, poet, opts \\ [])
+  def can_run?(%User{quota_exempt: true}, _poet, _opts), do: true
+  def can_run?(%User{} = user, poet, opts), do: balance(user) >= daily_run_cost(poet, opts)
 
   @doc "Days of travel left at the poet's pace; nil when it doesn't apply (exempt)."
   def runway_days(%User{quota_exempt: true}, _poet), do: nil
@@ -154,16 +162,19 @@ defmodule TravelingPoet.Credits do
   def debit_daily_run(%User{quota_exempt: true}, _poet, _ref, _opts), do: {:ok, :exempt}
 
   # `day:` (move | stay | excursion) is recorded so the ledger says what kind
-  # of run was bought. An excursion costs the same as any run of this mode
-  # and runs on the poet's own model; revisit once real ones show their cost.
+  # of run was bought, and `scouting:` prices a trip day at the scout rate
+  # (`mode` is the rate paid, `mission` the poet's own when they differ). An
+  # excursion costs the same as any run of this mode and runs on the poet's
+  # own model; revisit once real ones show their cost.
   def debit_daily_run(%User{} = user, poet, ref, opts) do
-    metadata =
-      case Keyword.get(opts, :day) do
-        nil -> %{"mode" => Poet.mode(poet)}
-        day -> %{"mode" => Poet.mode(poet), "day" => day}
-      end
+    rate = rate_mode(poet, opts)
 
-    apply(user, -daily_run_cost(poet), "debit_daily_run",
+    metadata =
+      %{"mode" => rate}
+      |> then(&if(opts[:day], do: Map.put(&1, "day", opts[:day]), else: &1))
+      |> then(&if(rate != Poet.mode(poet), do: Map.put(&1, "mission", Poet.mode(poet)), else: &1))
+
+    apply(user, -daily_run_cost(poet, opts), "debit_daily_run",
       reference: "usage_event:#{ref}",
       metadata: metadata
     )

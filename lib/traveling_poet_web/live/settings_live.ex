@@ -517,8 +517,17 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   @impl true
   def handle_event("remove_stop", %{"id" => id}, socket) do
-    Poets.remove_stop(socket.assigns.poet.id, String.to_integer(id))
-    {:noreply, assign(socket, :stops, Poets.list_stops(socket.assigns.poet.id))}
+    poet = socket.assigns.poet
+
+    case Poets.remove_stop(poet.id, String.to_integer(id)) do
+      {:ok, %{trip_id: trip_id}} when is_integer(trip_id) ->
+        TravelingPoet.Trips.after_stop_removed(poet, trip_id)
+
+      _ ->
+        :ok
+    end
+
+    {:noreply, socket |> assign(:stops, Poets.list_stops(poet.id)) |> assign_trips()}
   end
 
   @impl true
@@ -1453,7 +1462,8 @@ defmodule TravelingPoetWeb.SettingsLive do
               <p class="text-xs opacity-60 mt-2 mb-3">
                 Each day's journey costs {Credits.format(Credits.daily_run_cost(@poet))}
                 {if Poet.mode(@poet) == "scout", do: "credits (Trip Scout)", else: "credit (Wanderer)"};
-                chatting and drawings are included.
+                chatting and drawings are included. Days spent scouting one of your own
+                trips cost the Trip Scout rate.
               </p>
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
