@@ -24,13 +24,27 @@ defmodule TravelingPoet.LinkCheck do
   # basic SSRF hygiene: the app fetches agent-supplied URLs
   @blocked_host_suffixes [".internal", ".local", ".localhost"]
 
-  @doc "Validates a list of URLs; returns :ok or {:error, [bad_urls]}."
+  @doc """
+  Validates a list of URLs; returns :ok or {:error, [bad_urls]}.
+
+  Probes up to 20 distinct URLs, six at a time. It used to probe the first 8
+  one by one, so a ninth dead link passed unseen.
+  """
   def validate_all(urls) when is_list(urls) do
     bad =
       urls
       |> Enum.uniq()
-      |> Enum.take(8)
-      |> Enum.reject(&(check(&1) == :ok))
+      |> Enum.take(20)
+      |> Task.async_stream(&{&1, check(&1)},
+        max_concurrency: 6,
+        timeout: 15_000,
+        on_timeout: :kill_task
+      )
+      |> Enum.flat_map(fn
+        {:ok, {_url, :ok}} -> []
+        {:ok, {url, _}} -> [url]
+        {:exit, _} -> []
+      end)
 
     if bad == [], do: :ok, else: {:error, bad}
   end
