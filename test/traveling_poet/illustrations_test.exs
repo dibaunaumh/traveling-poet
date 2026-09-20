@@ -95,4 +95,39 @@ defmodule TravelingPoet.IllustrationsTest do
     assert {:error, "image API returned 404"} =
              Illustrations.request("x", api_key: "k", model: "m/image-only")
   end
+
+  test "a spot gets the ink rules and the framing rule; everything else only the framing" do
+    assert Illustrations.style_suffix("spot") =~ "pure white (#FFFFFF)"
+    assert Illustrations.style_suffix("spot") =~ "edge to edge"
+    refute Illustrations.style_suffix("illustration") =~ "#FFFFFF"
+    assert Illustrations.style_suffix("illustration") =~ "no sketchbook"
+    assert Illustrations.style_suffix(nil) == Illustrations.style_suffix("illustration")
+  end
+
+  # the image eval puts every candidate on the Image API, whatever its model
+  test "an explicit endpoint and extra Image API params are sent" do
+    Req.Test.stub(TravelingPoet.Illustrations, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      assert conn.request_path == "/api/v1/images"
+
+      assert Jason.decode!(body) == %{
+               "model" => "google/gemini-2.5-flash-image",
+               "prompt" => "a door",
+               "resolution" => "1K"
+             }
+
+      Req.Test.json(conn, %{
+        "data" => [%{"b64_json" => Base.encode64(@png), "media_type" => "image/png"}],
+        "usage" => %{"cost" => 0.0388}
+      })
+    end)
+
+    assert {:ok, %{bytes: @png, cost: 0.0388}} =
+             Illustrations.request("a door",
+               api_key: "k",
+               model: "google/gemini-2.5-flash-image",
+               endpoint: :images,
+               params: %{resolution: "1K"}
+             )
+  end
 end
