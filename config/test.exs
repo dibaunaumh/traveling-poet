@@ -39,6 +39,8 @@ config :traveling_poet, web_push_req_options: [plug: {Req.Test, TravelingPoet.We
 # Link liveness probes (LinkCheck) too: a test that cites a URL stubs the
 # answer, so no assertion ever depends on a real site being up.
 config :traveling_poet, link_check_req_options: [plug: {Req.Test, TravelingPoet.LinkCheck}]
+# Image generation (Illustrations): an unstubbed OpenRouter call raises
+config :traveling_poet, illustrations_req_options: [plug: {Req.Test, TravelingPoet.Illustrations}]
 # Wikimedia Commons lookups (find_reference_photos) too
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]
 

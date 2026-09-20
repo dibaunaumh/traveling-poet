@@ -54,6 +54,14 @@ config :traveling_poet,
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
+  # Spot drawings go to their own model: the 2026-09-18 blind eval judged 7 of
+  # 8 of this one's spots publishable against 1 of 8 of the main model's.
+  # Pinned in test, like every other slug, so policy tests assert something.
+  spot_image_model:
+    if(config_env() == :test,
+      do: "test/spot-image-model",
+      else: System.get_env("SPOT_IMAGE_MODEL", "microsoft/mai-image-2.6-flash")
+    ),
   # Used only by the one-off places backfill. Pinned in test for the same
   # reason the model slugs above are: .env loads in every env, so whatever the
   # fleet happens to run today must not decide what the tests assert.
