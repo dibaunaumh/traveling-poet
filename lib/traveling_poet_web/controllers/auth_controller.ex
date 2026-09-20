@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.AuthController do
   plug Ueberauth
 
   alias TravelingPoet.{Accounts, Analytics, Books, GoogleAuth}
-  alias TravelingPoetWeb.UserAuth
+  alias TravelingPoetWeb.{NativeAuth, SignIn, UserAuth}
 
   @doc """
   Initiates the OAuth flow (Ueberauth handles the redirect).
@@ -29,100 +29,103 @@ defmodule TravelingPoetWeb.AuthController do
     start_place = get_session(conn, :start_place)
     google_connect = get_session(conn, :google_connect)
 
+    # Set when this request is running in the iOS app's sign-in sheet rather
+    # than a browser: the answer then goes back to the app, not into this
+    # session (see NativeAuth).
+    native = get_session(conn, :native_auth)
+    conn = delete_session(conn, :native_auth)
+
     if google_connect do
-      connect_google(conn, auth, user_info, google_connect)
+      connect_google(conn, auth, user_info, google_connect, native)
     else
-      sign_in(conn, user_info, start_place)
+      sign_in(conn, user_info, start_place, native)
     end
   end
 
   def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
-    conn
-    |> delete_session(:google_connect)
-    |> put_flash(:error, "Failed to authenticate.")
-    |> redirect(to: "/")
+    native = get_session(conn, :native_auth)
+    conn = conn |> delete_session(:google_connect) |> delete_session(:native_auth)
+
+    if native do
+      redirect(conn, external: NativeAuth.failed_url())
+    else
+      conn
+      |> put_flash(:error, "Failed to authenticate.")
+      |> redirect(to: "/")
+    end
   end
 
   # Back from Google with a feature (Drive, Calendar) asked for on top of
   # sign-in. This is not a sign-in: a different Google account picked on the
   # consent screen must not switch who is signed in, and its grant is not
   # kept.
-  defp connect_google(conn, auth, user_info, %{"user_id" => user_id} = intent) do
+  defp connect_google(conn, auth, user_info, %{"user_id" => user_id} = intent, native) do
     conn = delete_session(conn, :google_connect)
     feature = feature(intent["feature"])
     current = Accounts.get_user(user_id)
 
     cond do
+      is_nil(feature) and native ->
+        redirect(conn, external: NativeAuth.failed_url())
+
       is_nil(feature) ->
         conn |> put_flash(:error, "Failed to authenticate.") |> redirect(to: ~p"/settings")
 
       is_nil(current) or current.google_id != user_info["sub"] ->
-        conn
-        |> put_flash(:error, "Please choose the Google account you sign in with.")
-        |> redirect(to: return_to(feature))
+        finish_connect(conn, native, feature, "wrong_account")
 
       true ->
         case GoogleAuth.store_credentials(current, auth.credentials, feature) do
-          {:ok, user} ->
-            conn
-            |> put_flash(:info, connected_note(feature, user, intent))
-            |> redirect(to: return_to(feature))
-
-          {:error, :scope_not_granted} ->
-            conn
-            |> put_flash(:error, not_allowed_note(feature))
-            |> redirect(to: return_to(feature))
-
-          {:error, _} ->
-            conn
-            |> put_flash(
-              :error,
-              "Google did not grant #{feature_name(feature)} access. Please try again."
-            )
-            |> redirect(to: return_to(feature))
+          {:ok, user} -> finish_connect(conn, native, feature, connected(feature, user, intent))
+          {:error, :scope_not_granted} -> finish_connect(conn, native, feature, "not_allowed")
+          {:error, _} -> finish_connect(conn, native, feature, "failed")
         end
     end
+  end
+
+  # How a connect attempt ends. A browser gets a flash on the page it came
+  # from. The iOS app's sheet is sent back to the app with the outcome as a
+  # code, because a flash set in the sheet's session would never be seen;
+  # the page the app opens next turns the code into the same words
+  # (NativeAuth.connect_notice/1).
+  defp finish_connect(conn, nil, feature, notice) do
+    {kind, text} = NativeAuth.connect_notice("#{feature}:#{notice}")
+    conn |> put_flash(kind, text) |> redirect(to: return_to(feature))
+  end
+
+  defp finish_connect(conn, _native, feature, notice) do
+    redirect(conn, external: NativeAuth.connected_url(return_to(feature), feature, notice))
   end
 
   defp feature("drive"), do: :drive
   defp feature("calendar"), do: :calendar
   defp feature(_), do: nil
 
-  defp feature_name(:drive), do: "Google Drive"
-  defp feature_name(:calendar), do: "Google Calendar"
-
   defp return_to(:drive), do: ~p"/settings#book"
   defp return_to(:calendar), do: ~p"/settings#trips"
 
-  defp not_allowed_note(:drive), do: "Google Drive was not allowed, so nothing was saved."
-
-  defp not_allowed_note(:calendar),
-    do: "Reading your Google Calendar was not allowed, so nothing was read."
-
   # Calendar connected: look for trips straight away.
-  defp connected_note(:calendar, user, _intent) do
+  defp connected(:calendar, user, _intent) do
     TravelingPoet.Trips.CalendarSync.sync_soon(user)
-    "Google Calendar connected. Looking for trips now."
+    "ok"
   end
 
   # Drive connected with a PDF in hand: start saving it straight away.
-  defp connected_note(:drive, user, intent) do
+  defp connected(:drive, user, intent) do
     with {id, ""} <- Integer.parse(to_string(intent["pdf"])),
          %{} = pdf <- Books.get_owned_pdf(user, id),
          {:ok, _} <- Books.save_pdf_to_drive(user, pdf) do
-      "Connected to Google Drive. Saving your PDF there now."
+      "ok_saving"
     else
-      _ -> "Connected to Google Drive."
+      _ -> "ok"
     end
   end
 
-  defp sign_in(conn, user_info, start_place) do
+  defp sign_in(conn, user_info, start_place, native) do
     new? = is_nil(Accounts.get_user_by_google_id(user_info["sub"]))
 
     case Accounts.find_or_create_from_oauth(:google, user_info) do
       {:ok, user} ->
-        name = user_info["name"] || user.name || "there"
-
         # Joins today's anonymous visit to the account (see Analytics).
         Analytics.record(%{
           name: if(new?, do: "signup", else: "login"),
@@ -130,10 +133,23 @@ defmodule TravelingPoetWeb.AuthController do
           user_id: user.id
         })
 
-        conn
-        |> UserAuth.log_in_user(user)
-        |> put_flash(:info, "Welcome, #{name}!")
-        |> redirect_after_login(user, start_place)
+        case native do
+          # The app's sheet: this session is Safari's and stays signed out.
+          # The app trades the token for a session of its own.
+          %{"challenge" => challenge} ->
+            redirect(conn,
+              external: NativeAuth.signed_in_url(NativeAuth.handoff_token(user.id, challenge))
+            )
+
+          nil ->
+            SignIn.establish(conn, user, start_place, user_info["name"])
+
+          _ ->
+            redirect(conn, external: NativeAuth.failed_url())
+        end
+
+      {:error, _changeset} when not is_nil(native) ->
+        redirect(conn, external: NativeAuth.failed_url())
 
       {:error, _changeset} ->
         conn
@@ -147,13 +163,5 @@ defmodule TravelingPoetWeb.AuthController do
   """
   def logout(conn, _params) do
     UserAuth.log_out_user(conn)
-  end
-
-  defp redirect_after_login(conn, user, start_place) do
-    if user.onboarding_completed do
-      redirect(conn, to: ~p"/journal")
-    else
-      redirect(conn, to: TravelingPoetWeb.PageController.onboarding_path(start_place))
-    end
   end
 end

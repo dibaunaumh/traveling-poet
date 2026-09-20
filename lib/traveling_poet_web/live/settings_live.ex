@@ -32,6 +32,15 @@ defmodule TravelingPoetWeb.SettingsLive do
         do: put_flash(socket, :info, "Credits added — happy travels!"),
         else: socket
 
+    # Back from the iOS app's sign-in sheet after connecting Drive or
+    # Calendar: the outcome arrives as a code, because a flash set over there
+    # lives in Safari's session, not this one.
+    socket =
+      case TravelingPoetWeb.NativeAuth.connect_notice(params["connected"]) do
+        {kind, text} -> put_flash(socket, kind, text)
+        nil -> socket
+      end
+
     if connected?(socket) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "user:#{user.id}")
     end
@@ -412,6 +421,12 @@ defmodule TravelingPoetWeb.SettingsLive do
       case Books.save_pdf_to_drive(user, pdf) do
         {:ok, _} ->
           {:noreply, socket |> assign(:user, user) |> assign_book()}
+
+        # The iOS app cannot be redirected into Google's consent screen (a
+        # web view is refused there): the page is told to run the connect in
+        # the system sign-in sheet instead (native.js, "native:connect").
+        {:error, :not_connected} when socket.assigns.native_app ->
+          {:noreply, push_event(socket, "native:connect", %{feature: "drive", pdf: pdf.id})}
 
         {:error, :not_connected} ->
           {:noreply, redirect(socket, to: ~p"/journal/book/drive/connect?#{[pdf: pdf.id]}")}

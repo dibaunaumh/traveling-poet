@@ -1,0 +1,69 @@
+<%!-- The iOS app's first screen for someone signed out. The website's home
+      page is a pitch to a visitor who has not decided yet; someone who
+      installed the app has, so this is a front door: sign in, or say where
+      the poet should start and then sign in. --%>
+<div class="home app-welcome">
+  <main>
+    <img
+      src={~p"/images/hero-notebook.jpg"}
+      alt="An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+      class="app-welcome-art"
+      width="1344"
+      height="768"
+      fetchpriority="high"
+    />
+
+    <h1 class="wordmark app-welcome-mark">Traveling <em>Poet</em></h1>
+    <p class="app-welcome-line">
+      Send someone ahead of you. Your poet travels through real places and writes you an
+      illustrated journal page every morning.
+    </p>
+
+    <p :if={@start_place} id="welcome-place" class="app-welcome-place">
+      Your poet sets out from <b>{@start_place}</b>. Sign in and it goes.
+    </p>
+
+    <div class="app-welcome-signin" id="welcome-signin">
+      <%!-- A plain link to the web flow. Inside the app native.js takes the
+            tap and runs it in the system sign-in sheet, the only place Google
+            allows it. --%>
+      <a href={~p"/auth/google"} class="home-btn app-welcome-btn" data-track="cta-signin-app">
+        Continue with Google
+      </a>
+    </div>
+
+    <form
+      :if={is_nil(@start_place)}
+      action={~p"/start"}
+      method="get"
+      class="home-hero-ask app-welcome-ask"
+      role="search"
+    >
+      <label for="welcome-place-input" class="home-hero-ask-label">
+        New here? Where should your poet set out from?
+      </label>
+      <div class="home-hero-ask-row">
+        <input
+          id="welcome-place-input"
+          type="text"
+          name="place"
+          maxlength="120"
+          autocomplete="off"
+          placeholder="Lisbon, Kyoto, Oaxaca…"
+        />
+        <button type="submit" class="home-hero-cta">Next</button>
+      </div>
+    </form>
+
+    <a :if={@sample} href={@sample.url} class="app-welcome-sample">
+      Read {@sample.name}&rsquo;s journal first
+    </a>
+  </main>
+
+  <footer class="app-welcome-foot">
+    <a href={~p"/privacy"}>Privacy</a>
+    <a href={~p"/terms"}>Terms</a>
+    <a href={~p"/support"}>Support</a>
+  </footer>
+</div>
+<Layouts.flash_group flash={@flash} />
