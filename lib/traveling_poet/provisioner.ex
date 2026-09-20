@@ -348,6 +348,10 @@ defmodule TravelingPoet.Provisioner do
     end
   end
 
+  @doc "The Perplexity model behind every poet's `web_search`."
+  def search_model,
+    do: Application.get_env(:traveling_poet, :search_model, "perplexity/sonar")
+
   @doc """
   The `~/.openclaw/openclaw.json` a poet runs with.
 
@@ -355,6 +359,11 @@ defmodule TravelingPoet.Provisioner do
   could only ever fire while the app is already driving a turn, where it
   costs a model call and its `HEARTBEAT_OK` races the real reply
   (`AgentSession`). Every cadence in this product lives app-side.
+
+  `web_search` is pinned to Perplexity Sonar over the fleet OpenRouter key,
+  model `search_model/0`. With nothing configured OpenClaw falls back to
+  `perplexity/sonar-pro`; the 2026-09-18 replay of 50 real poet queries
+  scored plain Sonar the same at half the price per call.
   """
   def openclaw_config(gateway_token, phoenix_url, model) do
     %{
@@ -364,7 +373,23 @@ defmodule TravelingPoet.Provisioner do
         auth: %{token: gateway_token}
       },
       agents: %{defaults: %{model: "openrouter/#{model}", heartbeat: %{every: "0m"}}},
-      plugins: %{allow: ["tpoet-plugin"]},
+      plugins: %{
+        # The allowlist gates OpenClaw's bundled plugins too: with only
+        # tpoet-plugin allowed, an explicit perplexity provider is unavailable
+        # and web_search falls through to Brave, which has no key.
+        allow: ["tpoet-plugin", "perplexity"],
+        # No apiKey: OpenClaw reads OPENROUTER_API_KEY from ~/.openclaw/.env.
+        # Setting the model puts it on the Sonar chat-completions path.
+        entries: %{
+          "perplexity" => %{
+            enabled: true,
+            config: %{
+              webSearch: %{baseUrl: "https://openrouter.ai/api/v1", model: search_model()}
+            }
+          }
+        }
+      },
+      tools: %{web: %{search: %{provider: "perplexity"}}},
       models: %{
         providers: %{
           "openrouter" => %{
@@ -496,7 +521,7 @@ defmodule TravelingPoet.Provisioner do
     ## Your tools
     The tpoet-plugin gives you: `get_poet_context`, `get_feedback`,
     `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
-    `journal_put_places`, `generate_illustration`,
+    `journal_put_places`, `generate_illustration`, `find_reference_photos`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
     `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
     `request_excursion`, `journal_put_finds`, `get_book_context`,
@@ -863,6 +888,28 @@ defmodule TravelingPoet.Provisioner do
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/illustrations", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "find_reference_photos",
+          description: "Find Wikimedia Commons photos to draw from: file pages with licence and author. Free and exact; use it instead of web_search for any Commons or reference-photo hunt. Pass the place's name as query, its lat/lng to see what was photographed nearby, or both.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "The place or thing, e.g. 'Ponte Vecchio Florence'. Plain words, no site: or filetype:" },
+              lat: { type: "number" },
+              lng: { type: "number" },
+              radius_m: { type: "number", description: "With lat/lng: how far to look, in metres (default 1000, max 10000)" },
+              limit: { type: "number", description: "How many photos (default 6, max 10)" }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            var q = [];
+            ["query", "lat", "lng", "radius_m", "limit"].forEach(function(k) {
+              if (a[k] !== undefined && a[k] !== null && a[k] !== "") q.push(k + "=" + encodeURIComponent(a[k]));
+            });
+            return call("GET", "/api/agent/reference_photos?" + q.join("&"));
+          }
         });
         ctx.registerTool({
           name: "journal_upload_illustration",

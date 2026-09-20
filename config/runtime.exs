@@ -44,6 +44,13 @@ config :traveling_poet,
       do: "test/scout-model",
       else: System.get_env("SCOUT_MODEL", "anthropic/claude-sonnet-4.6")
     ),
+  # Every poet's web_search (Provisioner.openclaw_config). Pinned in test like
+  # the slugs above. Reaches the fleet only through Provisioner.upgrade_fleet/1.
+  search_model:
+    if(config_env() == :test,
+      do: "test/search-model",
+      else: System.get_env("SEARCH_MODEL", "perplexity/sonar")
+    ),
   # image generation rides the OpenRouter key (Illustrations module);
   # IMAGE_GEN_API_KEY no longer exists
   image_gen_model: System.get_env("IMAGE_GEN_MODEL", "google/gemini-2.5-flash-image"),
