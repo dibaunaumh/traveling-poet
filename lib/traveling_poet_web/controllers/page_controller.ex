@@ -23,9 +23,16 @@ defmodule TravelingPoetWeb.PageController do
         Journal.latest_published_entry(poet.id) && %{name: poet.name, url: ~p"/p/#{poet.slug}"}
       end)
 
+    # Sign in with Apple needs a nonce that belongs to this session
+    {conn, apple_nonce} =
+      if TravelingPoet.Apple.configured?(),
+        do: TravelingPoetWeb.AppleAuthController.issue_nonce(conn),
+        else: {conn, nil}
+
     render(conn, :welcome,
       start_place: get_session(conn, :start_place),
       sample: sample,
+      apple_nonce: apple_nonce,
       layout: false
     )
   end

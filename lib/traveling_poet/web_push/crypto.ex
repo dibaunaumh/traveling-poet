@@ -77,15 +77,10 @@ defmodule TravelingPoet.WebPush.Crypto do
     %URI{scheme: scheme, host: host, port: port} = URI.parse(endpoint)
     audience = URI.to_string(%URI{scheme: scheme, host: host, port: port})
 
-    header = %{"typ" => "JWT", "alg" => "ES256"}
     claims = %{"aud" => audience, "exp" => now + @jwt_ttl_seconds, "sub" => subject}
-    signing_input = b64(Jason.encode!(header)) <> "." <> b64(Jason.encode!(claims))
+    jwt = TravelingPoet.JWS.sign_es256(%{"typ" => "JWT"}, claims, {:raw, unb64(private_key)})
 
-    signature =
-      :crypto.sign(:ecdsa, :sha256, signing_input, [unb64(private_key), @curve])
-      |> der_to_raw()
-
-    "vapid t=#{signing_input}.#{b64(signature)},k=#{public_key}"
+    "vapid t=#{jwt},k=#{public_key}"
   end
 
   # -- helpers --
@@ -94,19 +89,6 @@ defmodule TravelingPoet.WebPush.Crypto do
   defp hkdf(salt, ikm, info, length) when length <= 32 do
     prk = :crypto.mac(:hmac, :sha256, salt, ikm)
     :crypto.mac(:hmac, :sha256, prk, info <> <<1>>) |> binary_part(0, length)
-  end
-
-  # :crypto emits DER `SEQUENCE { INTEGER r, INTEGER s }`; JOSE wants r||s,
-  # each left-padded to 32 bytes.
-  defp der_to_raw(
-         <<0x30, _len, 0x02, rlen, r::binary-size(rlen), 0x02, slen, s::binary-size(slen)>>
-       ) do
-    pad32(r) <> pad32(s)
-  end
-
-  defp pad32(int) do
-    int = int |> :binary.decode_unsigned() |> :binary.encode_unsigned()
-    :binary.copy(<<0>>, 32 - byte_size(int)) <> int
   end
 
   def b64(bin), do: Base.url_encode64(bin, padding: false)

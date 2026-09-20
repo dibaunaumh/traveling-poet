@@ -107,6 +107,8 @@ defmodule TravelingPoetWeb.Router do
     get "/native/start", NativeAuthController, :start
     get "/native/connect", NativeAuthController, :connect
     post "/native/handoff", NativeAuthController, :handoff
+    # Sign in with Apple: the app's native sheet, posted from the web view
+    post "/apple/native", AppleAuthController, :native
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
   end

@@ -21,7 +21,8 @@ defmodule TravelingPoet.MixProject do
   def application do
     [
       mod: {TravelingPoet.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      # :public_key for TravelingPoet.JWS (Apple's .p8 keys and JWK sets)
+      extra_applications: [:logger, :runtime_tools, :public_key]
     ]
   end
 
