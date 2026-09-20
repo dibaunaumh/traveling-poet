@@ -2448,3 +2448,27 @@ body::before {
   background: #fff;
   color: #000;
 }
+
+/* The iOS app's AI consent step (ai_consent_html/show.html.heex) */
+.app-welcome main.app-consent {
+  text-align: left;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.app-consent h1 {
+  text-align: center;
+  font-size: 1.7rem;
+  margin-bottom: 0.25rem;
+}
+
+.app-consent ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.app-consent .app-welcome-sample {
+  text-align: center;
+}

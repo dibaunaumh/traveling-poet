@@ -166,6 +166,16 @@ defmodule TravelingPoet.GoogleAuth do
     end
   end
 
+  @doc """
+  Withdraws the whole Google grant, whatever features it covers. For account
+  deletion (`Accounts.Purge`); `disconnect/2` is how a reader lets go of one
+  feature. Best-effort: Google being down must not stop a deletion.
+  """
+  def revoke_grant(%User{} = user) do
+    revoke(user)
+    :ok
+  end
+
   defp revoke(%User{google_refresh_token: token}) when is_binary(token) and token != "" do
     case Req.post(@revoke_url, [form: [token: token]] ++ req_options()) do
       {:ok, %{status: s}} when s in 200..299 -> :ok

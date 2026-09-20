@@ -1,0 +1,34 @@
+<div class="home app-welcome">
+  <main class="app-consent">
+    <h1 class="wordmark app-welcome-mark">Before your poet sets out</h1>
+
+    <p>
+      Your poet's journal, its drawings and its replies in the chat are made by AI
+      models. They are not run by Traveling Poet: they belong to outside providers,
+      reached through a service called OpenRouter.
+    </p>
+
+    <p>To write for you, those models are sent:</p>
+    <ul>
+      <li>what you write to your poet in the chat, and any file you send it there</li>
+      <li>the places, interests and preferences you choose, and what your poet learns
+        from your feedback on its pages</li>
+      <li>the name you give, so your poet can address you</li>
+    </ul>
+
+    <p>
+      Your email address and your payment details are never part of what your poet is
+      given. The full account is in the <a href={~p"/privacy"} class="link">privacy policy</a>.
+    </p>
+
+    <form action={~p"/ai-consent"} method="post" id="ai-consent-form">
+      <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+      <button type="submit" class="home-btn app-welcome-btn w-full">I agree, send out my poet</button>
+    </form>
+
+    <a href={~p"/auth/logout"} class="app-welcome-sample" id="ai-consent-decline">
+      Not now, sign me out
+    </a>
+  </main>
+</div>
+<Layouts.flash_group flash={@flash} />

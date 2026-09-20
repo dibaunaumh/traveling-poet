@@ -412,6 +412,29 @@ defmodule TravelingPoetWeb.SettingsLive do
     end
   end
 
+  # The reader's own account deletion: the same purge an admin runs, behind
+  # the same guard (the account's email, typed). The session then points at
+  # nobody, so signing out is all that is left to do.
+  @impl true
+  def handle_event("delete_account", %{"confirm_email" => typed}, socket) do
+    case Accounts.Purge.purge(socket.assigns.user.id, typed) do
+      {:ok, _summary} ->
+        {:noreply, redirect(socket, to: ~p"/auth/logout")}
+
+      {:error, :email_mismatch} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "That is not this account's email address. Nothing was deleted."
+         )}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, "The account could not be deleted just now. Please try again.")}
+    end
+  end
+
   @impl true
   def handle_event("save_to_drive", %{"id" => id}, socket) do
     user = Accounts.get_user!(socket.assigns.user.id)
@@ -1549,11 +1572,44 @@ defmodule TravelingPoetWeb.SettingsLive do
                 <.link navigate={~p"/privacy"} class="link">Privacy policy</.link>
                 · <.link navigate={~p"/terms"} class="link">Terms of service</.link>
                 · <.link navigate={~p"/support"} class="link">Support</.link>
-                · To delete your account and everything in it, write to <a
-                  class="link"
-                  href="mailto:dibaunaumh@gmail.com"
-                >dibaunaumh@gmail.com</a>.
               </p>
+
+              <details id="delete-account" class="mt-6 border-t border-base-300 pt-4">
+                <summary class="cursor-pointer text-sm text-error">Delete account</summary>
+                <div class="mt-3 text-sm space-y-3">
+                  <p>
+                    This deletes your account and everything in it, now and for good: {if @poet,
+                      do: @poet.name,
+                      else: "your poet"}, every journal entry and
+                    drawing, the trip guide, your chat, your credits, and the connections
+                    to Google, Apple and Telegram. A public journal stops being readable.
+                    Nothing can be restored afterwards, and unused credits are not refunded.
+                  </p>
+                  <form id="delete-account-form" phx-submit="delete_account" class="space-y-2">
+                    <label class="block">
+                      <span class="text-sm">
+                        To confirm, type the email address of this account, <b>{@user.email}</b>
+                      </span>
+                      <input
+                        type="email"
+                        name="confirm_email"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        required
+                        class="input input-bordered w-full mt-1"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      class="btn btn-error btn-sm"
+                      phx-disable-with="Deleting..."
+                    >
+                      Delete my account for good
+                    </button>
+                  </form>
+                </div>
+              </details>
             </.settings_section>
           </div>
         </div>

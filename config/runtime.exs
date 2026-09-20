@@ -117,6 +117,12 @@ config :traveling_poet,
         System.get_env("APPLE_PRIVATE_KEY") &&
           String.replace(System.get_env("APPLE_PRIVATE_KEY"), "\\n", "\n")
     ),
+  # App Store review's sign-in into the demo account (ReviewLogin). Both must
+  # be set for it to exist; nil in test, where the suite sets its own.
+  review_login_email:
+    if(config_env() == :test, do: nil, else: System.get_env("REVIEW_LOGIN_EMAIL")),
+  review_login_password_hash:
+    if(config_env() == :test, do: nil, else: System.get_env("REVIEW_LOGIN_PASSWORD_HASH")),
   apple_bundle_id:
     if(config_env() == :test,
       do: nil,

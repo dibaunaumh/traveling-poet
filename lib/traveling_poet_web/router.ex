@@ -107,6 +107,10 @@ defmodule TravelingPoetWeb.Router do
     get "/native/start", NativeAuthController, :start
     get "/native/connect", NativeAuthController, :connect
     post "/native/handoff", NativeAuthController, :handoff
+    # App Store review's way into the demo account; 404 unless its two
+    # secrets are set (see ReviewLogin)
+    get "/review", ReviewLoginController, :new
+    post "/review", ReviewLoginController, :create
     # Sign in with Apple: the app's native sheet, posted from the web view
     post "/apple/native", AppleAuthController, :native
     get "/:provider", AuthController, :request
@@ -127,6 +131,9 @@ defmodule TravelingPoetWeb.Router do
     get "/journal/book/pdf/:id", BookController, :download_pdf
     get "/journal/book/drive/connect", BookController, :connect_drive
     get "/settings/calendar/connect", CalendarController, :connect
+    # The iOS app's one-time consent to third-party AI
+    get "/ai-consent", AiConsentController, :show
+    post "/ai-consent", AiConsentController, :agree
     # The iOS app asks for the address to open in its sign-in sheet
     get "/auth/native/connect_url", NativeAuthController, :connect_url
 

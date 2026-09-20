@@ -102,16 +102,19 @@ defmodule TravelingPoetWeb.UserAuth do
 
   def on_mount(:ensure_authenticated, _params, session, socket) do
     socket = mount_current_user(socket, session)
+    user = socket.assigns[:current_user]
 
-    if socket.assigns[:current_user] do
-      {:cont, socket}
-    else
-      socket =
-        socket
-        |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/")
+    cond do
+      # Inside the iOS app nothing is sent to an AI model before the reader
+      # has agreed to it, once (see AiConsentController).
+      user && TravelingPoetWeb.AiConsentController.needed?(user, socket.assigns.native_app) ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/ai-consent")}
 
-      {:halt, socket}
+      user ->
+        {:cont, socket}
+
+      true ->
+        ensure_authenticated_redirect(socket)
     end
   end
 
@@ -125,6 +128,15 @@ defmodule TravelingPoetWeb.UserAuth do
       _ ->
         {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}
     end
+  end
+
+  defp ensure_authenticated_redirect(socket) do
+    socket =
+      socket
+      |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+      |> Phoenix.LiveView.redirect(to: ~p"/")
+
+    {:halt, socket}
   end
 
   defp mount_current_user(socket, session) do

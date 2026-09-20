@@ -36,7 +36,14 @@ defmodule TravelingPoetWeb.NativeAppTest do
 
   describe "credits" do
     setup do
-      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      # someone who has already agreed to the app's AI consent step
+      user =
+        agent_user_fixture(%{
+          onboarding_completed: true,
+          sprite_url: nil,
+          ai_consent_at: DateTime.utc_now(:second)
+        })
+
       poet_fixture(user)
       %{user: user}
     end
