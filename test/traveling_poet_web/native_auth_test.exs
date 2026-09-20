@@ -182,8 +182,10 @@ defmodule TravelingPoetWeb.NativeAuthTest do
 
   describe "connecting Calendar or Drive" do
     setup do
+      # put back exactly what was there: other suites rely on the configured value
+      before = Application.get_env(:traveling_poet, :calendar_enabled)
       Application.put_env(:traveling_poet, :calendar_enabled, "all")
-      on_exit(fn -> Application.delete_env(:traveling_poet, :calendar_enabled) end)
+      on_exit(fn -> Application.put_env(:traveling_poet, :calendar_enabled, before) end)
 
       user = user_fixture(%{google_id: "g-owner", onboarding_completed: true})
       poet_fixture(user)
