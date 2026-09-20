@@ -21,6 +21,11 @@ const MobileViewport = {
         this.el.style.top = ""
         this.el.style.height = ""
       }
+      // With the keyboard up the overlay ends at the keyboard, not at the
+      // home indicator, so the bottom safe-area padding would only be a
+      // blank strip above the keys (.chat-overlay.keyboard-open in app.css).
+      const keyboard = fixed && window.innerHeight - this.vv.height > 120
+      this.el.classList.toggle("keyboard-open", keyboard)
     }
     this.vv.addEventListener("resize", this.apply)
     this.vv.addEventListener("scroll", this.apply)

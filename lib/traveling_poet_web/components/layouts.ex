@@ -46,7 +46,7 @@ defmodule TravelingPoetWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-200">
+    <header class="app-header navbar px-4 sm:px-6 lg:px-8 border-b border-base-200">
       <div class="flex-1 min-w-0">
         <a href="/" class="wordmark truncate">
           Traveling <em>Poet</em>
@@ -134,13 +134,52 @@ defmodule TravelingPoetWeb.Layouts do
       </div>
     </header>
 
-    <main class="px-4 py-6 sm:px-6 lg:px-8">
+    <main class="app-main px-4 py-6 sm:px-6 lg:px-8">
       <div class={["mx-auto", if(@wide, do: "max-w-[100rem]", else: "max-w-6xl")]}>
         {render_slot(@inner_block)}
       </div>
     </main>
 
+    <.shell_tabbar :if={@current_user} active_tab={@active_tab} />
+
     <.flash_group flash={@flash} />
+    """
+  end
+
+  # The installed app's own navigation (the iOS app and the home-screen web
+  # app, which set `data-shell` on <html>; see root.html.heex). Hidden in a
+  # browser tab, where the header menu does this job. On a phone held upright
+  # it is a bar along the bottom; held sideways, where height is what is
+  # scarce, it becomes a rail on the leading edge and the header steps aside.
+  # All of that is CSS (.shell-tabbar in app.css).
+  attr :active_tab, :atom, default: nil
+
+  defp shell_tabbar(assigns) do
+    ~H"""
+    <nav id="shell-tabbar" class="shell-tabbar" aria-label="Main">
+      <.link navigate={~p"/journal"} aria-current={@active_tab == :journal && "page"}>
+        <.icon name="hero-book-open" class="size-6" />
+        <span>Journal</span>
+      </.link>
+      <.link navigate={~p"/guide"} aria-current={@active_tab == :guide && "page"}>
+        <.icon name="hero-map" class="size-6" />
+        <span>Guide</span>
+      </.link>
+      <%!-- Chat is not a page: on the journal it opens the chat over it,
+            from anywhere else it goes to the journal with the chat open. --%>
+      <button :if={@active_tab == :journal} type="button" phx-click="toggle_mobile_chat">
+        <.icon name="hero-chat-bubble-left-right" class="size-6" />
+        <span>Chat</span>
+      </button>
+      <.link :if={@active_tab != :journal} navigate={~p"/journal?chat=1"}>
+        <.icon name="hero-chat-bubble-left-right" class="size-6" />
+        <span>Chat</span>
+      </.link>
+      <.link navigate={~p"/settings"} aria-current={@active_tab == :settings && "page"}>
+        <.icon name="hero-cog-6-tooth" class="size-6" />
+        <span>Settings</span>
+      </.link>
+    </nav>
     """
   end
 

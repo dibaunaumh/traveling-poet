@@ -21,7 +21,7 @@
 // same shape and re-selects the current poet, since a LiveView re-render of
 // the cards resets their `hidden` attributes.
 
-import L from "./leaflet_setup"
+import L, { touchFriendly } from "./leaflet_setup"
 
 const DRAW_MS = 4000
 const COUNT_MS = 1500
@@ -48,6 +48,15 @@ const JourneyTour = {
     // flyTo needs a view to fly from; without one Leaflet throws and the map
     // stays grey.
     this.map.setView([30, 10], 2)
+    touchFriendly(this.map)
+
+    // Turning a tablet, or the chat drawer opening, changes the box; Leaflet
+    // keeps the size it first measured and the tour flies off-centre.
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.map && this.map.invalidateSize())
+      this.resizeObserver.observe(this.el)
+    }
+
     this.staticLayer = L.layerGroup().addTo(this.map)
     this.pathLayer = L.layerGroup().addTo(this.map)
     this.cards = this.el.dataset.cards ? document.getElementById(this.el.dataset.cards) : null
@@ -66,6 +75,7 @@ const JourneyTour = {
     this.stop()
     clearTimeout(this.holdTimer)
     if (this.onVisibility) document.removeEventListener("visibilitychange", this.onVisibility)
+    if (this.resizeObserver) this.resizeObserver.disconnect()
     if (this.map) this.map.remove()
   },
 
@@ -370,6 +380,9 @@ const JourneyTour = {
     this.el.addEventListener("mouseenter", hold)
     this.el.addEventListener("mousemove", hold)
     this.el.addEventListener("mouseleave", release)
+    // A finger never "leaves", so a touch only holds; the hold's own timer
+    // lets the tour go again.
+    this.el.addEventListener("pointerdown", hold)
     this.map.on("dragstart", hold)
     // Our own flights fire zoomstart too; only a reader's zoom counts.
     this.map.on("zoomstart", () => {
@@ -380,6 +393,7 @@ const JourneyTour = {
       this.cards.addEventListener("mouseenter", hold)
       this.cards.addEventListener("mousemove", hold)
       this.cards.addEventListener("mouseleave", release)
+      this.cards.addEventListener("pointerdown", hold)
       this.cards.addEventListener("click", (e) => {
         const pick = e.target.closest("[data-tour-pick]")
         if (pick) return this.pick(pick.dataset.tourPick)

@@ -276,17 +276,20 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
       class={
         [
           "flex-col bg-white border-slate-200",
-          # mobile: hidden until the floating button opens it as a fullscreen overlay
+          # phone: hidden until opened, then a fullscreen overlay.
+          # tablet (md): the same overlay narrowed to a drawer on the right,
+          # so the notebook keeps the whole width underneath it.
           if(@mobile_chat_open,
             do:
-              "flex fixed inset-0 z-50 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:pt-0 lg:pb-0",
+              "chat-overlay flex fixed inset-0 z-50 md:left-auto md:w-[min(24rem,100vw)] md:border-l md:shadow-2xl",
             else: "hidden"
           ),
-          # desktop: static side panel, width from the resizer's --chat-width
-          "lg:static lg:inset-auto lg:z-auto lg:border-l",
+          # wide desk (xl): static side panel, width from --chat-width. Only
+          # there is there room for two pages AND a chat column.
+          "xl:static xl:inset-auto xl:z-auto xl:border-l xl:shadow-none",
           if(@sidebar_open,
-            do: "lg:flex lg:w-[var(--chat-width,24rem)]",
-            else: "lg:hidden"
+            do: "xl:flex xl:w-[var(--chat-width,24rem)]",
+            else: "xl:hidden"
           )
         ]
       }
@@ -304,10 +307,10 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
           </div>
           <button
             phx-click="toggle_mobile_chat"
-            class="lg:hidden btn btn-ghost btn-sm text-lg"
+            class="xl:hidden btn btn-ghost btn-sm"
             aria-label="Close chat"
           >
-            ✕
+            <.icon name="hero-x-mark" class="size-5" />
           </button>
         </div>
 

@@ -5,6 +5,11 @@
 let guarded = false;
 let chatInputEl = null;
 
+// An on-screen keyboard has no Shift+Enter, so there Return has to mean a new
+// line and the Send button sends. A tablet with a hardware keyboard attached
+// still reports a coarse pointer; Send is one tap away for it too.
+const touchKeyboard = () => window.matchMedia("(pointer: coarse)").matches;
+
 function handleKey(e) {
   if (!guarded) return;
   // Submit on Enter (Shift+Enter inserts a newline). Done at capture phase
@@ -15,7 +20,8 @@ function handleKey(e) {
     e.target === chatInputEl &&
     e.key === "Enter" &&
     !e.shiftKey &&
-    !e.isComposing
+    !e.isComposing &&
+    !touchKeyboard()
   ) {
     e.preventDefault();
     chatInputEl.form?.requestSubmit();

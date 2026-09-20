@@ -23,19 +23,26 @@
     <meta name="apple-mobile-web-app-title" content="Poet" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#fdf8ec" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Patrick+Hand&display=swap"
-    />
     <link rel="stylesheet" href={~p"/css/leaflet.css"} />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>
       (() => {
+        // Running as an app (the iOS shell, or added to the home screen)
+        // rather than in a browser tab: there is no browser chrome, so the
+        // page brings its own navigation (.shell-tabbar in app.css).
+        if (window.Capacitor || navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
+          document.documentElement.setAttribute("data-shell", "");
+        }
+
         const systemTheme = () => matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+
+        // The status bar takes its colour from here; keep it with the theme.
+        const paintChrome = () => {
+          const dark = document.documentElement.getAttribute("data-theme") === "dark";
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#1d2126" : "#fdf8ec");
+        };
 
         const setTheme = (theme) => {
           if (theme === "system") {
@@ -47,6 +54,7 @@
             document.documentElement.setAttribute("data-theme", theme);
             document.documentElement.setAttribute("data-theme-source", "user");
           }
+          paintChrome();
         };
         if (!document.documentElement.hasAttribute("data-theme")) {
           setTheme(localStorage.getItem("phx:theme") || "system");
@@ -58,6 +66,7 @@
         matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
           if (document.documentElement.getAttribute("data-theme-source") === "system") {
             document.documentElement.setAttribute("data-theme", systemTheme());
+            paintChrome();
           }
         });
       })();
