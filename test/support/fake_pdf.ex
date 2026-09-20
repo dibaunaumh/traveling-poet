@@ -39,8 +39,10 @@ defmodule TravelingPoet.FakePdfStorage do
 
   def upload_url(key), do: {:ok, "https://bucket.example/put/#{key}?X-Amz-Signature=abc"}
 
-  def download_url(key, filename),
-    do: {:ok, "https://bucket.example/get/#{key}?name=#{URI.encode_www_form(filename)}"}
+  def download_url(key, filename, disposition \\ :attachment),
+    do:
+      {:ok,
+       "https://bucket.example/get/#{key}?name=#{URI.encode_www_form(filename)}&as=#{disposition}"}
 
   def verify(_key), do: Application.get_env(:traveling_poet, :fake_pdf_verify, {:ok, 4096})
   def delete(_key), do: :ok

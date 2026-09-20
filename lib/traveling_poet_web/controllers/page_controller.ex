@@ -102,6 +102,13 @@ defmodule TravelingPoetWeb.PageController do
     |> render(:terms, contact: @contact, updated: @legal_updated)
   end
 
+  @doc "Where to get help: the support URL an App Store listing has to carry."
+  def support(conn, _params) do
+    conn
+    |> assign(:page_title, "Support")
+    |> render(:support, contact: @contact)
+  end
+
   @doc "Onboarding, with the requested starting place when there is one."
   def onboarding_path(place) when place in [nil, ""], do: ~p"/onboarding"
   def onboarding_path(place), do: ~p"/onboarding?#{[place: place]}"

@@ -8,8 +8,11 @@ defmodule TravelingPoet.Books.Pdf.Storage do
   alias TravelingPoet.Storage.S3
 
   @callback upload_url(key :: String.t()) :: {:ok, String.t()} | {:error, term}
-  @callback download_url(key :: String.t(), filename :: String.t()) ::
-              {:ok, String.t()} | {:error, term}
+  @callback download_url(
+              key :: String.t(),
+              filename :: String.t(),
+              disposition :: :attachment | :inline
+            ) :: {:ok, String.t()} | {:error, term}
   @callback verify(key :: String.t()) :: {:ok, non_neg_integer} | {:error, term}
   @callback delete(key :: String.t()) :: :ok | {:error, term}
 
@@ -27,7 +30,8 @@ defmodule TravelingPoet.Books.Pdf.Storage do
 
   def upload_url(key), do: S3.presigned_put_url(key, @upload_ttl)
 
-  def download_url(key, filename), do: S3.presigned_get_url(key, @download_ttl, filename)
+  def download_url(key, filename, disposition \\ :attachment),
+    do: S3.presigned_get_url(key, @download_ttl, filename, disposition)
 
   @doc "The uploaded object exists, is a PDF, and is a sane size. The app's own check: the sprite's word is not enough."
   def verify(key) do

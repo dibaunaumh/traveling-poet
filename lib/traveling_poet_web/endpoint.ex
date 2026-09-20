@@ -4,16 +4,25 @@ defmodule TravelingPoetWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
+  #
+  # `max_age` makes it outlive the browser session. Without it the cookie dies
+  # with the process that holds it, and iOS ends an app's process whenever it
+  # likes: readers in the app were signed out every time that happened.
+  # `UserAuth.fetch_current_user/2` re-issues the cookie as it ages, so the
+  # 180 days run from the last visit, not from the sign-in.
   @session_options [
     store: :cookie,
     key: "_traveling_poet_key",
     signing_salt: "dh9YZzyZ",
-    same_site: "Lax"
+    same_site: "Lax",
+    max_age: 180 * 24 * 60 * 60
   ]
 
+  # `:user_agent` is how a LiveView tells the iOS app from a browser
+  # (Plugs.NativeApp), and what a push subscription is labelled with.
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
-    longpoll: [connect_info: [session: @session_options]]
+    websocket: [connect_info: [:user_agent, session: @session_options]],
+    longpoll: [connect_info: [:user_agent, session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
   #

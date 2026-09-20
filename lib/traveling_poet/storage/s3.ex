@@ -45,10 +45,11 @@ defmodule TravelingPoet.Storage.S3 do
   end
 
   @doc """
-  A short-lived URL to GET one object, served as a download named `filename`.
+  A short-lived URL to GET one object, served as a download named `filename`
+  (`:attachment`), or shown in place under that name (`:inline`).
   """
-  def presigned_get_url(object_key, expires_in_seconds, filename) do
-    disposition = ~s(attachment; filename="#{String.replace(filename, ~s("), "")}")
+  def presigned_get_url(object_key, expires_in_seconds, filename, disposition \\ :attachment) do
+    disposition = ~s(#{disposition}; filename="#{String.replace(filename, ~s("), "")}")
 
     ExAws.S3.presigned_url(ExAws.Config.new(:s3), :get, bucket(), object_key,
       expires_in: expires_in_seconds,

@@ -10,6 +10,7 @@ defmodule TravelingPoetWeb.Router do
     plug :put_root_layout, html: {TravelingPoetWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug TravelingPoetWeb.Plugs.NativeApp
     plug :fetch_current_user
   end
 
@@ -49,6 +50,7 @@ defmodule TravelingPoetWeb.Router do
     get "/start", PageController, :start
     get "/privacy", PageController, :privacy
     get "/terms", PageController, :terms
+    get "/support", PageController, :support
     get "/media/:id", MediaController, :show
     # The book page, opened by the poet's sprite to print a PDF. No session:
     # a signed token for one rendering PDF, which also lets that page's
