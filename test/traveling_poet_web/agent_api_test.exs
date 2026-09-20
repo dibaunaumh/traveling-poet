@@ -787,6 +787,52 @@ defmodule TravelingPoetWeb.AgentApiTest do
              conn |> post(~p"/api/agent/illustrations", %{}) |> json_response(422)
   end
 
+  test "a spot asks the spot model, a main illustration the main one", %{conn: conn} do
+    Application.put_env(:traveling_poet, :openrouter_api_key, "test-key")
+    on_exit(fn -> Application.put_env(:traveling_poet, :openrouter_api_key, nil) end)
+
+    test_pid = self()
+
+    Req.Test.stub(TravelingPoet.Illustrations, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(test_pid, {:image_request, conn.request_path, Jason.decode!(body)})
+
+      Req.Test.json(conn, %{
+        "data" => [%{"b64_json" => Base.encode64("png-bytes"), "media_type" => "image/png"}]
+      })
+    end)
+
+    # the upload half needs S3, which no test can reach; the model choice is
+    # what this pins, and it is made before any bytes are stored
+    generate = fn params ->
+      try do
+        post(conn, ~p"/api/agent/illustrations", params)
+      catch
+        :exit, _ -> :no_s3
+      end
+    end
+
+    generate.(%{prompt: "a door knocker", kind: "spot"})
+
+    assert_receive {:image_request, "/api/v1/images",
+                    %{"model" => "test/spot-image-model"} = body}
+
+    # the app's own ink rules still ride along
+    assert body["prompt"] =~ "a door knocker"
+    assert body["prompt"] =~ "pure white"
+
+    Req.Test.stub(TravelingPoet.Illustrations, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(test_pid, {:image_request, conn.request_path, Jason.decode!(body)})
+      Req.Test.json(conn, %{"choices" => []})
+    end)
+
+    generate.(%{prompt: "the harbour at dusk"})
+
+    assert_receive {:image_request, "/api/v1/chat/completions", %{"model" => model}}
+    assert model == TravelingPoet.Illustrations.model()
+  end
+
   test "rejects bad dates", %{conn: conn} do
     assert %{"error" => _} =
              conn

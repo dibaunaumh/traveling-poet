@@ -72,7 +72,8 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
       true ->
         case TravelingPoet.Illustrations.generate(
-               String.trim(prompt) <> style_rules(params["kind"])
+               String.trim(prompt) <> style_rules(params["kind"]),
+               params["kind"]
              ) do
           {:ok, bytes, content_type} ->
             do_create(
