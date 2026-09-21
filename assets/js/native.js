@@ -121,7 +121,7 @@ async function connectGoogle(feature, link) {
   const pdf = link.searchParams.get("pdf")
   if (pdf) ask.searchParams.set("pdf", pdf)
 
-  const response = await fetch(ask, {credentials: "same-origin", headers: {accept: "application/json"}})
+  const response = await fetch(ask, {credentials: "same-origin"})
   if (!response.ok) throw new Error(`connect_url ${response.status}`)
   const {url} = await response.json()
 

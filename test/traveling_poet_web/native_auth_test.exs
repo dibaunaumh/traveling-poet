@@ -194,8 +194,13 @@ defmodule TravelingPoetWeb.NativeAuthTest do
 
     test "the app asks for an address to open in the sheet; it names who and what",
          %{conn: conn, user: user} do
+      # with the Accept header a web view's fetch() really sends
       app =
-        conn |> signed_in(user) |> in_app() |> get(~p"/auth/native/connect_url?feature=calendar")
+        conn
+        |> signed_in(user)
+        |> in_app()
+        |> put_req_header("accept", "*/*")
+        |> get(~p"/auth/native/connect_url?feature=calendar")
 
       assert %{"url" => url} = json_response(app, 200)
 
