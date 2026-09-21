@@ -625,6 +625,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp tx_label("purchase"), do: "Purchase"
   defp tx_label("debit_daily_run"), do: "Daily journey"
   defp tx_label("debit_book_compose"), do: "Composed book"
+  defp tx_label("purchase_refund"), do: "Purchase refunded"
   defp tx_label("refund"), do: "Refund"
   defp tx_label("admin_adjust"), do: "Adjustment"
   defp tx_label(other), do: other
@@ -1524,6 +1525,22 @@ defmodule TravelingPoetWeb.SettingsLive do
                     <span class="text-xs opacity-70">{dollars(pack.cents)}</span>
                   </button>
                 </form>
+              </div>
+              <%!-- In the iOS app the same packs are sold by StoreKit. The hook asks
+                    the device for their localized prices, runs the purchase, and
+                    posts the signed transaction to /iap/apple/transactions; the
+                    balance above updates by itself when the ledger does. --%>
+              <div
+                :if={@native_app}
+                id="apple-credit-packs"
+                phx-hook="AppleIAP"
+                phx-update="ignore"
+                data-products={Jason.encode!(TravelingPoet.Payments.AppleIAP.products())}
+                data-account-token={TravelingPoet.Payments.AppleIAP.app_account_token(@user)}
+                class="mb-3"
+              >
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" data-role="packs"></div>
+                <p class="text-xs opacity-60 mt-2" data-role="status" aria-live="polite"></p>
               </div>
               <p :if={@payments_mock and !@native_app} class="text-xs text-warning mb-3">
                 Payments are in test mode — purchases are mocked and free.

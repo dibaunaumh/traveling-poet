@@ -197,6 +197,41 @@ function onClick(e) {
   }
 }
 
+// -- purchases ----------------------------------------------------------------
+//
+// Hands one signed StoreKit transaction to the server and, if the server has
+// credited it (or already had), tells StoreKit it is finished. Used by the
+// Settings hook right after a purchase, and below for whatever StoreKit is
+// still holding at launch: a purchase approved later (Ask to Buy), or one
+// whose answer never arrived.
+
+export async function settle({jws, transactionId}) {
+  const response = await fetch("/iap/apple/transactions", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+      "x-csrf-token": document.querySelector("meta[name='csrf-token']").getAttribute("content"),
+    },
+    body: JSON.stringify({jws}),
+  })
+  // Signed out: nobody to credit yet. It stays with StoreKit for next time.
+  if (response.redirected || !response.headers.get("content-type")?.includes("json")) return {finish: false}
+
+  const outcome = await response.json()
+  if (outcome.finish) await call("PoetNative", "finishTransaction", {transactionId})
+  return outcome
+}
+
+async function settleUnfinished() {
+  try {
+    const {transactions} = await call("PoetNative", "unfinishedTransactions", {})
+    for (const transaction of transactions) await settle(transaction)
+  } catch (err) {
+    console.warn("[native] unfinished purchases", err)
+  }
+}
+
 // -- appearance ---------------------------------------------------------------
 //
 // The status bar's clock and battery are drawn light or dark to suit the
@@ -223,6 +258,9 @@ export function initNative() {
     if (detail.pdf) link.searchParams.set("pdf", detail.pdf)
     once(() => connectGoogle(detail.feature, link))
   })
+
+  settleUnfinished()
+  listen("PoetNative", "transactionUpdated", (transaction) => settle(transaction).catch(() => {}))
 
   syncAppearance()
   new MutationObserver(syncAppearance).observe(document.documentElement, {

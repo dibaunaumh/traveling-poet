@@ -40,6 +40,8 @@ defmodule TravelingPoetWeb.Router do
     pipe_through :webhooks
 
     post "/stripe", StripeWebhookController, :handle
+    # App Store Server Notifications: refunds of credits bought in the iOS app
+    post "/apple", AppleWebhookController, :handle
   end
 
   scope "/", TravelingPoetWeb do
@@ -131,6 +133,8 @@ defmodule TravelingPoetWeb.Router do
     get "/journal/book/pdf/:id", BookController, :download_pdf
     get "/journal/book/drive/connect", BookController, :connect_drive
     get "/settings/calendar/connect", CalendarController, :connect
+    # The iOS app posts StoreKit purchases here to be credited
+    post "/iap/apple/transactions", IapController, :create
     # The iOS app's one-time consent to third-party AI
     get "/ai-consent", AiConsentController, :show
     post "/ai-consent", AiConsentController, :agree

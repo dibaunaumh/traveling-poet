@@ -123,6 +123,10 @@ config :traveling_poet,
     if(config_env() == :test, do: nil, else: System.get_env("REVIEW_LOGIN_EMAIL")),
   review_login_password_hash:
     if(config_env() == :test, do: nil, else: System.get_env("REVIEW_LOGIN_PASSWORD_HASH")),
+  # Xcode's local StoreKit testing signs purchases with a certificate that
+  # chains to nothing; never accepted outside dev (see Payments.AppleIAP).
+  apple_iap_allow_xcode:
+    config_env() == :dev and System.get_env("APPLE_IAP_ALLOW_XCODE") == "true",
   apple_bundle_id:
     if(config_env() == :test,
       do: nil,
