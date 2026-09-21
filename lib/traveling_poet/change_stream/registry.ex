@@ -55,12 +55,14 @@ defmodule TravelingPoet.ChangeStream.Registry do
   # any user; not domain state. The stream's own tables are not domain state
   # either. push_subscriptions: per-device push-service credentials (endpoint
   # + encryption keys) — anyone holding a row can notify that phone, so they
-  # never leave this database. visit_events: anonymous page analytics, not
+  # never leave this database; apns_devices likewise (the iOS app's push
+  # tokens). visit_events: anonymous page analytics, not
   # domain state.
   @excluded [
     TravelingPoet.Analytics.VisitEvent,
     Geocoder.CacheEntry,
     TravelingPoet.WebPush.Subscription,
+    TravelingPoet.Apns.Device,
     TravelingPoet.ChangeStream.Endpoint,
     TravelingPoet.ChangeStream.Event,
     TravelingPoet.ChangeStream.Fingerprint

@@ -26,7 +26,8 @@ defmodule TravelingPoet.Application do
       # Telegram long-poller + publish notifier (no-op unless TELEGRAM_BOT_TOKEN set)
       TravelingPoet.Telegram.Poller,
       TravelingPoet.Telegram.Notifier,
-      # Browser push notifier (no-op unless VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY set)
+      # Push notifier, to browsers and to the iOS app (no-op unless the VAPID
+      # keys or the Apple key are set)
       TravelingPoet.WebPush.Notifier,
       # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.FleetHealth.Alerter,
