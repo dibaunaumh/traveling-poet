@@ -87,8 +87,14 @@ defmodule TravelingPoetWeb.NativeAppTest do
 
     test "as JSON the link comes back as data, for the in-app browser sheet",
          %{conn: conn, user: user, pdf: pdf} do
+      # with the Accept header a web view's fetch() really sends: the route is
+      # in the :browser pipeline, which turns away "application/json" with a 406
       conn =
-        conn |> signed_in(user) |> in_app() |> get(~p"/journal/book/pdf/#{pdf.id}?format=json")
+        conn
+        |> signed_in(user)
+        |> in_app()
+        |> put_req_header("accept", "*/*")
+        |> get(~p"/journal/book/pdf/#{pdf.id}?format=json")
 
       assert %{"url" => "https://bucket.example/get/" <> rest} = json_response(conn, 200)
       assert rest =~ "as=inline"

@@ -17,6 +17,11 @@ export const call = (plugin, method, options = {}) => cap().nativePromise(plugin
 
 export const listen = (plugin, event, callback) => cap().addListener(plugin, event, callback)
 
+// A note on fetch(): these requests go to routes in the router's :browser
+// pipeline, which only `accepts` html. An `accept: application/json` header
+// would be answered 406 before the controller ever ran, so none is sent; the
+// default (*/*) is accepted, and the controllers answer JSON regardless.
+
 // -- links ------------------------------------------------------------------
 //
 // A web view has no tabs, no address bar and no downloads. Left alone,
@@ -36,7 +41,7 @@ function openInSheet(url) {
 
 async function openPdf(url) {
   url.searchParams.set("format", "json")
-  const response = await fetch(url, {credentials: "same-origin", headers: {accept: "application/json"}})
+  const response = await fetch(url, {credentials: "same-origin"})
   if (!response.ok) throw new Error(`pdf link ${response.status}`)
   const {url: signed} = await response.json()
   return openInSheet(signed)
