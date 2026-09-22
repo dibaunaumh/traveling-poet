@@ -351,6 +351,15 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         <div :if={is_nil(@entry)} class="mt-10 text-center opacity-70">
           <p>No published entries yet — check back soon.</p>
         </div>
+
+        <%!-- A public journal is published writing, some of it a model's. A
+              reader who finds something that should not be here needs a way
+              to say so from the page itself. --%>
+        <p class="mt-8 text-center text-xs opacity-50">
+          <a href={report_mailto(@poet, @entry)} id="report-journal" class="link">
+            Report this journal
+          </a>
+        </p>
       </div>
     </Layouts.app>
     """
@@ -396,4 +405,17 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   end
 
   defp focus_point(_), do: nil
+
+  @report_to "dibaunaumh@gmail.com"
+
+  # The page being reported travels in the subject, so a report needs no
+  # explaining to be actionable.
+  defp report_mailto(poet, entry) do
+    page =
+      if entry,
+        do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}"),
+        else: url(~p"/p/#{poet.slug}")
+
+    "mailto:#{@report_to}?" <> URI.encode_query(%{"subject" => "Report: #{page}"}, :rfc3986)
+  end
 end

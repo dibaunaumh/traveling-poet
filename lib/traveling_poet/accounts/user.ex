@@ -13,6 +13,8 @@ defmodule TravelingPoet.Accounts.User do
     field :apple_id, :string
     # Only ever used to revoke the grant on account deletion (see Apple)
     field :apple_refresh_token, :string
+    # Agreed, inside the iOS app, to third-party AI (AiConsentController)
+    field :ai_consent_at, :utc_datetime
 
     field :onboarding_completed, :boolean, default: false
     field :onboarding_step, :string
@@ -84,6 +86,7 @@ defmodule TravelingPoet.Accounts.User do
       :google_id,
       :apple_id,
       :apple_refresh_token,
+      :ai_consent_at,
       :onboarding_completed,
       :onboarding_step,
       :last_seen_at,

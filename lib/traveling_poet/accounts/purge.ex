@@ -5,14 +5,21 @@ defmodule TravelingPoet.Accounts.Purge do
   (a stale `google_id` row would just log you back into the old account
   instead of running onboarding).
 
-  Three layers come off, in this order:
+  It is also what a reader's own "Delete account" in Settings runs, which an
+  App Store app must offer (guideline 5.1.1(v)).
+
+  Four layers come off, in this order:
 
     1. **Media in object storage.** Deleted first, while the rows that name
        the keys still exist. Failures here are logged, not fatal — an orphaned
        image costs pennies, a half-deleted database costs an afternoon.
     2. **The sprite sandbox.** Also best-effort: the sandbox may already be
        gone, and sprites.dev being down shouldn't block the purge.
-    3. **The user row.** Every table hangs off `users` with
+    3. **The sign-in grants.** Apple requires an app to revoke its Sign in
+       with Apple grant when the account is deleted, and the Google grant
+       (sign-in, Drive, Calendar) should not outlive the account either. Also
+       best-effort: the account goes even if Apple or Google do not answer.
+    4. **The user row.** Every table hangs off `users` with
        `on_delete: :delete_all` (foreign keys are enforced — `PRAGMA
        foreign_keys` is on), so one delete takes the poet, journal entries,
        sections, media rows, reactions, path points, itinerary stops, chat
@@ -72,6 +79,7 @@ defmodule TravelingPoet.Accounts.Purge do
 
     media_deleted = delete_media(media_keys)
     sprite_deleted = delete_sprite(user.sprite_name)
+    grants_revoked = revoke_grants(user)
 
     case Repo.delete(user) do
       {:ok, _} ->
@@ -82,7 +90,8 @@ defmodule TravelingPoet.Accounts.Purge do
            poet: poet && poet.name,
            media_deleted: media_deleted,
            media_total: length(media_keys),
-           sprite: sprite_deleted
+           sprite: sprite_deleted,
+           grants: grants_revoked
          }}
 
       {:error, changeset} ->
@@ -120,6 +129,46 @@ defmodule TravelingPoet.Accounts.Purge do
     else
       0
     end
+  end
+
+  # Which grants were withdrawn. A provider that does not answer is logged
+  # and left behind: the tokens die with the row either way.
+  defp revoke_grants(%User{} = user) do
+    [apple: &revoke_apple/1, google: &revoke_google/1]
+    |> Enum.filter(fn {_provider, revoke} -> safely(revoke, user) == :ok end)
+    |> Keyword.keys()
+  end
+
+  defp revoke_apple(%User{apple_refresh_token: token}) when is_binary(token) and token != "" do
+    if TravelingPoet.Apple.configured?(),
+      do: TravelingPoet.Apple.revoke(token),
+      else: :not_configured
+  end
+
+  defp revoke_apple(_user), do: :none
+
+  defp revoke_google(%User{google_refresh_token: token} = user)
+       when is_binary(token) and token != "",
+       do: TravelingPoet.GoogleAuth.revoke_grant(user)
+
+  defp revoke_google(_user), do: :none
+
+  defp safely(revoke, user) do
+    case revoke.(user) do
+      :ok ->
+        :ok
+
+      skipped when skipped in [:none, :not_configured] ->
+        skipped
+
+      other ->
+        Logger.warning("Purge: a sign-in grant was not revoked: #{inspect(other)}")
+        :failed
+    end
+  rescue
+    error ->
+      Logger.warning("Purge: revoking a sign-in grant raised: #{Exception.message(error)}")
+      :failed
   end
 
   defp delete_sprite(nil), do: :none

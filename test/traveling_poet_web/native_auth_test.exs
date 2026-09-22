@@ -187,7 +187,14 @@ defmodule TravelingPoetWeb.NativeAuthTest do
       Application.put_env(:traveling_poet, :calendar_enabled, "all")
       on_exit(fn -> Application.put_env(:traveling_poet, :calendar_enabled, before) end)
 
-      user = user_fixture(%{google_id: "g-owner", onboarding_completed: true})
+      # someone who has already agreed to the app's AI consent step
+      user =
+        user_fixture(%{
+          google_id: "g-owner",
+          onboarding_completed: true,
+          ai_consent_at: DateTime.utc_now(:second)
+        })
+
       poet_fixture(user)
       %{user: user}
     end

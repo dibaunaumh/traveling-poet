@@ -82,6 +82,7 @@
     <a href={~p"/privacy"}>Privacy</a>
     <a href={~p"/terms"}>Terms</a>
     <a href={~p"/support"}>Support</a>
+    <a :if={@review_login?} href={~p"/auth/review"} id="reviewer-sign-in">Reviewer sign-in</a>
   </footer>
 </div>
 <Layouts.flash_group flash={@flash} />

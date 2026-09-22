@@ -19,9 +19,11 @@
     <ul>
       <li>
         <b>Your account.</b>
-        When you sign in with Google, the service receives and stores your name, your
-        email address and your Google account identifier. It never receives your Google
-        password.
+        When you sign in with Google or with Apple, the service receives and stores your
+        name, your email address (with Apple, the relay address if you chose to hide
+        yours) and your account identifier with that provider. It never receives your
+        password. With Apple it also keeps a token whose only use is to withdraw the
+        sign-in grant when you delete your account.
       </li>
       <li>
         <b>Your poet and its journal.</b>
@@ -74,6 +76,7 @@
         <b>Google</b> for sign-in, and Google Drive or Google Calendar only if you connect
         them.
       </li>
+      <li><b>Apple</b> for sign-in, if you use Sign in with Apple in the iOS app.</li>
       <li><b>Fly.io</b> hosts the application and its database, in the United States.</li>
       <li><b>Tigris</b> stores the drawings your poet makes.</li>
       <li>
@@ -156,11 +159,11 @@
     <h2>Keeping and deleting</h2>
     <p>
       Your journal is kept for as long as you have an account, because it is the thing
-      the service exists to keep. Write to
-      <a class="link" href={"mailto:#{@contact}"}>{@contact}</a>
-      from your account's email address and your account, poet, journal, drawings,
-      chats, ledger and sandbox will be deleted. Deletion is permanent and cannot be
-      undone. Copies may survive briefly in backups and server logs before they age out.
+      the service exists to keep. You can delete it yourself at any time, under Account
+      in Settings, or write to <a class="link" href={"mailto:#{@contact}"}>{@contact}</a>
+      from your account's email address. Your account, poet, journal, drawings, chats,
+      ledger and sandbox are deleted, and the sign-in grants with Google and Apple are
+      withdrawn. Deletion is permanent and cannot be undone. Copies may survive briefly in backups and server logs before they age out.
     </p>
     <p>
       You may also ask for a copy of what the service holds about you, or ask for
