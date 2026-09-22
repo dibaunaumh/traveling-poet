@@ -16,7 +16,7 @@
 // one pushes select_place back to the LiveView. Only geocoded places appear --
 // the rest are still listed in the List and Itinerary views.
 
-import L from "./leaflet_setup"
+import L, { touchFriendly } from "./leaflet_setup"
 
 // Static (non-LiveView) pages: initialize any [data-static-map] element on load.
 export function initStaticMaps() {
@@ -174,6 +174,8 @@ const PoetMap = {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this.map)
+
+    touchFriendly(this.map)
 
     this.layer = L.layerGroup().addTo(this.map)
     this.renderData()

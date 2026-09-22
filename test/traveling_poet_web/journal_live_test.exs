@@ -188,6 +188,65 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     refute hd(Journal.preload_entry(entry).sections).body =~ "/media/"
   end
 
+  describe "the installed app's navigation and the chat drawer" do
+    setup %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user)
+      publish_entry(poet, ~D[2026-08-25], "The rooftop")
+      %{conn: Plug.Test.init_test_session(conn, %{user_id: user.id})}
+    end
+
+    test "the tab bar names every destination; on the journal, Chat opens the chat in place",
+         %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/journal")
+      doc = LazyHTML.from_document(html)
+
+      labels =
+        doc |> LazyHTML.query("#shell-tabbar span:not([class])") |> Enum.map(&LazyHTML.text/1)
+
+      assert labels == ~w(Journal Guide Chat Settings)
+
+      assert [_] =
+               doc
+               |> LazyHTML.query(~s(#shell-tabbar a[aria-current="page"][href="/journal"]))
+               |> LazyHTML.to_tree()
+
+      # closed: no overlay, no scrim, the floating button offers the chat
+      refute html =~ "chat-overlay"
+      refute has_element?(view, "#chat-scrim")
+      assert has_element?(view, "#chat-fab")
+
+      html = view |> element("#shell-tabbar button", "Chat") |> render_click()
+      assert html =~ "chat-overlay"
+      assert has_element?(view, "#chat-scrim")
+      refute has_element?(view, "#chat-fab")
+
+      # the scrim behind a tablet's drawer closes it again
+      view |> element("#chat-scrim") |> render_click()
+      refute has_element?(view, "#chat-scrim")
+    end
+
+    test "from another page the Chat tab lands on the journal with the chat open",
+         %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/guide")
+
+      assert [_] =
+               html
+               |> LazyHTML.from_document()
+               |> LazyHTML.query(~s(#shell-tabbar a[href="/journal?chat=1"]))
+               |> LazyHTML.to_tree()
+
+      {:ok, view, html} = live(conn, ~p"/journal?chat=1")
+      assert html =~ "chat-overlay"
+      assert has_element?(view, "#chat-scrim")
+    end
+
+    test "a signed-out visitor gets no tab bar", %{conn: signed_in} do
+      assert signed_in |> get(~p"/privacy") |> html_response(200) =~ ~s(id="shell-tabbar")
+      refute build_conn() |> get(~p"/privacy") |> html_response(200) =~ ~s(id="shell-tabbar")
+    end
+  end
+
   test "an entry without places still has the tab, and says so", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user)

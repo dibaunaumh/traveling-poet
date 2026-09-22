@@ -1004,8 +1004,9 @@ body.book .book-colophon p {
 
 body.book .book-toolbar {
   position: fixed;
-  top: 0.75rem;
-  right: 0.75rem;
+  /* clear of the status bar in the installed app; zero in a browser tab */
+  top: calc(0.75rem + env(safe-area-inset-top));
+  right: calc(0.75rem + env(safe-area-inset-right));
   z-index: 10;
   display: flex;
   align-items: center;

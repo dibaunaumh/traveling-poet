@@ -3,6 +3,10 @@
 
 @import "tailwindcss" source(none);
 @import "phoenix-colocated/traveling_poet/colocated.css";
+/* The notebook's hands (Caveat, Fraunces, Patrick Hand), served from
+   /fonts. They used to come from Google Fonts: a third-party request on
+   every page, and no handwriting at all on a cold start without it. */
+@import "./fonts.css";
 @source "../css";
 @source "../js";
 @source "../../lib/traveling_poet_web";
@@ -299,6 +303,10 @@ h1, h2, h3 {
    The paper stays paper-colored in dark mode — only the desk around darkens. */
 
 .notebook-page {
+  /* The left gutter holds the red margin line and the marker pins. A narrow
+     spread (a phone held sideways) tightens both through these. */
+  --gutter: 4rem;
+  --margin-line: 2.75rem;
   background-color: #fdf8ec;
   color: #3a3226;
   background-image:
@@ -310,12 +318,12 @@ h1, h2, h3 {
       rgba(140, 120, 90, 0.16) 2rem
     ),
     /* red margin line */
-    linear-gradient(to right, transparent 2.75rem, rgba(214, 96, 96, 0.35) 2.75rem, rgba(214, 96, 96, 0.35) calc(2.75rem + 2px), transparent calc(2.75rem + 2px));
+    linear-gradient(to right, transparent var(--margin-line), rgba(214, 96, 96, 0.35) var(--margin-line), rgba(214, 96, 96, 0.35) calc(var(--margin-line) + 2px), transparent calc(var(--margin-line) + 2px));
   border-radius: 0.25rem 0.75rem 0.75rem 0.25rem;
   box-shadow:
     0 1px 3px rgba(60, 45, 20, 0.25),
     0 8px 24px rgba(60, 45, 20, 0.15);
-  padding: 2rem 2rem 2.5rem 4rem;
+  padding: 2rem 2rem 2.5rem var(--gutter);
 }
 
 .notebook-page .prose {
@@ -505,8 +513,10 @@ h1, h2, h3 {
   transition: background 120ms ease;
 }
 
-.marker-menu-btn:hover {
-  background: rgba(58, 50, 38, 0.06);
+@media (hover: hover) {
+  .marker-menu-btn:hover {
+    background: rgba(58, 50, 38, 0.06);
+  }
 }
 
 .marker-menu-btn.is-active {
@@ -550,8 +560,10 @@ h1, h2, h3 {
   cursor: pointer;
 }
 
-.marker-menu-item:hover {
-  background: color-mix(in srgb, var(--marker-c) 12%, transparent);
+@media (hover: hover) {
+  .marker-menu-item:hover {
+    background: color-mix(in srgb, var(--marker-c) 12%, transparent);
+  }
 }
 
 .marker-menu-item.is-active {
@@ -683,7 +695,7 @@ mark.marker.marker-sent {
 
 .marker-pins {
   position: absolute;
-  left: -3.4rem;
+  left: calc(0.6rem - var(--gutter));
   top: 0.15rem;
   display: flex;
   flex-direction: column;
@@ -1272,8 +1284,10 @@ mark.marker.marker-sent {
   transform: rotate(5deg);
 }
 
-.place-stamp:hover {
-  opacity: 1;
+@media (hover: hover) {
+  .place-stamp:hover {
+    opacity: 1;
+  }
 }
 
 .place-stamp:focus-visible {
@@ -1346,8 +1360,10 @@ mark.marker.marker-sent {
   text-decoration: none;
 }
 
-.spread-tab:hover {
-  background: #f6ecd2;
+@media (hover: hover) {
+  .spread-tab:hover {
+    background: #f6ecd2;
+  }
 }
 
 .spread-tab[aria-selected="true"] {
@@ -1370,20 +1386,26 @@ mark.marker.marker-sent {
   }
 }
 
-@container journal (min-width: 48rem) {
-  .spread-wrap {
-    padding-right: 2.4rem;
-  }
-
+/* Two thresholds. From 34rem the pages sit side by side with tight gutters:
+   that is every phone held sideways (a 667px screen leaves a 635px column)
+   and a small tablet held upright, while every phone held upright stays
+   stacked. From 48rem the spread gets its full margins and the index tabs
+   hang off the right edge. */
+@container journal (min-width: 34rem) {
   .spread {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .spread .spread-page {
+    --gutter: 2.75rem;
+    --margin-line: 2.15rem;
   }
 
   /* Side by side: both pages curve into the fold, each shaded on its fold
      edge; the right page has no margin line, its gutter is its left edge. */
   .spread .spread-left {
     border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
-    padding-right: 1.75rem;
+    padding-right: 1.1rem;
     box-shadow: inset -14px 0 18px -14px rgba(60, 45, 20, 0.3);
   }
 
@@ -1395,7 +1417,8 @@ mark.marker.marker-sent {
       rgba(140, 120, 90, 0.16) calc(2rem - 1px),
       rgba(140, 120, 90, 0.16) 2rem
     );
-    padding-left: 2.25rem;
+    padding-left: 1.25rem;
+    padding-right: 2.25rem;
     box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
   }
 
@@ -1403,10 +1426,35 @@ mark.marker.marker-sent {
     display: block;
   }
 
-  /* The right page has no 4rem margin for marker pins; they sit in its
+  /* The right page has no gutter for marker pins; they sit inside its
      outer margin instead */
   .spread .spread-right .marker-pins {
     left: auto;
+    right: -2.05rem;
+  }
+}
+
+@container journal (min-width: 48rem) {
+  .spread-wrap {
+    padding-right: 2.4rem;
+  }
+
+  .spread .spread-page {
+    --gutter: 4rem;
+    --margin-line: 2.75rem;
+  }
+
+  .spread .spread-left {
+    padding-right: 1.75rem;
+  }
+
+  .spread .spread-right {
+    padding-left: 2.25rem;
+    padding-right: 2rem;
+  }
+
+  /* Room outside the page now: the pins move out into it */
+  .spread .spread-right .marker-pins {
     right: -1.9rem;
   }
 
@@ -1507,7 +1555,9 @@ mark.marker.marker-sent {
   text-align: left;
   transition: opacity 120ms ease, background-color 120ms ease;
 }
-.spread-chip:hover { opacity: 1; }
+@media (hover: hover) {
+  .spread-chip:hover { opacity: 1; }
+}
 .spread-chip[aria-selected="true"] {
   opacity: 1;
   background: rgba(47, 93, 98, 0.1);
@@ -2007,5 +2057,264 @@ mark.marker.marker-sent {
 
   .route-svg.is-full {
     min-width: 620px;
+  }
+}
+
+/* ---- Touch screens, tablets and the installed app ------------------------ */
+/* The same pages run in a browser tab, as a home-screen web app and inside
+   the iOS app. The last two have no browser chrome and draw under the status
+   bar and the home indicator (viewport-fit=cover), so the page keeps clear of
+   them itself. In a browser tab every inset below is zero. */
+
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* What scrolls up must not show through behind the clock */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: env(safe-area-inset-top);
+  background: var(--color-base-100);
+  z-index: 45;
+}
+
+.app-main {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+/* The journal and its chat. Only a wide desk has room for two pages AND a
+   chat column; there the column scrolls on its own so the chat stays in
+   view. Anything narrower scrolls as one ordinary page (the chat is a drawer
+   or an overlay there), which is what a touch screen expects: no scroller
+   inside a scroller, and no 100vh, which a phone measures taller than what
+   it shows. */
+.journal-desk {
+  display: flex;
+  gap: 1rem;
+}
+
+@media (min-width: 80rem) {
+  .journal-desk {
+    /* the header (4rem and its rule) and <main>'s own padding */
+    height: calc(100dvh - 7rem - 1px - env(safe-area-inset-top));
+    min-height: 28rem;
+  }
+
+  .journal-desk > .journal-column {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.25rem;
+  }
+}
+
+.chat-overlay {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* The keyboard covers the home indicator; see mobile_viewport_hook.js */
+.chat-overlay.keyboard-open {
+  padding-bottom: 0;
+}
+
+@media (min-width: 48rem) {
+  .chat-overlay {
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 80rem) {
+  .chat-overlay {
+    padding: 0;
+  }
+}
+
+#chat-messages {
+  overscroll-behavior: contain;
+}
+
+.chat-fab {
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+}
+
+/* The installed app's navigation (Layouts.shell_tabbar). */
+.shell-tabbar {
+  display: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.shell-tabbar a,
+.shell-tabbar button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  min-height: 3rem;
+  font-size: 0.7rem;
+  color: inherit;
+  opacity: 0.6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shell-tabbar [aria-current="page"] {
+  opacity: 1;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 639px) {
+  :root[data-shell] .shell-tabbar {
+    display: flex;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 45;
+    padding: 0.25rem env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    background: color-mix(in oklab, var(--color-base-100) 90%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--color-base-300);
+  }
+
+  :root[data-shell] body:has(.shell-tabbar) .app-main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  /* The bar has these; the header menu and the floating button would only
+     say it twice. */
+  :root[data-shell] body:has(.shell-tabbar) #nav-menu,
+  :root[data-shell] body:has(.shell-tabbar) .chat-fab {
+    display: none;
+  }
+}
+
+/* A phone held sideways has width to spare and no height: the bar becomes a
+   rail on the leading edge and the header gives its 4rem to the notebook. */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root[data-shell] body:has(.shell-tabbar) {
+    padding-left: calc(3.5rem + env(safe-area-inset-left));
+  }
+
+  :root[data-shell] body:has(.shell-tabbar) .app-header,
+  :root[data-shell] body:has(.shell-tabbar) .chat-fab {
+    display: none;
+  }
+
+  :root[data-shell] .shell-tabbar {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 45;
+    width: calc(3.5rem + env(safe-area-inset-left));
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: var(--color-base-100);
+    border-right: 1px solid var(--color-base-300);
+    border-top: none;
+  }
+
+  :root[data-shell] .shell-tabbar a,
+  :root[data-shell] .shell-tabbar button {
+    flex: 0 0 3.25rem;
+  }
+
+  :root[data-shell] .shell-tabbar span:not([class*="hero-"]) {
+    display: none;
+  }
+
+  :root[data-shell] body:has(.shell-tabbar) .app-main {
+    padding-top: 0.75rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* A sleeping map (leaflet_setup.js touchFriendly) says how to wake it */
+.map-asleep::after {
+  content: "Tap to move the map";
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(253, 248, 236, 0.92);
+  color: #5a4a2e;
+  font: 500 0.75rem/1.4 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+/* Under a finger. 44px is the smallest target a fingertip reliably hits; the
+   small round things keep their size and grow an invisible halo instead. */
+@media (pointer: coarse) {
+  /* Below 16px iOS zooms the whole page into a focused field and never
+     zooms back out. */
+  #chat-input {
+    font-size: 16px;
+    line-height: 1.375rem;
+  }
+
+  .btn-xs {
+    --size: 2.25rem;
+    padding-inline: 0.75rem;
+  }
+
+  .btn-sm {
+    --size: 2.5rem;
+  }
+
+  .tour-dot,
+  .marker-pin {
+    position: relative;
+  }
+
+  .tour-dot::after,
+  .marker-pin::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* neighbours sit 0.4rem apart: wide halos would overlap, tall ones cannot */
+  .tour-dot::after {
+    width: 0.95rem;
+    height: 2.75rem;
+  }
+
+  .marker-pin::after {
+    width: 2.75rem;
+    height: 2rem;
+  }
+
+  .tour-dots {
+    padding-block: 0.75rem;
+  }
+
+  .spread-tab {
+    padding-top: 0.85rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .settings-nav a {
+    padding-block: 0.65rem;
+  }
+
+  @container journal (min-width: 48rem) {
+    .spread-wrap {
+      padding-right: 3rem;
+    }
+
+    .spread-tab {
+      padding: 1rem 0.8rem;
+    }
   }
 }

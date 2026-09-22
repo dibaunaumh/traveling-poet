@@ -140,9 +140,16 @@ defmodule TravelingPoetWeb.JournalLive do
             do: socket,
             else: assign_journal(socket, poet, date)
 
-        {:noreply, socket |> assign_spread(params["spread"]) |> push_map()}
+        {:noreply, socket |> assign_spread(params["spread"]) |> open_chat(params) |> push_map()}
     end
   end
+
+  # `?chat=1` arrives with the chat already open: the app's Chat tab on the
+  # guide or settings has no chat of its own to open, so it comes here.
+  defp open_chat(socket, %{"chat" => "1"}),
+    do: socket |> assign(:mobile_chat_open, true) |> assign(:sidebar_open, true)
+
+  defp open_chat(socket, _params), do: socket
 
   defp same_entry?(%{assigns: %{entry: %{entry_date: shown}}}, %Date{} = date), do: shown == date
   defp same_entry?(_socket, _date), do: false
@@ -1033,8 +1040,8 @@ defmodule TravelingPoetWeb.JournalLive do
       active_tab={:journal}
       wide
     >
-      <div class="flex h-[calc(100vh-4rem)] gap-4">
-        <div class="journal-column flex-1 min-w-0 overflow-y-auto pr-1">
+      <div class="journal-desk">
+        <div class="journal-column flex-1 min-w-0">
           <div
             :if={Credits.exhausted?(@user, @poet)}
             class="alert alert-warning text-sm mb-3"
@@ -1057,7 +1064,8 @@ defmodule TravelingPoetWeb.JournalLive do
               <h1 class="text-xl font-semibold">{@poet.name}</h1>
               <p class="text-sm opacity-70">
                 <span :if={@poet.current_place_name}>
-                  📍 {@poet.current_place_name}
+                  <.icon name="hero-map-pin-mini" class="size-4 -mt-0.5" />
+                  {@poet.current_place_name}
                 </span>
                 <span :if={@sprite_status == :not_provisioned} class="text-warning">
                   preparing to set out
@@ -1077,12 +1085,13 @@ defmodule TravelingPoetWeb.JournalLive do
               :if={!provisioning?(assigns)}
               phx-click="toggle_chat"
               class={[
-                "hidden lg:inline-flex btn btn-ghost btn-sm",
+                "hidden xl:inline-flex btn btn-ghost btn-sm",
                 @entries == [] && "ml-auto"
               ]}
               aria-label="Toggle chat"
             >
-              💬 {if @sidebar_open, do: "Hide chat", else: "Chat"}
+              <.icon name="hero-chat-bubble-left-right" class="size-4" />
+              {if @sidebar_open, do: "Hide chat", else: "Chat"}
             </button>
           </div>
 
@@ -1256,7 +1265,9 @@ defmodule TravelingPoetWeb.JournalLive do
 
                 <div class="border-t border-base-300 pt-3 mt-4">
                   <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-sm opacity-60 mr-1 whitespace-nowrap">Tell your poet:</span>
+                    <%!-- A line of its own: beside the buttons it pushed the last
+                          one onto a second row on a narrow page --%>
+                    <span class="text-sm opacity-60 basis-full">Tell your poet:</span>
                     <button
                       :for={{kind, emoji} <- reaction_kinds()}
                       phx-click="react"
@@ -1290,13 +1301,26 @@ defmodule TravelingPoetWeb.JournalLive do
           chat_attachment_upload={@uploads.chat_attachment}
         />
 
+        <%!-- A tablet gets the chat as a drawer over the page rather than a
+              column beside it (a docked column starved the two-page spread),
+              and this is what dims the page behind it. --%>
+        <div
+          :if={!provisioning?(assigns) and @mobile_chat_open}
+          id="chat-scrim"
+          class="hidden md:block xl:hidden fixed inset-0 z-40 bg-black/30"
+          phx-click="toggle_mobile_chat"
+          aria-hidden="true"
+        >
+        </div>
+
         <button
           :if={!provisioning?(assigns) and !@mobile_chat_open}
+          id="chat-fab"
           phx-click="toggle_mobile_chat"
-          class="lg:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
+          class="chat-fab xl:hidden fixed right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
           aria-label="Open chat"
         >
-          💬
+          <.icon name="hero-chat-bubble-left-right" class="size-6" />
         </button>
       </div>
     </Layouts.app>

@@ -461,7 +461,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
       >
         {s.label}
       </.link>
-      <span :if={@chat} class="hidden lg:contents">
+      <span :if={@chat} class="hidden xl:contents">
         <button
           type="button"
           role="tab"
@@ -473,7 +473,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           Chat
         </button>
       </span>
-      <span :if={@chat} class="lg:hidden contents">
+      <span :if={@chat} class="xl:hidden contents">
         <button
           type="button"
           role="tab"
