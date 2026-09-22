@@ -100,6 +100,13 @@ defmodule TravelingPoetWeb.Router do
     # /logout must precede /:provider so it isn't shadowed by the catch-all
     get "/logout", AuthController, :logout
     delete "/logout", AuthController, :logout
+
+    # The iOS app's way through Google (see NativeAuth); also ahead of the
+    # catch-all. `start` and `connect` run in the system sign-in sheet, which
+    # has no session: `connect` takes who is asking from a signed token.
+    get "/native/start", NativeAuthController, :start
+    get "/native/connect", NativeAuthController, :connect
+    post "/native/handoff", NativeAuthController, :handoff
     get "/:provider", AuthController, :request
     get "/:provider/callback", AuthController, :callback
   end
@@ -118,6 +125,8 @@ defmodule TravelingPoetWeb.Router do
     get "/journal/book/pdf/:id", BookController, :download_pdf
     get "/journal/book/drive/connect", BookController, :connect_drive
     get "/settings/calendar/connect", CalendarController, :connect
+    # The iOS app asks for the address to open in its sign-in sheet
+    get "/auth/native/connect_url", NativeAuthController, :connect_url
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do

@@ -5,6 +5,31 @@ defmodule TravelingPoetWeb.PageController do
   alias TravelingPoet.Journal.EntryBundle
   alias TravelingPoet.Poets
 
+  # Inside the iOS app the home page is a front door, not a pitch: someone
+  # signed in goes straight to their journal (or back to onboarding), someone
+  # signed out gets the welcome screen. App Review also reads a marketing page
+  # as "a website in a wrapper" (guideline 4.2).
+  def home(%{assigns: %{native_app: true, current_user: %{} = user}} = conn, _params) do
+    if user.onboarding_completed,
+      do: redirect(conn, to: ~p"/journal"),
+      else: redirect(conn, to: onboarding_path(get_session(conn, :start_place)))
+  end
+
+  def home(%{assigns: %{native_app: true}} = conn, _params) do
+    sample =
+      Poets.list_poets_on_the_road()
+      |> Enum.filter(& &1.is_public)
+      |> Enum.find_value(fn poet ->
+        Journal.latest_published_entry(poet.id) && %{name: poet.name, url: ~p"/p/#{poet.slug}"}
+      end)
+
+    render(conn, :welcome,
+      start_place: get_session(conn, :start_place),
+      sample: sample,
+      layout: false
+    )
+  end
+
   def home(conn, _params) do
     my_poet =
       case conn.assigns[:current_user] do
@@ -67,6 +92,14 @@ defmodule TravelingPoetWeb.PageController do
     place = params |> Map.get("place", "") |> String.trim() |> String.slice(0, 120)
 
     case conn.assigns[:current_user] do
+      # The iOS app cannot be redirected into Google (a web view is refused
+      # there); it goes back to the welcome screen, which now names the place
+      # and whose sign-in button opens the system sheet.
+      nil when conn.assigns.native_app ->
+        conn
+        |> maybe_park_place(place)
+        |> redirect(to: ~p"/")
+
       nil ->
         conn
         |> maybe_park_place(place)

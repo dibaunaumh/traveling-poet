@@ -47,6 +47,94 @@ async function openPdf(url) {
   return openInSheet(signed)
 }
 
+// -- Google, through the system sign-in sheet -------------------------------
+//
+// Google refuses to run its sign-in in an embedded web view, which is what
+// this is. PoetNative.webAuth opens a URL in the system's sign-in sheet
+// (Safari's engine and cookie jar, which Google allows) and resolves with
+// the travelpoet:// URL the server finally redirects the sheet to. The
+// sheet's session is not this one, so the result is carried across: see
+// TravelingPoetWeb.NativeAuth for the whole handoff.
+
+const AUTH_SCHEME = "travelpoet"
+
+// Links that would lead the web view into Google, by path.
+const SIGN_IN_PATH = "/auth/google"
+const CONNECT_PATHS = {
+  "/settings/calendar/connect": "calendar",
+  "/journal/book/drive/connect": "drive",
+}
+
+const base64url = (bytes) =>
+  btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+
+const webAuth = (url) => call("PoetNative", "webAuth", {url, scheme: AUTH_SCHEME}).then((r) => new URL(r.url))
+
+function post(path, fields) {
+  const form = document.createElement("form")
+  form.method = "post"
+  form.action = path
+  fields._csrf_token = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+  for (const [name, value] of Object.entries(fields)) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    form.appendChild(input)
+  }
+  document.body.appendChild(form)
+  form.submit()
+}
+
+let authInFlight = false
+
+async function once(flow) {
+  if (authInFlight) return
+  authInFlight = true
+  try {
+    await flow()
+  } catch (err) {
+    // Closing the sheet is a decision, not an error worth a message.
+    if (err?.code !== "cancelled") console.warn("[native] sign-in sheet", err)
+  } finally {
+    authInFlight = false
+  }
+}
+
+async function signInWithGoogle() {
+  // The verifier never leaves this page; the sheet only ever sees its hash.
+  // The token that comes back is useless without it.
+  const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)))
+  const challenge = base64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)))
+  const start = new URL("/auth/native/start", window.location.origin)
+  start.searchParams.set("challenge", challenge)
+
+  const result = await webAuth(start.href)
+  const token = result.searchParams.get("token")
+  if (token) post("/auth/native/handoff", {token, verifier})
+  else window.location.assign("/")
+}
+
+async function connectGoogle(feature, link) {
+  const ask = new URL("/auth/native/connect_url", window.location.origin)
+  ask.searchParams.set("feature", feature)
+  const pdf = link.searchParams.get("pdf")
+  if (pdf) ask.searchParams.set("pdf", pdf)
+
+  const response = await fetch(ask, {credentials: "same-origin"})
+  if (!response.ok) throw new Error(`connect_url ${response.status}`)
+  const {url} = await response.json()
+
+  const result = await webAuth(url)
+  // Only ever a page of this site, whatever the URL that came back says.
+  const next = new URL(result.searchParams.get("to") || "/settings", window.location.origin)
+  if (next.origin !== window.location.origin) return
+  const connected = result.searchParams.get("connected")
+  if (connected) next.searchParams.set("connected", connected)
+  // A full load, not a patch: the page has to re-read what Google granted.
+  window.location.assign(next.href)
+}
+
 function onClick(e) {
   if (e.defaultPrevented || e.button !== 0) return
   const a = e.target.closest("a[href]")
@@ -61,7 +149,13 @@ function onClick(e) {
   if (url.protocol !== "http:" && url.protocol !== "https:") return
   if (SYSTEM_HOSTS.has(url.hostname)) return
 
-  if (url.origin !== window.location.origin) {
+  if (url.origin === window.location.origin && url.pathname === SIGN_IN_PATH) {
+    e.preventDefault()
+    once(signInWithGoogle)
+  } else if (url.origin === window.location.origin && CONNECT_PATHS[url.pathname]) {
+    e.preventDefault()
+    once(() => connectGoogle(CONNECT_PATHS[url.pathname], url))
+  } else if (url.origin !== window.location.origin) {
     // A source, a venue, a Drive file: read it in a sheet over the journal,
     // and come straight back.
     e.preventDefault()
@@ -94,6 +188,15 @@ export function initNative() {
   if (!isNative()) return
 
   document.addEventListener("click", onClick)
+
+  // A LiveView that would have redirected into Google's consent screen
+  // (Settings, saving a PDF to a Drive not yet connected) asks for the sheet
+  // instead.
+  window.addEventListener("phx:native:connect", ({detail}) => {
+    const link = new URL("/", window.location.origin)
+    if (detail.pdf) link.searchParams.set("pdf", detail.pdf)
+    once(() => connectGoogle(detail.feature, link))
+  })
 
   syncAppearance()
   new MutationObserver(syncAppearance).observe(document.documentElement, {
