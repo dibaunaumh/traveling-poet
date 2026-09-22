@@ -2427,3 +2427,24 @@ body::before {
     grid-row: 1 / span 6;
   }
 }
+
+/* Apple's button: black on a light page, white on a dark one */
+.app-welcome-apple {
+  gap: 0.5rem;
+  border-radius: 0.6rem;
+  background: #000;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-welcome-apple-mark {
+  width: 1.05rem;
+  height: 1.25rem;
+  margin-top: -0.15rem;
+}
+
+[data-theme="dark"] .app-welcome-apple {
+  background: #fff;
+  color: #000;
+}

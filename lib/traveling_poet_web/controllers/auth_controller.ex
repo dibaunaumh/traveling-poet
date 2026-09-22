@@ -21,7 +21,10 @@ defmodule TravelingPoetWeb.AuthController do
     user_info = %{
       "sub" => auth.uid,
       "email" => auth.info.email,
-      "name" => auth.info.name
+      "name" => auth.info.name,
+      # Lets a Google sign-in find the account an Apple sign-in made with the
+      # same address (Accounts.find_or_create_from_oauth/2); absent means no.
+      "email_verified" => email_verified?(auth)
     }
 
     # Parked by the home page's destination box; log_in_user clears the
@@ -71,15 +74,37 @@ defmodule TravelingPoetWeb.AuthController do
       is_nil(feature) ->
         conn |> put_flash(:error, "Failed to authenticate.") |> redirect(to: ~p"/settings")
 
-      is_nil(current) or current.google_id != user_info["sub"] ->
+      is_nil(current) ->
+        finish_connect(conn, native, feature, "wrong_account")
+
+      # An account made with Sign in with Apple has no Google identity yet:
+      # the account picked on the consent screen becomes it, unless someone
+      # else already signs in with that one.
+      is_nil(current.google_id) ->
+        case attach_google(current, user_info["sub"]) do
+          {:ok, current} -> store_grant(conn, native, feature, current, auth, intent)
+          {:error, _} -> finish_connect(conn, native, feature, "taken")
+        end
+
+      current.google_id != user_info["sub"] ->
         finish_connect(conn, native, feature, "wrong_account")
 
       true ->
-        case GoogleAuth.store_credentials(current, auth.credentials, feature) do
-          {:ok, user} -> finish_connect(conn, native, feature, connected(feature, user, intent))
-          {:error, :scope_not_granted} -> finish_connect(conn, native, feature, "not_allowed")
-          {:error, _} -> finish_connect(conn, native, feature, "failed")
-        end
+        store_grant(conn, native, feature, current, auth, intent)
+    end
+  end
+
+  defp attach_google(user, google_id) do
+    if Accounts.get_user_by_google_id(google_id),
+      do: {:error, :taken},
+      else: Accounts.update_user(user, %{google_id: google_id})
+  end
+
+  defp store_grant(conn, native, feature, current, auth, intent) do
+    case GoogleAuth.store_credentials(current, auth.credentials, feature) do
+      {:ok, user} -> finish_connect(conn, native, feature, connected(feature, user, intent))
+      {:error, :scope_not_granted} -> finish_connect(conn, native, feature, "not_allowed")
+      {:error, _} -> finish_connect(conn, native, feature, "failed")
     end
   end
 
@@ -96,6 +121,11 @@ defmodule TravelingPoetWeb.AuthController do
   defp finish_connect(conn, _native, feature, notice) do
     redirect(conn, external: NativeAuth.connected_url(return_to(feature), feature, notice))
   end
+
+  defp email_verified?(%{extra: %{raw_info: %{user: %{"email_verified" => verified}}}}),
+    do: verified in [true, "true"]
+
+  defp email_verified?(_auth), do: false
 
   defp feature("drive"), do: :drive
   defp feature("calendar"), do: :calendar

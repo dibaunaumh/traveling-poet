@@ -119,6 +119,9 @@ defmodule TravelingPoetWeb.NativeAuth do
   defp notice(_, "wrong_account"),
     do: {:error, "Please choose the Google account you sign in with."}
 
+  defp notice(_, "taken"),
+    do: {:error, "That Google account already has its own Traveling Poet account."}
+
   defp notice("drive", "not_allowed"),
     do: {:error, "Google Drive was not allowed, so nothing was saved."}
 

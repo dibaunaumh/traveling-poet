@@ -9,31 +9,74 @@ defmodule TravelingPoet.Accounts do
   require Logger
 
   @doc """
-  Finds or creates a user from an OAuth callback.
+  Finds or creates a user from a sign-in, by provider (`:google`, `:apple`).
 
-  Dispatches on provider so "Sign in with Apple" can slot in later without
-  touching callers — today only `:google` is wired.
+  One person, one account, however they sign in: `users.email` is unique, so
+  someone who made their poet with Google on the web and then signs in with
+  Apple in the app (same address) must arrive at that poet, not at an error.
+  An identity new to us is therefore attached to the account that already
+  holds its email, but ONLY when the provider vouches that the email is
+  verified (`"email_verified" => true`), since an unverified address is
+  anyone's to type. Apple's "Hide My Email" relay addresses are unique to
+  each app and never match anything; they get an account of their own.
+
+  `"name"` may be missing: Apple sends it once, on the very first sign-in.
   """
-  def find_or_create_from_oauth(:google, %{"sub" => google_id, "email" => email, "name" => name}) do
-    case Repo.get_by(User, google_id: google_id) do
-      nil ->
+  def find_or_create_from_oauth(:google, %{"sub" => sub} = info),
+    do: find_or_create(:google_id, sub, info)
+
+  def find_or_create_from_oauth(:apple, %{"sub" => sub} = info),
+    do: find_or_create(:apple_id, sub, info)
+
+  defp find_or_create(identity, sub, info) when is_binary(sub) and sub != "" do
+    email = info["email"]
+    name = info["name"]
+
+    cond do
+      user = Repo.get_by(User, [{identity, sub}]) ->
+        fill_in_name(user, name)
+
+      email in [nil, ""] ->
+        {:error, :no_email}
+
+      user = info["email_verified"] == true && get_user_by_email(email) ->
+        with {:ok, user} <- user |> User.changeset(%{identity => sub}) |> Repo.update() do
+          Logger.info("Accounts: linked #{identity} to user #{user.id} by verified email")
+          fill_in_name(user, name)
+        end
+
+      true ->
         with {:ok, user} <-
                %User{}
-               |> User.changeset(%{google_id: google_id, email: email, name: name})
+               |> User.changeset(%{identity => sub, email: email, name: name})
                |> Repo.insert() do
           # Welcome credits; idempotent on "signup:<id>" so a retry can't double-grant.
           {:ok, _} = TravelingPoet.Credits.grant_signup(user)
           {:ok, Repo.get!(User, user.id)}
         end
-
-      user ->
-        if is_nil(user.name) or user.name == "" do
-          user |> User.changeset(%{name: name}) |> Repo.update()
-        else
-          {:ok, user}
-        end
     end
   end
+
+  defp find_or_create(_identity, _sub, _info), do: {:error, :no_subject}
+
+  defp fill_in_name(user, name) when name in [nil, ""], do: {:ok, user}
+
+  defp fill_in_name(user, name) do
+    if user.name in [nil, ""],
+      do: user |> User.changeset(%{name: name}) |> Repo.update(),
+      else: {:ok, user}
+  end
+
+  def get_user_by_email(email) when is_binary(email) and email != "" do
+    Repo.one(from u in User, where: fragment("lower(?)", u.email) == ^String.downcase(email))
+  end
+
+  def get_user_by_email(_), do: nil
+
+  def get_user_by_apple_id(apple_id) when is_binary(apple_id),
+    do: Repo.get_by(User, apple_id: apple_id)
+
+  def get_user_by_apple_id(_), do: nil
 
   def get_user_by_google_id(google_id) when is_binary(google_id),
     do: Repo.get_by(User, google_id: google_id)

@@ -103,6 +103,25 @@ config :traveling_poet,
   # Contact the push services may use about our traffic; a URL is valid too.
   vapid_subject: System.get_env("VAPID_SUBJECT"),
   web_push_notifier: config_env() != :test,
+  # Sign in with Apple (the iOS app), and later APNs and the App Store, all
+  # signed with the one .p8 key from the developer account. nil in test, so a
+  # real key in .env can never sign a request to Apple from the suite; tests
+  # that need a key generate their own. The PEM may arrive with literal "\n"
+  # (a Fly secret set on one line).
+  apple_team_id: if(config_env() == :test, do: nil, else: System.get_env("APPLE_TEAM_ID")),
+  apple_key_id: if(config_env() == :test, do: nil, else: System.get_env("APPLE_KEY_ID")),
+  apple_private_key:
+    if(config_env() == :test,
+      do: nil,
+      else:
+        System.get_env("APPLE_PRIVATE_KEY") &&
+          String.replace(System.get_env("APPLE_PRIVATE_KEY"), "\\n", "\n")
+    ),
+  apple_bundle_id:
+    if(config_env() == :test,
+      do: nil,
+      else: System.get_env("APPLE_BUNDLE_ID") || "travel.poet.app"
+    ),
   tigris_bucket_name: System.get_env("TIGRIS_BUCKET_NAME"),
   journey_check_interval_minutes:
     if(config_env() == :test,

@@ -115,6 +115,21 @@ async function signInWithGoogle() {
   else window.location.assign("/")
 }
 
+// Sign in with Apple is a native sheet, not a web flow, so there is no second
+// cookie jar and no handoff: the token comes back over the bridge and is
+// posted from here, which signs THIS session in. The nonce on the button
+// belongs to this session (the server keeps the original and gave the page
+// its hash); Apple copies it into the token, so the token works once, here.
+async function signInWithApple(button) {
+  const result = await call("PoetNative", "signInWithApple", {nonce: button.dataset.appleNonce})
+  post("/auth/apple/native", {
+    identity_token: result.identityToken,
+    authorization_code: result.authorizationCode || "",
+    given_name: result.givenName || "",
+    family_name: result.familyName || "",
+  })
+}
+
 async function connectGoogle(feature, link) {
   const ask = new URL("/auth/native/connect_url", window.location.origin)
   ask.searchParams.set("feature", feature)
@@ -137,6 +152,13 @@ async function connectGoogle(feature, link) {
 
 function onClick(e) {
   if (e.defaultPrevented || e.button !== 0) return
+
+  const apple = e.target.closest("#sign-in-with-apple")
+  if (apple) {
+    e.preventDefault()
+    return once(() => signInWithApple(apple))
+  }
+
   const a = e.target.closest("a[href]")
   if (!a) return
 
@@ -151,7 +173,11 @@ function onClick(e) {
 
   if (url.origin === window.location.origin && url.pathname === SIGN_IN_PATH) {
     e.preventDefault()
-    once(signInWithGoogle)
+    // The welcome screen's own button signs in with Google. A "Sign in" link
+    // anywhere else (a public journal's header) leads to the welcome screen,
+    // where both ways in are offered.
+    if (a.closest("#welcome-signin")) once(signInWithGoogle)
+    else window.location.assign("/")
   } else if (url.origin === window.location.origin && CONNECT_PATHS[url.pathname]) {
     e.preventDefault()
     once(() => connectGoogle(CONNECT_PATHS[url.pathname], url))

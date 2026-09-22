@@ -11,6 +11,8 @@ defmodule TravelingPoet.Accounts.User do
     # Multi-provider identity: at least one of these must be present.
     field :google_id, :string
     field :apple_id, :string
+    # Only ever used to revoke the grant on account deletion (see Apple)
+    field :apple_refresh_token, :string
 
     field :onboarding_completed, :boolean, default: false
     field :onboarding_step, :string
@@ -81,6 +83,7 @@ defmodule TravelingPoet.Accounts.User do
       :is_admin,
       :google_id,
       :apple_id,
+      :apple_refresh_token,
       :onboarding_completed,
       :onboarding_step,
       :last_seen_at,
