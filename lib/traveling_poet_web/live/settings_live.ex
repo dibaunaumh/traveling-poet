@@ -1466,7 +1466,14 @@ defmodule TravelingPoetWeb.SettingsLive do
                 trips cost the Trip Scout rate.
               </p>
 
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              <%!-- Card checkout, never inside the iOS app: Apple requires its own
+                    In-App Purchase for credits there (guideline 3.1.1), and the
+                    markup itself must not offer another way to pay. --%>
+              <div
+                :if={!@native_app}
+                id="credit-packs"
+                class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3"
+              >
                 <form :for={pack <- @packs} method="post" action={~p"/credits/checkout"}>
                   <input
                     type="hidden"
@@ -1480,7 +1487,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   </button>
                 </form>
               </div>
-              <p :if={@payments_mock} class="text-xs text-warning mb-3">
+              <p :if={@payments_mock and !@native_app} class="text-xs text-warning mb-3">
                 Payments are in test mode — purchases are mocked and free.
               </p>
 
@@ -1526,6 +1533,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               <p class="text-xs opacity-60 mt-4">
                 <.link navigate={~p"/privacy"} class="link">Privacy policy</.link>
                 · <.link navigate={~p"/terms"} class="link">Terms of service</.link>
+                · <.link navigate={~p"/support"} class="link">Support</.link>
                 · To delete your account and everything in it, write to <a
                   class="link"
                   href="mailto:dibaunaumh@gmail.com"

@@ -525,6 +525,7 @@ defmodule TravelingPoetWeb.BookComponents do
   attr :composing, :boolean, default: false
   attr :pdf_enabled, :boolean, default: false
   attr :poet, :map, required: true
+  attr :native, :boolean, default: false, doc: "inside the iOS app, where a page cannot print"
 
   @doc "Print, paper size, edition, back: on screen only."
   def toolbar(assigns) do
@@ -560,7 +561,9 @@ defmodule TravelingPoetWeb.BookComponents do
       >
         {label}
       </a>
-      <button type="button" id="book-print" disabled>Print</button>
+      <%!-- window.print() does nothing in the iOS app's web view; the PDF is
+            the way to paper there. --%>
+      <button :if={!@native} type="button" id="book-print" disabled>Print</button>
       <a
         :if={@pdf_enabled}
         href={~p"/settings#book"}

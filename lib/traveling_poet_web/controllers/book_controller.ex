@@ -97,15 +97,28 @@ defmodule TravelingPoetWeb.BookController do
     |> redirect(to: "/auth/google?" <> URI.encode_query(GoogleDrive.consent_params(user)))
   end
 
-  @doc "Hands the owner a short-lived link to their stored PDF."
-  def download_pdf(conn, %{"id" => id}) do
+  @doc """
+  Hands the owner a short-lived link to their stored PDF.
+
+  A browser is redirected to a download. The iOS app has no downloads: a web
+  view drops an `attachment` response on the floor. There the link is for
+  showing the PDF in place, and with `?format=json` it comes back as data so
+  the page can open it in the in-app browser sheet, which has the share
+  button that stands in for "save" (assets/js/native.js).
+  """
+  def download_pdf(conn, %{"id" => id} = params) do
     user = conn.assigns.current_user
+    native? = conn.assigns[:native_app] == true
+    disposition = if native? or params["format"] == "json", do: :inline, else: :attachment
 
     with {pdf_id, ""} <- Integer.parse(id),
          %{} = pdf <- Books.get_owned_pdf(user, pdf_id),
          poet when not is_nil(poet) <- Poets.get_poet(pdf.poet_id),
-         {:ok, url} <- Storage.impl().download_url(pdf.s3_key, Books.pdf_filename(poet, pdf)) do
-      redirect(conn, external: url)
+         {:ok, url} <-
+           Storage.impl().download_url(pdf.s3_key, Books.pdf_filename(poet, pdf), disposition) do
+      if params["format"] == "json",
+        do: json(conn, %{url: url}),
+        else: redirect(conn, external: url)
     else
       _ -> conn |> put_status(404) |> text("That PDF is not available.")
     end

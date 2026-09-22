@@ -5,6 +5,15 @@ defmodule TravelingPoetWeb.CreditsController do
   alias TravelingPoet.Payments.Mock
 
   @doc "POST /credits/checkout — sends the buyer to the provider's checkout."
+  # Inside the iOS app credits are bought through Apple (App Store guideline
+  # 3.1.1); the settings page does not render these forms there, and a card
+  # checkout must not be reachable by hand either.
+  def checkout(%{assigns: %{native_app: true}} = conn, _params) do
+    conn
+    |> put_flash(:error, "Credits are bought through the App Store in the app.")
+    |> redirect(to: ~p"/settings#credits")
+  end
+
   def checkout(conn, %{"pack" => pack_id}) do
     user = conn.assigns.current_user
 

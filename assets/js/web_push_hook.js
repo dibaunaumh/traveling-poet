@@ -65,6 +65,11 @@ const WebPush = {
   },
 
   async detect() {
+    // The iOS app is a web view: no service worker and no Web Push, and
+    // "add Poet to your Home Screen" is the wrong advice to someone already
+    // inside the app. Its notifications come through Apple's push service.
+    if (window.Capacitor?.isNativePlatform?.()) return this.report("unsupported")
+
     if (!this.supported()) {
       return this.report(this.isIOS() && !this.standalone() ? "needs_install" : "unsupported")
     }

@@ -34,6 +34,7 @@ import WebPush from "./web_push_hook"
 import Markers from "./markers_hook"
 import SettingsNav from "./settings_nav_hook"
 import {initBeacon} from "./beacon"
+import {initNative} from "./native"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
@@ -51,6 +52,9 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 liveSocket.connect()
 
 initBeacon()
+
+// Inside the iOS app: link handling and the status bar. A no-op in a browser.
+initNative()
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()

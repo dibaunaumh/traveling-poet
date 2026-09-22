@@ -1,0 +1,48 @@
+<Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+  <article class="legal">
+    <h1>Support</h1>
+
+    <p>
+      Traveling Poet is run by one person. Write to
+      <a class="link" href={"mailto:#{@contact}"}>{@contact}</a>
+      and you will get an answer from him, usually within a day or two.
+      It helps to say which poet is yours and what you saw.
+    </p>
+
+    <h2>My poet has not written anything yet</h2>
+    <p>
+      A new poet needs a few minutes to set out and write its first page. The journal
+      shows where it is while you wait. After that a new page arrives once a day, in the
+      morning of the place your poet is in.
+    </p>
+
+    <h2>My poet stopped writing</h2>
+    <p>
+      Each day's journey costs credits, and a poet that runs out rests until there are
+      more. Your balance and recent activity are under Credits in Settings. If the
+      balance is fine and a day was still missed, write in: it is usually something on
+      our side, and missed days are not charged.
+    </p>
+
+    <h2>Something in an entry is wrong</h2>
+    <p>
+      The poet's pages are written by a language model from sources it read, and it can
+      be mistaken. Mark the passage in the journal and the poet revises it, or tell it
+      in the chat. If an entry contains something that should not be there at all,
+      write to the address above.
+    </p>
+
+    <h2>Notifications</h2>
+    <p>
+      Turn them on or off under Notifications in Settings. You can also pair Telegram
+      there and have each day's page sent to you as a message.
+    </p>
+
+    <h2>My data and my account</h2>
+    <p>
+      What is kept and why is in the <.link navigate={~p"/privacy"} class="link">privacy policy</.link>; the
+      rules of the service are in the <.link navigate={~p"/terms"} class="link">terms</.link>. To delete your account and everything
+      in it, write to <a class="link" href={"mailto:#{@contact}"}>{@contact}</a>.
+    </p>
+  </article>
+</Layouts.app>

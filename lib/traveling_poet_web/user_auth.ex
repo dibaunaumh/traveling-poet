@@ -9,6 +9,7 @@ defmodule TravelingPoetWeb.UserAuth do
   import Phoenix.Controller
 
   alias TravelingPoet.Accounts
+  alias TravelingPoetWeb.Plugs.NativeApp
 
   @doc """
   Logs the user in. Renews the session ID and clears the whole session to
@@ -46,7 +47,26 @@ defmodule TravelingPoetWeb.UserAuth do
   def fetch_current_user(conn, _opts) do
     user_id = get_session(conn, :user_id)
     user = user_id && user_id |> Accounts.get_user() |> Accounts.touch_last_seen()
-    assign(conn, :current_user, user)
+
+    conn
+    |> assign(:current_user, user)
+    |> keep_session_fresh(user)
+  end
+
+  # A cookie store only sends a new cookie when the session changes, so a
+  # `max_age` alone would sign people out 180 days after they signed IN,
+  # however often they came back. Touching one key a week restarts the clock.
+  @refresh_after_seconds 7 * 24 * 60 * 60
+
+  defp keep_session_fresh(conn, nil), do: conn
+
+  defp keep_session_fresh(conn, _user) do
+    now = System.system_time(:second)
+
+    case get_session(conn, :refreshed_at) do
+      at when is_integer(at) and now - at < @refresh_after_seconds -> conn
+      _ -> put_session(conn, :refreshed_at, now)
+    end
   end
 
   @doc """
@@ -117,8 +137,16 @@ defmodule TravelingPoetWeb.UserAuth do
 
     # Header pill: only surfaces when the balance is low, so a fresh read on
     # every mount is the whole cost of showing it.
-    Phoenix.Component.assign_new(socket, :credits_low, fn ->
-      credits_low?(socket.assigns[:current_user])
+    socket =
+      Phoenix.Component.assign_new(socket, :credits_low, fn ->
+        credits_low?(socket.assigns[:current_user])
+      end)
+
+    # The iOS app, by its User-Agent (see Plugs.NativeApp). On the first
+    # render this comes from the plug's assign; over the socket, from the
+    # `:user_agent` connect_info.
+    Phoenix.Component.assign_new(socket, :native_app, fn ->
+      socket |> Phoenix.LiveView.get_connect_info(:user_agent) |> NativeApp.native?()
     end)
   end
 
