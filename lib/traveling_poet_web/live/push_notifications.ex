@@ -12,22 +12,48 @@ defmodule TravelingPoetWeb.PushNotifications do
   use TravelingPoetWeb, :html
   import Phoenix.LiveView, only: [put_flash: 3, get_connect_info: 2]
 
-  alias TravelingPoet.WebPush
+  alias TravelingPoet.{Apns, WebPush}
 
   @states ~w(unsupported needs_install denied available subscribed)
 
+  # Inside the iOS app the same switch, nudge and states run over Apple's push
+  # service instead of Web Push, which a web view does not have. The hook
+  # reports a `device` (an APNs token) where a browser reports a
+  # `subscription`; everything else is shared.
   def assign_push(socket) do
     user = socket.assigns.user
+    configured? = if native?(socket), do: Apns.configured?(), else: WebPush.configured?()
 
     assign(socket, :push, %{
-      configured?: WebPush.configured?(),
+      configured?: configured?,
+      # the wording differs: there is no "browser" or "site" inside the app
+      native?: native?(socket),
       state: :unknown,
       dismissed?: false,
-      devices: if(WebPush.configured?(), do: WebPush.count(user), else: 0)
+      devices: if(configured?, do: device_count(user), else: 0)
     })
   end
 
+  defp native?(socket), do: socket.assigns[:native_app] == true
+
+  defp device_count(user), do: WebPush.count(user) + Apns.count(user)
+
+  defp register_device(socket, %{"token" => token} = device),
+    do: Apns.register(socket.assigns.user, token, device["environment"])
+
+  defp register_device(_socket, _device), do: {:error, :invalid}
+
   @doc "Handles `push_state`, `push_subscribed`, `push_unsubscribed` from the hook."
+  def handle_event(
+        "push_state",
+        %{"state" => "subscribed", "device" => %{} = device} = params,
+        socket
+      ) do
+    # The phone still has its token; make sure we do too (and under this account).
+    register_device(socket, device)
+    {:noreply, set_push(socket, :subscribed, params["dismissed"] == true)}
+  end
+
   def handle_event("push_state", %{"state" => state} = params, socket) when state in @states do
     socket =
       case {state, params["subscription"]} do
@@ -43,6 +69,24 @@ defmodule TravelingPoetWeb.PushNotifications do
       end
 
     {:noreply, set_push(socket, String.to_existing_atom(state), params["dismissed"] == true)}
+  end
+
+  def handle_event("push_subscribed", %{"device" => %{} = device}, socket) do
+    poet = socket.assigns[:poet]
+
+    case register_device(socket, device) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> set_push(:subscribed, false)
+         |> put_flash(
+           :info,
+           "You'll get a notification on this device when #{(poet && poet.name) || "your poet"} publishes."
+         )}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not turn notifications on for this device.")}
+    end
   end
 
   def handle_event("push_subscribed", %{"subscription" => sub}, socket) do
@@ -65,6 +109,7 @@ defmodule TravelingPoetWeb.PushNotifications do
 
   def handle_event("push_unsubscribed", params, socket) do
     if endpoint = params["endpoint"], do: WebPush.unsubscribe(socket.assigns.user, endpoint)
+    if token = params["device_token"], do: Apns.unregister(socket.assigns.user, token)
     {:noreply, set_push(socket, :available, false)}
   end
 
@@ -77,7 +122,7 @@ defmodule TravelingPoetWeb.PushNotifications do
       push
       | state: state,
         dismissed?: dismissed?,
-        devices: WebPush.count(socket.assigns.user)
+        devices: device_count(socket.assigns.user)
     })
   end
 
@@ -175,12 +220,19 @@ defmodule TravelingPoetWeb.PushNotifications do
       <p :if={@push.state == :subscribed} class="font-medium">
         This device will get a nudge when the first entry is out.
       </p>
-      <p :if={@push.state == :denied} class="opacity-70">
+      <p :if={@push.state == :denied and !@push.native?} class="opacity-70">
         Notifications are blocked for this site. Allow them in your browser or system settings
         to get a nudge when {@poet.name} publishes.
       </p>
-      <p :if={@push.state == :unsupported} class="opacity-70">
+      <p :if={@push.state == :denied and @push.native?} class="opacity-70">
+        Notifications are turned off for Traveling Poet. Turn them on in the Settings app,
+        under Notifications, to hear when {@poet.name} publishes.
+      </p>
+      <p :if={@push.state == :unsupported and !@push.native?} class="opacity-70">
         This browser can't receive push notifications. Telegram works everywhere.
+      </p>
+      <p :if={@push.state == :unsupported and @push.native?} class="opacity-70">
+        Notifications are not available on this device right now. Telegram works everywhere.
       </p>
       <p class="opacity-60 text-xs" id="notification-promise">
         Notifications are only for new entries and notes about your account, such as credits
@@ -205,16 +257,23 @@ defmodule TravelingPoetWeb.PushNotifications do
       <h2 class="font-semibold mb-2">Notifications</h2>
       <div class="text-sm space-y-2">
         <p :if={@push.state == :unknown} class="opacity-60">Checking this device…</p>
-        <p :if={@push.state == :unsupported} class="opacity-60">
+        <p :if={@push.state == :unsupported and !@push.native?} class="opacity-60">
           This browser can't receive push notifications.
+        </p>
+        <p :if={@push.state == :unsupported and @push.native?} class="opacity-60">
+          Notifications are not available on this device right now.
         </p>
         <p :if={@push.state == :needs_install} class="opacity-80">
           On iPhone and iPad, notifications work once Poet is on your Home Screen:
           tap Share → Add to Home Screen, open it from there, and come back to this page.
         </p>
-        <p :if={@push.state == :denied} class="opacity-80">
+        <p :if={@push.state == :denied and !@push.native?} class="opacity-80">
           Notifications are blocked for this site. Allow them in your browser or system
           settings, then reload this page.
+        </p>
+        <p :if={@push.state == :denied and @push.native?} class="opacity-80">
+          Notifications are turned off for Traveling Poet. Turn them on in the Settings app,
+          under Notifications, then come back here.
         </p>
         <div :if={@push.state == :available} class="flex items-center gap-3 flex-wrap">
           <span>Nudge this device when {(@poet && @poet.name) || "your poet"} publishes</span>
@@ -223,7 +282,10 @@ defmodule TravelingPoetWeb.PushNotifications do
           </button>
         </div>
         <div :if={@push.state == :subscribed} class="flex items-center gap-3 flex-wrap">
-          <span>This device gets a nudge when a new entry is published ✓</span>
+          <span>
+            <.icon name="hero-check-circle-mini" class="size-4 -mt-0.5 text-success" />
+            This device gets a nudge when a new entry is published
+          </span>
           <button type="button" data-push-action="unsubscribe" class="btn btn-outline btn-sm">
             Turn off
           </button>

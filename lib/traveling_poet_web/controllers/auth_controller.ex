@@ -191,7 +191,12 @@ defmodule TravelingPoetWeb.AuthController do
   @doc """
   Logs out the user.
   """
-  def logout(conn, _params) do
+  # The iOS app adds `?device=<its push token>`: a phone someone has signed
+  # out of must stop receiving their poet's notes, which show on a lock screen.
+  def logout(conn, params) do
+    if user = conn.assigns[:current_user],
+      do: TravelingPoet.Apns.unregister(user, params["device"])
+
     UserAuth.log_out_user(conn)
   end
 end

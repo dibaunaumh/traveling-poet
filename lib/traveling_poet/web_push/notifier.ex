@@ -14,7 +14,10 @@ defmodule TravelingPoet.WebPush.Notifier do
 
   @impl true
   def init(_opts) do
-    if WebPush.configured?() and Application.get_env(:traveling_poet, :web_push_notifier, true) do
+    # Either road being open is reason enough to listen: browsers (VAPID
+    # keys) or the iOS app (the Apple key); see WebPush.notify_user/2.
+    if (WebPush.configured?() or TravelingPoet.Apns.configured?()) and
+         Application.get_env(:traveling_poet, :web_push_notifier, true) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")

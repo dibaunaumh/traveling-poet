@@ -171,7 +171,12 @@ function onClick(e) {
   if (url.protocol !== "http:" && url.protocol !== "https:") return
   if (SYSTEM_HOSTS.has(url.hostname)) return
 
-  if (url.origin === window.location.origin && url.pathname === SIGN_IN_PATH) {
+  if (url.origin === window.location.origin && url.pathname === "/auth/logout" && rememberDeviceToken()) {
+    e.preventDefault()
+    url.searchParams.set("device", rememberDeviceToken())
+    rememberDeviceToken(null)
+    window.location.assign(url.href)
+  } else if (url.origin === window.location.origin && url.pathname === SIGN_IN_PATH) {
     e.preventDefault()
     // The welcome screen's own button signs in with Google. A "Sign in" link
     // anywhere else (a public journal's header) leads to the welcome screen,
@@ -232,6 +237,33 @@ async function settleUnfinished() {
   }
 }
 
+// -- notifications ------------------------------------------------------------
+//
+// Turning them on is the WebPush hook's business (web_push_hook.js). Two
+// things belong to every page instead: a tap on a notification opens the
+// page it names, and signing out tells the server which phone to stop
+// sending to, since a poet's notes show on a lock screen.
+
+const DEVICE_TOKEN_KEY = "tpoet.apns.token"
+
+// Get (no argument), set (a token) or forget (null) this install's token.
+export function rememberDeviceToken(token) {
+  try {
+    if (token === undefined) return localStorage.getItem(DEVICE_TOKEN_KEY)
+    if (token === null) localStorage.removeItem(DEVICE_TOKEN_KEY)
+    else localStorage.setItem(DEVICE_TOKEN_KEY, token)
+  } catch (_e) {}
+  return token || null
+}
+
+function openFromNotification({notification}) {
+  const target = notification?.data?.url
+  if (!target) return
+  // Only ever a page of this site, whatever the payload says.
+  const url = new URL(target, window.location.origin)
+  if (url.origin === window.location.origin) window.location.assign(url.href)
+}
+
 // -- appearance ---------------------------------------------------------------
 //
 // The status bar's clock and battery are drawn light or dark to suit the
@@ -258,6 +290,8 @@ export function initNative() {
     if (detail.pdf) link.searchParams.set("pdf", detail.pdf)
     once(() => connectGoogle(detail.feature, link))
   })
+
+  listen("PushNotifications", "pushNotificationActionPerformed", openFromNotification)
 
   settleUnfinished()
   listen("PoetNative", "transactionUpdated", (transaction) => settle(transaction).catch(() => {}))

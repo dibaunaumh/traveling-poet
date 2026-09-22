@@ -195,14 +195,21 @@ defmodule TravelingPoet.WebPush do
 
   # One payload to each of a user's devices. The payload is built only when
   # someone is subscribed, so an unsubscribed owner costs no queries.
+  #
+  # "Devices" are browsers subscribed to Web Push AND installs of the iOS app
+  # (`TravelingPoet.Apns`): the app is a web view, which has no Web Push, so
+  # the same note takes Apple's road there. One set of payload builders, two
+  # transports.
   defp notify_user(user_id, build_payload) do
-    case list_subscriptions(%{id: user_id}) do
-      [] ->
-        {0, 0}
+    subs = if configured?(), do: list_subscriptions(%{id: user_id}), else: []
+    devices = TravelingPoet.Apns.list_devices(user_id)
 
-      subs ->
-        payload = build_payload.()
+    if subs == [] and devices == [] do
+      {0, 0}
+    else
+      payload = build_payload.()
 
+      web =
         Enum.reduce(subs, {0, 0}, fn sub, {sent, pruned} ->
           case send_notification(sub, payload) do
             :ok -> {sent + 1, pruned}
@@ -210,6 +217,9 @@ defmodule TravelingPoet.WebPush do
             {:error, _} -> {sent, pruned}
           end
         end)
+
+      {app_sent, app_pruned} = TravelingPoet.Apns.deliver(devices, payload)
+      {elem(web, 0) + app_sent, elem(web, 1) + app_pruned}
     end
   end
 

@@ -14,6 +14,14 @@
 //
 // States: unsupported | needs_install (iOS browser tab; push needs the
 // home-screen app) | denied | available | subscribed
+//
+// Inside the iOS app there is no Web Push (it is a web view), so the same
+// states and the same three events run over Apple's push service instead:
+// the hook asks the Capacitor push plugin for permission and a device token,
+// and reports `device: {token, environment}` where a browser reports a
+// `subscription`. See nativePush below.
+
+import {isNative, call, listen, rememberDeviceToken} from "./native"
 
 const DISMISS_KEY = "tpoet.push.dismissed"
 
@@ -65,10 +73,7 @@ const WebPush = {
   },
 
   async detect() {
-    // The iOS app is a web view: no service worker and no Web Push, and
-    // "add Poet to your Home Screen" is the wrong advice to someone already
-    // inside the app. Its notifications come through Apple's push service.
-    if (window.Capacitor?.isNativePlatform?.()) return this.report("unsupported")
+    if (isNative()) return this.detectNative()
 
     if (!this.supported()) {
       return this.report(this.isIOS() && !this.standalone() ? "needs_install" : "unsupported")
@@ -88,7 +93,47 @@ const WebPush = {
     }
   },
 
+  // -- the iOS app ---------------------------------------------------------
+
+  async detectNative() {
+    try {
+      const {receive} = await call("PushNotifications", "checkPermissions")
+      if (receive === "denied") return this.report("denied")
+      if (receive !== "granted") return this.report("available")
+      // Permission was given earlier: tokens change (a restore, a reinstall),
+      // so fetch today's and let the server heal its row.
+      this.report("subscribed", {device: await nativeDevice()})
+    } catch (err) {
+      console.warn("[push] native detect failed", err)
+      this.report("unsupported")
+    }
+  },
+
+  async subscribeNative() {
+    try {
+      const {receive} = await call("PushNotifications", "requestPermissions")
+      if (receive !== "granted") return this.report(receive === "denied" ? "denied" : "available")
+      const device = await nativeDevice()
+      this.state = "subscribed"
+      this.pushEvent("push_subscribed", {device})
+    } catch (err) {
+      console.warn("[push] native subscribe failed", err)
+      this.report("available", {error: String(err && err.message || err)})
+    }
+  },
+
+  async unsubscribeNative() {
+    const token = rememberDeviceToken()
+    try { await call("PushNotifications", "unregister") } catch (_e) {}
+    rememberDeviceToken(null)
+    this.state = "available"
+    this.pushEvent("push_unsubscribed", {device_token: token})
+  },
+
+  // -- browsers ---------------------------------------------------------------
+
   async subscribe() {
+    if (isNative()) return this.subscribeNative()
     if (!this.supported()) return
     try {
       const permission = await Notification.requestPermission()
@@ -107,6 +152,7 @@ const WebPush = {
   },
 
   async unsubscribe() {
+    if (isNative()) return this.unsubscribeNative()
     try {
       const reg = await this.registration()
       const sub = await reg.pushManager.getSubscription()
@@ -123,6 +169,31 @@ const WebPush = {
     try { localStorage.setItem(DISMISS_KEY, "1") } catch (_e) {}
     this.report(this.state)
   },
+}
+
+// Asks iOS for this install's APNs token. `register` answers through an
+// event, not its promise, and answers nothing at all on a Simulator without
+// the push entitlement, hence the timeout.
+function nativeDevice() {
+  return new Promise((resolve, reject) => {
+    const handles = []
+    const done = (finish, value) => {
+      handles.forEach((h) => h.remove())
+      clearTimeout(timer)
+      finish(value)
+    }
+    const timer = setTimeout(() => done(reject, new Error("no device token")), 15000)
+
+    handles.push(
+      listen("PushNotifications", "registration", async ({value}) => {
+        const info = await call("PoetNative", "info").catch(() => ({}))
+        rememberDeviceToken(value)
+        done(resolve, {token: value, environment: info.apnsEnvironment || "production"})
+      }),
+      listen("PushNotifications", "registrationError", (err) => done(reject, new Error(err?.error || "registration failed")))
+    )
+    call("PushNotifications", "register").catch((err) => done(reject, err))
+  })
 }
 
 function urlBase64ToUint8Array(base64) {

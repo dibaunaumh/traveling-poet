@@ -36,6 +36,8 @@ config :phoenix,
 # HTTP mocking library.
 config :traveling_poet, change_stream_req_options: [plug: {Req.Test, TravelingPoet.ChangeStream}]
 config :traveling_poet, web_push_req_options: [plug: {Req.Test, TravelingPoet.WebPush}]
+# Apple's push service (the iOS app's notifications)
+config :traveling_poet, apns_req_options: [plug: {Req.Test, TravelingPoet.Apns}]
 # Apple's key set, token exchange and revoke (Sign in with Apple)
 config :traveling_poet, apple_req_options: [plug: {Req.Test, TravelingPoet.Apple}]
 # Link liveness probes (LinkCheck) too: a test that cites a URL stubs the
