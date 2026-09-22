@@ -8,6 +8,9 @@ defmodule TravelingPoet.JWS do
   PKCS#8 `.p8` key Apple issues, both ES256. Apple's identity tokens arrive
   signed RS256 against keys Apple publishes as a JWK set.
 
+  The App Store signs what it sends (transactions, server notifications) ES256
+  too, with the signing certificate's whole chain inside the token.
+
   This module only does the cryptography and the encoding. What a token must
   CLAIM (issuer, audience, expiry, nonce) is the caller's business.
   """
@@ -72,6 +75,103 @@ defmodule TravelingPoet.JWS do
   end
 
   def verify_rs256(_, _), do: {:error, :malformed}
+
+  @doc """
+  Verifies an ES256 JWS that carries its own certificate chain (`x5c`), the
+  form the App Store signs transactions and server notifications in.
+
+  The chain in the token proves nothing by itself: anyone can mint one. It is
+  trusted only if it leads to `root_der`, a root certificate the CALLER
+  already holds, and the token's own copy of the root is ignored. The
+  signature is then checked with the leaf certificate's key.
+
+  `opts[:require_oids]` is a list of `{position, oid}` (position `:leaf` or
+  `:intermediate`, `oid` a tuple) that must be present as certificate
+  extensions: Apple marks the certificates allowed to sign for the App Store
+  this way, so a different Apple-issued certificate is not enough.
+
+  Returns the claims, plus the chain's DER certificates for a caller that
+  wants to look closer.
+  """
+  @spec verify_es256_x5c(String.t(), binary, keyword) ::
+          {:ok, map}
+          | {:error,
+             :malformed | :unsupported_alg | :bad_chain | :untrusted_chain | :bad_signature}
+  def verify_es256_x5c(token, root_der, opts \\ []) when is_binary(root_der) do
+    with {:ok, header, claims} <- peek(token),
+         :ok <- expect_alg(header, "ES256"),
+         {:ok, [leaf, intermediate | _]} <- chain(header["x5c"]),
+         :ok <- trusted?(root_der, intermediate, leaf),
+         :ok <- marked?(opts[:require_oids] || [], leaf, intermediate),
+         [h, c, sig] = String.split(token, "."),
+         {:ok, <<_::binary-size(64)>> = raw} <- Base.url_decode64(sig, padding: false),
+         true <- :public_key.verify(h <> "." <> c, :sha256, raw_to_der(raw), leaf_key(leaf)) do
+      {:ok, claims}
+    else
+      false -> {:error, :bad_signature}
+      :error -> {:error, :malformed}
+      {:ok, _not_64_bytes} -> {:error, :malformed}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp chain(x5c) when is_list(x5c) and length(x5c) >= 2 do
+    ders = Enum.map(x5c, &Base.decode64/1)
+
+    if Enum.all?(ders, &match?({:ok, _}, &1)),
+      do: {:ok, Enum.map(ders, fn {:ok, der} -> der end)},
+      else: {:error, :bad_chain}
+  end
+
+  defp chain(_), do: {:error, :bad_chain}
+
+  # Path validation from OUR root down: issuer/subject links, signatures and
+  # validity dates of the intermediate and the leaf.
+  defp trusted?(root_der, intermediate, leaf) do
+    case :public_key.pkix_path_validation(root_der, [intermediate, leaf], []) do
+      {:ok, _} -> :ok
+      {:error, _} -> {:error, :untrusted_chain}
+    end
+  rescue
+    _ -> {:error, :bad_chain}
+  end
+
+  defp marked?(required, leaf, intermediate) do
+    certs = %{leaf: leaf, intermediate: intermediate}
+
+    if Enum.all?(required, fn {position, oid} -> oid in extension_oids(certs[position]) end),
+      do: :ok,
+      else: {:error, :untrusted_chain}
+  end
+
+  defp extension_oids(der) do
+    {:OTPCertificate, tbs, _, _} = :public_key.pkix_decode_cert(der, :otp)
+    # #'OTPTBSCertificate'{}: the extensions are its last field
+    case elem(tbs, tuple_size(tbs) - 1) do
+      extensions when is_list(extensions) -> Enum.map(extensions, &elem(&1, 1))
+      _ -> []
+    end
+  end
+
+  defp leaf_key(der) do
+    {:OTPCertificate, tbs, _, _} = :public_key.pkix_decode_cert(der, :otp)
+    # #'OTPTBSCertificate'.subjectPublicKeyInfo
+    {:OTPSubjectPublicKeyInfo, {:PublicKeyAlgorithm, _, params}, point} = elem(tbs, 7)
+    {point, params}
+  end
+
+  # JOSE's r||s back to the DER `SEQUENCE { INTEGER r, INTEGER s }` that
+  # :public_key verifies.
+  defp raw_to_der(<<r::binary-size(32), s::binary-size(32)>>) do
+    body = der_integer(r) <> der_integer(s)
+    <<0x30, byte_size(body)>> <> body
+  end
+
+  defp der_integer(bin) do
+    bin = bin |> :binary.decode_unsigned() |> :binary.encode_unsigned()
+    bin = if :binary.first(bin) >= 0x80, do: <<0>> <> bin, else: bin
+    <<0x02, byte_size(bin)>> <> bin
+  end
 
   defp expect_alg(%{"alg" => alg}, alg), do: :ok
   defp expect_alg(_, _), do: {:error, :unsupported_alg}

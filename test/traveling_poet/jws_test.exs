@@ -115,3 +115,78 @@ defmodule TravelingPoet.JWSTest do
     end
   end
 end
+
+defmodule TravelingPoet.JWSChainTest do
+  use ExUnit.Case, async: true
+
+  alias TravelingPoet.JWS
+  alias TravelingPoet.TestChain
+
+  defp b64(bin), do: Base.url_encode64(bin, padding: false)
+
+  describe "verify_es256_x5c/3" do
+    test "trusts a token whose chain leads to the root we hold" do
+      chain = TestChain.generate()
+      token = TestChain.sign(chain, %{"transactionId" => "2000000123"})
+
+      assert {:ok, %{"transactionId" => "2000000123"}} =
+               JWS.verify_es256_x5c(token, chain.root_der)
+    end
+
+    test "a chain to somebody else's root is worth nothing, however valid it is" do
+      ours = TestChain.generate()
+      theirs = TestChain.generate()
+      forged = TestChain.sign(theirs, %{"transactionId" => "free-credits"})
+
+      assert {:ok, _} = JWS.verify_es256_x5c(forged, theirs.root_der)
+      assert {:error, :untrusted_chain} = JWS.verify_es256_x5c(forged, ours.root_der)
+    end
+
+    test "the payload cannot be changed, and the leaf cannot be swapped under it" do
+      chain = TestChain.generate()
+      token = TestChain.sign(chain, %{"productId" => "p10"})
+      [h, _c, s] = String.split(token, ".")
+
+      tampered = Enum.join([h, b64(Jason.encode!(%{"productId" => "p300"})), s], ".")
+      assert {:error, :bad_signature} = JWS.verify_es256_x5c(tampered, chain.root_der)
+
+      # signed with another key, presented under the genuine chain
+      other = TestChain.generate()
+      imposter = TestChain.sign(%{chain | leaf_key: other.leaf_key}, %{"productId" => "p300"})
+      assert {:error, :bad_signature} = JWS.verify_es256_x5c(imposter, chain.root_der)
+    end
+
+    test "required certificate markers must be present" do
+      chain = TestChain.generate()
+      token = TestChain.sign(chain, %{"n" => 1})
+      marker = {1, 2, 840, 113_635, 100, 6, 11, 1}
+
+      assert {:error, :untrusted_chain} =
+               JWS.verify_es256_x5c(token, chain.root_der, require_oids: [leaf: marker])
+
+      # basicConstraints is on every CA certificate, the intermediate included
+      assert {:ok, _} =
+               JWS.verify_es256_x5c(token, chain.root_der,
+                 require_oids: [intermediate: {2, 5, 29, 19}]
+               )
+    end
+
+    test "refuses other algorithms, missing chains and junk" do
+      chain = TestChain.generate()
+      [_h, c, s] = chain |> TestChain.sign(%{"n" => 1}) |> String.split(".")
+
+      none = Enum.join([b64(Jason.encode!(%{"alg" => "none", "x5c" => chain.x5c})), c, s], ".")
+      assert {:error, :unsupported_alg} = JWS.verify_es256_x5c(none, chain.root_der)
+
+      no_chain = Enum.join([b64(Jason.encode!(%{"alg" => "ES256"})), c, s], ".")
+      assert {:error, :bad_chain} = JWS.verify_es256_x5c(no_chain, chain.root_der)
+
+      bad_chain =
+        Enum.join([b64(Jason.encode!(%{"alg" => "ES256", "x5c" => ["@@", "@@"]})), c, s], ".")
+
+      assert {:error, :bad_chain} = JWS.verify_es256_x5c(bad_chain, chain.root_der)
+
+      assert {:error, :malformed} = JWS.verify_es256_x5c("not.a.token", chain.root_der)
+    end
+  end
+end

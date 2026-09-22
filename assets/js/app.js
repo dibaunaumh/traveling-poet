@@ -35,12 +35,13 @@ import Markers from "./markers_hook"
 import SettingsNav from "./settings_nav_hook"
 import {initBeacon} from "./beacon"
 import {initNative} from "./native"
+import AppleIAP from "./apple_iap_hook"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, JourneyTour, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav},
+  hooks: {...colocatedHooks, PoetMap, JourneyTour, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP},
 })
 
 // Show progress bar on live navigation and form submits

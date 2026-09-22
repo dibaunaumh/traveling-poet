@@ -143,7 +143,7 @@ defmodule TravelingPoet.Credits do
   Credits a purchased pack. `reference` (e.g. `"stripe:cs_..."`) makes webhook
   retries idempotent — a replay returns `{:ok, :duplicate}`.
   """
-  def purchase(%User{} = user, pack_id, reference) do
+  def purchase(%User{} = user, pack_id, reference, metadata \\ %{}) do
     case pack(pack_id) do
       nil ->
         {:error, :unknown_pack}
@@ -151,8 +151,45 @@ defmodule TravelingPoet.Credits do
       pack ->
         apply(user, to_milli(pack.credits), "purchase",
           reference: reference,
-          metadata: %{"pack_id" => pack.id, "cents" => pack.cents}
+          metadata: Map.merge(metadata, %{"pack_id" => pack.id, "cents" => pack.cents})
         )
+    end
+  end
+
+  @doc """
+  Takes back a purchase the store refunded (`reference` is the purchase's
+  own, e.g. `"apple:2000000123"`). Idempotent on that reference.
+
+  The ledger never goes below zero, and by the time a refund arrives the
+  credits may be spent, so this takes what is left of them, up to the pack,
+  and writes the rest down as a shortfall, which pages the admins: whether
+  to chase it is a person's call.
+  """
+  def reverse_purchase(reference, metadata \\ %{}) when is_binary(reference) do
+    case Repo.get_by(CreditTransaction, kind: "purchase", reference: reference) do
+      nil ->
+        {:error, :unknown_purchase}
+
+      %CreditTransaction{} = purchase ->
+        user = Repo.get!(User, purchase.user_id)
+        take = min(purchase.amount, max(user.credits_balance || 0, 0))
+        shortfall = purchase.amount - take
+
+        result =
+          apply(user, -take, "purchase_refund",
+            reference: reference,
+            metadata:
+              Map.merge(metadata, %{"purchased" => purchase.amount, "shortfall" => shortfall})
+          )
+
+        with {:ok, %CreditTransaction{}} <- result, true <- shortfall > 0 do
+          TravelingPoet.Alerts.notify_admins(
+            "A refunded credit pack was already partly spent: user #{user.id}, " <>
+              "#{format(shortfall)} of #{format(purchase.amount)} credits could not be taken back (#{reference})."
+          )
+        end
+
+        result
     end
   end
 
