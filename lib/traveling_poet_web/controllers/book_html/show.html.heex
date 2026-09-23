@@ -3,6 +3,35 @@
 <style data-book-page>
   <%= raw("@page { size: #{@page_size}; }") %>
 </style>
+<%!-- What must stay out of book.css, because paged.js rewrites that
+      stylesheet before re-injecting it and this element it never touches:
+      - the toolbar's position: fixed, which paged.js deletes from every rule
+        (it repeats fixed elements per printed page), leaving the bar as an
+        in-flow block at the top of the document;
+      - the safe-area insets, since paged.js's parser drops any declaration
+        containing env() (var() it keeps, so book.css reads these);
+      - print-only hiding, since paged.js hoists every @media print rule onto
+        the screen, which is how the toolbar, and its Journal link, used to
+        vanish once the book was laid out. Anything outside the laid-out
+        pages that is wider than a page makes Chrome shrink every printed
+        page to fit it: only the pages print. --%>
+<style data-book-inline>
+  body.book .book-toolbar {
+    position: fixed;
+  }
+
+  :root {
+    --book-inset-top: env(safe-area-inset-top);
+    --book-inset-right: env(safe-area-inset-right);
+    --book-inset-bottom: env(safe-area-inset-bottom);
+    --book-inset-left: env(safe-area-inset-left);
+  }
+
+  @media print {
+    body.book:has(.pagedjs_pages) > :not(.pagedjs_pages) { display: none !important; }
+    body.book .no-print { display: none !important; }
+  }
+</style>
 
 <div id="book" class="book" data-size={@page_size} data-days={@manuscript.entry_count}>
   <.cover manuscript={@manuscript} />

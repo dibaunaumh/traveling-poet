@@ -1002,15 +1002,24 @@ body.book .book-colophon p {
 
 /* ---- The toolbar, never printed ---- */
 
+/* Its `position: fixed` is NOT here: paged.js deletes that declaration from
+   every rule in the stylesheet it re-injects (it repeats fixed elements per
+   printed page), which left the bar as an in-flow block at the top of the
+   document. It is set in the inline style in show.html.heex, which paged.js
+   never touches, along with the safe-area insets: the same parser drops any
+   declaration containing env(), while var() it keeps. */
 body.book .book-toolbar {
-  position: fixed;
-  /* clear of the status bar in the installed app; zero in a browser tab */
-  top: calc(0.75rem + env(safe-area-inset-top));
-  right: calc(0.75rem + env(safe-area-inset-right));
+  top: calc(0.75rem + var(--book-inset-top, 0px));
+  right: calc(0.75rem + var(--book-inset-right, 0px));
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
+  /* never wider than the screen: a row that spilled off the right edge
+     took the Journal link, the only way back, with it */
+  max-width: calc(100vw - 1.5rem - var(--book-inset-left, 0px) - var(--book-inset-right, 0px));
   background: rgba(47, 42, 30, 0.92);
   color: #fdf8ec;
   padding: 0.5rem 0.75rem;
@@ -1056,22 +1065,42 @@ body.book .book-status-busy::after {
   content: "...";
 }
 
+/* A phone: the bar sits along the bottom, off the book's title, and the way
+   back comes first, where a thumb finds it. Written as "all and ..." on
+   purpose: paged.js keeps a media rule that names "all" or "print" and
+   deletes every other one from the stylesheet it re-injects. */
+@media all and (max-width: 640px) {
+  body.book .book-toolbar {
+    top: auto;
+    bottom: calc(0.75rem + var(--book-inset-bottom, 0px));
+    left: calc(0.75rem + var(--book-inset-left, 0px));
+    justify-content: flex-start;
+  }
+
+  body.book .book-toolbar a[href="/journal"] {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    background: #fdf8ec;
+    color: #2f2a1e;
+    font-weight: 600;
+    border-color: transparent;
+  }
+
+  body.book .book-toolbar a[href="/journal"]::before {
+    content: "\2190  ";
+  }
+}
+
 @media print {
   body.book {
     background: white;
   }
 
-  /* Anything outside the laid-out pages that is wider than a page (an
-     injected element, a stray long line) makes Chrome shrink every printed
-     page to fit it. Only the pages print. */
-  body.book:has(.pagedjs_pages) > :not(.pagedjs_pages) {
-    display: none !important;
-  }
-
-  body.book .no-print {
-    display: none !important;
-  }
-
+  /* What is hidden when printing (the toolbar, anything outside the pages)
+     is NOT here either: paged.js hoists every @media print rule onto the
+     screen, so those hid the toolbar, and its Journal link, the moment
+     pagination finished. Also in the inline style in show.html.heex. */
   body.book .pagedjs_page {
     box-shadow: none;
     margin: 0;
