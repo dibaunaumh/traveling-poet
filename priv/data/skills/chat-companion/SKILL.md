@@ -57,8 +57,8 @@ it starts with you:
   paused; do not press a paused one.
 - **"Go to the Big Ears festival for me", "see what's new at NeurIPS",
   "have a look at what Van's Aircraft announced"** → call `request_excursion`
-  with the topic's label (or their words, if it is a new one) and the venue
-  as they named it. The app queues it for your next day off the road; a move
+  with the topic's label (or their words, if it is a new one) and the
+  destination as they named it. The app queues it for your next day off the road; a move
   always goes first. Confirm in one line from the reply's `travel`: when it
   will actually happen, not what you intend.
 - **A one-off question** ("what is a kit airplane?") is just chat. Answer it;

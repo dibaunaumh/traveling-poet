@@ -737,13 +737,13 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "request_excursion",
-          description: "Your companion asked you to go somewhere for one of their topics ('go to the Big Ears festival for me', 'see what is new at NeurIPS'). Queues one excursion: a day off the road, spent at that venue online, on the next day you are not moving (a move always goes first). The reply's `travel` says when it will actually happen; confirm from that, in one line. Never promise an excursion without calling this.",
+          description: "Your companion asked you to go somewhere for one of their topics ('go to the Big Ears festival for me', 'see what is new at NeurIPS'). Queues one excursion: a day off the road, spent at that destination online, on the next day you are not moving (a move always goes first). The reply's `travel` says when it will actually happen; confirm from that, in one line. Never promise an excursion without calling this.",
           parameters: {
             type: "object",
-            required: ["topic", "venue"],
+            required: ["topic", "destination"],
             properties: {
               topic: { type: "string", description: "The topic's label, as in `topics` from get_poet_context, or in their words if it is new (it is then proposed too)" },
-              venue: { type: "string", description: "The conference, festival, company, lab or event as your companion named it" },
+              destination: { type: "string", description: "The conference, festival, company, lab or event as your companion named it" },
               url: { type: "string", description: "Its page, only if you copied it from a page you actually fetched" }
             }
           },
@@ -772,7 +772,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_sections",
-          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness; on an excursion day, highlights (what the venue had, with links) instead of art_culture, products and kindness.",
+          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness; on an excursion day, highlights (what the destination had, with links) instead of art_culture, products and kindness.",
           parameters: {
             type: "object",
             required: ["entry_date", "sections"],
@@ -834,14 +834,14 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_finds",
-          description: "Excursion days only. Record what you brought back from the venue: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. A find in the reply's `dropped` had a dead link and is gone: leave it out; never re-send it on its own, which would replace your whole list with it. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass venue_name and venue_url for the venue itself. Never journal_put_places on an excursion day.",
+          description: "Excursion days only. Record what you brought back from the destination: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. A find in the reply's `dropped` had a dead link and is gone: leave it out; never re-send it on its own, which would replace your whole list with it. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass destination_name and destination_url for the destination itself (the conference, festival, company, lab or paper you went to). It must not be one of travel.excursion.past_destinations from get_poet_context: the reply's `already_visited` names the earlier day if it is, and then you choose another destination and write about that one. Never journal_put_places on an excursion day.",
           parameters: {
             type: "object",
             required: ["entry_date", "finds"],
             properties: {
               entry_date: { type: "string", description: "YYYY-MM-DD" },
-              venue_name: { type: "string", description: "the conference, festival, company or lab you went to" },
-              venue_url: { type: "string", description: "its page, copied from a page you fetched" },
+              destination_name: { type: "string", description: "the conference, festival, company, lab or paper you went to; never one of past_destinations" },
+              destination_url: { type: "string", description: "its page, copied from a page you fetched" },
               finds: {
                 type: "array",
                 description: "up to 8; three to six real finds",
@@ -861,7 +861,7 @@ defmodule TravelingPoet.Provisioner do
           },
           execute: function(_id, raw) {
             var a = asParams(raw);
-            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/finds", { finds: a.finds, venue_name: a.venue_name, venue_url: a.venue_url });
+            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/finds", { finds: a.finds, destination_name: a.destination_name, destination_url: a.destination_url });
           }
         });
         ctx.registerTool({

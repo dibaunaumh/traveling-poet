@@ -384,7 +384,9 @@ defmodule TravelingPoet.Poets do
     label = x.topic && x.topic.label
 
     asked =
-      if x.source == "chat", do: " (your companion asked for #{x.requested_venue})", else: ""
+      if x.source == "chat",
+        do: " (your companion asked for #{x.requested_destination})",
+        else: ""
 
     Map.merge(route, %{
       travel_today: false,
@@ -392,7 +394,8 @@ defmodule TravelingPoet.Poets do
       excursion: Topics.excursion_payload(x),
       reason:
         "an excursion into #{label}#{asked}: a day at your desk, not on the road; " <>
-          "you do not move today and it does not count against your stay"
+          "you do not move today and it does not count against your stay; " <>
+          "never one of excursion.past_destinations, you have written those up already"
     })
   end
 

@@ -1,6 +1,6 @@
 defmodule TravelingPoet.Topics.Route do
   @moduledoc """
-  Where an excursion journey's nodes sit on the page: the topic, the venues
+  Where an excursion journey's nodes sit on the page: the topic, the destinations
   it went to, and what each one brought back.
 
   Pure geometry, so the drawing itself is a dumb component and the layout can
@@ -10,8 +10,8 @@ defmodule TravelingPoet.Topics.Route do
   Two layouts, because the two places it hangs are different shapes:
 
     * `:compact` for a notebook page, a column barely 300px wide: the topic
-      at the top, the venues down a spine under it, no finds.
-    * `:full` for the guide, wide: the topic at the left, venues in a column,
+      at the top, the destinations down a spine under it, no finds.
+    * `:full` for the guide, wide: the topic at the left, destinations in a column,
       each one's finds hanging off it.
 
   Coordinates are viewBox units, not pixels: the SVG scales to its container.
@@ -19,7 +19,7 @@ defmodule TravelingPoet.Topics.Route do
 
   # full
   @root_x 108
-  @venue_x 300
+  @destination_x 300
   @find_dot_x 624
   @width 960
   @row 34
@@ -45,14 +45,14 @@ defmodule TravelingPoet.Topics.Route do
   end
 
   defp compact(topic_label, excursions) do
-    {venues, bottom} =
+    {destinations, bottom} =
       excursions
       |> Enum.with_index(1)
       |> Enum.map_reduce(@c_first_y, fn {x, n}, y ->
         lines = wrap(x.label, 32, 2)
 
-        venue = %{
-          kind: :venue,
+        destination = %{
+          kind: :destination,
           id: x.id,
           n: n,
           label: Enum.join(lines, " "),
@@ -68,7 +68,7 @@ defmodule TravelingPoet.Topics.Route do
           finds: []
         }
 
-        {venue, y + @c_step + (length(lines) - 1) * 20}
+        {destination, y + @c_step + (length(lines) - 1) * 20}
       end)
 
     height = max(bottom - @c_step + 60, 130)
@@ -78,17 +78,17 @@ defmodule TravelingPoet.Topics.Route do
       width: @c_width,
       height: height,
       root: %{kind: :topic, label: clip(topic_label, 38), x: 18, y: 34, ring?: false},
-      venues: venues,
-      edges: spine(venues)
+      destinations: destinations,
+      edges: spine(destinations)
     }
   end
 
   # One line down the page, drawn with a little sway so it reads as a hand's.
   defp spine([]), do: []
 
-  defp spine(venues) do
-    first = List.first(venues)
-    last = List.last(venues)
+  defp spine(destinations) do
+    first = List.first(destinations)
+    last = List.last(destinations)
     mid_y = (first.y + last.y) / 2
 
     [
@@ -100,7 +100,7 @@ defmodule TravelingPoet.Topics.Route do
   end
 
   defp full(topic_label, excursions, finds_by_excursion) do
-    {venues, bottom} =
+    {destinations, bottom} =
       excursions
       |> Enum.with_index(1)
       |> Enum.map_reduce(@top, fn {x, n}, y ->
@@ -109,8 +109,8 @@ defmodule TravelingPoet.Topics.Route do
         block = max(max(length(finds), 1) * @row, length(lines) * 22 + 10) + @block_padding
         centre = round(y + block / 2)
 
-        venue = %{
-          kind: :venue,
+        destination = %{
+          kind: :destination,
           id: x.id,
           n: n,
           label: Enum.join(lines, " "),
@@ -118,15 +118,15 @@ defmodule TravelingPoet.Topics.Route do
           sub: x.date && Calendar.strftime(x.date, "%b %-d"),
           href: x.url,
           current?: Map.get(x, :current?, false),
-          x: @venue_x,
+          x: @destination_x,
           y: centre,
-          label_x: @venue_x + 26,
+          label_x: @destination_x + 26,
           label_y: centre - 2 - (length(lines) - 1) * 9,
           sub_y: centre + 15 + (length(lines) - 1) * 9,
           finds: place_finds(finds, y, block)
         }
 
-        {venue, y + block}
+        {destination, y + block}
       end)
 
     height = max(bottom + @top, 160)
@@ -144,8 +144,8 @@ defmodule TravelingPoet.Topics.Route do
       width: @width,
       height: height,
       root: root,
-      venues: venues,
-      edges: Enum.map(venues, &branch(root, &1)) ++ Enum.flat_map(venues, &twigs/1)
+      destinations: destinations,
+      edges: Enum.map(destinations, &branch(root, &1)) ++ Enum.flat_map(destinations, &twigs/1)
     }
   end
 
@@ -184,14 +184,14 @@ defmodule TravelingPoet.Topics.Route do
     }
   end
 
-  defp twigs(venue) do
-    Enum.map(venue.finds, fn find ->
-      mid_x = (venue.x + find.dot_x) / 2
+  defp twigs(destination) do
+    Enum.map(destination.finds, fn find ->
+      mid_x = (destination.x + find.dot_x) / 2
 
       %{
         kind: :twig,
         d:
-          "M #{venue.x + 26} #{venue.y} Q #{round(mid_x)} #{round((venue.y + find.y) / 2)} " <>
+          "M #{destination.x + 26} #{destination.y} Q #{round(mid_x)} #{round((destination.y + find.y) / 2)} " <>
             "#{find.dot_x - 6} #{find.y}"
       }
     end)
@@ -199,7 +199,7 @@ defmodule TravelingPoet.Topics.Route do
 
   @doc """
   A name over as many lines as it needs, up to `max_lines`, broken between
-  words. The last line is cut with an ellipsis when the name runs on: venues
+  words. The last line is cut with an ellipsis when the name runs on: destinations
   come back named "ECogS 2026 — International Conference on Embodied Cognitive
   Science", and one line of that in a notebook column is unreadable.
   """

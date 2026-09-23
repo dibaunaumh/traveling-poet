@@ -57,7 +57,13 @@ defmodule TravelingPoet.Journal.SpreadsTest do
   end
 
   test "an excursion entry gets Finds instead of Places: the ticket left, the finds right" do
-    excursion = %{id: 5, topic_id: 2, topic: %{label: "Kit airplanes"}, venue_name: "Oshkosh"}
+    excursion = %{
+      id: 5,
+      topic_id: 2,
+      topic: %{label: "Kit airplanes"},
+      destination_name: "Oshkosh"
+    }
+
     entry = %{sections: [section("description", 0)], excursion: excursion}
     finds = [%{id: 1, name: "RV-15 talk"}, %{id: 2, name: "Kit prices"}]
 

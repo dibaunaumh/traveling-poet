@@ -100,7 +100,10 @@ defmodule TravelingPoetWeb.JournalMapTest do
     entry = publish(poet, ~D[2026-08-26], "Lisbon, Portugal", 38.72, -9.13)
     topic = topic_fixture(poet, %{label: "Kit airplanes"})
     excursion = excursion_fixture(poet, topic, entry)
-    {:ok, _} = TravelingPoet.Topics.set_venue(excursion, %{venue_name: "Oshkosh AirVenture"})
+
+    {:ok, _} =
+      TravelingPoet.Topics.set_destination(excursion, %{destination_name: "Oshkosh AirVenture"})
+
     find_fixture(poet, entry, %{name: "The RV-15 talk", kind: "talk", poet_rating: 4})
 
     {:ok, view, html} = live(signed_in(conn, user), ~p"/journal/2026-08-26")
