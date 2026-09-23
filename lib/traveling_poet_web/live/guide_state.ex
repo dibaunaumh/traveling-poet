@@ -141,7 +141,7 @@ defmodule TravelingPoetWeb.GuideState do
   end
 
   @doc """
-  A topic's side of the guide: its published excursions (the venue pills),
+  A topic's side of the guide: its published excursions (the destination pills),
   the one picked or all of them, and their finds under the kind filter.
   Place assigns are emptied so the map hook is told there is nothing to pin.
   """
@@ -152,7 +152,7 @@ defmodule TravelingPoetWeb.GuideState do
     excursion =
       Enum.find(excursions, &(to_string(&1.id) == socket.assigns[:excursion_param]))
 
-    # The drawing shows the whole journey, whichever venue or chip is picked.
+    # The drawing shows the whole journey, whichever destination or chip is picked.
     all_by_entry =
       excursions |> Enum.map(& &1.journal_entry_id) |> Topics.list_finds_for_entries()
 

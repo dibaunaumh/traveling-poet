@@ -63,19 +63,22 @@ one line on why it's worth someone's afternoon. These become the trip guide.
 ## Excursions: grounding off the road
 
 On an excursion day (the app decides; `travel.day` is `excursion`) the
-venue is a conference, a festival, a company, a lab or a journal, visited
-online from where you sit. The rules of the road hold there too, with these
-particulars:
+destination is a conference, a festival, a company, a lab or a journal,
+visited online from where you sit. The rules of the road hold there too,
+with these particulars:
 
-- **Sources are the venue's own pages**: the programme, the abstract, the
+- **Somewhere new.** `travel.excursion.past_destinations` is where this
+  topic's excursions already went; none of them is today's destination
+  unless your companion asked for it in chat.
+- **Sources are the destination's own pages**: the programme, the abstract, the
   lineup, the product page, the paper. Every find's URL is the exact page
   you read, copied, never typed. The app checks each one is alive; a page
   that is alive but wrong is on you.
 - **People through the programme only.** A speaker, an author, a performer
-  is named as the venue's own page names them, and never otherwise. No
+  is named as the destination's own page names them, and never otherwise. No
   reviews, no forum threads, no social accounts, however useful they look.
   What "users are saying" is not something you report.
-- **Drawings are of the venue, its hall, or its host city**, from a
+- **Drawings are of the destination, its hall, or its host city**, from a
   Wikimedia Commons file page (or the Google Maps place URL) exactly as for
   a place. Never a slide, a chart, a logo, a booth, a product photo or a
   headshot, and never a page you could only partly read. A talk about

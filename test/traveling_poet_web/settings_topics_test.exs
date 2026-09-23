@@ -108,7 +108,7 @@ defmodule TravelingPoetWeb.SettingsTopicsTest do
        %{conn: conn} do
     {_user, poet, _view, _html} = mount(conn)
     topic = topic_fixture(poet, %{label: "Kit airplanes"})
-    queued = excursion_fixture(poet, topic, nil, %{requested_venue: "Oshkosh AirVenture"})
+    queued = excursion_fixture(poet, topic, nil, %{requested_destination: "Oshkosh AirVenture"})
 
     {:ok, view, html} = live(sign_in(build_conn(), poet_owner(poet)), ~p"/settings")
     assert html =~ "no excursion yet, next on the first day"

@@ -323,7 +323,7 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     defp excursion(poet, topic, date, venue, finds) do
       entry = published_entry_fixture(poet, %{entry_date: date, title: "Off the road"})
       x = excursion_fixture(poet, topic, entry)
-      {:ok, x} = Topics.set_venue(x, %{venue_name: venue})
+      {:ok, x} = Topics.set_destination(x, %{destination_name: venue})
 
       for {name, kind} <- finds,
           do: find_fixture(poet, entry, %{name: name, kind: kind, poet_rating: 4})
@@ -381,16 +381,16 @@ defmodule TravelingPoetWeb.GuideLiveTest do
       assert render(view) =~ "Tasca do Chico"
     end
 
-    test "venue pills and kind chips narrow the finds", %{conn: conn} do
+    test "destination pills and kind chips narrow the finds", %{conn: conn} do
       {user, poet} = guide_poet()
       {topic, first, _second} = with_two_excursions(poet)
 
       # a topic opens on its route; this is about the lists
       {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide?topic=#{topic.id}&view=list")
-      assert has_element?(view, "#guide-venue-all.btn-secondary")
-      assert has_element?(view, "#guide-venue-#{first.id}", "ECogS 2026")
+      assert has_element?(view, "#guide-destination-all.btn-secondary")
+      assert has_element?(view, "#guide-destination-#{first.id}", "ECogS 2026")
 
-      view |> element("#guide-venue-#{first.id}") |> render_click()
+      view |> element("#guide-destination-#{first.id}") |> render_click()
       html = render(view)
       assert html =~ "Shanahan keynote"
       refute html =~ "Froese reflection"
@@ -441,7 +441,7 @@ defmodule TravelingPoetWeb.GuideLiveTest do
       html = render(view)
       refute has_element?(view, "#guide-map")
       assert html =~ "route-svg"
-      # the whole journey: the topic, both venues, and the finds hanging off them
+      # the whole journey: the topic, both destinations, and the finds hanging off them
       assert html =~ "Embodied minds"
       assert html =~ "ECogS 2026"
       assert html =~ "Machine Consciousness 0001"
@@ -450,8 +450,8 @@ defmodule TravelingPoetWeb.GuideLiveTest do
       assert has_element?(view, "#guide-view-route.btn-primary")
       refute has_element?(view, "#guide-view-map")
 
-      # the drawing stays whole when a venue or a chip narrows the lists
-      view |> element("#guide-venue-#{first.id}") |> render_click()
+      # the drawing stays whole when a destination or a chip narrows the lists
+      view |> element("#guide-destination-#{first.id}") |> render_click()
       assert render(view) =~ "Froese reflection"
       assert second.id > 0
 

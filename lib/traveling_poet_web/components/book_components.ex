@@ -291,7 +291,7 @@ defmodule TravelingPoetWeb.BookComponents do
       <div :if={@excursion} class="book-ticket">
         <div class="ticket-kicker">A day off the road</div>
         <div class="ticket-topic">An excursion into {excursion_label(@entry)}</div>
-        <div :if={@excursion.venue_name}>{@excursion.venue_name}</div>
+        <div :if={@excursion.destination_name}>{@excursion.destination_name}</div>
       </div>
 
       <.drawing :for={m <- @drawings} media={m} />

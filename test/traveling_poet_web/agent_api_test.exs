@@ -325,6 +325,113 @@ defmodule TravelingPoetWeb.AgentApiTest do
 
       assert [%{"label" => "Kit airplanes", "excursions_count" => 0, "last_answer" => nil}] =
                body["topics"]
+
+      assert body["travel"]["excursion"]["past_destinations"] == []
+    end
+
+    # Tobias went to the XAOC Festival on 2026-09-16 and again on 09-23, Nam
+    # to ECogS 2026 on both: the context gave them a date, not a name.
+    test "the context lists where this topic's excursions already went, and a repeat is called out",
+         %{conn: conn, poet: poet, topic: topic} do
+      last_week = Date.add(Date.utc_today(), -7)
+
+      earlier =
+        published_entry_fixture(poet, %{entry_date: last_week, title: "Ger wool and chaos"})
+
+      x = excursion_fixture(poet, topic, earlier)
+
+      {:ok, _} =
+        Topics.set_destination(x, %{
+          destination_name: "XAOC Festival 2026: Resurgence",
+          destination_url: "https://www.eeas.europa.eu/delegations/mongolia/xaoc-festival"
+        })
+
+      Topics.mark_published(earlier.id)
+
+      # an excursion that never named its destination is listed by its title
+      older =
+        published_entry_fixture(poet, %{entry_date: Date.add(last_week, -7), title: "Untold"})
+
+      excursion_fixture(poet, topic, older)
+      Topics.mark_published(older.id)
+
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+
+      assert [
+               %{"name" => "Untold", "url" => nil, "title" => "Untold"},
+               %{
+                 "name" => "XAOC Festival 2026: Resurgence",
+                 "url" => "https://www.eeas.europa.eu/delegations/mongolia/xaoc-festival",
+                 "on" => on,
+                 "title" => "Ger wool and chaos"
+               }
+             ] = body["travel"]["excursion"]["past_destinations"]
+
+      assert on == Date.to_iso8601(last_week)
+      assert [%{"past_destinations" => [_, _]}] = body["topics"]
+      assert body["travel"]["reason"] =~ "past_destinations"
+
+      # the same page under another spelling, sent by a plugin from before the rename
+      upsert_excursion(conn, %{"topic_id" => topic.id})
+
+      body =
+        conn
+        |> put_finds(%{
+          "venue_name" => "XAOC Festival",
+          "venue_url" => "http://eeas.europa.eu/delegations/mongolia/xaoc-festival/",
+          "finds" => [%{"name" => "Opening night", "url" => "https://example.com/opening"}]
+        })
+        |> json_response(200)
+
+      assert body["ok"]
+      assert body["find_count"] == 1
+      assert body["already_visited"]["name"] == "XAOC Festival 2026: Resurgence"
+      assert body["already_visited"]["on"] == Date.to_iso8601(last_week)
+      assert body["note"] =~ "already went to XAOC Festival 2026: Resurgence"
+
+      # the aliased keys were stored under their new names
+      today = Topics.get_excursion_for_entry(Journal.get_entry(poet.id, Date.utc_today()).id)
+      assert today.destination_name == "XAOC Festival"
+
+      # the same name, another spelling, a different page: still a repeat
+      body =
+        conn
+        |> put_finds(%{
+          "destination_name" => "xaoc festival 2026 resurgence",
+          "destination_url" => "https://xaoc.mn/2026",
+          "finds" => [%{"name" => "Opening night", "url" => "https://example.com/opening"}]
+        })
+        |> json_response(200)
+
+      assert body["already_visited"]["on"] == Date.to_iso8601(last_week)
+
+      # somewhere new is not
+      body =
+        conn
+        |> put_finds(%{
+          "destination_name" => "Playtronica Lab",
+          "destination_url" => "https://example.com/playtronica",
+          "finds" => [%{"name" => "Opening night", "url" => "https://example.com/opening"}]
+        })
+        |> json_response(200)
+
+      refute Map.has_key?(body, "already_visited")
+
+      # a retried run re-sending today's own destination is not a repeat of itself
+      conn
+      |> post(~p"/api/agent/journal_entries/#{today_str()}/publish", %{})
+      |> json_response(200)
+
+      body =
+        conn
+        |> put_finds(%{
+          "destination_name" => "Playtronica Lab",
+          "destination_url" => "https://example.com/playtronica",
+          "finds" => [%{"name" => "Opening night", "url" => "https://example.com/opening"}]
+        })
+        |> json_response(200)
+
+      refute Map.has_key?(body, "already_visited")
     end
 
     test "POST /excursions queues a chat request and says when it happens",
@@ -333,23 +440,24 @@ defmodule TravelingPoetWeb.AgentApiTest do
         conn
         |> post(~p"/api/agent/excursions", %{
           "topic" => "kit AIRPLANES",
-          "venue" => "Oshkosh AirVenture",
+          "destination" => "Oshkosh AirVenture",
           "url" => "https://example.com/oshkosh"
         })
         |> json_response(200)
 
       assert body["ok"]
       assert body["excursion"]["topic"]["id"] == topic.id
-      assert body["excursion"]["venue"] == "Oshkosh AirVenture"
+      assert body["excursion"]["destination"] == "Oshkosh AirVenture"
       assert body["dropped_url"] == nil
       assert body["travel"]["day"] == "excursion"
       assert body["travel"]["excursion"]["id"] == body["excursion"]["id"]
-      assert body["travel"]["excursion"]["requested_venue"] == "Oshkosh AirVenture"
+      assert body["travel"]["excursion"]["requested_destination"] == "Oshkosh AirVenture"
 
       [queued] = Topics.list_queued(poet.id)
       assert queued.requested_url == "https://example.com/oshkosh"
 
-      # an unknown topic is proposed alongside, and a dead link is dropped, not fatal
+      # an unknown topic is proposed alongside, and a dead link is dropped, not
+      # fatal; a plugin from before the rename still says `venue`
       body =
         conn
         |> post(~p"/api/agent/excursions", %{
@@ -363,7 +471,10 @@ defmodule TravelingPoetWeb.AgentApiTest do
       assert body["dropped_url"] == "http://localhost:9/nope"
       assert length(Topics.list_queued(poet.id)) == 2
 
-      assert conn |> post(~p"/api/agent/excursions", %{"venue" => "x"}) |> json_response(422)
+      assert conn
+             |> post(~p"/api/agent/excursions", %{"destination" => "x"})
+             |> json_response(422)
+
       assert conn |> post(~p"/api/agent/excursions", %{"topic" => "a"}) |> json_response(422)
     end
 
@@ -419,8 +530,8 @@ defmodule TravelingPoetWeb.AgentApiTest do
       body =
         conn
         |> put_finds(%{
-          "venue_name" => "Oshkosh AirVenture",
-          "venue_url" => "https://example.com/oshkosh",
+          "destination_name" => "Oshkosh AirVenture",
+          "destination_url" => "https://example.com/oshkosh",
           "finds" => [
             %{
               "name" => "RV-15 talk",
@@ -449,8 +560,8 @@ defmodule TravelingPoetWeb.AgentApiTest do
       assert prices.kind == "other"
 
       excursion = Topics.get_excursion_for_entry(entry_id)
-      assert excursion.venue_name == "Oshkosh AirVenture"
-      assert excursion.venue_url == "https://example.com/oshkosh"
+      assert excursion.destination_name == "Oshkosh AirVenture"
+      assert excursion.destination_url == "https://example.com/oshkosh"
 
       # a find without a URL is not a find
       assert conn

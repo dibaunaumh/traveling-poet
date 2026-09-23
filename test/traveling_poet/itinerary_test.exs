@@ -199,14 +199,14 @@ defmodule TravelingPoet.ItineraryTest do
       other = topic_fixture(poet, %{label: "Embodied minds"})
 
       queued =
-        excursion_fixture(poet, other, nil, %{requested_venue: "Machine Consciousness 0001"})
+        excursion_fixture(poet, other, nil, %{requested_destination: "Machine Consciousness 0001"})
 
       plan = Poets.travel_plan(poet)
       assert plan.day == "excursion"
       assert plan.excursion.id == queued.id
       assert plan.excursion.topic_id == other.id
       assert plan.excursion.source == "chat"
-      assert plan.excursion.requested_venue == "Machine Consciousness 0001"
+      assert plan.excursion.requested_destination == "Machine Consciousness 0001"
       assert plan.reason =~ "asked for Machine Consciousness 0001"
       refute plan.excursion.topic_id == topic.id
     end
@@ -241,7 +241,7 @@ defmodule TravelingPoet.ItineraryTest do
       assert plan.reason =~ "day 1 of 3"
 
       # a chat request waits too
-      excursion_fixture(moved, topic, nil, %{requested_venue: "Oshkosh"})
+      excursion_fixture(moved, topic, nil, %{requested_destination: "Oshkosh"})
       assert %{day: "move", excursion: nil} = Poets.travel_plan(moved)
 
       # the next day the topic is still due and the excursion happens

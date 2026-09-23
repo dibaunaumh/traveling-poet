@@ -155,21 +155,21 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :excursions, :list, required: true
   attr :excursion, :map, default: nil
 
-  @doc "The venues of a topic, one pill each, when there is more than one to pick from."
-  def venue_switcher(assigns) do
+  @doc "The destinations of a topic, one pill each, when there is more than one to pick from."
+  def destination_switcher(assigns) do
     ~H"""
-    <div :if={length(@excursions) > 1} id="guide-venues" class="flex flex-wrap gap-2 mb-6">
+    <div :if={length(@excursions) > 1} id="guide-destinations" class="flex flex-wrap gap-2 mb-6">
       <button
-        id="guide-venue-all"
+        id="guide-destination-all"
         phx-click="set_excursion"
         phx-value-excursion=""
         class={["btn btn-xs", if(is_nil(@excursion), do: "btn-secondary", else: "btn-outline")]}
       >
-        All venues
+        All destinations
       </button>
       <button
         :for={x <- @excursions}
-        id={"guide-venue-#{x.id}"}
+        id={"guide-destination-#{x.id}"}
         phx-click="set_excursion"
         phx-value-excursion={x.id}
         class={[
@@ -177,19 +177,19 @@ defmodule TravelingPoetWeb.GuideComponents do
           if(@excursion && @excursion.id == x.id, do: "btn-secondary", else: "btn-outline")
         ]}
       >
-        {venue_label(x)}
+        {destination_label(x)}
       </button>
     </div>
     """
   end
 
-  @doc "A venue's name as the poet gave it, or the excursion's date when it gave none."
-  def venue_label(%{venue_name: name}) when is_binary(name) and name != "", do: name
-  def venue_label(%{scheduled_for: %Date{} = date}), do: "Excursion of #{format_date(date)}"
-  def venue_label(_), do: "Excursion"
+  @doc "A destination's name as the poet gave it, or the excursion's date when it gave none."
+  def destination_label(%{destination_name: name}) when is_binary(name) and name != "", do: name
+  def destination_label(%{scheduled_for: %Date{} = date}), do: "Excursion of #{format_date(date)}"
+  def destination_label(_), do: "Excursion"
 
   attr :finds, :list, required: true
-  attr :excursions, :list, required: true, doc: "to name each find's venue"
+  attr :excursions, :list, required: true, doc: "to name each find's destination"
   attr :media, :map, required: true
   attr :poet, :map, required: true
   attr :entry_url, :any, default: nil, doc: "fn date -> path of the entry, or nil"
@@ -235,7 +235,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         </div>
 
         <div class="text-xs opacity-60">
-          {humanize_category(@find.kind)}<span :if={@excursion}> at {venue_label(@excursion)}</span>
+          {humanize_category(@find.kind)}<span :if={@excursion}> at {destination_label(@excursion)}</span>
         </div>
         <.poet_pick :if={@find.poet_rating} place={@find} poet={@poet} />
 
@@ -270,7 +270,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :entry_url, :any, default: nil
 
   # The same shape as a stay's itinerary: one column per excursion, numbered
-  # in the order they happened, the venue at the top, the finds down the line.
+  # in the order they happened, the destination at the top, the finds down the line.
   def excursion_itinerary_view(assigns) do
     ~H"""
     <div id="guide-excursions" class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -288,15 +288,15 @@ defmodule TravelingPoetWeb.GuideComponents do
         </div>
         <div class="text-sm mb-4">
           <a
-            :if={stop.excursion.venue_url}
-            href={stop.excursion.venue_url}
+            :if={stop.excursion.destination_url}
+            href={stop.excursion.destination_url}
             target="_blank"
             rel="noopener noreferrer nofollow"
             class="link"
           >
-            {venue_label(stop.excursion)}
+            {destination_label(stop.excursion)}
           </a>
-          <span :if={!stop.excursion.venue_url}>{venue_label(stop.excursion)}</span>
+          <span :if={!stop.excursion.destination_url}>{destination_label(stop.excursion)}</span>
         </div>
 
         <div class="relative pl-6 border-l border-base-300">

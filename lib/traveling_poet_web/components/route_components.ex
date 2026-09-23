@@ -1,6 +1,6 @@
 defmodule TravelingPoetWeb.RouteComponents do
   @moduledoc """
-  The drawing of an excursion journey: the topic, the venues it went to, and
+  The drawing of an excursion journey: the topic, the destinations it went to, and
   what they gave back. Inline SVG laid out by `Topics.Route`, in the
   notebook's hand, so it needs no map, no tiles and no JavaScript.
 
@@ -52,21 +52,29 @@ defmodule TravelingPoetWeb.RouteComponents do
           </text>
         </g>
 
-        <g :for={venue <- @diagram.venues} class={["route-venue", venue.current? && "is-current"]}>
-          <circle cx={venue.x} cy={venue.y} r="13" class="route-node" />
-          <text x={venue.x} y={venue.y + 5} class="route-node-n">{venue.n}</text>
+        <g
+          :for={destination <- @diagram.destinations}
+          class={["route-destination", destination.current? && "is-current"]}
+        >
+          <circle cx={destination.x} cy={destination.y} r="13" class="route-node" />
+          <text x={destination.x} y={destination.y + 5} class="route-node-n">{destination.n}</text>
           <.route_text
-            x={venue.label_x}
-            y={venue.label_y}
-            class="route-venue-label"
-            lines={venue.lines}
-            href={venue.href}
+            x={destination.label_x}
+            y={destination.label_y}
+            class="route-destination-label"
+            lines={destination.lines}
+            href={destination.href}
           />
-          <text :if={venue.sub} x={venue.label_x} y={venue.sub_y} class="route-venue-date">
-            {venue.sub}
+          <text
+            :if={destination.sub}
+            x={destination.label_x}
+            y={destination.sub_y}
+            class="route-destination-date"
+          >
+            {destination.sub}
           </text>
 
-          <g :for={find <- venue.finds} class="route-find">
+          <g :for={find <- destination.finds} class="route-find">
             <circle cx={find.dot_x} cy={find.y} r="5" class="route-find-dot" />
             <.route_text
               x={find.x}
@@ -79,8 +87,8 @@ defmodule TravelingPoetWeb.RouteComponents do
         </g>
       </svg>
       <figcaption class="notebook-caption">
-        <span :if={@diagram.venues == []}>{@empty}</span>
-        <span :if={@diagram.venues != []}>{@title}</span>
+        <span :if={@diagram.destinations == []}>{@empty}</span>
+        <span :if={@diagram.destinations != []}>{@title}</span>
       </figcaption>
     </figure>
     """
@@ -113,9 +121,12 @@ defmodule TravelingPoetWeb.RouteComponents do
   end
 
   defp route_label(diagram) do
-    case diagram.venues do
-      [] -> "#{diagram.root.label}: no excursions yet"
-      venues -> "#{diagram.root.label}: " <> Enum.map_join(venues, ", then ", & &1.label)
+    case diagram.destinations do
+      [] ->
+        "#{diagram.root.label}: no excursions yet"
+
+      destinations ->
+        "#{diagram.root.label}: " <> Enum.map_join(destinations, ", then ", & &1.label)
     end
   end
 end

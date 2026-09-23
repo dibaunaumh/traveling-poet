@@ -41,7 +41,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   def entry_title(entry) do
-    Blank.clean(entry.title) || excursion_venue(entry) || excursion_label(entry) ||
+    Blank.clean(entry.title) || excursion_destination(entry) || excursion_label(entry) ||
       entry.place_name || "Journal"
   end
 
@@ -53,9 +53,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
     end
   end
 
-  defp excursion_venue(entry) do
+  defp excursion_destination(entry) do
     case excursion_of(entry) do
-      %{venue_name: name} when is_binary(name) and name != "" -> name
+      %{destination_name: name} when is_binary(name) and name != "" -> name
       _ -> nil
     end
   end
@@ -302,16 +302,16 @@ defmodule TravelingPoetWeb.NotebookComponents do
         <figure class="taped-ticket">
           <div class="ticket-kicker">A day off the road</div>
           <div class="ticket-topic">{Topics.label_for_entry(@entry) || "an excursion"}</div>
-          <div :if={@excursion.venue_name} class="ticket-venue">
+          <div :if={@excursion.destination_name} class="ticket-destination">
             <a
-              :if={@excursion.venue_url}
-              href={@excursion.venue_url}
+              :if={@excursion.destination_url}
+              href={@excursion.destination_url}
               target="_blank"
               rel="noopener noreferrer nofollow"
             >
-              {@excursion.venue_name}
+              {@excursion.destination_name}
             </a>
-            <span :if={!@excursion.venue_url}>{@excursion.venue_name}</span>
+            <span :if={!@excursion.destination_url}>{@excursion.destination_name}</span>
           </div>
           <div :if={@excursion.source == "chat"} class="ticket-note">
             You asked for this one in chat.

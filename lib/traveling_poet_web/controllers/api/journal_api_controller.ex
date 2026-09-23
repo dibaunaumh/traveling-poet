@@ -362,10 +362,40 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
     existing = Topics.list_finds_for_entry(entry.id)
 
     if wipe_by_rejection?(kept, usable, existing) do
-      {:ok, _} = Topics.set_venue(excursion, Map.take(params, ["venue_name", "venue_url"]))
-      json(conn, kept_existing_reply(:find, existing, dropped, over_cap))
+      {:ok, excursion} = Topics.set_destination(excursion, params)
+
+      json(
+        conn,
+        :find
+        |> kept_existing_reply(existing, dropped, over_cap)
+        |> Map.merge(already_visited(excursion, params))
+      )
     else
       save_finds(conn, entry, excursion, usable, dropped, over_cap, params)
+    end
+  end
+
+  # The context lists `past_destinations` so the poet picks somewhere new
+  # before it researches anything; this is the backstop for the run that
+  # did not read it. Loud, not fatal: the finds are real and the entry is
+  # written by now, so it is the poet's call to go back and choose again.
+  defp already_visited(excursion, params) do
+    name = params["destination_name"] || params["venue_name"]
+    url = params["destination_url"] || params["venue_url"]
+
+    case Topics.repeat_destination(excursion, name, url) do
+      nil ->
+        %{}
+
+      earlier ->
+        %{
+          already_visited: %{name: earlier.name, on: earlier.on, title: earlier.title},
+          note:
+            "You already went to #{earlier.name} for this topic on #{earlier.on} " <>
+              "(\"#{earlier.title}\"). Your companion read that entry. Unless they asked " <>
+              "for it in chat, pick a destination that is not in past_destinations and " <>
+              "write today about that one instead."
+        }
     end
   end
 
@@ -401,14 +431,20 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   defp save_finds(conn, entry, excursion, usable, dropped, over_cap, params) do
     with {:ok, saved} <- Topics.replace_finds(entry, usable),
-         {:ok, _} <- Topics.set_venue(excursion, Map.take(params, ["venue_name", "venue_url"])) do
-      json(conn, %{
-        ok: true,
-        find_count: length(saved),
-        find_ids: Map.new(saved, &{&1.name, &1.id}),
-        dropped: dropped,
-        over_cap: length(over_cap)
-      })
+         {:ok, excursion} <- Topics.set_destination(excursion, params) do
+      json(
+        conn,
+        Map.merge(
+          %{
+            ok: true,
+            find_count: length(saved),
+            find_ids: Map.new(saved, &{&1.name, &1.id}),
+            dropped: dropped,
+            over_cap: length(over_cap)
+          },
+          already_visited(excursion, params)
+        )
+      )
     else
       {:error, %Ecto.Changeset{} = changeset} ->
         conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})

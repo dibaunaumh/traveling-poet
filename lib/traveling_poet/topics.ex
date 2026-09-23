@@ -11,9 +11,9 @@ defmodule TravelingPoet.Topics do
 
   import Ecto.Query, except: [update: 2, update: 3]
 
-  alias TravelingPoet.Journal.Entry
+  alias TravelingPoet.{Guide, Repo}
+  alias TravelingPoet.Journal.{Blank, Entry}
   alias TravelingPoet.Preferences.EntryPrompt
-  alias TravelingPoet.Repo
   alias TravelingPoet.Topics.{Excursion, Find, Route, Topic}
 
   @taken ~w(written published)
@@ -67,7 +67,10 @@ defmodule TravelingPoet.Topics do
       excursions_count: taken_count(t.id),
       # How the companion answered the question under the last excursion
       # into this topic (an option id such as "more_like_this"), or nil.
-      last_answer: last_answer(t.id)
+      last_answer: last_answer(t.id),
+      # Where the excursions into this topic already went, oldest first.
+      # A date alone told the poet nothing: Nam and Tobias, 2026-09-23.
+      past_destinations: past_destinations(t.id)
     }
   end
 
@@ -269,10 +272,77 @@ defmodule TravelingPoet.Topics do
       topic_id: x.topic_id,
       label: topic && topic.label,
       kind: topic && topic.kind,
-      requested_venue: x.requested_venue,
+      requested_destination: x.requested_destination,
       requested_url: x.requested_url,
-      source: x.source
+      source: x.source,
+      past_destinations: past_destinations(x.topic_id)
     }
+  end
+
+  @doc """
+  Where the published excursions into a topic went, oldest first: the
+  destination's name and page, the day, and the entry's title. Each daily
+  run is a fresh session with no memory of last week, so on the topic's
+  next due day the poet searched "what is current in the topic", found the
+  same conference or festival, and wrote it up again (Tobias: XAOC Festival
+  on 2026-09-16 and 09-23; Nam: ECogS 2026 on both). The same gap the
+  cities and places fixes closed, left open here. An excursion that never
+  named its destination is listed by its entry title.
+  """
+  def past_destinations(nil), do: []
+
+  def past_destinations(topic_id) do
+    from([x, e] in published_excursions_for_topic(topic_id),
+      order_by: [asc: x.scheduled_for, asc: x.id],
+      select: %{
+        id: x.id,
+        name: x.destination_name,
+        url: x.destination_url,
+        on: x.scheduled_for,
+        title: e.title
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(fn d -> %{d | name: Blank.clean(d.name) || d.title} end)
+  end
+
+  @doc """
+  The earlier published excursion into the same topic that this one's
+  destination repeats, by page or by name (`Guide.name_key/1`, so
+  "ECogS 2026" and "ECogS 2026 at OIST" are not one, but "Ars Electronica"
+  and "ars electronica" are), or nil. The excursion itself is excluded: a
+  retried run sends today's finds again.
+  """
+  def repeat_destination(%Excursion{} = excursion, name, url) do
+    key = Guide.name_key(name)
+    page = url_key(url)
+
+    excursion.topic_id
+    |> past_destinations()
+    |> Enum.find(fn d ->
+      d.id != excursion.id and
+        ((page != "" and url_key(d.url) == page) or (key != "" and Guide.name_key(d.name) == key))
+    end)
+  end
+
+  defp url_key(url) when is_binary(url) do
+    url
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace(~r/^https?:\/\//, "")
+    |> String.replace(~r/^www\./, "")
+    |> String.replace(~r/[#?].*$/, "")
+    |> String.trim_trailing("/")
+  end
+
+  defp url_key(_), do: ""
+
+  defp published_excursions_for_topic(topic_id) do
+    from(x in Excursion,
+      join: e in Entry,
+      on: e.id == x.journal_entry_id,
+      where: x.topic_id == ^topic_id and x.status == "published" and e.status == "published"
+    )
   end
 
   ## Excursions: writes
@@ -388,10 +458,23 @@ defmodule TravelingPoet.Topics do
   end
 
   @doc "Where the poet actually went, once it knows."
-  def set_venue(%Excursion{} = excursion, attrs) do
+  def set_destination(%Excursion{} = excursion, attrs) do
     excursion
-    |> Excursion.changeset(Map.take(attrs, [:venue_name, :venue_url, "venue_name", "venue_url"]))
+    |> Excursion.changeset(destination_attrs(attrs))
     |> Repo.update()
+  end
+
+  # A plugin from before the rename still says venue_name / venue_url; the
+  # fleet is upgraded poet by poet after a deploy.
+  defp destination_attrs(attrs) do
+    attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
+    %{
+      "destination_name" => attrs["destination_name"] || attrs["venue_name"],
+      "destination_url" => attrs["destination_url"] || attrs["venue_url"]
+    }
+    |> Enum.reject(fn {_, v} -> is_nil(v) end)
+    |> Map.new()
   end
 
   def get_excursion_for_entry(nil), do: nil
@@ -504,7 +587,7 @@ defmodule TravelingPoet.Topics do
     |> then(&Route.build(label, &1))
   end
 
-  @doc "The same drawing for the guide, with every find hanging off its venue."
+  @doc "The same drawing for the guide, with every find hanging off its destination."
   def guide_diagram(topic, excursions, finds_by_entry) do
     finds =
       Map.new(excursions, fn x ->
@@ -520,9 +603,9 @@ defmodule TravelingPoet.Topics do
   defp route_node(%Excursion{} = x, current_id) do
     %{
       id: x.id,
-      label: (x.venue_name && String.trim(x.venue_name)) || "an excursion",
+      label: (x.destination_name && String.trim(x.destination_name)) || "an excursion",
       date: x.scheduled_for,
-      url: x.venue_url,
+      url: x.destination_url,
       current?: x.id == current_id
     }
   end

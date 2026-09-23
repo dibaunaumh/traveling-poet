@@ -78,7 +78,7 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # weighs your stay length, any hold your companion asked for in
           # chat, and any detour they added. Obey travel_today. `day` is
           # move | stay | excursion; on an excursion day `excursion` names
-          # the topic (and the venue the companion asked for, if any).
+          # the topic (and the destination the companion asked for, if any).
           travel: Poets.travel_plan(poet),
           latest_entry_date: latest && latest.entry_date,
           today: Date.utc_today(),

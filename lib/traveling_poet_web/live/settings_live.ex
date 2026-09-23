@@ -1400,7 +1400,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                     class="flex items-center gap-2 text-sm p-2 rounded-lg bg-base-200"
                   >
                     <span class="flex-1">
-                      {x.requested_venue}
+                      {x.requested_destination}
                       <span class="opacity-60">for {x.topic.label}</span>
                     </span>
                     <span class="text-xs opacity-60">on the next day {@poet.name} stays put</span>

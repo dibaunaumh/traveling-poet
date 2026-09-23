@@ -12,7 +12,7 @@ defmodule TravelingPoet.Topics.RouteTest do
       current?: Keyword.get(opts, :current?, false)
     }
 
-  test "the topic sits beside its venues, in the order they happened" do
+  test "the topic sits beside its destinations, in the order they happened" do
     d =
       Route.build("Embodied minds", [
         excursion(1, "ECogS 2026", ~D[2026-09-09]),
@@ -20,7 +20,7 @@ defmodule TravelingPoet.Topics.RouteTest do
       ])
 
     assert d.root.label == "Embodied minds"
-    assert [first, second] = d.venues
+    assert [first, second] = d.destinations
     assert {first.n, first.label, first.sub} == {1, "ECogS 2026", "Sep 9"}
     assert second.current?
     refute first.current?
@@ -28,10 +28,10 @@ defmodule TravelingPoet.Topics.RouteTest do
     # a spine down the page: same x, in order, topic above them
     assert first.x == second.x and first.y < second.y and first.y > d.root.y
     assert [%{kind: :spine}] = d.edges
-    assert Enum.all?(d.venues, &(&1.finds == []))
+    assert Enum.all?(d.destinations, &(&1.finds == []))
   end
 
-  test "in full mode each venue's finds hang off it, inside its own block" do
+  test "in full mode each destination's finds hang off it, inside its own block" do
     finds = %{
       1 => [
         %{id: 11, name: "Shanahan keynote", url: "https://x.example/1", kind: "talk"},
@@ -50,7 +50,7 @@ defmodule TravelingPoet.Topics.RouteTest do
 
     assert d.layout == :full
     assert d.root.ring?
-    [a, b] = d.venues
+    [a, b] = d.destinations
     assert length(a.finds) == 2 and length(b.finds) == 1
     assert Enum.map(a.finds, & &1.label) == ["Shanahan keynote", "Tani lecture"]
     assert hd(a.finds).x > a.x
@@ -61,15 +61,15 @@ defmodule TravelingPoet.Topics.RouteTest do
     assert d.height > 160
   end
 
-  test "a venue named at length runs onto a second line rather than vanishing" do
+  test "a destination named at length runs onto a second line rather than vanishing" do
     long = "Anthropic — Automated Alignment Researchers program"
 
-    [venue] = Route.build("AI alignment", [excursion(1, long, ~D[2026-09-16])]).venues
-    assert length(venue.lines) == 2
-    assert Enum.join(venue.lines, " ") =~ "Automated Alignment"
-    assert Enum.all?(venue.lines, &(String.length(&1) <= 34))
+    [destination] = Route.build("AI alignment", [excursion(1, long, ~D[2026-09-16])]).destinations
+    assert length(destination.lines) == 2
+    assert Enum.join(destination.lines, " ") =~ "Automated Alignment"
+    assert Enum.all?(destination.lines, &(String.length(&1) <= 34))
     # the date clears the second line
-    assert venue.sub_y > venue.label_y + 18
+    assert destination.sub_y > destination.label_y + 18
 
     # two of them do not collide
     d =
@@ -78,7 +78,7 @@ defmodule TravelingPoet.Topics.RouteTest do
         excursion(2, long, ~D[2026-09-17])
       ])
 
-    [a, b] = d.venues
+    [a, b] = d.destinations
     assert b.y - a.y > 54
     assert d.height > b.y
 
@@ -86,7 +86,7 @@ defmodule TravelingPoet.Topics.RouteTest do
     longer =
       "ECogS 2026 — International Conference on Embodied Cognitive Science and Its Many Friends"
 
-    [only] = Route.build("Embodied minds", [excursion(1, longer, ~D[2026-09-09])]).venues
+    [only] = Route.build("Embodied minds", [excursion(1, longer, ~D[2026-09-09])]).destinations
     assert length(only.lines) == 2
     assert String.ends_with?(List.last(only.lines), "…")
   end
@@ -96,7 +96,7 @@ defmodule TravelingPoet.Topics.RouteTest do
     assert Route.clip("Short", 20) == "Short"
 
     d = Route.build("Kit airplanes", [])
-    assert d.venues == [] and d.edges == []
+    assert d.destinations == [] and d.edges == []
     assert d.height == 130
     refute d.root.ring?
   end

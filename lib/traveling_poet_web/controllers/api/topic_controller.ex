@@ -56,24 +56,28 @@ defmodule TravelingPoetWeb.Api.TopicController do
   kept yet is proposed alongside: the explicit request is its own
   confirmation for one day, no more.
   """
-  def request(conn, %{"venue" => venue} = params) when is_binary(venue) do
+  def request(conn, %{"destination" => destination} = params) when is_binary(destination) do
     user = conn.assigns.agent_user
 
     with {:ok, poet} <- fetch_poet(user),
-         {:ok, venue} <- validate_venue(venue),
+         {:ok, destination} <- validate_destination(destination),
          {:ok, topic} <- resolve_topic(poet, params) do
       {url, dropped} = checked_url(params["url"])
 
       case Topics.request_excursion(poet.id, topic, %{
-             requested_venue: venue,
+             requested_destination: destination,
              requested_url: url
            }) do
         {:ok, excursion} ->
-          Logger.info("Excursion requested for poet #{poet.id}: #{venue} (#{topic.label})")
+          Logger.info("Excursion requested for poet #{poet.id}: #{destination} (#{topic.label})")
 
           json(conn, %{
             ok: true,
-            excursion: %{id: excursion.id, topic: Topics.topic_payload(topic), venue: venue},
+            excursion: %{
+              id: excursion.id,
+              topic: Topics.topic_payload(topic),
+              destination: destination
+            },
             dropped_url: dropped,
             # When it will actually happen: a move day always goes first.
             travel: Poets.travel_plan(poet)
@@ -94,14 +98,20 @@ defmodule TravelingPoetWeb.Api.TopicController do
     end
   end
 
-  def request(conn, _params) do
-    conn |> put_status(422) |> json(%{error: "venue is required"})
+  # A plugin from before the rename still sends `venue`; the fleet is
+  # upgraded poet by poet after a deploy.
+  def request(conn, %{"venue" => venue} = params) when is_binary(venue) do
+    request(conn, params |> Map.delete("venue") |> Map.put("destination", venue))
   end
 
-  defp validate_venue(venue) do
-    case String.trim(venue) do
-      "" -> {:error, "venue cannot be blank"}
-      v when byte_size(v) > 160 -> {:error, "venue must be 160 characters or fewer"}
+  def request(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "destination is required"})
+  end
+
+  defp validate_destination(destination) do
+    case String.trim(destination) do
+      "" -> {:error, "destination cannot be blank"}
+      v when byte_size(v) > 160 -> {:error, "destination must be 160 characters or fewer"}
       v -> {:ok, v}
     end
   end
@@ -129,7 +139,7 @@ defmodule TravelingPoetWeb.Api.TopicController do
 
   defp resolve_topic(_poet, _params), do: {:error, "topic (label) or topic_id is required"}
 
-  # A dead link is dropped, never fatal: the venue's name is what the
+  # A dead link is dropped, never fatal: the destination's name is what the
   # excursion runs on.
   defp checked_url(url) when is_binary(url) and url != "" do
     if TravelingPoet.LinkCheck.check(url) == :ok, do: {url, nil}, else: {nil, url}

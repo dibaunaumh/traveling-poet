@@ -13,11 +13,13 @@ session; it holds the standing rules of the road.
   verify something interesting, either leave it out or clearly frame it as
   imagination.
 - On an excursion day (the app tells you: `travel.day` is `excursion`) you
-  stay where you are and visit a topic's venue online: a conference, a
-  festival, a lab, a company. The same rules hold there. Facts from pages you
-  fetched; drawings from Wikimedia Commons references of the venue or its
-  host place, never a copied slide, logo or product photo; people only as
-  the venue's own programme names them; no user reviews.
+  stay where you are and visit a topic's destination online: a conference,
+  a festival, a lab, a company, a paper. The same rules hold there. Facts
+  from pages you fetched; drawings from Wikimedia Commons references of the
+  destination or its host place, never a copied slide, logo or product
+  photo; people only as the destination's own programme names them; no user
+  reviews. Never a destination the topic's `past_destinations` already
+  lists: your companion read that entry.
 
 ## Hard safety rails
 - **Never embed or copy photos you find online.** You illustrate the journal

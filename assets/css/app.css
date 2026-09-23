@@ -1182,12 +1182,12 @@ mark.marker.marker-sent {
   color: #3b4a8c;
 }
 
-.ticket-venue {
+.ticket-destination {
   font-size: 1.15rem;
   margin-top: 0.2rem;
 }
 
-.ticket-venue a {
+.ticket-destination a {
   text-decoration: underline;
   text-decoration-style: dotted;
 }
@@ -1910,7 +1910,7 @@ mark.marker.marker-sent {
   .tour-slide { transition: none; }
 }
 
-/* ---- The excursion route: a topic, its venues, what they gave back ------- */
+/* ---- The excursion route: a topic, its destinations, what they gave back ------- */
 
 /* No tape here. Tape means something was stuck onto the page -- a map print,
    a photo, a ticket stub -- and this is drawn in ink on the paper itself.
@@ -1953,11 +1953,11 @@ mark.marker.marker-sent {
 }
 
 .route-root-label,
-.route-venue-label,
+.route-destination-label,
 .route-find-label,
 .route-node-n,
 .route-root-kicker,
-.route-venue-date {
+.route-destination-date {
   fill: #3a3226;
   font-family: "Patrick Hand", "Comic Sans MS", cursive;
 }
@@ -1992,7 +1992,7 @@ mark.marker.marker-sent {
   fill: #fdf8ea;
 }
 
-.is-current .route-venue-label {
+.is-current .route-destination-label {
   font-weight: 700;
 }
 
@@ -2001,13 +2001,13 @@ mark.marker.marker-sent {
   text-anchor: middle;
 }
 
-.route-venue-label {
+.route-destination-label {
   font-family: "Caveat", cursive;
   font-size: 1.2rem;
   font-weight: 700;
 }
 
-.route-venue-date {
+.route-destination-date {
   font-size: 0.78rem;
   opacity: 0.6;
 }
@@ -2038,9 +2038,9 @@ mark.marker.marker-sent {
   font-size: 1.5rem;
 }
 
-/* A venue's name is the point of the line: give it the width of the card,
+/* A destination's name is the point of the line: give it the width of the card,
    at a size that still fits the longest one the poet is likely to write. */
-.route-svg.is-compact .route-venue-label {
+.route-svg.is-compact .route-destination-label {
   font-size: 1.02rem;
 }
 

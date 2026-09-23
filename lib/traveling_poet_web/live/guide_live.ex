@@ -2,7 +2,7 @@ defmodule TravelingPoetWeb.GuideLive do
   @moduledoc """
   The trip guide: the concrete places the poet found, as map, list, and
   itinerary, and, for each of the companion's topics, what the poet brought
-  back from its excursions (venues and finds, as list and itinerary).
+  back from its excursions (destinations and finds, as list and itinerary).
 
   A separate LiveView rather than a tab inside JournalLive, which already
   carries the chat sidebar, uploads, keepalive timers and the provisioning
@@ -50,7 +50,7 @@ defmodule TravelingPoetWeb.GuideLive do
     do: {:noreply, push_patch(socket, to: guide_path(socket, stay: stay))}
 
   # Switching journey starts the new one fresh: all its filters, all its
-  # venues. A topic has no map, so a reader on the map lands on its route.
+  # destinations. A topic has no map, so a reader on the map lands on its route.
   def handle_event("set_journey", %{"topic" => topic}, socket) do
     view = if topic != "" and socket.assigns.view == "map", do: "route", else: socket.assigns.view
     overrides = [topic: topic, excursion: "", filter: "all", view: view]
@@ -86,7 +86,7 @@ defmodule TravelingPoetWeb.GuideLive do
 
       <div :if={@topic}>
         <.filter_chips filter={@filter} counts={@counts} options={topic_filters()} />
-        <.venue_switcher excursions={@excursions} excursion={@excursion} />
+        <.destination_switcher excursions={@excursions} excursion={@excursion} />
 
         <.excursion_route
           :if={@view == "route"}

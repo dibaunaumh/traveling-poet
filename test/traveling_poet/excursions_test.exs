@@ -66,7 +66,7 @@ defmodule TravelingPoet.ExcursionsTest do
     assert Topics.excursion_yesterday?(poet.id, today)
 
     assert Topics.queued_chat_excursion(poet.id) == nil
-    queued = excursion_fixture(poet, topic, nil, %{requested_venue: "Oshkosh"})
+    queued = excursion_fixture(poet, topic, nil, %{requested_destination: "Oshkosh"})
     assert Topics.queued_chat_excursion(poet.id).id == queued.id
     assert queued.status == "queued"
     assert queued.source == "chat"
@@ -84,7 +84,7 @@ defmodule TravelingPoet.ExcursionsTest do
   describe "link_entry/2" do
     test "claims the queued chat request for the topic and clears the place", %{poet: poet} do
       topic = topic_fixture(poet, %{label: "Kit airplanes"})
-      queued = excursion_fixture(poet, topic, nil, %{requested_venue: "Oshkosh"})
+      queued = excursion_fixture(poet, topic, nil, %{requested_destination: "Oshkosh"})
       entry = entry_fixture(poet, %{place_name: "Lisbon", lat: 1.0, lng: 2.0})
 
       {:ok, linked} = Topics.link_entry(entry, %{"topic_id" => to_string(topic.id)})

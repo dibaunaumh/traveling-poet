@@ -194,7 +194,7 @@ defmodule TravelingPoet.Fixtures do
   @doc """
   An excursion into `topic`. With an `entry`, the entry becomes that day's
   excursion (its place fields are cleared, as the API does); without one, a
-  queued chat request for `venue`.
+  queued chat request for `destination`.
   """
   def excursion_fixture(poet, topic, entry \\ nil, attrs \\ %{})
 
@@ -208,7 +208,7 @@ defmodule TravelingPoet.Fixtures do
       TravelingPoet.Topics.request_excursion(
         poet.id,
         topic,
-        Map.merge(%{requested_venue: "Big Ears"}, attrs)
+        Map.merge(%{requested_destination: "Big Ears"}, attrs)
       )
 
     excursion
