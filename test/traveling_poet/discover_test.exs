@@ -64,6 +64,68 @@ defmodule TravelingPoet.DiscoverTest do
     end
   end
 
+  describe "the village" do
+    @weaving "crafts-and-design/textiles/weaving-and-silk"
+    @jazz "music-and-performance/music/jazz"
+
+    defp tag(place, topic, second \\ nil) do
+      place
+      |> TravelingPoet.Guide.Place.topics_changeset(%{
+        topic: topic,
+        second_topic: second,
+        place_type: "museum",
+        topics_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> TravelingPoet.Repo.update!()
+    end
+
+    test "public places by subject, merged by name and city, mapped or not" do
+      nam = on_the_road("Nam")
+      wren = on_the_road("Wren")
+      kyoto1 = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+      kyoto2 = page(wren, ~D[2026-09-05], %{place_name: "Kyoto"})
+
+      # the same textile centre, logged by two poets; one row has no coordinates
+      a = place_fixture(nam, kyoto1, %{name: "Nishijin Textile Center"}) |> tag(@weaving)
+      b = place_fixture(wren, kyoto2, %{name: " nishijin textile center"}) |> tag(@weaving, @jazz)
+      _untagged = place_fixture(nam, kyoto1, %{name: "Kyoto"})
+
+      hidden = on_the_road("Hilda", %{is_public: false})
+      secret = page(hidden, ~D[2026-09-01], %{place_name: "Kyoto"})
+
+      place_fixture(hidden, secret, %{name: "Secret weaving shed", lat: 1.0, lng: 1.0})
+      |> tag(@weaving)
+
+      %{village: village} = Discover.build()
+
+      assert length(village.tree) == 12
+      assert [merged] = village.places
+      # the newest row stands for the place; both poets and both topics are kept
+      assert merged.id == b.id
+      refute merged.id == a.id
+      assert merged.city == "Kyoto"
+      assert merged.date == "2026-09-05"
+      assert Enum.sort(merged.poets) == Enum.sort([nam.slug, wren.slug])
+      assert Enum.sort(merged.topics) == Enum.sort([@weaving, @jazz])
+      refute inspect(village) =~ "Secret"
+    end
+
+    test "a place's overview names the other poets and borrows the page's drawing" do
+      nam = on_the_road("Nam")
+      wren = on_the_road("Wren")
+      e1 = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+      e2 = page(wren, ~D[2026-09-05], %{place_name: "Kyoto"})
+      drawing = media_fixture(wren, %{journal_entry_id: e2.id})
+      place_fixture(nam, e1, %{name: "Nishijin Textile Center"})
+      mine = place_fixture(wren, e2, %{name: "Nishijin Textile Center"})
+
+      overview = Discover.place(mine.id)
+      assert [%{name: "Nam"}] = overview.also
+      assert overview.drawing.id == drawing.id
+      assert overview.drawing_from == :entry
+    end
+  end
+
   describe "rotation/1" do
     test "newest first, one page per poet per round" do
       entries = [

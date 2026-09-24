@@ -31,6 +31,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   import TravelingPoetWeb.GuideComponents, only: [place_card: 1]
 
   alias TravelingPoet.{Discover, Poets}
+  alias TravelingPoet.Guide.PlaceTopics
 
   @impl true
   def mount(_params, session, socket) do
@@ -86,6 +87,13 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   def handle_event("select", _params, socket), do: {:noreply, socket}
 
+  # A subject under a place: open the village there.
+  def handle_event("village", %{"topic" => topic}, socket) do
+    if PlaceTopics.valid?(topic),
+      do: {:noreply, push_event(socket, "discover:village", %{topic: topic})},
+      else: {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:journal_published, _poet_id, _entry_id}, socket) do
     socket = assign_discover(socket)
@@ -100,7 +108,23 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp first_selection(_), do: nil
 
   defp load("entry", id), do: tag(:entry, Discover.entry(id))
-  defp load("place", id), do: tag(:place, Discover.place(id))
+
+  defp load("place", id) do
+    case Discover.place(id) do
+      nil ->
+        nil
+
+      overview ->
+        topics =
+          [overview.place.topic, overview.place.second_topic]
+          |> Enum.reject(&is_nil/1)
+          |> Enum.map(&{&1, PlaceTopics.names(&1)})
+          |> Enum.reject(fn {_path, names} -> is_nil(names) end)
+
+        tag(:place, Map.put(overview, :topics, topics))
+    end
+  end
+
   defp load("poet", slug) when is_binary(slug), do: tag(:poet, Discover.poet(slug))
   defp load(_, _), do: nil
 
@@ -181,6 +205,21 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp discover_view(assigns) do
     ~H"""
     <.totals :if={@compact and @discover.totals.poets > 0} discover={@discover} />
+    <%!-- The hook owns aria-pressed, as with the layer toggles. --%>
+    <div
+      id="discover-views"
+      class="discover-views"
+      role="group"
+      aria-label="How to look"
+      phx-update="ignore"
+    >
+      <button type="button" data-view="world" aria-pressed="true">
+        <.icon name="hero-globe-europe-africa" class="size-4" /> World
+      </button>
+      <button type="button" data-view="village" aria-pressed="false">
+        <.icon name="hero-squares-2x2" class="size-4" /> Village
+      </button>
+    </div>
     <div class={["discover-grid", @compact && "mt-3"]}>
       <div
         id="discover-map"
@@ -189,6 +228,8 @@ defmodule TravelingPoetWeb.DiscoverLive do
         data-discover={Jason.encode!(@discover)}
         data-panel="discover-panel"
         data-layers={!@compact && "discover-layers"}
+        data-views="discover-views"
+        data-url={!@compact && "true"}
         class="discover-map rounded-2xl overflow-hidden border border-base-300 z-0"
       >
       </div>
@@ -253,7 +294,30 @@ defmodule TravelingPoetWeb.DiscoverLive do
     ~H"""
     <div class="discover-card" id={"discover-place-#{@selected.place.id}"}>
       <.byline poet={@selected.poet}>recommends</.byline>
-      <.place_card place={@selected.place} media={@selected.drawing} poet={@selected.poet} />
+      <.place_card
+        place={@selected.place}
+        media={@selected.drawing_from == :place && @selected.drawing}
+        poet={@selected.poet}
+      />
+      <div :if={@selected.drawing_from == :entry} class="discover-borrowed">
+        <.section section={%{kind: "illustration"}} media={@selected.drawing} />
+        <p class="text-xs opacity-60">From the page {@selected.poet.name} wrote there</p>
+      </div>
+      <p :if={@selected.also != []} class="discover-also">
+        Also found by {Enum.map_join(@selected.also, ", ", & &1.name)}
+      </p>
+      <div :if={@selected.topics != []} class="discover-subjects" aria-label="Subjects">
+        <button
+          :for={{path, names} <- @selected.topics}
+          type="button"
+          class="discover-subject"
+          phx-click="village"
+          phx-value-topic={path}
+          title="See this subject in the village"
+        >
+          {Enum.join(names, " › ")}
+        </button>
+      </div>
       <div class="discover-links">
         <a
           href={

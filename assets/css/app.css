@@ -2511,3 +2511,146 @@ body::before {
   justify-content: space-between;
   margin-top: 0.5rem;
 }
+
+/* ---- Discover: the World | Village switch and the village treemap ----- */
+.discover-views {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--color-base-300);
+  border-radius: 999px;
+}
+.discover-views button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+.discover-views button[aria-pressed="true"] {
+  opacity: 1;
+  background: rgba(47, 93, 98, 0.12);
+  font-weight: 600;
+}
+.discover-views button:focus-visible { outline: 3px solid #2f5d62; outline-offset: 2px; }
+
+/* The stage holds both views; each fills it and only one shows. */
+.discover-map { position: relative; }
+.discover-world,
+.discover-village { position: absolute; inset: 0; }
+
+.discover-filter {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-base-100) 92%, transparent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  font-size: 0.85rem;
+}
+.discover-filter button {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.discover-village {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-base-100);
+}
+.discover-village[hidden] { display: none; }
+
+.village-crumbs {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--color-base-300);
+}
+.village-crumbs button { text-decoration: underline; text-underline-offset: 2px; opacity: 0.8; }
+.village-crumbs [aria-current] { font-weight: 600; }
+.village-crumbs small { opacity: 0.6; font-weight: 400; }
+.village-sep { opacity: 0.4; }
+
+.village-tiles {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.village-tile {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--color-base-100);
+  border-radius: 6px;
+  background: var(--tile);
+  color: #23272b;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+.village-tile:hover { filter: brightness(0.95); }
+.village-tile:focus-visible { outline: 3px solid #2f5d62; outline-offset: -3px; }
+.village-tile-name { font-weight: 600; font-size: 0.9rem; line-height: 1.15; }
+.village-tile-count { font-size: 0.8rem; opacity: 0.7; }
+.village-tile.is-small { padding: 0.2rem 0.3rem; }
+.village-tile.is-small .village-tile-name { font-size: 0.72rem; font-weight: 500; }
+.village-tile.is-small .village-tile-count { display: none; }
+
+/* At a topic: the places, as a grid of labelled tiles that scrolls. */
+.village-tiles.is-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  grid-auto-rows: min-content;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  overflow-y: auto;
+}
+.village-place {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  background: var(--tile);
+  color: #23272b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.village-place-name { font-weight: 600; font-size: 0.88rem; line-height: 1.2; }
+.village-place-where,
+.village-place-more { font-size: 0.75rem; opacity: 0.7; }
+
+.village-tile.is-current,
+.village-place.is-current {
+  box-shadow: 0 0 0 3px #c0392b inset;
+  z-index: 1;
+}
+.village-empty { padding: 1rem; opacity: 0.6; }
+
+.discover-borrowed { margin-top: 0.5rem; }
+.discover-also { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8; }
+.discover-subjects { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
+.discover-subject {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-base-300);
+}
+.discover-subject:hover { background: rgba(47, 93, 98, 0.08); }
+

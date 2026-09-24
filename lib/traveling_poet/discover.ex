@@ -18,7 +18,7 @@ defmodule TravelingPoet.Discover do
   import Ecto.Query
 
   alias TravelingPoet.{Poets, Repo}
-  alias TravelingPoet.Guide.Place
+  alias TravelingPoet.Guide.{Place, PlaceTopics}
   alias TravelingPoet.Journal.{Entry, Media}
   alias TravelingPoet.Poets.Poet
 
@@ -68,7 +68,9 @@ defmodule TravelingPoet.Discover do
           lat: p.lat,
           lng: p.lng,
           name: p.name,
-          group: Place.group_for(p.category)
+          group: Place.group_for(p.category),
+          # the world map filters by the subject the village is zoomed into
+          topics: Enum.reject([p.topic, p.second_topic], &is_nil/1)
         }
       end)
 
@@ -87,6 +89,7 @@ defmodule TravelingPoet.Discover do
       entries: entries,
       places: places,
       rotation: rotation(entries),
+      village: village(ids, slugs),
       anonymous: Enum.map(private, &blurred_point/1),
       totals: %{
         poets: length(public) + length(private),
@@ -94,6 +97,58 @@ defmodule TravelingPoet.Discover do
         places: length(places)
       }
     }
+  end
+
+  @doc """
+  The global village: every public poet's published places that carry a
+  topic, mapped or not (a place needs no coordinates to sit in a subject),
+  one per place. The same place logged again (another day, another poet) is
+  merged by name and city, keeping the newest row's id and every poet who
+  found it.
+
+      %{tree: PlaceTopics.tree(), places: [%{id, name, city, topics, type, date, poets}]}
+
+  `topics` are third-level paths (Guide.PlaceTopics); a place under two
+  subjects appears under both. Newest first.
+  """
+  def village(ids, slugs) do
+    places =
+      village_rows(ids)
+      |> Enum.group_by(fn {p, city, _date} -> {normalize(p.name), normalize(city)} end)
+      |> Enum.map(fn {_key, rows} ->
+        # ISO strings, not %Date{}: tuples of structs compare field by field.
+        {newest, city, date} = Enum.max_by(rows, fn {p, _c, d} -> {Date.to_iso8601(d), p.id} end)
+
+        %{
+          id: newest.id,
+          name: newest.name,
+          city: city,
+          topics:
+            rows
+            |> Enum.flat_map(fn {p, _, _} -> [p.topic, p.second_topic] end)
+            |> Enum.reject(&is_nil/1)
+            |> Enum.uniq(),
+          type: newest.place_type,
+          date: Date.to_iso8601(date),
+          poets: rows |> Enum.map(fn {p, _, _} -> slugs[p.poet_id] end) |> Enum.uniq()
+        }
+      end)
+      |> Enum.sort_by(&{&1.date, &1.id}, :desc)
+
+    %{tree: PlaceTopics.tree(), places: places}
+  end
+
+  defp normalize(nil), do: ""
+  defp normalize(text), do: text |> String.downcase() |> String.trim()
+
+  defp village_rows([]), do: []
+
+  defp village_rows(ids) do
+    Place
+    |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
+    |> where([p, e], p.poet_id in ^ids and e.status == "published" and not is_nil(p.topic))
+    |> select([p, e], {p, e.place_name, e.entry_date})
+    |> Repo.all()
   end
 
   @doc """
@@ -140,19 +195,54 @@ defmodule TravelingPoet.Discover do
   end
 
   @doc """
-  One place's overview, with its poet and its drawing (a `%Media{}` or nil).
-  nil unless the place came from a published entry of a public poet.
+  One place's overview: the place, its poet, its drawing (a `%Media{}` or
+  nil) and `also`, the other public poets who logged the same place (same
+  name, same city). nil unless the place came from a published entry of a
+  public poet.
+
+  Only a handful of places have a drawing of their own, so without one the
+  overview borrows the first drawing of the page the place came from
+  (`drawing_from: :entry`), which the overview credits as such.
   """
   def place(id) do
     with {:ok, id} <- to_id(id),
          %Place{} = place <- Repo.get(Place, id),
-         %Entry{status: "published"} <-
+         %Entry{status: "published"} = entry <-
            place.journal_entry_id && Repo.get(Entry, place.journal_entry_id),
          %Poet{} = poet <- public_poet(place.poet_id) do
-      %{place: place, poet: poet, drawing: place.media_id && Repo.get(Media, place.media_id)}
+      {drawing, from} =
+        case place.media_id && Repo.get(Media, place.media_id) do
+          %Media{} = media -> {media, :place}
+          nil -> {first_drawing(entry.id), :entry}
+        end
+
+      %{
+        place: place,
+        poet: poet,
+        entry: entry,
+        drawing: drawing,
+        drawing_from: drawing && from,
+        also: also_found_by(place, entry, poet)
+      }
     else
       _ -> nil
     end
+  end
+
+  # Other public poets who logged the same place, by name and city.
+  defp also_found_by(place, entry, poet) do
+    name = normalize(place.name)
+    city = normalize(entry.place_name)
+
+    Place
+    |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
+    |> join(:inner, [p, _e], po in Poet, on: po.id == p.poet_id)
+    |> where([p, e, po], e.status == "published" and po.is_public and po.status == "active")
+    |> where([p, _e, po], po.id != ^poet.id and fragment("lower(trim(?))", p.name) == ^name)
+    |> where([_p, e], fragment("lower(trim(coalesce(?, '')))", e.place_name) == ^city)
+    |> select([_p, _e, po], po)
+    |> distinct(true)
+    |> Repo.all()
   end
 
   @doc """
