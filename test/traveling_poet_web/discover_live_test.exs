@@ -106,6 +106,35 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
     assert has_element?(view, "#discover-layers[phx-update=ignore] [data-layer=places]")
   end
 
+  test "World and Village are one switch, and a place's subjects open the village",
+       %{conn: conn} do
+    wren = public_poet("Wren")
+    entry = published_entry_fixture(wren, %{lat: 41.1, lng: -8.6})
+
+    place =
+      place_fixture(wren, entry, %{name: "Tapestry House", lat: 41.15, lng: -8.6})
+      |> TravelingPoet.Guide.Place.topics_changeset(%{
+        topic: "crafts-and-design/textiles/weaving-and-silk",
+        topics_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> TravelingPoet.Repo.update!()
+
+    {:ok, view, _html} = live(conn, ~p"/discover")
+    assert has_element?(view, "#discover-views[phx-update=ignore] [data-view=village]")
+    assert has_element?(view, "#discover-map[data-views=discover-views][data-url]")
+
+    render_hook(view, "select", %{"kind" => "place", "id" => place.id, "from" => "map"})
+    view |> element("button.discover-subject", "Weaving & silk") |> render_click()
+
+    assert_push_event(view, "discover:village", %{
+      topic: "crafts-and-design/textiles/weaving-and-silk"
+    })
+
+    # only a real topic is passed on
+    render_click(view, "village", %{"topic" => "made/up/topic"})
+    refute_push_event(view, "discover:village", %{topic: "made/up/topic"})
+  end
+
   test "Discover is in the header for everyone", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/discover")
     assert html =~ ~s|href="/discover"|
