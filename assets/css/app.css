@@ -2080,6 +2080,19 @@ body::before {
   font-weight: 600;
 }
 
+/* While the chat is open, Chat is the tab you are on. */
+:root[data-shell] body:has(.chat-overlay) .shell-tabbar [aria-current="page"] {
+  opacity: 0.6;
+  color: inherit;
+  font-weight: inherit;
+}
+
+:root[data-shell] body:has(.chat-overlay) .shell-tabbar button {
+  opacity: 1;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 @media (max-width: 639px) {
   :root[data-shell] .shell-tabbar {
     display: flex;
@@ -2103,6 +2116,27 @@ body::before {
   :root[data-shell] body:has(.shell-tabbar) #nav-menu,
   :root[data-shell] body:has(.shell-tabbar) .chat-fab {
     display: none;
+  }
+
+  /* The chat opens between the header and the bar, not over them: the
+     header holds still above it (it would have scrolled away with the page)
+     and mobile_viewport_hook.js fits the chat into what is left. With the
+     keyboard up the chat takes the whole visible screen, as before. */
+  :root[data-shell] body:has(.shell-tabbar):has(.chat-overlay:not(.keyboard-open)) .app-header {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 51;
+    min-height: calc(4rem + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    background: var(--color-base-100);
+  }
+
+  .chat-overlay.chat-under-header {
+    padding-top: 0;
+  }
+
+  .chat-overlay.chat-by-bar {
+    padding-bottom: 0;
   }
 }
 
@@ -2139,6 +2173,12 @@ body::before {
 
   :root[data-shell] .shell-tabbar span:not([class*="hero-"]) {
     display: none;
+  }
+
+  /* Beside the rail, the chat starts where the rail ends. */
+  .chat-overlay.chat-by-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: 0;
   }
 
   :root[data-shell] body:has(.shell-tabbar) .app-main {
