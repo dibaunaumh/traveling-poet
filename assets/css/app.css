@@ -2472,3 +2472,87 @@ body::before {
 .app-consent .app-welcome-sample {
   text-align: center;
 }
+
+/* Discover (DiscoverLive): the whole fleet's map with the overview beside it
+   from lg, under it below. The map keeps a height the tour can fly in. */
+.discover-head { margin-bottom: 0.5rem; }
+
+.discover-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.discover-layer[aria-pressed="true"] {
+  opacity: 1;
+  background: rgba(47, 93, 98, 0.1);
+  border-color: rgba(47, 93, 98, 0.35);
+}
+.discover-layer[aria-pressed="false"] { text-decoration: line-through; }
+.discover-layer:focus-visible { outline: 3px solid #2f5d62; outline-offset: 2px; }
+
+/* In step with the colours in discover_map_hook.js. */
+.discover-swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  margin-left: 0.3rem;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.discover-swatch-poets { background: #2a81cb; }
+.discover-swatch-entries { background: #2f5d62; }
+.discover-swatch-places {
+  background: conic-gradient(#d97706 0 33%, #3f7d4f 0 66%, #7c3aed 0);
+}
+
+.discover-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .discover-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+}
+
+.discover-map { height: 60vh; min-height: 320px; max-height: 640px; }
+
+.discover-panel { min-width: 0; }
+.discover-card { padding: 1rem 1.1rem; }
+.discover-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0.5rem 0;
+}
+.discover-teaser { margin: 0.6rem 0; line-height: 1.5; }
+
+.discover-byline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.discover-byline > span { display: flex; flex-direction: column; line-height: 1.2; }
+.discover-byline small { opacity: 0.65; font-size: 0.8rem; }
+.discover-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.discover-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.discover-tour-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}

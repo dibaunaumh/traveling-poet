@@ -204,7 +204,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       labels =
         doc |> LazyHTML.query("#shell-tabbar span:not([class])") |> Enum.map(&LazyHTML.text/1)
 
-      assert labels == ~w(Journal Guide Chat Settings)
+      assert labels == ~w(Journal Discover Guide Chat Settings)
 
       assert [_] =
                doc

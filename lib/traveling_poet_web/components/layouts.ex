@@ -36,7 +36,7 @@ defmodule TravelingPoetWeb.Layouts do
 
   attr :active_tab, :atom,
     default: nil,
-    doc: "which primary nav item to highlight (:journal, :guide, :settings)"
+    doc: "which primary nav item to highlight (:journal, :discover, :guide, :settings)"
 
   attr :wide, :boolean,
     default: false,
@@ -57,6 +57,11 @@ defmodule TravelingPoetWeb.Layouts do
         <ul class="hidden sm:flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
             <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>Journal</.link>
+          </li>
+          <li>
+            <.link navigate={~p"/discover"} class={nav_class(@active_tab == :discover)}>
+              Discover
+            </.link>
           </li>
           <li :if={@current_user}>
             <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>Guide</.link>
@@ -100,6 +105,13 @@ defmodule TravelingPoetWeb.Layouts do
             {TravelingPoet.Credits.format(@current_user.credits_balance || 0)}
           </.link>
           <.theme_toggle />
+          <.link
+            :if={is_nil(@current_user)}
+            navigate={~p"/discover"}
+            class={nav_class(@active_tab == :discover)}
+          >
+            Discover
+          </.link>
           <a
             :if={is_nil(@current_user)}
             href={~p"/auth/google"}
@@ -115,6 +127,11 @@ defmodule TravelingPoetWeb.Layouts do
               <li>
                 <.link navigate={~p"/journal"} class={@active_tab == :journal && "font-semibold"}>
                   Journal
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/discover"} class={@active_tab == :discover && "font-semibold"}>
+                  Discover
                 </.link>
               </li>
               <li>
@@ -160,6 +177,10 @@ defmodule TravelingPoetWeb.Layouts do
       <.link navigate={~p"/journal"} aria-current={@active_tab == :journal && "page"}>
         <.icon name="hero-book-open" class="size-6" />
         <span>Journal</span>
+      </.link>
+      <.link navigate={~p"/discover"} aria-current={@active_tab == :discover && "page"}>
+        <.icon name="hero-globe-europe-africa" class="size-6" />
+        <span>Discover</span>
       </.link>
       <.link navigate={~p"/guide"} aria-current={@active_tab == :guide && "page"}>
         <.icon name="hero-map" class="size-6" />

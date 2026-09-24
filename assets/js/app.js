@@ -26,6 +26,7 @@ import {hooks as colocatedHooks} from "phoenix-colocated/traveling_poet"
 import topbar from "../vendor/topbar"
 import PoetMap, {initStaticMaps} from "./poet_map_hook"
 import JourneyTour from "./journey_tour_hook"
+import DiscoverMap from "./discover_map_hook"
 import ScrollBottom from "./scroll_bottom_hook"
 import ChatInput from "./chat_input_hook"
 import ChatResizer from "./chat_resizer_hook"
@@ -41,7 +42,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, JourneyTour, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP},
+  hooks: {...colocatedHooks, PoetMap, JourneyTour, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP},
 })
 
 // Show progress bar on live navigation and form submits
