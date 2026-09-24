@@ -4,7 +4,7 @@ defmodule TravelingPoet.Discover do
   data behind `/discover`.
 
   Only public poets contribute entries and places. A private poet is a
-  blurred dot (`Poets.Showcase.blurred_point/1`) and nothing else: its
+  blurred dot (`blurred_point/1`) and nothing else: its
   entries and places are left out entirely, since a place pins down where
   its poet was just as well as a coordinate does.
 
@@ -20,7 +20,7 @@ defmodule TravelingPoet.Discover do
   alias TravelingPoet.{Poets, Repo}
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.{Entry, Media}
-  alias TravelingPoet.Poets.{Poet, Showcase}
+  alias TravelingPoet.Poets.Poet
 
   # How many entries the tour turns through before it starts over. The map
   # shows every entry; the tour only the freshest pages.
@@ -87,13 +87,22 @@ defmodule TravelingPoet.Discover do
       entries: entries,
       places: places,
       rotation: rotation(entries),
-      anonymous: Enum.map(private, &Showcase.blurred_point/1),
+      anonymous: Enum.map(private, &blurred_point/1),
       totals: %{
         poets: length(public) + length(private),
         entries: length(entries),
         places: length(places)
       }
     }
+  end
+
+  @doc """
+  The one rule for how a private poet appears on any map: a pin and nothing
+  else. No name, slug, avatar or place, and coordinates rounded to ~10km so
+  the dot says "somewhere around here" rather than pointing at a street.
+  """
+  def blurred_point(poet) do
+    %{lat: Float.round(poet.current_lat, 1), lng: Float.round(poet.current_lng, 1)}
   end
 
   @doc """

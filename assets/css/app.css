@@ -1589,14 +1589,6 @@ mark.marker.marker-sent {
 }
 .spread-chip-text small { opacity: 0.65; font-size: 0.75rem; }
 
-/* The pin whose page is open, and the ones that aren't. Leaflet positions
-   markers with an inline transform, so highlight with filter, not scale. */
-.leaflet-marker-icon.poet-pin-selected {
-  filter: drop-shadow(0 0 5px rgba(47, 93, 98, 0.95)) saturate(1.5);
-  z-index: 1000 !important;
-}
-.leaflet-marker-icon.poet-pin-dim { opacity: 0.55; }
-
 /* ---- Home page: type and palette --------------------------------------- */
 /* The home page speaks in the notebook's voice: Fraunces for the ledes, a
    slate teal for every button, marigold only for the step numbers. The rest
@@ -1799,9 +1791,7 @@ mark.marker.marker-sent {
   .home-trust-strip li:nth-child(n + 2) { border-top: 1px solid var(--color-base-100); }
 }
 
-/* ---- Journey tour: the fleet, while your own first entry is written ----- */
-/* The card under the tour map: a poet's numbers and the drawings along the
-   route, revealed as the map draws it. Same paper as the journal. */
+/* A poet's numbers (Discover's poet overview). */
 
 .tour-stats {
   display: flex;
@@ -1829,85 +1819,6 @@ mark.marker.marker-sent {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   opacity: 0.65;
-}
-
-/* The carousel: one drawing at a time in a fixed frame, so the card never
-   grows past the fold; the tour turns it, the dots and arrows let the
-   reader browse. */
-.tour-carousel {
-  margin-top: 0.75rem;
-}
-
-.tour-slides {
-  min-height: 13rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tour-slide {
-  width: 100%;
-  max-width: 24rem;
-  margin: 0 auto;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 500ms ease;
-}
-.tour-slide.is-in { opacity: 1; }
-
-.tour-slide .taped-photo {
-  margin: 0.25rem auto 0;
-  display: inline-block;
-}
-
-.tour-slide .taped-photo img {
-  max-height: 11rem;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-}
-
-.tour-slide .taped-photo figcaption {
-  justify-content: center;
-}
-
-.tour-stop-caption {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-top: 0.25rem;
-}
-
-.tour-carousel-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.tour-dots {
-  display: inline-flex;
-  gap: 0.4rem;
-}
-
-.tour-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 999px;
-  border: 1px solid #2f5d62;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0.5;
-}
-.tour-dot[aria-current="true"] {
-  background: #2f5d62;
-  opacity: 1;
-}
-.tour-dot:focus-visible { outline: 2px solid #2f5d62; outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .tour-slide { transition: none; }
 }
 
 /* ---- The excursion route: a topic, its destinations, what they gave back ------- */
@@ -2270,12 +2181,10 @@ body::before {
     --size: 2.5rem;
   }
 
-  .tour-dot,
   .marker-pin {
     position: relative;
   }
 
-  .tour-dot::after,
   .marker-pin::after {
     content: "";
     position: absolute;
@@ -2284,19 +2193,9 @@ body::before {
     transform: translate(-50%, -50%);
   }
 
-  /* neighbours sit 0.4rem apart: wide halos would overlap, tall ones cannot */
-  .tour-dot::after {
-    width: 0.95rem;
-    height: 2.75rem;
-  }
-
   .marker-pin::after {
     width: 2.75rem;
     height: 2rem;
-  }
-
-  .tour-dots {
-    padding-block: 0.75rem;
   }
 
   .spread-tab {
@@ -2522,6 +2421,13 @@ body::before {
 @media (min-width: 1024px) {
   .discover-map { height: 60vh; min-height: 320px; max-height: 640px; }
 }
+
+/* Embedded (home page, a new reader's journal): the same view, smaller. */
+.discover-compact .discover-map { height: clamp(220px, 34svh, 360px); }
+@media (min-width: 1024px) {
+  .discover-compact .discover-map { height: 420px; min-height: 0; }
+}
+.discover-more { margin-top: 0.75rem; font-size: 0.9rem; }
 
 .discover-panel { min-width: 0; }
 .discover-card { padding: 1rem 1.1rem; }

@@ -342,7 +342,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ ~s(id="setup-card")
       assert html =~ "Setting up #{poet.name}"
       assert html =~ "Working on it"
-      assert html =~ ~s(id="journey-tour")
+      assert html =~ ~s(id="discover-map")
       refute html =~ ~s(id="poet-map")
       assert html =~ ~s(id="waiting-tips")
       refute html =~ ~s(id="chat-sidebar-panel")
@@ -367,7 +367,7 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ ~s(id="first-entry-placeholder")
       assert html =~ "#{poet.name} is awake and about to open the notebook"
       assert html =~ ~s(id="chat-sidebar-panel")
-      assert html =~ ~s(id="journey-tour")
+      assert html =~ ~s(id="discover-map")
       assert html =~ "While you wait"
       refute html =~ ~s(id="setup-card")
     end
@@ -398,11 +398,11 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert html =~ "Setting out"
       refute html =~ ~s(id="first-entry-placeholder")
       refute html =~ ~s(id="waiting-tips")
-      refute html =~ ~s(id="journey-tour")
+      refute html =~ ~s(id="discover-map")
       assert html =~ ~s(id="poet-map")
     end
 
-    test "the tour shows the fleet's journeys and marks where yours starts", %{conn: conn} do
+    test "the wait shows Discover: the fleet's pages, and where yours starts", %{conn: conn} do
       user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
       poet = poet_fixture(user, %{name: "Ada"})
 
@@ -432,30 +432,35 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
       {:ok, view, html} = live(conn, ~p"/journal")
 
-      assert html =~ ~s(id="journey-tour")
-      assert html =~ ~s(id="journey-tour-cards")
-      assert html =~ ~s(data-tour-poet="#{other.slug}")
-      assert html =~ "a wet street"
-      assert html =~ ~s(data-tour-dot="0")
-      assert html =~ "In the meantime"
-
       # The reader's own wait comes first; the fleet is what fills it.
       assert :binary.match(html, "first-entry-placeholder") <
                :binary.match(html, "In the meantime")
 
-      assert :binary.match(html, "In the meantime") < :binary.match(html, ~s(id="journey-tour"))
-      assert html =~ "2 poets on the road"
-      assert html =~ "journals are private"
-      assert html =~ "Ada"
+      assert :binary.match(html, "In the meantime") < :binary.match(html, ~s(id="discover-map"))
+
+      discover = find_live_child(view, "meanwhile-discover")
+      assert has_element?(discover, "#discover-entry-#{entry.id}", "Rain on Gran Via")
+      assert render(discover) =~ "a wet street"
+      assert render(discover) =~ "2 poets on the road"
+      assert render(discover) =~ "journals are private"
+      assert has_element?(discover, ~s|a[href="/discover"]|)
+
+      # Ada is the red dot where she sets out from, for this reader only.
+      data = discover |> element("#discover-map") |> render() |> discover_data()
+      assert %{"poet" => "Ada"} = data["me"]
       refute html =~ "Hidden Hilda"
       refute html =~ "Bangkok"
 
-      # Another poet's publish refreshes the tour without touching the page.
-      send(view.pid, {:journal_published, other.id, entry.id})
-      html = render(view)
-      assert html =~ ~s(data-tour-poet="#{other.slug}")
-      assert html =~ ~s(id="first-entry-placeholder")
+      # Another poet's publish reaches the embedded map without touching the page.
+      send(discover.pid, {:journal_published, other.id, entry.id})
+      assert_push_event(discover, "discover:update", %{me: %{poet: "Ada"}})
+      assert render(view) =~ ~s(id="first-entry-placeholder")
       assert poet.name == "Ada"
+    end
+
+    defp discover_data(html) do
+      [json] = html |> LazyHTML.from_fragment() |> LazyHTML.attribute("data-discover")
+      Jason.decode!(json)
     end
 
     test "a turn the app started streams into the chat and is stored once", %{conn: conn} do

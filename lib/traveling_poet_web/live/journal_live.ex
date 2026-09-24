@@ -22,7 +22,6 @@ defmodule TravelingPoetWeb.JournalLive do
   }
 
   alias TravelingPoet.Journal.Marker
-  alias TravelingPoet.Poets.Showcase
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoet.{Guide, Topics}
   alias TravelingPoet.Journal.{EntryBundle, Spreads}
@@ -59,8 +58,6 @@ defmodule TravelingPoetWeb.JournalLive do
           if connected?(socket) do
             Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "user:#{user.id}")
             Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "poet:#{poet.id}")
-            # The fleet tour shown while waiting follows every poet's publishes.
-            Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
 
             if user.sprite_provisioned do
               Process.send_after(self(), :keepalive, @keepalive_interval_ms)
@@ -106,7 +103,6 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
           |> assign_journal(poet, nil)
-          |> assign_showcase()
           |> allow_upload(:chat_attachment,
             accept: :any,
             max_entries: 1,
@@ -216,16 +212,6 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign_markers(entry)
     |> assign_prompt(poet, entry)
     |> assign_spread(nil)
-  end
-
-  # The fleet, for the journey tour that stands in for the map until the
-  # first entry lands. Nothing to build once there is a journal to read.
-  defp assign_showcase(socket) do
-    if socket.assigns.entries == [] do
-      assign(socket, :showcase, Showcase.build(socket.assigns.poet))
-    else
-      assign(socket, :showcase, nil)
-    end
   end
 
   # Feedback markers on the entry, and their JSON for the Markers hook. Runs on
@@ -631,26 +617,9 @@ defmodule TravelingPoetWeb.JournalLive do
        socket
        |> assign(:poet, poet)
        |> assign_journal(poet, nil)
-       |> assign(:showcase, nil)
        |> assign(:first_entry, :done)
        |> resend_held()
        |> put_flash(:info, "#{poet.name} published a new journal entry!")}
-    end
-  end
-
-  # Another poet published: the tour's numbers and drawings moved on. The map
-  # div is phx-update="ignore", so the hook hears about it by event.
-  @impl true
-  def handle_info({:journal_published, _poet_id, _entry_id}, socket) do
-    if awaiting_first_entry?(socket.assigns) do
-      showcase = Showcase.build(socket.assigns.poet)
-
-      {:noreply,
-       socket
-       |> assign(:showcase, showcase)
-       |> push_event("tour:update", Showcase.tour_payload(showcase))}
-    else
-      {:noreply, socket}
     end
   end
 
@@ -890,131 +859,6 @@ defmodule TravelingPoetWeb.JournalLive do
     """
   end
 
-  attr :showcase, :map, required: true
-
-  # The cards the tour turns: one per public poet, first one open. The hook
-  # toggles `hidden`, counts the numbers up and turns the drawing carousel to
-  # each stop as the map draws the route. Private poets are grey dots on the
-  # map and nothing here.
-  defp journey_cards(assigns) do
-    ~H"""
-    <div id="journey-tour-cards" class="mt-3">
-      <p :if={@showcase.poets != []} class="text-sm opacity-70" id="journey-totals">
-        {@showcase.totals.poets} {ngettext("poet", "poets", @showcase.totals.poets)} on the road: {@showcase.totals.entries} entries, {@showcase.totals.places} places found, {@showcase.totals.countries} countries, {@showcase.totals.drawings} drawings.
-      </p>
-      <p :if={@showcase.poets == []} class="text-sm opacity-70">
-        Yours will be the first poet on the road.
-      </p>
-      <div
-        :if={length(@showcase.poets) > 1}
-        class="spread-picker mt-1"
-        role="tablist"
-        aria-label="Poets on the road"
-      >
-        <button
-          :for={{p, idx} <- Enum.with_index(@showcase.poets)}
-          type="button"
-          role="tab"
-          class="spread-chip"
-          data-tour-pick={p.slug}
-          aria-selected={to_string(idx == 0)}
-        >
-          <img :if={p.avatar} src={p.avatar} alt="" class="spread-chip-avatar" />
-          <span :if={!p.avatar} class="spread-chip-avatar spread-chip-initial">
-            {String.first(p.name)}
-          </span>
-          <span class="spread-chip-text">
-            <b>{p.name}</b>
-            <small>{p.current.name}</small>
-          </span>
-        </button>
-      </div>
-      <article
-        :for={{p, idx} <- Enum.with_index(@showcase.poets)}
-        data-tour-poet={p.slug}
-        hidden={idx != 0}
-        class="notebook-page tour-card mt-2"
-        aria-label={"#{p.name}'s journey"}
-      >
-        <div class="flex items-center gap-3">
-          <img :if={p.avatar} src={p.avatar} alt="" class="w-10 h-10 rounded-full object-cover" />
-          <div>
-            <b>{p.name}</b>
-            <span class="text-sm opacity-70">
-              on the road for {p.stats.days} {ngettext("day", "days", p.stats.days)}, now in {p.current.name}
-            </span>
-          </div>
-        </div>
-        <div class="tour-stats">
-          <div :for={{label, key} <- tour_stat_keys()} class="tour-stat">
-            <b data-tour-count data-count={p.stats[key]}>{p.stats[key]}</b>
-            <span>{label}</span>
-          </div>
-        </div>
-        <div :if={Enum.any?(p.stops, & &1.media)} class="tour-carousel" data-tour-carousel>
-          <div class="tour-slides">
-            <div
-              :for={{s, i} <- Enum.with_index(p.stops)}
-              :if={s.media}
-              data-tour-stop={"#{p.slug}:#{i}"}
-              hidden
-              class="tour-slide"
-            >
-              <.section section={%{kind: "illustration"}} media={s.media} />
-              <p class="tour-stop-caption">
-                {s.place}, {Calendar.strftime(Date.from_iso8601!(s.date), "%B %-d")}
-              </p>
-            </div>
-          </div>
-          <div class="tour-carousel-nav" role="group" aria-label="Drawings along the way">
-            <button
-              type="button"
-              class="btn btn-ghost btn-xs"
-              data-tour-prev
-              aria-label="Previous drawing"
-            >
-              <.icon name="hero-chevron-left" class="size-4" />
-            </button>
-            <span class="tour-dots">
-              <button
-                :for={{s, i} <- Enum.with_index(p.stops)}
-                :if={s.media}
-                type="button"
-                class="tour-dot"
-                data-tour-dot={i}
-                aria-label={"Drawing from #{s.place}"}
-              ></button>
-            </span>
-            <button
-              type="button"
-              class="btn btn-ghost btn-xs"
-              data-tour-next
-              aria-label="Next drawing"
-            >
-              <.icon name="hero-chevron-right" class="size-4" />
-            </button>
-          </div>
-        </div>
-        <a href={p.latest_url} class="link text-sm inline-block mt-3">
-          Read {p.name}'s latest page
-        </a>
-      </article>
-      <p :if={@showcase.anonymous != []} class="text-xs opacity-50 mt-2">
-        Grey dots are poets whose journals are private.
-      </p>
-    </div>
-    """
-  end
-
-  defp tour_stat_keys do
-    [
-      {"entries", :entries},
-      {"places found", :places},
-      {"countries", :countries},
-      {"drawings", :drawings}
-    ]
-  end
-
   attr :poet, :any, required: true
   attr :user, :any, required: true
   attr :push, :map, required: true
@@ -1128,27 +972,19 @@ defmodule TravelingPoetWeb.JournalLive do
             telegram={@telegram}
           />
 
-          <section :if={awaiting_first_entry?(assigns) and @showcase} id="meanwhile" class="mt-8">
+          <%!-- The fleet while the first entry is written: the same Discover
+                the home page and /discover show, with this reader's poet as the
+                red dot. A nested LiveView, so it follows publishes on its own. --%>
+          <section :if={awaiting_first_entry?(assigns)} id="meanwhile" class="mt-8">
             <h3 class="font-semibold">In the meantime</h3>
             <p class="text-sm opacity-70 mb-3">
-              <span :if={@showcase.poets != []}>
-                Other poets are already out on the road. This is where they have been, what they
-                drew and what they found, one poet at a time. Your own, {@poet.name}, is the red ring.
-              </span>
-              <span :if={@showcase.poets == []}>
-                Here is where {@poet.name} sets out from. Yours will be the first poet on the road.
-              </span>
+              Other poets are already out on the road. Here are their newest pages and the places
+              they found. Yours, {@poet.name}, is the red dot.
             </p>
-            <div
-              id="journey-tour"
-              phx-hook="JourneyTour"
-              phx-update="ignore"
-              data-cards="journey-tour-cards"
-              class="w-full h-64 rounded-xl border border-base-300 z-0"
-              data-tour={Jason.encode!(Showcase.tour_payload(@showcase))}
-            >
-            </div>
-            <.journey_cards showcase={@showcase} />
+            {live_render(@socket, TravelingPoetWeb.DiscoverLive,
+              id: "meanwhile-discover",
+              session: %{"compact" => true, "me_poet_id" => @poet.id}
+            )}
           </section>
 
           <div :if={@entry} class="spread-wrap">
