@@ -96,7 +96,7 @@ defmodule TravelingPoet.DiscoverTest do
       place_fixture(hidden, secret, %{name: "Secret weaving shed", lat: 1.0, lng: 1.0})
       |> tag(@weaving)
 
-      %{village: village} = Discover.build()
+      village = Discover.village()
 
       assert length(village.tree) == 12
       assert [merged] = village.places
@@ -105,7 +105,8 @@ defmodule TravelingPoet.DiscoverTest do
       refute merged.id == a.id
       assert merged.city == "Kyoto"
       assert merged.date == "2026-09-05"
-      assert Enum.sort(merged.poets) == Enum.sort([nam.slug, wren.slug])
+      assert merged.found_by == 2
+      assert Enum.sort(merged.ids) == Enum.sort([a.id, b.id])
       assert Enum.sort(merged.topics) == Enum.sort([@weaving, @jazz])
       refute inspect(village) =~ "Secret"
     end
@@ -123,6 +124,30 @@ defmodule TravelingPoet.DiscoverTest do
       assert [%{name: "Nam"}] = overview.also
       assert overview.drawing.id == drawing.id
       assert overview.drawing_from == :entry
+    end
+  end
+
+  describe "client_payload/1" do
+    test "carries only what the map draws, with coordinates rounded" do
+      nam = on_the_road("Nam", %{current_lat: 38.722345678, current_lng: -9.139312345})
+      entry = page(nam, ~D[2026-09-01], %{lat: 38.7123456789, lng: -9.1123456789})
+
+      place_fixture(nam, entry, %{
+        name: "Tasca",
+        lat: 38.71111111,
+        lng: -9.14444444,
+        blurb: "long words"
+      })
+
+      payload = Discover.build() |> Discover.client_payload()
+
+      assert [%{id: _, title: _, lat: 38.7123, lng: -9.1123} = e] = payload.entries
+      assert Map.keys(e) |> Enum.sort() == [:id, :lat, :lng, :title]
+      assert [%{name: "Tasca", group: "food", lat: 38.7111, lng: -9.1444} = p] = payload.places
+      assert Map.keys(p) |> Enum.sort() == [:group, :id, :lat, :lng, :name]
+      assert [%{slug: _, name: "Nam", lat: 38.7223}] = payload.poets
+      refute Map.has_key?(payload, :village)
+      refute inspect(payload) =~ "long words"
     end
   end
 

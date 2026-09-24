@@ -446,8 +446,8 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert has_element?(discover, ~s|a[href="/discover"]|)
 
       # Ada is the red dot where she sets out from, for this reader only.
-      data = discover |> element("#discover-map") |> render() |> discover_data()
-      assert %{"poet" => "Ada"} = data["me"]
+      render_hook(discover, "load", %{})
+      assert_reply(discover, %{me: %{poet: "Ada"}})
       refute html =~ "Hidden Hilda"
       refute html =~ "Bangkok"
 
@@ -456,11 +456,6 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert_push_event(discover, "discover:update", %{me: %{poet: "Ada"}})
       assert render(view) =~ ~s(id="first-entry-placeholder")
       assert poet.name == "Ada"
-    end
-
-    defp discover_data(html) do
-      [json] = html |> LazyHTML.from_fragment() |> LazyHTML.attribute("data-discover")
-      Jason.decode!(json)
     end
 
     test "a turn the app started streams into the chat and is stored once", %{conn: conn} do

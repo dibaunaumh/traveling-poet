@@ -13,6 +13,11 @@ defmodule TravelingPoetWeb.DiscoverLive do
   guide. The map div is `phx-update="ignore"`, so a publish anywhere in the
   fleet reaches it as a `discover:update` push, never as a new attribute.
 
+  The hook asks for its data once it is connected (`load`, and `load_village`
+  only when someone opens the village) rather than reading it from a page
+  attribute: in an attribute it was HTML-escaped and sent twice, in the page
+  and again over the socket, about 480 KB per visit before this changed.
+
   The same LiveView is embedded, compact, where the fleet used to have its
   own views: on the home page (`live_render` from the controller template)
   and on a new reader's journal while their first entry is being written.
@@ -87,6 +92,13 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   def handle_event("select", _params, socket), do: {:noreply, socket}
 
+  # The hook's data, asked for once it is connected. See the moduledoc.
+  def handle_event("load", _params, socket),
+    do: {:reply, Discover.client_payload(socket.assigns.discover), socket}
+
+  def handle_event("load_village", _params, socket),
+    do: {:reply, Discover.village(), socket}
+
   # A subject under a place: open the village there.
   def handle_event("village", %{"topic" => topic}, socket) do
     if PlaceTopics.valid?(topic),
@@ -97,7 +109,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
   @impl true
   def handle_info({:journal_published, _poet_id, _entry_id}, socket) do
     socket = assign_discover(socket)
-    {:noreply, push_event(socket, "discover:update", socket.assigns.discover)}
+
+    {:noreply,
+     push_event(socket, "discover:update", Discover.client_payload(socket.assigns.discover))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -225,7 +239,6 @@ defmodule TravelingPoetWeb.DiscoverLive do
         id="discover-map"
         phx-hook="DiscoverMap"
         phx-update="ignore"
-        data-discover={Jason.encode!(@discover)}
         data-panel="discover-panel"
         data-layers={!@compact && "discover-layers"}
         data-views="discover-views"

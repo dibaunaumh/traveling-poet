@@ -78,7 +78,9 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ "Hidden Hilda"
     refute html =~ "Bangkok"
     refute html =~ "13.7524938"
-    assert html =~ "13.8"
+    # the map's data is no longer in the page at all (the hook asks for it);
+    # Discover's own tests pin how a private poet appears in it
+    refute html =~ ~s(data-discover=")
   end
 
   test "GET / with nobody on the road says so, without a count", %{conn: conn} do
