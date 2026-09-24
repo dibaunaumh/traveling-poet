@@ -2422,10 +2422,53 @@ body::before {
   .discover-map { height: 60vh; min-height: 320px; max-height: 640px; }
 }
 
-/* Embedded (home page, a new reader's journal): the same view, smaller. */
+/* Embedded (home page, a new reader's journal): the same view, smaller,
+   and a FIXED height. Pages differ in length (a drawing or not, a long
+   title, a long teaser), and a panel that grew and shrank with each turn
+   of the tour moved everything below it while people were reading it. So
+   the panel has one height, the card is fitted inside it (clamped title
+   and teaser, the drawing cropped to a fixed frame), and the page turner
+   stays at the bottom. Shorter cards leave whitespace, on purpose. */
 .discover-compact .discover-map { height: clamp(220px, 34svh, 360px); }
+
+.discover-compact .discover-panel {
+  display: flex;
+  flex-direction: column;
+  height: 32rem;
+}
+.discover-compact .discover-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.discover-compact .discover-tour-nav { flex: none; }
+
+.discover-compact .discover-title,
+.discover-compact .discover-teaser,
+.discover-compact .card-body p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.discover-compact .discover-title { -webkit-line-clamp: 2; line-clamp: 2; }
+.discover-compact .discover-teaser { -webkit-line-clamp: 3; line-clamp: 3; }
+.discover-compact .card-body p { -webkit-line-clamp: 4; line-clamp: 4; }
+
+/* Block, not the journal's inline-block: the frame's width then comes from
+   the panel, not from whatever size the drawing happens to be. */
+.discover-compact .taped-photo { display: block; }
+.discover-compact .taped-photo img {
+  width: 100%;
+  height: 11rem;
+  object-fit: cover;
+}
+/* The caption's description can run to several lines; the image keeps it as
+   its alt text. The source links stay: a drawing always cites them. */
+.discover-compact .taped-photo figcaption > span { display: none; }
+
 @media (min-width: 1024px) {
-  .discover-compact .discover-map { height: 420px; min-height: 0; }
+  .discover-compact .discover-map,
+  .discover-compact .discover-panel { height: 30rem; min-height: 0; max-height: none; }
 }
 .discover-more { margin-top: 0.75rem; font-size: 0.9rem; }
 
