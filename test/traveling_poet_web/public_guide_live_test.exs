@@ -40,6 +40,23 @@ defmodule TravelingPoetWeb.PublicGuideLiveTest do
     assert render(view) =~ "Miradouro"
   end
 
+  # Discover links a place straight to its card on the map.
+  test "?place= opens the guide on that place", %{conn: conn} do
+    {_user, poet} = public_poet()
+
+    [_tasca, miradouro] =
+      seed(poet, [
+        place("Tasca do Chico", %{"lat" => 38.71, "lng" => -9.14}),
+        place("Miradouro", %{"category" => "viewpoint", "lat" => 38.72, "lng" => -9.13})
+      ])
+
+    {:ok, view, _html} = live(conn, ~p"/p/#{poet.slug}/guide?view=map&place=#{miradouro.id}")
+    assert has_element?(view, "#place-#{miradouro.id}", "Miradouro")
+
+    {:ok, view, _html} = live(conn, ~p"/p/#{poet.slug}/guide?view=map&place=nonsense")
+    refute has_element?(view, "[id^=place-]")
+  end
+
   # Same gate the public journal uses. A private poet's recommendations are as
   # private as its prose.
   test "a private poet's guide is not reachable", %{conn: conn} do

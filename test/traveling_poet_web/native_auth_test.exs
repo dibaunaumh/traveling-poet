@@ -10,7 +10,7 @@ defmodule TravelingPoetWeb.NativeAuthTest do
   import Phoenix.LiveViewTest
   import TravelingPoet.Fixtures
 
-  alias TravelingPoet.{Accounts, Poets, Repo}
+  alias TravelingPoet.{Accounts, Repo}
   alias TravelingPoetWeb.{AuthController, NativeAuth}
 
   @app_ua "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 TravelingPoetiOS/1.0.0"
@@ -311,15 +311,10 @@ defmodule TravelingPoetWeb.NativeAuthTest do
       assert conn |> get(~p"/") |> html_response(200) =~ "how-it-works"
     end
 
-    test "a public poet's journal is offered as a sample", %{conn: conn} do
-      owner = user_fixture(%{onboarding_completed: true})
-      poet = poet_fixture(owner, %{name: "Wren", is_public: true, status: "active"})
-      {:ok, poet} = Poets.move_to(poet, %{lat: 41.15, lng: -8.61, place_name: "Porto"})
-      published_entry_fixture(poet, %{title: "Fado"})
-
+    test "Discover is offered before any sign-in", %{conn: conn} do
       html = conn |> in_app() |> get(~p"/") |> html_response(200)
-      assert html =~ ~s(href="/p/#{poet.slug}")
-      assert html =~ "Wren"
+      assert html =~ ~s(href="/discover")
+      assert html =~ "Look around first"
     end
 
     test "typing a place parks it and comes back to the welcome screen, never to Google",

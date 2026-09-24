@@ -16,13 +16,6 @@ defmodule TravelingPoetWeb.PageController do
   end
 
   def home(%{assigns: %{native_app: true}} = conn, _params) do
-    sample =
-      Poets.list_poets_on_the_road()
-      |> Enum.filter(& &1.is_public)
-      |> Enum.find_value(fn poet ->
-        Journal.latest_published_entry(poet.id) && %{name: poet.name, url: ~p"/p/#{poet.slug}"}
-      end)
-
     # Sign in with Apple needs a nonce that belongs to this session
     {conn, apple_nonce} =
       if TravelingPoet.Apple.configured?(),
@@ -31,7 +24,6 @@ defmodule TravelingPoetWeb.PageController do
 
     render(conn, :welcome,
       start_place: get_session(conn, :start_place),
-      sample: sample,
       apple_nonce: apple_nonce,
       review_login?: TravelingPoetWeb.ReviewLogin.enabled?(),
       layout: false

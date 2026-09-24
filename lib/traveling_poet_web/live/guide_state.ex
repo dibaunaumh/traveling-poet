@@ -52,8 +52,20 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign_stay(params["stay"])
     |> assign(:excursion_param, params["excursion"])
     |> assign_places()
+    |> select_from_param(params["place"])
     |> push_map()
   end
+
+  # `?place=` opens the guide on one place's card (Discover links here, with
+  # the place's stay). A place not among those shown is simply not selected.
+  defp select_from_param(socket, id) when is_binary(id) do
+    case Integer.parse(id) do
+      {n, ""} -> select_place(socket, n)
+      _ -> socket
+    end
+  end
+
+  defp select_from_param(socket, _), do: socket
 
   # Topics are the owner's: the LiveView opts in with `show_topics`. The
   # public guide never does, so a crafted ?topic= there is simply ignored and

@@ -73,8 +73,9 @@
       </div>
     </form>
 
-    <a :if={@sample} href={@sample.url} class="app-welcome-sample">
-      Read {@sample.name}&rsquo;s journal first
+    <%!-- Real pages before any sign-in: what the poets found, all of it. --%>
+    <a href={~p"/discover"} class="app-welcome-sample" data-track="cta-discover-app">
+      Look around first
     </a>
   </main>
 
