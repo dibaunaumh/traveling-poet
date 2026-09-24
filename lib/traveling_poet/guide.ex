@@ -111,16 +111,22 @@ defmodule TravelingPoet.Guide do
         attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
         name = attrs |> Map.get("name", "") |> to_string() |> String.trim()
 
+        kept_here = Map.get(kept, name, %{})
+
         %Place{}
         |> Place.changeset(
           attrs
-          |> Map.merge(Map.get(kept, name, %{}))
+          |> Map.merge(kept_here)
           |> Map.put("poet_id", entry.poet_id)
           |> Map.put("journal_entry_id", entry.id)
           |> Map.put("path_point_id", path_point_id)
           |> Map.put("entry_date", entry.entry_date)
           |> Map.put("position", i)
         )
+        # Topics are the app's (never cast from the poet's attrs); a place
+        # re-sent under the same name keeps the ones it already had, so a
+        # re-put neither loses them nor pays to classify them again.
+        |> Place.topics_changeset(kept_here)
         |> Repo.insert!()
       end)
     end)
@@ -137,7 +143,11 @@ defmodule TravelingPoet.Guide do
           "lat" => p.lat,
           "lng" => p.lng,
           "geocode_status" => p.geocode_status,
-          "media_id" => p.media_id
+          "media_id" => p.media_id,
+          "topic" => p.topic,
+          "second_topic" => p.second_topic,
+          "place_type" => p.place_type,
+          "topics_classified_at" => p.topics_classified_at
         }
         |> Enum.reject(fn {_k, v} -> is_nil(v) end)
         |> Map.new()
