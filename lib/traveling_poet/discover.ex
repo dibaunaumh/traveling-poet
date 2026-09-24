@@ -68,9 +68,7 @@ defmodule TravelingPoet.Discover do
           lat: p.lat,
           lng: p.lng,
           name: p.name,
-          group: Place.group_for(p.category),
-          # the world map filters by the subject the village is zoomed into
-          topics: Enum.reject([p.topic, p.second_topic], &is_nil/1)
+          group: Place.group_for(p.category)
         }
       end)
 
@@ -89,7 +87,6 @@ defmodule TravelingPoet.Discover do
       entries: entries,
       places: places,
       rotation: rotation(entries),
-      village: village(ids, slugs),
       anonymous: Enum.map(private, &blurred_point/1),
       totals: %{
         poets: length(public) + length(private),
@@ -100,18 +97,56 @@ defmodule TravelingPoet.Discover do
   end
 
   @doc """
+  What the map hook is sent: `build/0` with only the fields it draws, and
+  coordinates rounded to four places (about 10 m). Everything else stays on
+  the server: the overview a click opens is loaded one item at a time, and
+  the village list only when someone opens the village (`village/0`).
+
+  Sent by the hook's own request once it is connected, never as a page
+  attribute: an attribute is HTML-escaped (every quote becomes &quot;) and
+  LiveView sends it twice, in the page and again when the socket joins.
+  """
+  def client_payload(discover) do
+    %{
+      poets: Enum.map(discover.poets, &(Map.take(&1, [:slug, :name]) |> Map.merge(point(&1)))),
+      entries:
+        Enum.map(discover.entries, fn e ->
+          %{id: e.id, title: e.title || e.place} |> Map.merge(point(e))
+        end),
+      places:
+        Enum.map(discover.places, &(Map.take(&1, [:id, :name, :group]) |> Map.merge(point(&1)))),
+      rotation: discover.rotation,
+      anonymous: discover.anonymous,
+      me: Map.get(discover, :me)
+    }
+  end
+
+  defp point(%{lat: lat, lng: lng}), do: %{lat: round4(lat), lng: round4(lng)}
+
+  defp round4(n) when is_float(n), do: Float.round(n, 4)
+  defp round4(n), do: n
+
+  @doc """
   The global village: every public poet's published places that carry a
   topic, mapped or not (a place needs no coordinates to sit in a subject),
   one per place. The same place logged again (another day, another poet) is
   merged by name and city, keeping the newest row's id and every poet who
   found it.
 
-      %{tree: PlaceTopics.tree(), places: [%{id, name, city, topics, type, date, poets}]}
+      %{tree: PlaceTopics.tree(), places: [%{id, ids, name, city, topics, date, found_by}]}
+
+  `ids` are every row merged into the place, so the world map can show the
+  places under a subject; `found_by` is how many poets logged it.
 
   `topics` are third-level paths (Guide.PlaceTopics); a place under two
   subjects appears under both. Newest first.
   """
-  def village(ids, slugs) do
+  def village do
+    ids =
+      Poets.list_poets_on_the_road()
+      |> Enum.filter(& &1.is_public)
+      |> Enum.map(& &1.id)
+
     places =
       village_rows(ids)
       |> Enum.group_by(fn {p, city, _date} -> {normalize(p.name), normalize(city)} end)
@@ -128,9 +163,9 @@ defmodule TravelingPoet.Discover do
             |> Enum.flat_map(fn {p, _, _} -> [p.topic, p.second_topic] end)
             |> Enum.reject(&is_nil/1)
             |> Enum.uniq(),
-          type: newest.place_type,
           date: Date.to_iso8601(date),
-          poets: rows |> Enum.map(fn {p, _, _} -> slugs[p.poet_id] end) |> Enum.uniq()
+          ids: Enum.map(rows, fn {p, _, _} -> p.id end),
+          found_by: rows |> Enum.map(fn {p, _, _} -> p.poet_id end) |> Enum.uniq() |> length()
         }
       end)
       |> Enum.sort_by(&{&1.date, &1.id}, :desc)

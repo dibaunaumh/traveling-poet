@@ -6,7 +6,8 @@
 // back up. A place under two topics appears under both.
 //
 // Data (Discover.village/2): {tree: [{slug,name,children:[...]}], places:
-// [{id,name,city,topics:[path],type,date,poets:[slug]}]}, newest first.
+// [{id,ids,name,city,topics:[path],date,found_by}]}, newest first; fetched by
+// the hook only when the village is first opened.
 // Topic paths are "subject/subtopic/topic"; a node's path is its prefix.
 //
 // The Village owns only its own box. The DiscoverMap hook drives it: tells it
@@ -275,7 +276,7 @@ export class Village {
           style="--tile:hsl(${node.hue} 42% 90%)">
           <span class="village-place-name">${esc(p.name)}</span>
           <span class="village-place-where">${esc(p.city || "")}</span>
-          ${p.poets.length > 1 ? `<span class="village-place-more">found by ${p.poets.length} poets</span>` : ""}
+          ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
         </button>`
       )
       .join("")

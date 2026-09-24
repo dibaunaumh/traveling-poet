@@ -122,6 +122,7 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
     {:ok, view, _html} = live(conn, ~p"/discover")
     assert has_element?(view, "#discover-views[phx-update=ignore] [data-view=village]")
     assert has_element?(view, "#discover-map[data-views=discover-views][data-url]")
+    refute has_element?(view, "#discover-map[data-discover]")
 
     render_hook(view, "select", %{"kind" => "place", "id" => place.id, "from" => "map"})
     view |> element("button.discover-subject", "Weaving & silk") |> render_click()
@@ -133,6 +134,24 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
     # only a real topic is passed on
     render_click(view, "village", %{"topic" => "made/up/topic"})
     refute_push_event(view, "discover:village", %{topic: "made/up/topic"})
+  end
+
+  # The map's data used to ride in a page attribute: escaped, and sent twice
+  # (in the page, and again when the socket joined). ~480 KB per visit.
+  test "the page carries no map data; the hook asks for it, and for the village only on request",
+       %{conn: conn} do
+    wren = public_poet("Wren")
+    published_entry_fixture(wren, %{title: "Tiles", lat: 41.1, lng: -8.6})
+
+    {:ok, view, html} = live(conn, ~p"/discover")
+    refute html =~ ~s(data-discover=")
+    refute html =~ "Tiles&quot;"
+
+    render_hook(view, "load", %{})
+    assert_reply(view, %{entries: [%{title: "Tiles"}], rotation: [_]})
+
+    render_hook(view, "load_village", %{})
+    assert_reply(view, %{tree: [_ | _], places: []})
   end
 
   test "Discover is in the header for everyone", %{conn: conn} do

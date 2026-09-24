@@ -2,10 +2,14 @@
 // where they are; the VILLAGE view (village.js) is the same places by
 // subject. One tour turns through them in either view.
 //
-// Reads data-discover (JSON, the shape of Discover.build/0):
-//   {poets: [{slug,name,avatar,lat,lng,place}], entries: [{id,poet,lat,lng,place,date,title}],
-//    places: [{id,poet,lat,lng,name,group,topics}], rotation: [entry_id], anonymous: [{lat,lng}],
-//    village: {tree, places}, me: {lat,lng,name,poet} | null}
+// Asks the LiveView for its data once connected: pushEvent("load") replies
+// with Discover.client_payload/1:
+//   {poets: [{slug,name,lat,lng}], entries: [{id,lat,lng,title}],
+//    places: [{id,lat,lng,name,group}], rotation: [entry_id], anonymous: [{lat,lng}],
+//    me: {lat,lng,name,poet} | null}
+// and pushEvent("load_village") replies with Discover.village/0, asked for
+// only when the village is opened or a subject filters the map. Neither
+// rides in a page attribute (escaped, and sent twice).
 // `me` is the reader's own poet before it sets out (the waiting journal): a
 // red dot with its name, and where the map looks while nothing else is.
 // data-panel names the overview beside the stage (its [data-discover-prev]
@@ -107,18 +111,32 @@ const DiscoverMap = {
     this.index = 0
     this.view = "world"
     this.subject = ""
+    this.subjectIds = new Set()
+    this.villageLoaded = false
 
     this.bindInteraction()
-    this.load(JSON.parse(this.el.dataset.discover || "{}"))
+    this.load({})
     this.map.on("zoomend", () => this.sizePlaces())
-    this.handleEvent("discover:update", (data) => this.load(data))
+    this.handleEvent("discover:update", (data) => {
+      this.load(data)
+      // The village list is stale too; fetch it again only if it is in use.
+      this.villageLoaded = false
+      if (this.view === "village" || this.subject) this.ensureVillage(() => this.refresh())
+    })
     this.handleEvent("discover:focus", ({ kind, id }) => this.focus(kind, id))
     this.handleEvent("discover:village", ({ topic }) => {
       this.hold()
       this.setView("village", { subject: topic || "" })
     })
 
-    // A shared link can open the village at a subject.
+    this.pushEvent("load", {}, (data) => {
+      this.load(data)
+      this.start()
+    })
+  },
+
+  start() {
+    // A shared link can open the village, or the map filtered, at a subject.
     const params = this.el.dataset.url ? new URLSearchParams(window.location.search) : null
     if (params && (params.get("view") === "village" || params.get("topic"))) {
       const view = params.get("view") === "village" ? "village" : "world"
@@ -150,7 +168,6 @@ const DiscoverMap = {
     this.entries = new Map((this.data.entries || []).map((e) => [String(e.id), e]))
     this.places = new Map((this.data.places || []).map((p) => [String(p.id), p]))
     this.poets = new Map((this.data.poets || []).map((p) => [p.slug, p]))
-    this.village.load(this.data.village)
     this.render()
     this.queue = this.tourQueue()
     const keep = current ? this.queue.findIndex((q) => q.kind === current.kind && q.id === current.id) : -1
@@ -244,8 +261,31 @@ const DiscoverMap = {
   },
 
   placeInSubject(p) {
-    const s = this.subject
-    return (p.topics || []).some((t) => t === s || t.startsWith(s + "/"))
+    return this.subjectIds.has(p.id)
+  },
+
+  // The village list, fetched the first time it is needed, then `fn`.
+  ensureVillage(fn) {
+    if (this.villageLoaded) return fn()
+    this.pushEvent("load_village", {}, (village) => {
+      this.villageLoaded = true
+      this.village.load(village)
+      fn()
+    })
+  },
+
+  // Redraw whatever is showing after the data under it changed.
+  refresh() {
+    if (this.view === "village") this.village.setFocus(this.subject)
+    this.subjectIds = this.idsUnder(this.subject)
+    this.render()
+    this.queue = this.tourQueue()
+  },
+
+  // Every place row (world map ids) under a subject, from the village list.
+  idsUnder(subject) {
+    if (!subject || !this.villageLoaded) return new Set()
+    return new Set(this.village.placesUnder(subject).flatMap((p) => p.ids || [p.id]))
   },
 
   // Small dots across the world, bigger ones once the map is on a region.
@@ -262,7 +302,12 @@ const DiscoverMap = {
   // -- views ------------------------------------------------------------
 
   setView(view, { subject = this.subject, first = false } = {}) {
-    this.view = view === "village" ? "village" : "world"
+    view = view === "village" ? "village" : "world"
+    // The village, and a map filtered by subject, need the village list.
+    if ((view === "village" || subject) && !this.villageLoaded) {
+      return this.ensureVillage(() => this.setView(view, { subject, first }))
+    }
+    this.view = view
     this.mapEl.hidden = this.view !== "world"
     this.villageEl.hidden = this.view !== "village"
     if (this.layerToggles) this.layerToggles.hidden = this.view !== "world"
@@ -276,6 +321,7 @@ const DiscoverMap = {
       this.village.setFocus(subject)
     } else {
       this.subject = subject
+      this.subjectIds = this.idsUnder(subject)
       this.map.invalidateSize()
       this.render()
       const bounds = this.layers.places.getLayers().map((m) => m.getLatLng())
@@ -307,9 +353,13 @@ const DiscoverMap = {
       return this.village.rotation(this.subject).map((id) => ({ kind: "vplace", id }))
     }
     if (this.subject) {
+      // A village place stands for every row merged into it; the map shows
+      // whichever of them it has.
+      const byId = new Map(this.village.places.map((p) => [p.id, p]))
       return this.village
         .rotation(this.subject)
-        .filter((id) => this.places.has(String(id)))
+        .map((vid) => ((byId.get(vid) || {}).ids || [vid]).find((id) => this.places.has(String(id))))
+        .filter((id) => id != null)
         .map((id) => ({ kind: "place", id }))
     }
     return (this.data.rotation || []).map((id) => ({ kind: "entry", id }))
