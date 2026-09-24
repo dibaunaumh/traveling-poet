@@ -2515,7 +2515,13 @@ body::before {
   .discover-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 }
 
-.discover-map { height: 60vh; min-height: 320px; max-height: 640px; }
+/* Stacked (below lg) the overview sits under the map, so the map leaves room
+   for the top of the page card: on a phone a full-height map hid it, and
+   nothing said there was more below. */
+.discover-map { height: clamp(220px, 38svh, 420px); }
+@media (min-width: 1024px) {
+  .discover-map { height: 60vh; min-height: 320px; max-height: 640px; }
+}
 
 .discover-panel { min-width: 0; }
 .discover-card { padding: 1rem 1.1rem; }
