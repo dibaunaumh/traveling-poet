@@ -6,7 +6,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   alias TravelingPoet.DeadLinks
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
-  alias TravelingPoet.Guide.Geocoding
+  alias TravelingPoet.Guide.{Geocoding, TopicTagging}
   alias TravelingPoet.Journal.Marker
 
   # A day's finds, not a directory. The skill asks for 2-4; this is the
@@ -305,6 +305,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         city = entry.place_name || poet.current_place_name
         {resolved, not_located} = Geocoding.resolve_within_budget(saved, city)
         Geocoding.drain_async(poet.id, city)
+        # Topics for the village, in the background; places re-sent under the
+        # same name already carry theirs.
+        TopicTagging.tag_entry_async(entry.id)
 
         json(conn, %{
           ok: true,

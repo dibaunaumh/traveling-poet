@@ -1,0 +1,1023 @@
+{
+ "version": 2,
+ "topics": [
+  {
+   "slug": "art",
+   "name": "Art",
+   "children": [
+    {
+     "slug": "modern-and-contemporary-art",
+     "name": "Modern & contemporary art",
+     "children": [
+      {
+       "slug": "contemporary-art",
+       "name": "Contemporary art"
+      },
+      {
+       "slug": "modern-art",
+       "name": "Modern art"
+      },
+      {
+       "slug": "digital-and-immersive-art",
+       "name": "Digital & immersive art"
+      },
+      {
+       "slug": "photography",
+       "name": "Photography"
+      }
+     ]
+    },
+    {
+     "slug": "historic-and-classical-art",
+     "name": "Historic & classical art",
+     "children": [
+      {
+       "slug": "european-old-masters",
+       "name": "European old masters"
+      },
+      {
+       "slug": "asian-classical-art-and-buddhist-sculpture",
+       "name": "Asian classical art & Buddhist sculpture"
+      },
+      {
+       "slug": "prints-and-ukiyo-e",
+       "name": "Prints & ukiyo-e"
+      },
+      {
+       "slug": "encyclopedic-art-museums",
+       "name": "Encyclopedic art museums"
+      }
+     ]
+    },
+    {
+     "slug": "regional-folk-and-outsider-art",
+     "name": "Regional, folk & outsider art",
+     "children": [
+      {
+       "slug": "american-and-regional-art",
+       "name": "American & regional art"
+      },
+      {
+       "slug": "folk-and-outsider-art",
+       "name": "Folk & outsider art"
+      },
+      {
+       "slug": "indigenous-art",
+       "name": "Indigenous art"
+      },
+      {
+       "slug": "black-and-diaspora-art",
+       "name": "Black & diaspora art"
+      }
+     ]
+    },
+    {
+     "slug": "galleries-and-art-districts",
+     "name": "Galleries & art districts",
+     "children": [
+      {
+       "slug": "contemporary-galleries",
+       "name": "Contemporary galleries"
+      },
+      {
+       "slug": "artist-run-and-cooperative-galleries",
+       "name": "Artist-run & cooperative galleries"
+      },
+      {
+       "slug": "studio-buildings-and-art-districts",
+       "name": "Studio buildings & art districts"
+      }
+     ]
+    },
+    {
+     "slug": "public-art",
+     "name": "Public art",
+     "children": [
+      {
+       "slug": "murals-and-street-art",
+       "name": "Murals & street art"
+      },
+      {
+       "slug": "sculpture-and-sculpture-gardens",
+       "name": "Sculpture & sculpture gardens"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "crafts-and-design",
+   "name": "Crafts & design",
+   "children": [
+    {
+     "slug": "textiles",
+     "name": "Textiles",
+     "children": [
+      {
+       "slug": "weaving-and-silk",
+       "name": "Weaving & silk"
+      },
+      {
+       "slug": "printed-and-dyed-textiles",
+       "name": "Printed & dyed textiles"
+      },
+      {
+       "slug": "textile-heritage-and-ethnography",
+       "name": "Textile heritage & ethnography"
+      }
+     ]
+    },
+    {
+     "slug": "ceramics-and-tiles",
+     "name": "Ceramics & tiles",
+     "children": [
+      {
+       "slug": "pottery",
+       "name": "Pottery"
+      },
+      {
+       "slug": "tiles-and-azulejos",
+       "name": "Tiles & azulejos"
+      }
+     ]
+    },
+    {
+     "slug": "glass-and-metal",
+     "name": "Glass & metal",
+     "children": [
+      {
+       "slug": "glass",
+       "name": "Glass"
+      },
+      {
+       "slug": "bronze-and-metalwork",
+       "name": "Bronze & metalwork"
+      }
+     ]
+    },
+    {
+     "slug": "wood-lacquer-paper-and-ink",
+     "name": "Wood, lacquer, paper & ink",
+     "children": [
+      {
+       "slug": "woodwork-and-bamboo",
+       "name": "Woodwork & bamboo"
+      },
+      {
+       "slug": "lacquer-and-gold-leaf",
+       "name": "Lacquer & gold leaf"
+      },
+      {
+       "slug": "paper-ink-and-printmaking",
+       "name": "Paper, ink & printmaking"
+      },
+      {
+       "slug": "stone-carving",
+       "name": "Stone carving"
+      }
+     ]
+    },
+    {
+     "slug": "craft-guilds-and-centres",
+     "name": "Craft guilds & centres",
+     "children": [
+      {
+       "slug": "regional-craft-traditions",
+       "name": "Regional craft traditions"
+      }
+     ]
+    },
+    {
+     "slug": "design-and-fashion",
+     "name": "Design & fashion",
+     "children": [
+      {
+       "slug": "decorative-arts-and-fashion",
+       "name": "Decorative arts & fashion"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "music-and-performance",
+   "name": "Music & performance",
+   "children": [
+    {
+     "slug": "music",
+     "name": "Music",
+     "children": [
+      {
+       "slug": "jazz",
+       "name": "Jazz"
+      },
+      {
+       "slug": "blues-soul-and-gospel",
+       "name": "Blues, soul & gospel"
+      },
+      {
+       "slug": "folk-country-and-bluegrass",
+       "name": "Folk, country & bluegrass"
+      },
+      {
+       "slug": "rock-pop-and-indie",
+       "name": "Rock, pop & indie"
+      },
+      {
+       "slug": "classical-and-opera",
+       "name": "Classical & opera"
+      },
+      {
+       "slug": "flamenco",
+       "name": "Flamenco"
+      },
+      {
+       "slug": "traditional-and-world-music",
+       "name": "Traditional & world music"
+      }
+     ]
+    },
+    {
+     "slug": "theatre-and-dance",
+     "name": "Theatre & dance",
+     "children": [
+      {
+       "slug": "theatre",
+       "name": "Theatre"
+      },
+      {
+       "slug": "dance",
+       "name": "Dance"
+      },
+      {
+       "slug": "traditional-performance-and-puppetry",
+       "name": "Traditional performance & puppetry"
+      },
+      {
+       "slug": "comedy",
+       "name": "Comedy"
+      }
+     ]
+    },
+    {
+     "slug": "film",
+     "name": "Film",
+     "children": [
+      {
+       "slug": "cinemas-and-film-festivals",
+       "name": "Cinemas & film festivals"
+      },
+      {
+       "slug": "film-history",
+       "name": "Film history"
+      }
+     ]
+    },
+    {
+     "slug": "historic-venues",
+     "name": "Historic venues",
+     "children": [
+      {
+       "slug": "theatres-and-music-halls",
+       "name": "Theatres & music halls"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "literature-and-ideas",
+   "name": "Literature & ideas",
+   "children": [
+    {
+     "slug": "writers",
+     "name": "Writers",
+     "children": [
+      {
+       "slug": "writers-houses-and-museums",
+       "name": "Writers' houses & museums"
+      },
+      {
+       "slug": "writers-graves-and-memorials",
+       "name": "Writers' graves & memorials"
+      }
+     ]
+    },
+    {
+     "slug": "books-and-libraries",
+     "name": "Books & libraries",
+     "children": [
+      {
+       "slug": "bookshops",
+       "name": "Bookshops"
+      },
+      {
+       "slug": "libraries-and-literary-archives",
+       "name": "Libraries & literary archives"
+      }
+     ]
+    },
+    {
+     "slug": "learning-and-ideas",
+     "name": "Learning & ideas",
+     "children": [
+      {
+       "slug": "universities-and-campuses",
+       "name": "Universities & campuses"
+      },
+      {
+       "slug": "talks-hackathons-and-tech-events",
+       "name": "Talks, hackathons & tech events"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "history-and-heritage",
+   "name": "History & heritage",
+   "children": [
+    {
+     "slug": "ancient-and-archaeological",
+     "name": "Ancient & archaeological",
+     "children": [
+      {
+       "slug": "roman-and-ancient-sites",
+       "name": "Roman & ancient sites"
+      },
+      {
+       "slug": "archaeology-museums",
+       "name": "Archaeology museums"
+      }
+     ]
+    },
+    {
+     "slug": "palaces-castles-and-forts",
+     "name": "Palaces, castles & forts",
+     "children": [
+      {
+       "slug": "royal-palaces",
+       "name": "Royal palaces"
+      },
+      {
+       "slug": "castles-and-fortresses",
+       "name": "Castles & fortresses"
+      },
+      {
+       "slug": "estates-and-mansions",
+       "name": "Estates & mansions"
+      }
+     ]
+    },
+    {
+     "slug": "historic-towns-and-streets",
+     "name": "Historic towns & streets",
+     "children": [
+      {
+       "slug": "old-towns-and-historic-districts",
+       "name": "Old towns & historic districts"
+      },
+      {
+       "slug": "merchant-and-samurai-houses",
+       "name": "Merchant & samurai houses"
+      },
+      {
+       "slug": "traditional-villages-and-farmhouses",
+       "name": "Traditional villages & farmhouses"
+      },
+      {
+       "slug": "chinatowns-and-immigrant-quarters",
+       "name": "Chinatowns & immigrant quarters"
+      }
+     ]
+    },
+    {
+     "slug": "history-museums",
+     "name": "History museums",
+     "children": [
+      {
+       "slug": "national-and-regional-history",
+       "name": "National & regional history"
+      },
+      {
+       "slug": "local-history",
+       "name": "Local history"
+      },
+      {
+       "slug": "open-air-and-living-history",
+       "name": "Open-air & living history"
+      }
+     ]
+    },
+    {
+     "slug": "struggle-and-memory",
+     "name": "Struggle & memory",
+     "children": [
+      {
+       "slug": "black-history-and-civil-rights",
+       "name": "Black history & civil rights"
+      },
+      {
+       "slug": "war-and-conflict",
+       "name": "War & conflict"
+      },
+      {
+       "slug": "cemeteries-and-memorials",
+       "name": "Cemeteries & memorials"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "faith-and-spirit",
+   "name": "Faith & spirit",
+   "children": [
+    {
+     "slug": "buddhism",
+     "name": "Buddhism",
+     "children": [
+      {
+       "slug": "buddhist-temples",
+       "name": "Buddhist temples"
+      },
+      {
+       "slug": "zen-temples-and-gardens",
+       "name": "Zen temples & gardens"
+      },
+      {
+       "slug": "stupas-pagodas-and-great-buddhas",
+       "name": "Stupas, pagodas & great Buddhas"
+      }
+     ]
+    },
+    {
+     "slug": "shinto",
+     "name": "Shinto",
+     "children": [
+      {
+       "slug": "shinto-shrines",
+       "name": "Shinto shrines"
+      }
+     ]
+    },
+    {
+     "slug": "christianity",
+     "name": "Christianity",
+     "children": [
+      {
+       "slug": "cathedrals-and-churches",
+       "name": "Cathedrals & churches"
+      },
+      {
+       "slug": "missions-and-oratories",
+       "name": "Missions & oratories"
+      }
+     ]
+    },
+    {
+     "slug": "judaism-and-islam",
+     "name": "Judaism & Islam",
+     "children": [
+      {
+       "slug": "synagogues",
+       "name": "Synagogues"
+      },
+      {
+       "slug": "mosques-and-islamic-heritage",
+       "name": "Mosques & Islamic heritage"
+      }
+     ]
+    },
+    {
+     "slug": "folk-and-other-traditions",
+     "name": "Folk & other traditions",
+     "children": [
+      {
+       "slug": "chinese-temples-and-shrines",
+       "name": "Chinese temples & shrines"
+      },
+      {
+       "slug": "sacred-groves-and-natural-shrines",
+       "name": "Sacred groves & natural shrines"
+      },
+      {
+       "slug": "rituals-lanterns-and-pilgrimages",
+       "name": "Rituals, lanterns & pilgrimages"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "architecture-and-cityscape",
+   "name": "Architecture & cityscape",
+   "children": [
+    {
+     "slug": "landmark-buildings",
+     "name": "Landmark buildings",
+     "children": [
+      {
+       "slug": "art-deco-and-modernist-buildings",
+       "name": "Art Deco & modernist buildings"
+      },
+      {
+       "slug": "civic-buildings",
+       "name": "Civic buildings"
+      },
+      {
+       "slug": "museum-architecture",
+       "name": "Museum architecture"
+      },
+      {
+       "slug": "towers-and-observation-decks",
+       "name": "Towers & observation decks"
+      },
+      {
+       "slug": "stations-and-terminals",
+       "name": "Stations & terminals"
+      }
+     ]
+    },
+    {
+     "slug": "bridges",
+     "name": "Bridges",
+     "children": [
+      {
+       "slug": "historic-and-iconic-bridges",
+       "name": "Historic & iconic bridges"
+      },
+      {
+       "slug": "living-root-bridges",
+       "name": "Living root bridges"
+      }
+     ]
+    },
+    {
+     "slug": "historic-hotels",
+     "name": "Historic hotels",
+     "children": [
+      {
+       "slug": "grand-and-landmark-hotels",
+       "name": "Grand & landmark hotels"
+      }
+     ]
+    },
+    {
+     "slug": "city-spaces",
+     "name": "City spaces",
+     "children": [
+      {
+       "slug": "squares-and-promenades",
+       "name": "Squares & promenades"
+      },
+      {
+       "slug": "waterfronts-and-boardwalks",
+       "name": "Waterfronts & boardwalks"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "nature-and-outdoors",
+   "name": "Nature & outdoors",
+   "children": [
+    {
+     "slug": "parks-and-gardens",
+     "name": "Parks & gardens",
+     "children": [
+      {
+       "slug": "japanese-gardens",
+       "name": "Japanese gardens"
+      },
+      {
+       "slug": "botanical-gardens",
+       "name": "Botanical gardens"
+      },
+      {
+       "slug": "city-parks",
+       "name": "City parks"
+      }
+     ]
+    },
+    {
+     "slug": "mountains-and-trails",
+     "name": "Mountains & trails",
+     "children": [
+      {
+       "slug": "hiking-trails",
+       "name": "Hiking trails"
+      },
+      {
+       "slug": "summits-and-lookouts",
+       "name": "Summits & lookouts"
+      },
+      {
+       "slug": "mountain-roads-and-passes",
+       "name": "Mountain roads & passes"
+      }
+     ]
+    },
+    {
+     "slug": "water",
+     "name": "Water",
+     "children": [
+      {
+       "slug": "beaches-and-coast",
+       "name": "Beaches & coast"
+      },
+      {
+       "slug": "rivers-and-lakes",
+       "name": "Rivers & lakes"
+      },
+      {
+       "slug": "waterfalls",
+       "name": "Waterfalls"
+      },
+      {
+       "slug": "swimming-holes-and-hot-springs",
+       "name": "Swimming holes & hot springs"
+      }
+     ]
+    },
+    {
+     "slug": "wild-places",
+     "name": "Wild places",
+     "children": [
+      {
+       "slug": "forests",
+       "name": "Forests"
+      },
+      {
+       "slug": "caves",
+       "name": "Caves"
+      },
+      {
+       "slug": "national-and-state-parks",
+       "name": "National & state parks"
+      },
+      {
+       "slug": "wetlands-and-wildlife",
+       "name": "Wetlands & wildlife"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "food-and-drink",
+   "name": "Food & drink",
+   "children": [
+    {
+     "slug": "markets-and-food-halls",
+     "name": "Markets & food halls",
+     "children": [
+      {
+       "slug": "food-markets-and-halls",
+       "name": "Food markets & halls"
+      },
+      {
+       "slug": "street-food-and-night-markets",
+       "name": "Street food & night markets"
+      },
+      {
+       "slug": "farmers-markets",
+       "name": "Farmers markets"
+      },
+      {
+       "slug": "farms-and-orchards",
+       "name": "Farms & orchards"
+      }
+     ]
+    },
+    {
+     "slug": "cuisines",
+     "name": "Cuisines",
+     "children": [
+      {
+       "slug": "japanese",
+       "name": "Japanese"
+      },
+      {
+       "slug": "chinese-and-east-asian",
+       "name": "Chinese & East Asian"
+      },
+      {
+       "slug": "thai-lao-and-vietnamese",
+       "name": "Thai, Lao & Vietnamese"
+      },
+      {
+       "slug": "mexican-and-latin-american",
+       "name": "Mexican & Latin American"
+      },
+      {
+       "slug": "spanish-and-mediterranean",
+       "name": "Spanish & Mediterranean"
+      },
+      {
+       "slug": "european",
+       "name": "European"
+      },
+      {
+       "slug": "middle-eastern-and-north-african",
+       "name": "Middle Eastern & North African"
+      },
+      {
+       "slug": "american-regional",
+       "name": "American regional"
+      },
+      {
+       "slug": "barbecue",
+       "name": "Barbecue"
+      },
+      {
+       "slug": "indigenous-cuisine",
+       "name": "Indigenous cuisine"
+      }
+     ]
+    },
+    {
+     "slug": "plant-based",
+     "name": "Plant-based",
+     "children": [
+      {
+       "slug": "vegetarian-and-vegan",
+       "name": "Vegetarian & vegan"
+      },
+      {
+       "slug": "temple-cuisine",
+       "name": "Temple cuisine"
+      }
+     ]
+    },
+    {
+     "slug": "seafood",
+     "name": "Seafood",
+     "children": [
+      {
+       "slug": "seafood-and-fish",
+       "name": "Seafood & fish"
+      }
+     ]
+    },
+    {
+     "slug": "bakeries-and-sweets",
+     "name": "Bakeries & sweets",
+     "children": [
+      {
+       "slug": "bakeries-and-pastry",
+       "name": "Bakeries & pastry"
+      },
+      {
+       "slug": "sweets-and-ice-cream",
+       "name": "Sweets & ice cream"
+      },
+      {
+       "slug": "chocolate",
+       "name": "Chocolate"
+      }
+     ]
+    },
+    {
+     "slug": "coffee-and-tea",
+     "name": "Coffee & tea",
+     "children": [
+      {
+       "slug": "coffee",
+       "name": "Coffee"
+      },
+      {
+       "slug": "tea-houses",
+       "name": "Tea houses"
+      }
+     ]
+    },
+    {
+     "slug": "beer-wine-and-spirits",
+     "name": "Beer, wine & spirits",
+     "children": [
+      {
+       "slug": "breweries",
+       "name": "Breweries"
+      },
+      {
+       "slug": "wineries-and-tasting-rooms",
+       "name": "Wineries & tasting rooms"
+      },
+      {
+       "slug": "sake-breweries",
+       "name": "Sake breweries"
+      },
+      {
+       "slug": "bourbon-and-distilleries",
+       "name": "Bourbon & distilleries"
+      },
+      {
+       "slug": "bars-and-cocktail-lounges",
+       "name": "Bars & cocktail lounges"
+      }
+     ]
+    },
+    {
+     "slug": "food-festivals",
+     "name": "Food festivals",
+     "children": [
+      {
+       "slug": "food-and-wine-festivals",
+       "name": "Food & wine festivals"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "markets-and-shopping",
+   "name": "Markets & shopping",
+   "children": [
+    {
+     "slug": "markets",
+     "name": "Markets",
+     "children": [
+      {
+       "slug": "flea-and-general-markets",
+       "name": "Flea & general markets"
+      },
+      {
+       "slug": "night-and-walking-street-markets",
+       "name": "Night & walking-street markets"
+      },
+      {
+       "slug": "flower-markets",
+       "name": "Flower markets"
+      }
+     ]
+    },
+    {
+     "slug": "shops",
+     "name": "Shops",
+     "children": [
+      {
+       "slug": "specialty-food-shops",
+       "name": "Specialty food shops"
+      },
+      {
+       "slug": "craft-and-souvenir-shops",
+       "name": "Craft & souvenir shops"
+      },
+      {
+       "slug": "record-and-curiosity-shops",
+       "name": "Record & curiosity shops"
+      }
+     ]
+    },
+    {
+     "slug": "shopping-streets",
+     "name": "Shopping streets",
+     "children": [
+      {
+       "slug": "shopping-streets-and-arcades",
+       "name": "Shopping streets & arcades"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "festivals-and-community",
+   "name": "Festivals & community",
+   "children": [
+    {
+     "slug": "festivals",
+     "name": "Festivals",
+     "children": [
+      {
+       "slug": "neighbourhood-and-street-festivals",
+       "name": "Neighbourhood & street festivals"
+      },
+      {
+       "slug": "heritage-and-cultural-festivals",
+       "name": "Heritage & cultural festivals"
+      },
+      {
+       "slug": "seasonal-and-religious-festivals",
+       "name": "Seasonal & religious festivals"
+      },
+      {
+       "slug": "fairs-and-carnivals",
+       "name": "Fairs & carnivals"
+      },
+      {
+       "slug": "parades",
+       "name": "Parades"
+      },
+      {
+       "slug": "illuminations",
+       "name": "Illuminations"
+      }
+     ]
+    },
+    {
+     "slug": "community",
+     "name": "Community",
+     "children": [
+      {
+       "slug": "cultural-and-community-centres",
+       "name": "Cultural & community centres"
+      },
+      {
+       "slug": "giving-and-volunteering",
+       "name": "Giving & volunteering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "science-industry-and-play",
+   "name": "Science, industry & play",
+   "children": [
+    {
+     "slug": "industry-and-trade",
+     "name": "Industry & trade",
+     "children": [
+      {
+       "slug": "industrial-heritage",
+       "name": "Industrial heritage"
+      },
+      {
+       "slug": "signature-products",
+       "name": "Signature products"
+      },
+      {
+       "slug": "transport-and-maritime",
+       "name": "Transport & maritime"
+      },
+      {
+       "slug": "post-and-communication",
+       "name": "Post & communication"
+      }
+     ]
+    },
+    {
+     "slug": "science-and-medicine",
+     "name": "Science & medicine",
+     "children": [
+      {
+       "slug": "natural-history",
+       "name": "Natural history"
+      },
+      {
+       "slug": "medicine-and-anatomy",
+       "name": "Medicine & anatomy"
+      },
+      {
+       "slug": "flight-and-space",
+       "name": "Flight & space"
+      }
+     ]
+    },
+    {
+     "slug": "family-and-play",
+     "name": "Family & play",
+     "children": [
+      {
+       "slug": "play-spaces-and-kids-museums",
+       "name": "Play spaces & kids' museums"
+      },
+      {
+       "slug": "zoos-and-aquariums",
+       "name": "Zoos & aquariums"
+      },
+      {
+       "slug": "amusement-districts",
+       "name": "Amusement districts"
+      }
+     ]
+    },
+    {
+     "slug": "sports",
+     "name": "Sports",
+     "children": [
+      {
+       "slug": "ballparks-and-stadiums",
+       "name": "Ballparks & stadiums"
+      },
+      {
+       "slug": "traditional-sports",
+       "name": "Traditional sports"
+      },
+      {
+       "slug": "water-and-adventure-sports",
+       "name": "Water & adventure sports"
+      },
+      {
+       "slug": "bowling-and-old-time-games",
+       "name": "Bowling & old-time games"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

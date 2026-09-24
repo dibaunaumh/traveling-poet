@@ -46,6 +46,10 @@ config :traveling_poet, link_check_req_options: [plug: {Req.Test, TravelingPoet.
 # Image generation (Illustrations) and the eval judge: an unstubbed OpenRouter
 # call raises
 config :traveling_poet, illustrations_req_options: [plug: {Req.Test, TravelingPoet.Illustrations}]
+
+config :traveling_poet,
+  place_classifier_req_options: [plug: {Req.Test, TravelingPoet.PlaceClassifier}]
+
 config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}]
 # Wikimedia Commons lookups (find_reference_photos) too
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]

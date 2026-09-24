@@ -30,6 +30,12 @@ defmodule TravelingPoet.Guide.Place do
     field :ends_on, :date
     field :position, :integer, default: 0
     field :source, :string, default: "agent"
+    # Guide.PlaceTopics: set by the app's classifier, never by the poet, so
+    # they are cast only by topics_changeset/2.
+    field :topic, :string
+    field :second_topic, :string
+    field :place_type, :string
+    field :topics_classified_at, :utc_datetime
 
     belongs_to :poet, TravelingPoet.Poets.Poet
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
@@ -121,5 +127,40 @@ defmodule TravelingPoet.Guide.Place do
     |> validate_number(:lat, greater_than_or_equal_to: -90, less_than_or_equal_to: 90)
     |> validate_number(:lng, greater_than_or_equal_to: -180, less_than_or_equal_to: 180)
     |> unique_constraint([:journal_entry_id, :name])
+  end
+
+  @topic_fields [:topic, :second_topic, :place_type, :topics_classified_at]
+
+  @doc "The topic fields, for carrying them across a wholesale replace."
+  def topic_fields, do: @topic_fields
+
+  @doc """
+  The classifier's verdict on a place (Guide.PlaceTopics). A path not in the
+  tree, or a second topic equal to the first, is dropped rather than failing
+  the write: the rest of the verdict is still good.
+  """
+  def topics_changeset(place, attrs) do
+    place
+    |> cast(attrs, @topic_fields)
+    |> drop_unknown(:topic)
+    |> drop_unknown(:second_topic)
+    |> then(fn cs ->
+      if get_field(cs, :topic) == nil or get_field(cs, :second_topic) == get_field(cs, :topic),
+        do: put_change(cs, :second_topic, nil),
+        else: cs
+    end)
+    |> update_change(:place_type, &TravelingPoet.Guide.PlaceTopics.normalize_type/1)
+  end
+
+  defp drop_unknown(changeset, field) do
+    case get_change(changeset, field) do
+      nil ->
+        changeset
+
+      path ->
+        if TravelingPoet.Guide.PlaceTopics.valid?(path),
+          do: changeset,
+          else: put_change(changeset, field, nil)
+    end
   end
 end
