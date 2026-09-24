@@ -24,35 +24,32 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ "0 poets exploring"
   end
 
-  test "GET / map data carries avatar and a link to the latest published entry", %{conn: conn} do
-    user = user_fixture()
-
-    poet =
-      poet_fixture(user, %{
+  # "Poets on the road" is a compact Discover (DiscoverLive, embedded): the
+  # same data, overviews and privacy rule as /discover.
+  test "GET / shows the fleet through the embedded Discover", %{conn: conn} do
+    marta =
+      poet_fixture(user_fixture(), %{
         name: "Marta",
         is_public: true,
         status: "active",
         avatar_url: "/media/abc123"
       })
 
-    {:ok, entry} =
-      TravelingPoet.Journal.upsert_entry(poet.id, ~D[2026-08-20], %{title: "Older"})
+    published_entry_fixture(marta, %{
+      entry_date: ~D[2026-08-20],
+      title: "Older",
+      lat: 1.0,
+      lng: 1.0
+    })
 
-    {:ok, _} = TravelingPoet.Journal.publish_entry(entry)
-
-    {:ok, newest} =
-      TravelingPoet.Journal.upsert_entry(poet.id, ~D[2026-08-27], %{title: "Newest"})
-
-    {:ok, _} = TravelingPoet.Journal.publish_entry(newest)
-
-    html = conn |> get(~p"/") |> html_response(200)
-    assert html =~ "/media/abc123"
-    assert html =~ "/p/#{poet.slug}/2026-08-27"
-    assert html =~ "1 poet exploring the world"
-  end
-
-  test "GET / puts private poets on the map as anonymous pins", %{conn: conn} do
-    poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
+    newest =
+      published_entry_fixture(marta, %{
+        entry_date: ~D[2026-08-27],
+        title: "Newest",
+        teaser: "Salt on the wind.",
+        lat: 1.0,
+        lng: 1.0
+      })
 
     poet_fixture(user_fixture(), %{
       name: "Hidden Hilda",
@@ -65,32 +62,31 @@ defmodule TravelingPoetWeb.PageControllerTest do
 
     html = conn |> get(~p"/") |> html_response(200)
 
-    assert html =~ "2 poets exploring the world"
+    assert html =~ "Poets on the road right now"
+    assert html =~ ~s(id="discover-compact")
+    assert html =~ ~s(phx-hook="DiscoverMap")
+    # the newest page is open beside the map, with the way in
+    assert html =~ ~s(id="discover-entry-#{newest.id}")
+    assert html =~ "Salt on the wind."
+    assert html =~ "/p/#{marta.slug}/2026-08-27"
+    assert html =~ "/media/abc123"
+    assert html =~ ~s(href="/discover")
+    assert html =~ "2 poets on the road"
+
+    # the private poet is a blurred dot, nothing identifying
     assert html =~ "journals are private"
-    # the pin is there, blurred to ~10km, but nothing identifying it is
     refute html =~ "Hidden Hilda"
     refute html =~ "Bangkok"
-    refute html =~ "hidden-hilda"
     refute html =~ "13.7524938"
     assert html =~ "13.8"
   end
 
-  test "GET / omits poets who are not on the road", %{conn: conn} do
-    poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
-    poet_fixture(user_fixture(), %{name: "Paused Pia", is_public: false, status: "paused"})
-
-    poet_fixture(user_fixture(), %{
-      name: "Nowhere Ned",
-      is_public: false,
-      status: "active",
-      current_lat: nil,
-      current_lng: nil
-    })
+  test "GET / with nobody on the road says so, without a count", %{conn: conn} do
+    poet_fixture(user_fixture(), %{name: "Paused Pia", is_public: true, status: "paused"})
 
     html = conn |> get(~p"/") |> html_response(200)
-
-    assert html =~ "1 poet exploring the world"
-    refute html =~ "journals are private"
+    assert html =~ "still lacing their boots"
+    refute html =~ "on the road,"
   end
 
   test "GET / signed in hides sign-up CTAs and links to the journal", %{conn: conn} do
@@ -114,80 +110,6 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ "Scout a trip"
     refute html =~ "first days of travel are on us"
     refute html =~ "/auth/google"
-  end
-
-  describe "the open notebook under the map" do
-    defp publish(poet, date, title, sections) do
-      {:ok, entry} =
-        TravelingPoet.Journal.upsert_entry(poet.id, date, %{
-          title: title,
-          place_name: "Ronda, Spain"
-        })
-
-      {:ok, _} = TravelingPoet.Journal.replace_sections(entry, sections)
-      {:ok, _} = TravelingPoet.Journal.publish_entry(entry)
-      entry
-    end
-
-    test "shows the first poet's latest page, words left and drawing right, others hidden", %{
-      conn: conn
-    } do
-      nam = poet_fixture(user_fixture(), %{name: "Nam", is_public: true, status: "active"})
-      media = media_fixture(nam, %{alt_text: "Puente Nuevo in wash"})
-
-      publish(nam, ~D[2026-09-03], "The town on the edge", [
-        %{
-          kind: "description",
-          title: "First light",
-          body: "I left Seville this morning on a bus."
-        },
-        %{kind: "illustration", title: "Sketch", body: "", media_id: media.id},
-        %{kind: "poem", title: "Gorge", body: "The river carved a question mark"},
-        %{kind: "products", title: "Worth carrying home", body: "Olive oil from the almazaras."}
-      ])
-
-      hilma = poet_fixture(user_fixture(), %{name: "Hilma", is_public: true, status: "active"})
-      publish(hilma, ~D[2026-09-03], "Layers", [%{kind: "description", body: "Tokyo, at last."}])
-
-      # a public poet with nothing published gets a pin but no page
-      poet_fixture(user_fixture(), %{name: "Quiet Q", is_public: true, status: "active"})
-
-      html = conn |> get(~p"/") |> html_response(200)
-
-      assert html =~ ~s(data-spread="landing-spread")
-      assert html =~ "Pick one and read this morning"
-      assert html =~ "The town on the edge"
-      assert html =~ "I left Seville this morning"
-      assert html =~ "The river carved a question mark"
-      assert html =~ "Olive oil from the almazaras"
-      assert html =~ "/media/#{media.id}"
-      assert html =~ "Puente Nuevo in wash"
-      assert html =~ "Read the whole page"
-      assert html =~ "Show on the map"
-      assert html =~ "/p/#{nam.slug}/2026-09-03"
-
-      # one article per poet with a page; the first is open, the rest closed
-      doc = LazyHTML.from_document(html)
-
-      assert LazyHTML.query(doc, ~s|article[data-spread-poet="#{nam.slug}"]:not([hidden])|)
-             |> Enum.count() == 1
-
-      assert LazyHTML.query(doc, ~s|article[data-spread-poet="#{hilma.slug}"][hidden]|)
-             |> Enum.count() == 1
-
-      assert LazyHTML.query(doc, ~s|[data-spread-poet="quiet-q"]|) |> Enum.count() == 0
-
-      # the picker names both poets, marks the first
-      assert html =~ ~s(data-spread-pick="#{nam.slug}" aria-selected="true")
-      assert html =~ ~s(data-spread-pick="#{hilma.slug}" aria-selected="false")
-    end
-
-    test "no published pages means a map without a spread", %{conn: conn} do
-      poet_fixture(user_fixture(), %{name: "Marta", is_public: true, status: "active"})
-      html = conn |> get(~p"/") |> html_response(200)
-      refute html =~ ~s(id="landing-spread")
-      refute html =~ ~s(data-spread=)
-    end
   end
 
   describe "GET /start (the hero's destination box)" do

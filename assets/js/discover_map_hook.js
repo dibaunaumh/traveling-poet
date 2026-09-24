@@ -3,7 +3,10 @@
 //
 // Reads data-discover (JSON, the shape of Discover.build/0):
 //   {poets: [{slug,name,avatar,lat,lng,place}], entries: [{id,poet,lat,lng,place,date,title}],
-//    places: [{id,poet,lat,lng,name,group}], rotation: [entry_id], anonymous: [{lat,lng}]}
+//    places: [{id,poet,lat,lng,name,group}], rotation: [entry_id], anonymous: [{lat,lng}],
+//    me: {lat,lng,name,poet} | null}
+// `me` is the reader's own poet before it sets out (the waiting journal): a
+// red ring with its name, and where the map looks while nothing else is.
 // data-panel names the overview beside the map (its [data-discover-prev] and
 // [data-discover-next] buttons turn the tour), data-layers the row of
 // [data-layer] toggles.
@@ -74,7 +77,9 @@ const DiscoverMap = {
     this.handleEvent("discover:focus", ({ kind, id }) => this.focus(kind, id))
 
     // The server already shows the first page; the tour starts from it.
-    if (this.rotation.length > 0) {
+    if (this.rotation.length === 0 && this.data.me) {
+      this.map.setView([this.data.me.lat, this.data.me.lng], PAGE_ZOOM, { animate: false })
+    } else if (this.rotation.length > 0) {
       this.showEntry(this.rotation[0], { push: false })
       this.later(() => this.next(), FIRST_STEP_MS + this.stepMs())
     }
@@ -104,6 +109,20 @@ const DiscoverMap = {
     Object.values(this.layers).forEach((l) => l.clearLayers())
     this.anonymousLayer.clearLayers()
     this.placeMarkers = []
+
+    if (this.data.me) {
+      const me = this.data.me
+      L.circleMarker([me.lat, me.lng], {
+        radius: 9,
+        color: RED,
+        fillColor: RED,
+        fillOpacity: 0.85,
+        weight: 3,
+        interactive: false,
+      })
+        .bindTooltip(`${me.poet} starts here`, { permanent: true, direction: "right", offset: [10, 0] })
+        .addTo(this.anonymousLayer)
+    }
 
     ;(this.data.anonymous || []).forEach((p) => {
       L.circleMarker([p.lat, p.lng], {

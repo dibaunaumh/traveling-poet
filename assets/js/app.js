@@ -24,8 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/traveling_poet"
 import topbar from "../vendor/topbar"
-import PoetMap, {initStaticMaps} from "./poet_map_hook"
-import JourneyTour from "./journey_tour_hook"
+import PoetMap from "./poet_map_hook"
 import DiscoverMap from "./discover_map_hook"
 import ScrollBottom from "./scroll_bottom_hook"
 import ChatInput from "./chat_input_hook"
@@ -42,7 +41,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, JourneyTour, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP},
+  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP},
 })
 
 // Show progress bar on live navigation and form submits
@@ -100,8 +99,6 @@ if (process.env.NODE_ENV === "development") {
 }
 
 
-// Initialize Leaflet maps on static (non-LiveView) pages like the landing page
-window.addEventListener("DOMContentLoaded", initStaticMaps)
 
 // Place names inside the poet's prose link to the Places spread. They are
 // rendered from sanitized markdown, which strips the data-phx-link attributes

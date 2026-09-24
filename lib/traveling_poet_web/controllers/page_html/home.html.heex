@@ -71,102 +71,14 @@
       </div>
     </section>
 
-    <!-- Poets on the road: the map turns the pages of the open notebook below it -->
+    <!-- Poets on the road: a compact Discover (DiscoverLive, embedded), the
+         same map, tour and overviews as /discover -->
     <section class="py-8 border-t border-base-200" id="road">
       <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
-      <p :if={@poets_on_map > 0} class="text-center text-sm opacity-60 mb-6">
-        {@poets_on_map} {ngettext("poet", "poets", @poets_on_map)} exploring the world<span :if={
-          @spreads != []
-        }>. Pick one and read this morning&rsquo;s page.</span>
+      <p class="text-center text-sm opacity-60 mb-6">
+        Their newest pages, turning on their own. Pick anything on the map to read it.
       </p>
-
-      <div
-        id="landing-map"
-        data-track="landing-map"
-        data-static-map
-        data-spread={@spreads != [] && "landing-spread"}
-        class="w-full h-96 rounded-2xl border border-base-300 z-0"
-        data-poets={Jason.encode!(@public_poets)}
-        data-anonymous-poets={Jason.encode!(@anonymous_poets)}
-      >
-      </div>
-      <p :if={@anonymous_poets != []} class="text-xs opacity-50 mt-2 text-center">
-        Grey dots are poets whose journals are private.
-      </p>
-      <p :if={@poets_on_map == 0} class="text-sm opacity-60 mt-2 text-center">
-        No poets on the road yet. The first ones are still lacing their boots.
-      </p>
-
-      <div :if={@spreads != []} id="landing-spread" class="journal-column mt-6">
-        <div class="spread-picker" data-spread-picker role="tablist" aria-label="Poets">
-          <button
-            :for={{s, idx} <- Enum.with_index(@spreads)}
-            type="button"
-            role="tab"
-            class="spread-chip"
-            data-spread-pick={s.poet.slug}
-            aria-selected={to_string(idx == 0)}
-            data-track="spread-pick"
-          >
-            <img
-              :if={s.poet.avatar_url}
-              src={s.poet.avatar_url}
-              alt=""
-              class="spread-chip-avatar"
-            />
-            <span :if={!s.poet.avatar_url} class="spread-chip-avatar spread-chip-initial">
-              {String.first(s.poet.name)}
-            </span>
-            <span class="spread-chip-text">
-              <b>{s.poet.name}</b>
-              <small>{s.entry.place_name || s.poet.current_place_name}</small>
-            </span>
-          </button>
-        </div>
-
-        <.entry_spread
-          :for={{s, idx} <- Enum.with_index(@spreads)}
-          entry={s.entry}
-          day={s.day}
-          spread={s.spread}
-          media={s.media}
-          spot_media={s.spot_media}
-          clamp
-          heading_tag="h3"
-          show_date={false}
-          data-spread-poet={s.poet.slug}
-          hidden={idx != 0}
-          aria-label={"#{s.poet.name}'s latest page"}
-        >
-          <:meta>
-            <div class="spread-meta">
-              <span>
-                <b>{s.poet.name}</b>, a traveling poet
-                <span :if={s.entry.place_name}>&middot; {s.entry.place_name}</span>
-                <span :if={excursion_label(s.entry)}>
-                  &middot; on an excursion: {excursion_label(s.entry)}
-                </span>
-              </span>
-              <span class="notebook-date">
-                {Calendar.strftime(s.entry.entry_date, "%B %-d, %Y")}
-              </span>
-            </div>
-          </:meta>
-          <:right_footer>
-            <div class="spread-actions">
-              <a href={s.url} class="link" data-track="read-spread">Read the whole page &rarr;</a>
-              <button
-                type="button"
-                class="spread-locate"
-                data-spread-locate
-                data-track="spread-locate"
-              >
-                📍 Show on the map
-              </button>
-            </div>
-          </:right_footer>
-        </.entry_spread>
-      </div>
+      {live_render(@conn, TravelingPoetWeb.DiscoverLive, session: %{"compact" => true})}
     </section>
 
     <!-- Two ways to travel, then how it works, then why it isn't another travel app -->

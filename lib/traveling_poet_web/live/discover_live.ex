@@ -12,6 +12,17 @@ defmodule TravelingPoetWeb.DiscoverLive do
   drawing on it goes through the same components as the journal and the
   guide. The map div is `phx-update="ignore"`, so a publish anywhere in the
   fleet reaches it as a `discover:update` push, never as a new attribute.
+
+  The same LiveView is embedded, compact, where the fleet used to have its
+  own views: on the home page (`live_render` from the controller template)
+  and on a new reader's journal while their first entry is being written.
+  Its session says how:
+
+    * `"compact" => true`: no page chrome and no layer toggles, a smaller
+      map, and a link to the full page.
+    * `"me_poet_id" => id`: the reader's own poet, not yet on the road, as a
+      red ring where it sets out from. It is the reader's own, so it is
+      shown exactly; nobody else sees it.
   """
 
   use TravelingPoetWeb, :live_view
@@ -19,22 +30,42 @@ defmodule TravelingPoetWeb.DiscoverLive do
   import TravelingPoetWeb.NotebookComponents, only: [section: 1]
   import TravelingPoetWeb.GuideComponents, only: [place_card: 1]
 
-  alias TravelingPoet.Discover
+  alias TravelingPoet.{Discover, Poets}
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
     end
 
-    discover = Discover.build()
+    compact = session["compact"] == true
 
-    {:ok,
-     socket
-     |> assign(:page_title, "Discover")
-     |> assign(:discover, discover)
-     |> assign(:selected, first_selection(discover))}
+    socket =
+      socket
+      |> assign(:compact, compact)
+      # Embedded, the host page names the tab; a compact view on the home
+      # page otherwise retitled it "Discover".
+      |> then(&if(compact, do: &1, else: assign(&1, :page_title, "Discover")))
+      |> assign(:me, me(session["me_poet_id"]))
+      |> assign_discover()
+
+    {:ok, assign(socket, :selected, first_selection(socket.assigns.discover))}
   end
+
+  defp assign_discover(socket),
+    do: assign(socket, :discover, Map.put(Discover.build(), :me, socket.assigns.me))
+
+  defp me(id) when is_integer(id) do
+    case Poets.get_poet(id) do
+      %{current_lat: lat, current_lng: lng} = poet when is_number(lat) and is_number(lng) ->
+        %{lat: lat, lng: lng, name: poet.current_place_name, poet: poet.name}
+
+      _ ->
+        nil
+    end
+  end
+
+  defp me(_), do: nil
 
   @impl true
   def handle_event("select", %{"kind" => kind, "id" => id} = params, socket) do
@@ -57,12 +88,8 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   @impl true
   def handle_info({:journal_published, _poet_id, _entry_id}, socket) do
-    discover = Discover.build()
-
-    {:noreply,
-     socket
-     |> assign(:discover, discover)
-     |> push_event("discover:update", discover)}
+    socket = assign_discover(socket)
+    {:noreply, push_event(socket, "discover:update", socket.assigns.discover)}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -81,22 +108,25 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp tag(kind, overview), do: Map.put(overview, :kind, kind)
 
   @impl true
+  def render(%{compact: true} = assigns) do
+    ~H"""
+    <div class="discover-compact" id="discover-compact">
+      <.discover_view discover={@discover} selected={@selected} compact me={@me} />
+      <p class="discover-more">
+        <a href={~p"/discover"} class="link" data-track="discover-more">
+          Everything the poets have found, in Discover &rarr;
+        </a>
+      </p>
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:discover}>
       <div class="discover-head">
         <h1 class="text-2xl font-bold">Discover</h1>
-        <p class="text-sm opacity-70" id="discover-totals">
-          {@discover.totals.poets} {ngettext("poet", "poets", @discover.totals.poets)} on the road, {@discover.totals.entries} {ngettext(
-            "page",
-            "pages",
-            @discover.totals.entries
-          )} written, {@discover.totals.places} {ngettext(
-            "place",
-            "places",
-            @discover.totals.places
-          )} found.
-        </p>
+        <.totals discover={@discover} />
       </div>
 
       <%!-- The hook owns aria-pressed from here on: without ignore, every
@@ -120,34 +150,70 @@ defmodule TravelingPoetWeb.DiscoverLive do
         </button>
       </div>
 
-      <div class="discover-grid">
-        <div
-          id="discover-map"
-          phx-hook="DiscoverMap"
-          phx-update="ignore"
-          data-discover={Jason.encode!(@discover)}
-          data-panel="discover-panel"
-          data-layers="discover-layers"
-          class="discover-map rounded-2xl overflow-hidden border border-base-300 z-0"
-        >
-        </div>
-
-        <aside id="discover-panel" class="discover-panel" aria-live="polite">
-          <.overview :if={@selected} selected={@selected} />
-          <p :if={is_nil(@selected)} class="text-sm opacity-60 p-4">
-            Nothing on the road yet. The first poets are setting out.
-          </p>
-          <div :if={@discover.rotation != []} class="discover-tour-nav">
-            <button type="button" class="btn btn-ghost btn-sm" data-discover-prev>
-              <.icon name="hero-chevron-left" class="size-4" /> Previous page
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" data-discover-next>
-              Next page <.icon name="hero-chevron-right" class="size-4" />
-            </button>
-          </div>
-        </aside>
-      </div>
+      <.discover_view discover={@discover} selected={@selected} />
     </Layouts.app>
+    """
+  end
+
+  attr :discover, :map, required: true
+
+  defp totals(assigns) do
+    ~H"""
+    <p class="text-sm opacity-70" id="discover-totals">
+      {@discover.totals.poets} {ngettext("poet", "poets", @discover.totals.poets)} on the road, {@discover.totals.entries} {ngettext(
+        "page",
+        "pages",
+        @discover.totals.entries
+      )} written, {@discover.totals.places} {ngettext(
+        "place",
+        "places",
+        @discover.totals.places
+      )} found.
+    </p>
+    """
+  end
+
+  attr :discover, :map, required: true
+  attr :selected, :map, default: nil
+  attr :compact, :boolean, default: false
+  attr :me, :map, default: nil
+
+  defp discover_view(assigns) do
+    ~H"""
+    <.totals :if={@compact and @discover.totals.poets > 0} discover={@discover} />
+    <div class={["discover-grid", @compact && "mt-3"]}>
+      <div
+        id="discover-map"
+        phx-hook="DiscoverMap"
+        phx-update="ignore"
+        data-discover={Jason.encode!(@discover)}
+        data-panel="discover-panel"
+        data-layers={!@compact && "discover-layers"}
+        class="discover-map rounded-2xl overflow-hidden border border-base-300 z-0"
+      >
+      </div>
+
+      <aside id="discover-panel" class="discover-panel" aria-live="polite">
+        <.overview :if={@selected} selected={@selected} />
+        <p :if={is_nil(@selected) and @me} class="text-sm opacity-60 p-4">
+          Here is where {@me.poet} sets out from. Yours will be the first poet on the road.
+        </p>
+        <p :if={is_nil(@selected) and is_nil(@me)} class="text-sm opacity-60 p-4">
+          No poets on the road yet. The first ones are still lacing their boots.
+        </p>
+        <div :if={@discover.rotation != []} class="discover-tour-nav">
+          <button type="button" class="btn btn-ghost btn-sm" data-discover-prev>
+            <.icon name="hero-chevron-left" class="size-4" /> Previous page
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" data-discover-next>
+            Next page <.icon name="hero-chevron-right" class="size-4" />
+          </button>
+        </div>
+      </aside>
+    </div>
+    <p :if={@discover.anonymous != []} class="text-xs opacity-50 mt-2">
+      Grey dots are poets whose journals are private.
+    </p>
     """
   end
 

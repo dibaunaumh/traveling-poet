@@ -6,7 +6,5 @@ defmodule TravelingPoetWeb.PageHTML do
   """
   use TravelingPoetWeb, :html
 
-  import TravelingPoetWeb.NotebookComponents
-
   embed_templates "page_html/*"
 end

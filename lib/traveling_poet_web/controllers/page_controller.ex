@@ -1,8 +1,6 @@
 defmodule TravelingPoetWeb.PageController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.Journal
-  alias TravelingPoet.Journal.EntryBundle
   alias TravelingPoet.Poets
 
   # Inside the iOS app the home page is a front door, not a pitch: someone
@@ -37,44 +35,7 @@ defmodule TravelingPoetWeb.PageController do
         user -> Poets.get_poet_by_user(user.id)
       end
 
-    {public, private} =
-      Poets.list_poets_on_the_road() |> Enum.split_with(& &1.is_public)
-
-    latest = Map.new(public, fn p -> {p.id, Journal.latest_published_entry(p.id)} end)
-
-    poets =
-      Enum.map(public, fn p ->
-        entry = latest[p.id]
-
-        %{
-          lat: p.current_lat,
-          lng: p.current_lng,
-          name: p.name,
-          place: p.current_place_name,
-          slug: p.slug,
-          avatar: p.avatar_url,
-          entry_url: entry_url(p, entry),
-          # The pin follows the poet, but the link goes to the newest entry —
-          # which is about wherever they were when they last wrote. Say so
-          # when the two have diverged, rather than letting the popup imply
-          # the entry is about the place under the pin.
-          entry_place: entry_place(p, entry)
-        }
-      end)
-
-    # The open notebook under the map: every public poet's newest page, in the
-    # same order as the pins, so the map can turn the pages.
-    spreads =
-      public
-      |> Enum.map(fn p -> {p, latest[p.id]} end)
-      |> Enum.reject(fn {_p, entry} -> is_nil(entry) end)
-      |> Enum.map(fn {p, entry} -> spread(p, Journal.preload_entry(entry)) end)
-
     render(conn, :home,
-      public_poets: poets,
-      spreads: spreads,
-      anonymous_poets: Enum.map(private, &Poets.Showcase.blurred_point/1),
-      poets_on_map: length(public) + length(private),
       my_poet: my_poet,
       signed_out?: is_nil(conn.assigns[:current_user]),
       layout: false
@@ -145,32 +106,4 @@ defmodule TravelingPoetWeb.PageController do
   @doc "Onboarding, with the requested starting place when there is one."
   def onboarding_path(place) when place in [nil, ""], do: ~p"/onboarding"
   def onboarding_path(place), do: ~p"/onboarding?#{[place: place]}"
-
-  # The same Today spread the journal opens to: words left, drawing and poem
-  # right. Drawings the entry owns but no section claimed are shown too.
-  defp spread(poet, entry) do
-    bundle = EntryBundle.load(entry)
-
-    %{
-      poet: poet,
-      entry: bundle.entry,
-      day: Journal.journey_day(bundle.entry),
-      media: bundle.media,
-      spread: hd(bundle.spreads),
-      spot_media: bundle.spot_media,
-      url: entry_url(poet, entry)
-    }
-  end
-
-  # Deep-link straight to the newest published entry when there is one; the
-  # journal index (which redirects to the newest) is the fallback.
-  defp entry_url(poet, nil), do: "/p/#{poet.slug}"
-  defp entry_url(poet, entry), do: "/p/#{poet.slug}/#{entry.entry_date}"
-
-  # Only when it differs from where the pin sits — otherwise the popup would
-  # repeat itself.
-  defp entry_place(_poet, nil), do: nil
-  defp entry_place(_poet, %{place_name: nil}), do: nil
-  defp entry_place(%{current_place_name: place}, %{place_name: place}), do: nil
-  defp entry_place(_poet, entry), do: entry.place_name
 end
