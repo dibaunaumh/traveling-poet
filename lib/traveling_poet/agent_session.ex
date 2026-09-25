@@ -35,6 +35,9 @@ defmodule TravelingPoet.AgentSession do
     channel = Keyword.get(opts, :channel, "system")
     timeout = Keyword.get(opts, :reply_timeout_ms, @default_reply_timeout_ms)
     persist? = Keyword.get(opts, :persist, true)
+    # What the chat keeps, when the poet is sent more than the reader wrote
+    # (an app note ahead of their words, `Asks.frame_reply/2`).
+    record = Keyword.get(opts, :record_as, message)
 
     case GatewaySocketSupervisor.ensure_connected(user, attempts: 6) do
       {:ok, pid} ->
@@ -45,7 +48,7 @@ defmodule TravelingPoet.AgentSession do
           Chat.create_message(%{
             user_id: user.id,
             role: "user",
-            content: message,
+            content: record,
             channel: channel
           })
         end

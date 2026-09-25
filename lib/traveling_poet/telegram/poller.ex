@@ -125,7 +125,9 @@ defmodule TravelingPoet.Telegram.Poller do
 
             # Relay in a task so one slow agent turn doesn't block polling.
             Task.start(fn ->
-              case AgentSession.run(user, text, channel: "telegram") do
+              framed = TravelingPoet.Asks.frame_reply(user.id, text)
+
+              case AgentSession.run(user, framed, channel: "telegram", record_as: text) do
                 {:ok, ""} ->
                   Client.send_message(
                     chat_id,
