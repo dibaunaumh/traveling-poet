@@ -99,4 +99,35 @@ defmodule TravelingPoetWeb.ReadingSignalsTest do
     assert length(expected) == 2
     assert rendered == expected
   end
+
+  test "Settings draws the taste map and lists the subjects; one can be taken off", %{conn: conn} do
+    {user, entry} = owner_with_entry()
+    path = "history-and-heritage/history-museums/local-history"
+
+    TravelingPoet.Repo.insert!(%TravelingPoet.Journal.ParagraphSubject{
+      poet_id: entry.poet_id,
+      journal_entry_id: entry.id,
+      key: Paragraphs.key(@para),
+      topic: path,
+      classified_at: DateTime.utc_now(:second)
+    })
+
+    TravelingPoet.Repo.insert!(%TravelingPoet.Journal.Marker{
+      journal_entry_id: entry.id,
+      user_id: user.id,
+      kind: "interesting",
+      target: "text",
+      section_kind: "description",
+      quote: "baking bread"
+    })
+
+    {:ok, view, html} = live(sign_in(conn, user), ~p"/settings")
+    assert html =~ "Subjects you linger on"
+    assert html =~ ~s(class="taste-map-dot is-for")
+    assert view |> element("#lingering-list") |> render() =~ "Local history"
+
+    view |> element(~s(#lingering-list button[phx-value-path="#{path}"])) |> render_click()
+    refute has_element?(view, "#lingering-list")
+    assert view |> element("#lingering-removed") |> render() =~ "Local history"
+  end
 end

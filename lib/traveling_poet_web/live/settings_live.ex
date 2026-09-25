@@ -6,6 +6,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_settings: 1]
 
   import TravelingPoetWeb.PoetComponents
+  import TravelingPoetWeb.AffinityComponents, only: [taste_map: 1]
 
   alias TravelingPoet.{
     Accounts,
@@ -19,6 +20,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   }
 
   alias TravelingPoet.Poets.{Poet, Presets}
+  alias TravelingPoet.Affinity
   alias TravelingPoet.Topics
   alias TravelingPoet.Topics.Topic
 
@@ -119,6 +121,8 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   defp assign_learned(socket) do
+    socket = assign_affinity(socket)
+
     case socket.assigns.poet do
       nil ->
         socket |> assign(:learned, []) |> assign(:dismissed, [])
@@ -128,6 +132,17 @@ defmodule TravelingPoetWeb.SettingsLive do
         |> assign(:learned, Preferences.list_active(poet.id))
         |> assign(:dismissed, Preferences.list_dismissed(poet.id))
     end
+  end
+
+  # The taste profile: the whole of it for the map, the strongest for the list.
+  defp assign_affinity(socket) do
+    user = socket.assigns.user
+    profile = Affinity.profile(user)
+
+    socket
+    |> assign(:affinity, profile)
+    |> assign(:affinity_top, Affinity.top(user))
+    |> assign(:affinity_dismissed, Affinity.dismissed(user))
   end
 
   defp source_label("tap"), do: "you tapped this"
@@ -290,13 +305,25 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("dismiss_subject", %{"path" => path}, socket) do
+    Affinity.dismiss(socket.assigns.user, path)
+    {:noreply, assign_affinity(socket)}
+  end
+
+  @impl true
+  def handle_event("restore_subject", %{"path" => path}, socket) do
+    Affinity.restore(socket.assigns.user, path)
+    {:noreply, assign_affinity(socket)}
+  end
+
+  @impl true
   def handle_event("toggle_reading", params, socket) do
     on = params["reading_signals"] == "true"
 
     case Accounts.update_user(socket.assigns.user, %{reading_signals: on}) do
       {:ok, updated} ->
         unless on, do: TravelingPoet.Reading.forget(updated)
-        {:noreply, assign(socket, :user, updated)}
+        {:noreply, socket |> assign(:user, updated) |> assign_affinity()}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not save that setting.")}
@@ -1553,6 +1580,52 @@ defmodule TravelingPoetWeb.SettingsLive do
                   </button>
                 </li>
               </ul>
+
+              <div id="lingering" class="mt-5 border-t border-base-200 pt-4">
+                <h3 class="font-medium mb-1">Subjects you linger on</h3>
+                <p class="text-sm opacity-60 mb-3">
+                  From the topics and tastes you keep, the passages you mark, the entries you react to and the paragraphs you read through. Recent signals count most.
+                </p>
+                <p :if={@affinity == []} class="text-sm opacity-50">
+                  Nothing yet. Read your journal, mark what catches you, and this fills in.
+                </p>
+                <.taste_map :if={@affinity != []} profile={@affinity} />
+                <ul :if={@affinity_top != []} class="mt-3 space-y-1" id="lingering-list">
+                  <li :for={s <- @affinity_top} class="flex items-center gap-2 text-sm">
+                    <span class="flex-1">
+                      {Enum.at(s.names, 2)} <span class="opacity-50">· {hd(s.names)}</span>
+                    </span>
+                    <button
+                      phx-click="dismiss_subject"
+                      phx-value-path={s.path}
+                      class="btn btn-ghost btn-xs"
+                      title="Not really me"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                </ul>
+                <details :if={@affinity_dismissed != []} class="mt-2" id="lingering-removed">
+                  <summary class="text-xs opacity-50 cursor-pointer">
+                    Removed ({length(@affinity_dismissed)})
+                  </summary>
+                  <ul class="mt-2 space-y-1">
+                    <li
+                      :for={s <- @affinity_dismissed}
+                      class="flex items-center gap-2 text-sm opacity-60"
+                    >
+                      <span class="flex-1">{Enum.at(s.names, 2)}</span>
+                      <button
+                        phx-click="restore_subject"
+                        phx-value-path={s.path}
+                        class="btn btn-ghost btn-xs"
+                      >
+                        restore
+                      </button>
+                    </li>
+                  </ul>
+                </details>
+              </div>
 
               <form id="reading-signals-form" phx-change="toggle_reading" class="mt-4">
                 <input type="hidden" name="reading_signals" value="false" />
