@@ -103,7 +103,6 @@ defmodule TravelingPoetWeb.PublicGuideLive do
         </div>
         <div class="ml-auto flex gap-1">
           <.link navigate={~p"/p/#{@poet.slug}"} class="btn btn-ghost btn-sm">Journal</.link>
-          <.link navigate={~p"/"} class="btn btn-ghost btn-sm">World map</.link>
         </div>
       </div>
 
