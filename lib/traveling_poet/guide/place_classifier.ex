@@ -199,8 +199,11 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
       side. A row may be a talk, a paper, a session, an exhibition, a product, a
       recording, a book, a film or series, an outdoor activity; a reader's
       subject ("embodied minds") or taste ("post-rock, Mogwai"); or a paragraph
-      of the writer's own journal, filed by what it describes (a paragraph that
-      is only mood, weather or getting from A to B has no subject). File each by
+      of the writer's own journal, filed by what it describes: a place, its
+      history, its people and customs, a craft, a dish, an event, a work of art.
+      A paragraph has no subject ONLY when it is nothing but weather, mood, or
+      getting from A to B; a paragraph on how a town came to be is history, one
+      on a local skill is that craft. File each by
       what it is ABOUT: a talk on AI and aviation is AI and transport, an album
       is its kind of music, an exhibition is its art and its subject.
       """,
