@@ -203,6 +203,50 @@ defmodule TravelingPoet.DiscoverTest do
     end
   end
 
+  describe "a page's drawing" do
+    test "is the one its illustration section shows, even if never linked to the page" do
+      nam = on_the_road("Nam")
+      entry = page(nam, ~D[2026-09-25])
+      # drawn before the page existed: no journal_entry_id
+      drawing = media_fixture(nam)
+      assert drawing.journal_entry_id == nil
+
+      %TravelingPoet.Journal.Section{}
+      |> TravelingPoet.Journal.Section.changeset(%{
+        journal_entry_id: entry.id,
+        kind: "illustration",
+        media_id: drawing.id,
+        position: 0
+      })
+      |> TravelingPoet.Repo.insert!()
+
+      assert Discover.entry(entry.id).drawing.id == drawing.id
+    end
+
+    test "saving the sections links an unlinked drawing of this poet, and nothing else" do
+      nam = on_the_road("Nam")
+      wren = on_the_road("Wren")
+      entry = page(nam, ~D[2026-09-25])
+      elsewhere = page(nam, ~D[2026-09-24])
+
+      mine = media_fixture(nam)
+      already = media_fixture(nam, %{journal_entry_id: elsewhere.id})
+      theirs = media_fixture(wren)
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{kind: "illustration", media_id: mine.id},
+          %{kind: "illustration", media_id: already.id},
+          %{kind: "illustration", media_id: theirs.id}
+        ])
+
+      reload = &TravelingPoet.Repo.get!(TravelingPoet.Journal.Media, &1.id)
+      assert reload.(mine).journal_entry_id == entry.id
+      assert reload.(already).journal_entry_id == elsewhere.id
+      assert reload.(theirs).journal_entry_id == nil
+    end
+  end
+
   describe "client_payload/1" do
     test "carries only what the map draws, with coordinates rounded" do
       nam = on_the_road("Nam", %{current_lat: 38.722345678, current_lng: -9.139312345})

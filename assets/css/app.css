@@ -2474,7 +2474,10 @@ body::before {
 .discover-compact .discover-panel {
   display: flex;
   flex-direction: column;
-  height: 32rem;
+  /* Room for the drawing at its full 11rem beside a two-line title, a
+     three-line teaser and the links; at 32rem the drawing was squeezed to
+     a strip on most pages (measured on poet.travel, 2026-09-25). */
+  height: 36rem;
 }
 .discover-compact .discover-card {
   flex: 1 1 auto;
@@ -2536,7 +2539,7 @@ body::before {
 
 @media (min-width: 1024px) {
   .discover-compact .discover-map,
-  .discover-compact .discover-panel { height: 30rem; min-height: 0; max-height: none; }
+  .discover-compact .discover-panel { height: 34rem; min-height: 0; max-height: none; }
 }
 .discover-more { margin-top: 0.75rem; font-size: 0.9rem; }
 
