@@ -60,8 +60,10 @@ defmodule TravelingPoet.ChangeStream.Registry do
   # never leave this database; apns_devices likewise (the iOS app's push
   # tokens). visit_events: anonymous page analytics, not
   # domain state. paragraph_reads: how long a reader looks at each paragraph
-  # of their own journal, private to them and the app's taste profile.
+  # of their own journal, private to them and the app's taste profile;
+  # subject_dismissals likewise (what they took off that profile).
   @excluded [
+    TravelingPoet.Affinity.Dismissal,
     TravelingPoet.Analytics.VisitEvent,
     TravelingPoet.Reading.ParagraphRead,
     Geocoder.CacheEntry,
