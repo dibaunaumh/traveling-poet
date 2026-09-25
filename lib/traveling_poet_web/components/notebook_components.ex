@@ -396,7 +396,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   @doc false
   def find_color(kind) when kind in ~w(paper talk session), do: "#3b4a8c"
   def find_color("product"), do: "#b7791f"
-  def find_color(kind) when kind in ~w(music book screen), do: "#a33b3b"
+  def find_color(kind) when kind in ~w(artwork music book screen), do: "#a33b3b"
   def find_color(kind) when kind in ~w(event venue outing), do: "#8e44ad"
   def find_color(_), do: "#0f766e"
 

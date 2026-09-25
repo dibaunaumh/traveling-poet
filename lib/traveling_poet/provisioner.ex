@@ -865,7 +865,7 @@ defmodule TravelingPoet.Provisioner do
                   properties: {
                     name: { type: "string" },
                     url: { type: "string", description: "the exact page you read: the talk, the abstract, the product, the session" },
-                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "music", "book", "screen", "outing", "other"], description: "on a taste day: music (an album, an artist), book, screen (a film or series), outing (a trail, a walk, an activity), product (a gadget or gift)" },
+                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "artwork", "music", "book", "screen", "outing", "other"], description: "artwork: one piece (an installation, an immersive or XR work). On a taste day: music (an album, an artist), book, screen (a film or series), outing (a trail, a walk, an activity), product (a gadget or gift)" },
                     blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
                     poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" }
                   }

@@ -127,6 +127,82 @@ defmodule TravelingPoet.DiscoverTest do
     end
   end
 
+  describe "finds in the village" do
+    alias TravelingPoet.Topics.Excursion
+
+    @ai "literature-and-ideas/fields-of-thought/ai-and-computing"
+    @mind "literature-and-ideas/fields-of-thought/mind-and-cognitive-science"
+
+    defp find_on(poet, date, name, topic) do
+      entry = page(poet, date, %{place_name: nil})
+
+      subject =
+        topic_fixture(poet, %{label: "Embodied minds #{System.unique_integer([:positive])}"})
+
+      excursion_fixture(poet, subject, entry)
+
+      Excursion
+      |> TravelingPoet.Repo.get_by!(journal_entry_id: entry.id)
+      |> set_destination("ECogS")
+
+      {:ok, [find]} =
+        TravelingPoet.Topics.replace_finds(entry, [
+          %{
+            "name" => name,
+            "url" => "https://example.com/#{name}",
+            "kind" => "talk",
+            "poet_rating" => 4
+          }
+        ])
+
+      find
+      |> TravelingPoet.Topics.Find.topics_changeset(%{
+        topic: topic,
+        topics_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> TravelingPoet.Repo.update!()
+    end
+
+    defp set_destination(x, name) do
+      {:ok, x} = TravelingPoet.Topics.set_destination(x, %{"destination_name" => name})
+      x
+    end
+
+    test "public finds sit beside the places, merged by name; a private poet's stay out" do
+      nam = on_the_road("Nam")
+      wren = on_the_road("Wren")
+      a = find_on(nam, ~D[2026-09-01], "Shanahan on embodiment", @ai)
+      # the same talk, typed with a different dash and case
+      b = find_on(wren, ~D[2026-09-03], "shanahan – on embodiment ", @mind)
+
+      hidden = on_the_road("Hilda", %{is_public: false})
+      find_on(hidden, ~D[2026-09-02], "Secret talk", @ai)
+
+      assert [merged] = Discover.village().finds
+      assert merged.id == b.id
+      refute merged.id == a.id
+      assert merged.kind == "talk"
+      assert merged.found_by == 2
+      assert Enum.sort(merged.topics) == Enum.sort([@ai, @mind])
+      refute inspect(Discover.village()) =~ "Secret"
+    end
+
+    test "a find's overview: what it is, who brought it back and from where" do
+      nam = on_the_road("Nam")
+      find = find_on(nam, ~D[2026-09-01], "Shanahan on embodiment", @ai)
+
+      overview = Discover.find(find.id)
+      assert overview.find.name == "Shanahan on embodiment"
+      assert overview.poet.id == nam.id
+      assert overview.destination == "ECogS"
+
+      hidden = on_the_road("Hilda", %{is_public: false})
+      secret = find_on(hidden, ~D[2026-09-02], "Secret talk", @ai)
+      assert Discover.find(secret.id) == nil
+      assert Discover.find("nonsense") == nil
+    end
+  end
+
   describe "client_payload/1" do
     test "carries only what the map draws, with coordinates rounded" do
       nam = on_the_road("Nam", %{current_lat: 38.722345678, current_lng: -9.139312345})

@@ -21,6 +21,7 @@ defmodule TravelingPoet.Discover do
   alias TravelingPoet.Guide.{Place, PlaceTopics}
   alias TravelingPoet.Journal.{Entry, Media}
   alias TravelingPoet.Poets.Poet
+  alias TravelingPoet.Topics.{Excursion, Find}
 
   # How many entries the tour turns through before it starts over. The map
   # shows every entry; the tour only the freshest pages.
@@ -170,7 +171,70 @@ defmodule TravelingPoet.Discover do
       end)
       |> Enum.sort_by(&{&1.date, &1.id}, :desc)
 
-    %{tree: PlaceTopics.tree(), places: places}
+    %{tree: PlaceTopics.tree(), places: places, finds: village_finds(ids)}
+  end
+
+  # What the poets brought back from days off the road (talks, papers,
+  # exhibitions, recordings, books), on the same tree as the places. The same
+  # find listed twice (a re-sent day, a second poet) is one tile, by name.
+  defp village_finds([]), do: []
+
+  defp village_finds(ids) do
+    Find
+    |> join(:inner, [f], e in Entry, on: e.id == f.journal_entry_id)
+    |> where([f, e], f.poet_id in ^ids and e.status == "published" and not is_nil(f.topic))
+    |> select([f, e], {f, e.entry_date})
+    |> Repo.all()
+    |> Enum.group_by(fn {f, _date} -> find_key(f.name) end)
+    |> Enum.map(fn {_key, rows} ->
+      {newest, date} = Enum.max_by(rows, fn {f, d} -> {Date.to_iso8601(d), f.id} end)
+
+      %{
+        id: newest.id,
+        name: newest.name,
+        kind: newest.kind,
+        topics:
+          rows
+          |> Enum.flat_map(fn {f, _} -> [f.topic, f.second_topic] end)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.uniq(),
+        date: Date.to_iso8601(date),
+        found_by: rows |> Enum.map(fn {f, _} -> f.poet_id end) |> Enum.uniq() |> length()
+      }
+    end)
+    |> Enum.sort_by(&{&1.date, &1.id}, :desc)
+  end
+
+  @doc """
+  A find's overview: the find, the public poet who brought it back, the page
+  and the destination it came from. nil unless the page is published and the
+  poet public.
+  """
+  def find(id) do
+    with {:ok, id} <- to_id(id),
+         %Find{} = find <- Repo.get(Find, id),
+         %Entry{status: "published"} = entry <- Repo.get(Entry, find.journal_entry_id),
+         %Poet{} = poet <- public_poet(find.poet_id) do
+      destination =
+        Excursion
+        |> where(journal_entry_id: ^entry.id)
+        |> select([x], x.destination_name)
+        |> Repo.one()
+
+      %{find: find, poet: poet, entry: entry, destination: destination}
+    else
+      _ -> nil
+    end
+  end
+
+  # A find's name as a merge key: case, punctuation and spacing aside, so
+  # "Atlas Fractured — Theo Eshetu" and "Atlas Fractured – Theo Eshetu" are
+  # one find.
+  defp find_key(name) do
+    name
+    |> normalize()
+    |> String.replace(~r/[^\p{L}\p{N}]+/u, " ")
+    |> String.trim()
   end
 
   defp normalize(nil), do: ""

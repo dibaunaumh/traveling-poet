@@ -2703,6 +2703,24 @@ body::before {
 .village-place-name { font-weight: 600; font-size: 0.88rem; line-height: 1.2; }
 .village-place-where,
 .village-place-more { font-size: 0.75rem; opacity: 0.7; }
+/* A find (a talk, a paper, an album) beside the places: a ticket, not a
+   pin, with a dashed edge and its kind in small capitals. */
+.village-find {
+  background: color-mix(in oklab, var(--tile) 55%, white);
+  outline: 1px dashed color-mix(in oklab, var(--tile) 40%, #23272b);
+  outline-offset: -4px;
+}
+.village-find .village-place-where {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+.discover-find-kind {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
 
 .village-tile.is-current,
 .village-place.is-current {

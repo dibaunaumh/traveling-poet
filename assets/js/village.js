@@ -5,9 +5,12 @@
 // at a topic, the places themselves as a grid of tiles. A breadcrumb goes
 // back up. A place under two topics appears under both.
 //
-// Data (Discover.village/2): {tree: [{slug,name,children:[...]}], places:
-// [{id,ids,name,city,topics:[path],date,found_by}]}, newest first; fetched by
-// the hook only when the village is first opened.
+// Data (Discover.village/0): {tree: [{slug,name,children:[...]}], places:
+// [{id,ids,name,city,topics:[path],date,found_by}], finds: [{id,name,kind,
+// topics,date,found_by}]}, newest first; fetched by the hook only when the
+// village is first opened. Places and finds (talks, papers, recordings...)
+// share the tree; each is an "item" keyed "p<id>" or "f<id>", since a place
+// and a find can have the same id.
 // Topic paths are "subject/subtopic/topic"; a node's path is its prefix.
 //
 // The Village owns only its own box. The DiscoverMap hook drives it: tells it
@@ -93,10 +96,15 @@ function layRow(row, { x, y, w, h }, out) {
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 
+// What a find is, in a word, as GuideComponents.humanize_category/1 says it.
+const FIND_KINDS = { screen: "Film or series", outing: "Outdoors", other: "Find" }
+const findKind = (kind) =>
+  FIND_KINDS[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Find")
+
 export class Village {
-  constructor(el, { onPlace, onFocus }) {
+  constructor(el, { onItem, onFocus }) {
     this.el = el
-    this.onPlace = onPlace
+    this.onItem = onItem
     this.onFocus = onFocus
     this.focus = ""
     this.current = null
@@ -105,8 +113,8 @@ export class Village {
     this.tiles = this.el.querySelector(".village-tiles")
 
     this.el.addEventListener("click", (e) => {
-      const place = e.target.closest("[data-village-place]")
-      if (place) return this.onPlace(Number(place.dataset.villagePlace))
+      const item = e.target.closest("[data-village-item]")
+      if (item) return this.onItem(item.dataset.villageItem)
       const node = e.target.closest("[data-village-node]")
       if (node) return this.setFocus(node.dataset.villageNode, { user: true })
     })
@@ -114,6 +122,10 @@ export class Village {
 
   load(data) {
     this.places = (data && data.places) || []
+    this.finds = (data && data.finds) || []
+    this.items = this.places
+      .map((p) => ({ ...p, key: `p${p.id}`, type: "place" }))
+      .concat(this.finds.map((f) => ({ ...f, key: `f${f.id}`, type: "find" })))
     this.nodes = new Map()
     this.nodes.set("", { path: "", name: "All subjects", depth: 0, children: [], hue: null })
     ;((data && data.tree) || []).forEach((a) => {
@@ -124,9 +136,9 @@ export class Village {
         b.children.forEach((c) => this.addNode(`${a.slug}/${b.slug}/${c.slug}`, c.name, `${a.slug}/${b.slug}`, 3, hue))
       })
     })
-    // How many places sit under each node (a place counts once per node).
+    // How many places and finds sit under each node (each counts once).
     this.nodes.forEach((n) => (n.count = 0))
-    this.places.forEach((p) => {
+    this.items.forEach((p) => {
       const seen = new Set()
       p.topics.forEach((t) => {
         const parts = t.split("/")
@@ -156,17 +168,22 @@ export class Village {
     return path === "" || place.topics.some((t) => t === path || t.startsWith(path + "/"))
   }
 
+  // Places only: what the world map can show.
   placesUnder(path) {
     return this.places.filter((p) => this.under(p, path))
   }
 
-  // The tour's order under a subject: newest first, one place per child
-  // subject per round, so one busy subject cannot hold the tour.
+  itemsUnder(path) {
+    return this.items.filter((p) => this.under(p, path))
+  }
+
+  // The tour's order under a subject, as item keys: newest first, one item
+  // per child subject per round, so one busy subject cannot hold the tour.
   rotation(path = this.focus, cap = 40) {
     const node = this.nodes.get(path)
     if (!node) return []
     const groups = new Map()
-    this.placesUnder(path).forEach((p) => {
+    this.itemsUnder(path).forEach((p) => {
       const key = node.depth === 3 ? "" : node.children.find((c) => this.under(p, c)) || ""
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key).push(p)
@@ -179,7 +196,7 @@ export class Village {
       batch.sort((a, b) => (a.date < b.date ? 1 : -1))
       out.push(...batch)
     }
-    return out.slice(0, cap).map((p) => p.id)
+    return out.slice(0, cap).map((p) => p.key)
   }
 
   setFocus(path, { user = false } = {}) {
@@ -189,15 +206,15 @@ export class Village {
     if (this.onFocus) this.onFocus(path, { user })
   }
 
-  highlight(placeId) {
-    this.current = placeId
+  highlight(key) {
+    this.current = key
     this.tiles.querySelectorAll(".is-current").forEach((el) => el.classList.remove("is-current"))
-    if (placeId == null) return
-    const place = this.places.find((p) => p.id === placeId)
+    if (key == null) return
+    const place = this.items.find((p) => p.key === key)
     if (!place) return
     const node = this.nodes.get(this.focus)
     if (node.depth === 3) {
-      const el = this.tiles.querySelector(`[data-village-place="${placeId}"]`)
+      const el = this.tiles.querySelector(`[data-village-item="${key}"]`)
       if (el) {
         el.classList.add("is-current")
         // Scroll the grid, never the page: scrollIntoView would move the
@@ -239,7 +256,7 @@ export class Village {
       .join(`<span class="village-sep" aria-hidden="true">›</span>`)
 
     this.tiles.classList.toggle("is-grid", node.depth === 3)
-    this.tiles.innerHTML = node.depth === 3 ? this.placeGrid(node) : this.treemap(node)
+    this.tiles.innerHTML = node.depth === 3 ? this.itemGrid(node) : this.treemap(node)
     if (this.current != null) this.highlight(this.current)
   }
 
@@ -250,7 +267,7 @@ export class Village {
       .map((c) => this.nodes.get(c))
       .filter((c) => c.count > 0)
       .map((c) => ({ value: c.count, node: c }))
-    if (items.length === 0) return `<p class="village-empty">No places here yet.</p>`
+    if (items.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
 
     return squarify(items, { x: 0, y: 0, w, h })
       .map(({ item, x, y, w: tw, h: th }) => {
@@ -267,15 +284,17 @@ export class Village {
       .join("")
   }
 
-  placeGrid(node) {
-    const places = this.placesUnder(node.path)
-    if (places.length === 0) return `<p class="village-empty">No places here yet.</p>`
-    return places
+  // A topic's places and finds, newest first. A find says what it is (a
+  // talk, an album) where a place says its city.
+  itemGrid(node) {
+    const items = this.itemsUnder(node.path)
+    if (items.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
+    return items
       .map(
-        (p) => `<button type="button" class="village-place" data-village-place="${p.id}"
-          style="--tile:hsl(${node.hue} 42% 90%)">
+        (p) => `<button type="button" class="village-place${p.type === "find" ? " village-find" : ""}"
+          data-village-item="${p.key}" style="--tile:hsl(${node.hue} 42% 90%)">
           <span class="village-place-name">${esc(p.name)}</span>
-          <span class="village-place-where">${esc(p.city || "")}</span>
+          <span class="village-place-where">${esc(p.type === "find" ? findKind(p.kind) : p.city || "")}</span>
           ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
         </button>`
       )
