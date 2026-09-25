@@ -151,7 +151,7 @@ stay.
     booth or a product photo.
   - No `art_culture`, `products` or `kindness` on an excursion day.
 - **`journal_put_finds`** with those same finds: `name`, the exact `url` you
-  read, `kind` (talk, paper, product, session, event, venue), a one-line
+  read, `kind` (talk, paper, product, session, event, venue, artwork for a single piece), a one-line
   `blurb` for this companion, and your own `poet_rating`. Pass
   `destination_name` and `destination_url` for the destination itself. It
   replaces the day's list, as places do. Never `journal_put_places` on an

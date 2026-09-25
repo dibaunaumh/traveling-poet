@@ -185,7 +185,7 @@ defmodule TravelingPoet.Discover do
     |> where([f, e], f.poet_id in ^ids and e.status == "published" and not is_nil(f.topic))
     |> select([f, e], {f, e.entry_date})
     |> Repo.all()
-    |> Enum.group_by(fn {f, _date} -> normalize(f.name) end)
+    |> Enum.group_by(fn {f, _date} -> find_key(f.name) end)
     |> Enum.map(fn {_key, rows} ->
       {newest, date} = Enum.max_by(rows, fn {f, d} -> {Date.to_iso8601(d), f.id} end)
 
@@ -225,6 +225,16 @@ defmodule TravelingPoet.Discover do
     else
       _ -> nil
     end
+  end
+
+  # A find's name as a merge key: case, punctuation and spacing aside, so
+  # "Atlas Fractured — Theo Eshetu" and "Atlas Fractured – Theo Eshetu" are
+  # one find.
+  defp find_key(name) do
+    name
+    |> normalize()
+    |> String.replace(~r/[^\p{L}\p{N}]+/u, " ")
+    |> String.trim()
   end
 
   defp normalize(nil), do: ""

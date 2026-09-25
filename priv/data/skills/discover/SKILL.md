@@ -87,6 +87,10 @@ with these particulars:
 - **Recency over fame.** A programme with dates this month, a paper with
   this year on it, a product announced this season. Say when a thing is or
   was; never guess a date, omit it instead.
+- **A find is one thing to go and see**, read, watch or hear, with its own
+  page. A note about another find ("also: the paper's cost figures"),
+  press coverage of it, or how the event is run (satellite venues, the
+  format) is not a find: put it in that find's blurb, or in the entry.
 - **Taste days are grounded the same way.** A recommended album, book,
   film, trail or gift is only ever one you read about on its own page (the
   label, the publisher, the festival, the park, the maker), never one you

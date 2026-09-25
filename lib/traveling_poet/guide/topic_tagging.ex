@@ -98,8 +98,17 @@ defmodule TravelingPoet.Guide.TopicTagging do
       second_topic: verdict.second_topic,
       topics_classified_at: now()
     })
+    |> adopt_kind(find, verdict.place_type)
     |> Repo.update!()
   end
+
+  # A find the poet could only call "other" takes the classifier's kind, so
+  # the village says "Exhibition" or "Film or series", not "Other". A kind
+  # the poet chose is never overridden.
+  defp adopt_kind(changeset, %Find{kind: "other"}, kind) when kind not in [nil, "other"],
+    do: Ecto.Changeset.put_change(changeset, :kind, kind)
+
+  defp adopt_kind(changeset, _find, _kind), do: changeset
 
   defp save_topic(topic, verdict) do
     topic

@@ -97,7 +97,7 @@ const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 
 // What a find is, in a word, as GuideComponents.humanize_category/1 says it.
-const FIND_KINDS = { screen: "Film or series", outing: "Outdoors" }
+const FIND_KINDS = { screen: "Film or series", outing: "Outdoors", other: "Find" }
 const findKind = (kind) =>
   FIND_KINDS[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Find")
 

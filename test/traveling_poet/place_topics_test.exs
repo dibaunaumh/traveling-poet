@@ -266,6 +266,26 @@ defmodule TravelingPoet.PlaceTopicsTest do
       assert TopicTagging.tag_finds(entry.id, api_key: "k") == 0
     end
 
+    test "a find the poet called 'other' takes the classifier's kind; a chosen kind stays",
+         %{entry: entry} do
+      {:ok, [show, talk]} =
+        TravelingPoet.Topics.replace_finds(entry, [
+          %{"name" => "Solwata", "url" => "https://example.com/s", "kind" => "other"},
+          %{"name" => "A talk", "url" => "https://example.com/t", "kind" => "talk"}
+        ])
+
+      stub_things([
+        %{"id" => show.id, "topics" => [@ai], "type" => "event"},
+        %{"id" => talk.id, "topics" => [@ai], "type" => "paper"}
+      ])
+
+      assert TopicTagging.tag_finds(entry.id, api_key: "k") == 2
+      assert_receive {:system_prompt, system}
+      assert system =~ "what kind of thing it is"
+      assert Repo.get!(TravelingPoet.Topics.Find, show.id).kind == "event"
+      assert Repo.get!(TravelingPoet.Topics.Find, talk.id).kind == "talk"
+    end
+
     test "a taste gets its subjects; new words clear them for a fresh look", %{poet: poet} do
       taste = topic_fixture(poet, %{label: "Colleen, DakhaBrakha", domain: "music"})
       stub_things([%{"id" => taste.id, "topics" => [@ambient], "type" => "other"}])

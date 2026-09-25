@@ -149,6 +149,11 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp load("poet", slug) when is_binary(slug), do: tag(:poet, Discover.poet(slug))
   defp load(_, _), do: nil
 
+  # As the village tile says it: a find the poet could only call "other" is
+  # simply a find.
+  defp find_kind("other"), do: "Find"
+  defp find_kind(kind), do: humanize_category(kind)
+
   defp subjects(%{topic: a, second_topic: b}) do
     [a, b]
     |> Enum.reject(&is_nil/1)
@@ -371,7 +376,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <.byline poet={@selected.poet}>
         brought back{if @selected.destination, do: " from " <> @selected.destination}
       </.byline>
-      <p class="discover-find-kind">{humanize_category(@selected.find.kind)}</p>
+      <p class="discover-find-kind">{find_kind(@selected.find.kind)}</p>
       <h2 class="discover-title">{@selected.find.name}</h2>
       <p :if={@selected.find.blurb} class="discover-teaser">{@selected.find.blurb}</p>
       <p :if={@selected.find.poet_rating} class="text-xs opacity-60">

@@ -18,7 +18,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   @topic_filters [
     {"all", "All"},
     {"ideas", "Talks and papers"},
-    {"works", "Music, books, films"},
+    {"works", "Art, music, books, films"},
     {"things", "Products"},
     {"happenings", "Events and venues"}
   ]

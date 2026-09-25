@@ -172,7 +172,8 @@ defmodule TravelingPoet.DiscoverTest do
       nam = on_the_road("Nam")
       wren = on_the_road("Wren")
       a = find_on(nam, ~D[2026-09-01], "Shanahan on embodiment", @ai)
-      b = find_on(wren, ~D[2026-09-03], "shanahan on embodiment ", @mind)
+      # the same talk, typed with a different dash and case
+      b = find_on(wren, ~D[2026-09-03], "shanahan – on embodiment ", @mind)
 
       hidden = on_the_road("Hilda", %{is_public: false})
       find_on(hidden, ~D[2026-09-02], "Secret talk", @ai)

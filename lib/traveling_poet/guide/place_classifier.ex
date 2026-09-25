@@ -71,7 +71,7 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
 
     case Req.post(@api_url, options) do
       {:ok, %{status: 200, body: resp}} ->
-        {:ok, resp |> content() |> parse_response(Enum.map(places, & &1.id))}
+        {:ok, resp |> content() |> parse_response(Enum.map(places, & &1.id), as)}
 
       {:ok, %{status: status, body: resp}} ->
         Logger.warning(
@@ -97,7 +97,9 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
   `{"places": [...]}` or a bare list, in markdown fences or not; ids not
   asked about are ignored; an id it did not answer for is simply absent.
   """
-  def parse_response(raw, asked_ids) when is_binary(raw) do
+  def parse_response(raw, asked_ids, as \\ :places)
+
+  def parse_response(raw, asked_ids, as) when is_binary(raw) do
     asked = MapSet.new(asked_ids, &to_string/1)
 
     raw
@@ -125,8 +127,7 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
            %{
              topic: Enum.at(topics, 0),
              second_topic: Enum.at(topics, 1),
-             place_type:
-               if(topics == [], do: nil, else: PlaceTopics.normalize_type(verdict["type"]))
+             place_type: if(topics == [], do: nil, else: normalize_type(as, verdict["type"]))
            }}
         ]
       end
@@ -134,7 +135,13 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
     |> Map.new()
   end
 
-  def parse_response(_, _), do: %{}
+  def parse_response(_, _, _), do: %{}
+
+  # For a place, one of PlaceTopics.types/0; for a thing, one of the find
+  # kinds (talk, paper, music, screen...), which Guide.TopicTagging adopts for
+  # a find the poet left as "other".
+  defp normalize_type(:things, type), do: TravelingPoet.Topics.Find.normalize_kind(type)
+  defp normalize_type(_places, type), do: PlaceTopics.normalize_type(type)
 
   # The id as it was asked (an integer), not as the model echoed it.
   defp id_of(id, asked_ids), do: Enum.find(asked_ids, &(to_string(&1) == to_string(id)))
@@ -178,7 +185,8 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
       Return [] ONLY when the row is not somewhere a visitor could go:
                 a whole town or region mentioned in passing, a person, an
                 organisation or website, a train line.
-      """
+      """,
+      {"place", PlaceTopics.types()}
     )
   end
 
@@ -195,13 +203,21 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
       is its kind of music, an exhibition is its art and its subject.
       """,
       """
-      Return [] ONLY when the row is plainly news coverage of another row or
-                a logistics note, not a thing in itself.
-      """
+      Return [] ONLY when the row is not a thing in itself: news coverage
+                of another row ("TechCrunch on the paper"), a note about another
+                row ("also: the paper's cost figures"), or a note about how an
+                event is run ("satellite venues in Paris and Tianjin"). Those
+                are asides, not finds. For "type", a single artwork (an
+                installation, an immersive or XR piece) is an artwork; an
+                exhibition, a show, a screening or a festival is an event; an album or an artist is
+                music; a film or a series is screen; a tool, a dataset or an
+                app is a product.
+      """,
+      {"thing", TravelingPoet.Topics.Find.kinds()}
     )
   end
 
-  defp base_prompt(intro, empty_rule) do
+  defp base_prompt(intro, empty_rule, {noun, types}) do
     topics =
       Enum.map_join(PlaceTopics.paths(), "\n", fn path ->
         "#{path}  (#{Enum.join(PlaceTopics.names(path), " > ")})"
@@ -219,8 +235,8 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
               exactly, choose the CLOSEST one (a German restaurant with no
               German topic still goes under food, in the nearest cuisine).
               #{String.trim(empty_rule)}
-      type    what kind of place it is, one of:
-              #{Enum.join(PlaceTopics.types(), ", ")}
+      type    what kind of #{noun} it is, one of:
+              #{Enum.join(types, ", ")}
 
     File by SUBJECT, not by what the building is: an exhibition of textiles goes
     under textiles; a temple is filed by its faith; a restaurant by its cuisine.

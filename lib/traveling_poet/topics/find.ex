@@ -12,7 +12,9 @@ defmodule TravelingPoet.Topics.Find do
 
   # music, book, screen and outing come from taste days (a topic with a
   # domain); gadgets and gifts are products.
-  @kinds ~w(talk paper product session event venue music book screen outing other)
+  # artwork: a piece shown on an art day (an installation, an immersive or
+  # XR work), which is neither an event nor a film.
+  @kinds ~w(talk paper product session event venue artwork music book screen outing other)
 
   schema "entry_finds" do
     field :entry_date, :date
@@ -47,7 +49,7 @@ defmodule TravelingPoet.Topics.Find do
   """
   def group_for(kind) when kind in ~w(talk paper session), do: "ideas"
   def group_for("product"), do: "things"
-  def group_for(kind) when kind in ~w(music book screen), do: "works"
+  def group_for(kind) when kind in ~w(artwork music book screen), do: "works"
   def group_for(kind) when kind in ~w(event venue outing), do: "happenings"
   def group_for(_), do: "other"
 
