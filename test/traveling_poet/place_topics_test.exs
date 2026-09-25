@@ -21,16 +21,28 @@ defmodule TravelingPoet.PlaceTopicsTest do
   end
 
   describe "the tree" do
-    test "is the approved one: 12, 53 and 157 topics, every path three levels" do
+    test "is the approved one: 12, 54 and 180 topics, every path three levels" do
       tree = PlaceTopics.tree()
       assert length(tree) == 12
-      assert tree |> Enum.flat_map(& &1["children"]) |> length() == 53
-      assert length(PlaceTopics.paths()) == 157
+      assert tree |> Enum.flat_map(& &1["children"]) |> length() == 54
+      assert length(PlaceTopics.paths()) == 180
 
       assert PlaceTopics.valid?(@contemporary)
       refute PlaceTopics.valid?("art/modern-and-contemporary-art")
       refute PlaceTopics.valid?("art/made-up/topic")
       assert PlaceTopics.names(@weaving) == ["Crafts & design", "Textiles", "Weaving & silk"]
+    end
+
+    test "v3 adds works and fields of thought without moving a single v2 path" do
+      # places already store v2 paths: renaming Film to "Film & TV" kept its slug
+      assert PlaceTopics.valid?("music-and-performance/film/cinemas-and-film-festivals")
+
+      assert PlaceTopics.names("music-and-performance/film/tv-and-series") ==
+               ["Music & performance", "Film & TV", "TV & series"]
+
+      assert PlaceTopics.valid?("literature-and-ideas/fields-of-thought/ai-and-computing")
+      assert PlaceTopics.valid?("crafts-and-design/design-and-fashion/stationery-and-paper-goods")
+      assert PlaceTopics.valid?("music-and-performance/music/electronic-and-ambient")
     end
 
     test "place types come from a fixed list" do

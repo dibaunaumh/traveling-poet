@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "topics": [
   {
    "slug": "art",
@@ -194,6 +194,18 @@
       {
        "slug": "decorative-arts-and-fashion",
        "name": "Decorative arts & fashion"
+      },
+      {
+       "slug": "stationery-and-paper-goods",
+       "name": "Stationery & paper goods"
+      },
+      {
+       "slug": "gadgets-and-everyday-objects",
+       "name": "Gadgets & everyday objects"
+      },
+      {
+       "slug": "jewellery",
+       "name": "Jewellery"
       }
      ]
     }
@@ -234,6 +246,18 @@
       {
        "slug": "traditional-and-world-music",
        "name": "Traditional & world music"
+      },
+      {
+       "slug": "electronic-and-ambient",
+       "name": "Electronic & ambient"
+      },
+      {
+       "slug": "experimental-and-sound-art",
+       "name": "Experimental & sound art"
+      },
+      {
+       "slug": "hip-hop-and-randb",
+       "name": "Hip hop & R&B"
       }
      ]
     },
@@ -261,7 +285,7 @@
     },
     {
      "slug": "film",
-     "name": "Film",
+     "name": "Film & TV",
      "children": [
       {
        "slug": "cinemas-and-film-festivals",
@@ -270,6 +294,22 @@
       {
        "slug": "film-history",
        "name": "Film history"
+      },
+      {
+       "slug": "feature-films",
+       "name": "Feature films"
+      },
+      {
+       "slug": "documentary",
+       "name": "Documentary"
+      },
+      {
+       "slug": "animation",
+       "name": "Animation"
+      },
+      {
+       "slug": "tv-and-series",
+       "name": "TV & series"
       }
      ]
     },
@@ -314,6 +354,26 @@
       {
        "slug": "libraries-and-literary-archives",
        "name": "Libraries & literary archives"
+      },
+      {
+       "slug": "fiction",
+       "name": "Fiction"
+      },
+      {
+       "slug": "poetry",
+       "name": "Poetry"
+      },
+      {
+       "slug": "nonfiction-and-essays",
+       "name": "Nonfiction & essays"
+      },
+      {
+       "slug": "science-fiction-and-fantasy",
+       "name": "Science fiction & fantasy"
+      },
+      {
+       "slug": "comics-and-graphic-novels",
+       "name": "Comics & graphic novels"
       }
      ]
     },
@@ -328,6 +388,36 @@
       {
        "slug": "talks-hackathons-and-tech-events",
        "name": "Talks, hackathons & tech events"
+      }
+     ]
+    },
+    {
+     "slug": "fields-of-thought",
+     "name": "Fields of thought",
+     "children": [
+      {
+       "slug": "ai-and-computing",
+       "name": "AI & computing"
+      },
+      {
+       "slug": "mind-and-cognitive-science",
+       "name": "Mind & cognitive science"
+      },
+      {
+       "slug": "life-sciences-and-genomics",
+       "name": "Life sciences & genomics"
+      },
+      {
+       "slug": "data-and-visualization",
+       "name": "Data & visualization"
+      },
+      {
+       "slug": "organizations-and-society",
+       "name": "Organizations & society"
+      },
+      {
+       "slug": "philosophy-and-ethics",
+       "name": "Philosophy & ethics"
       }
      ]
     }
@@ -616,6 +706,14 @@
       {
        "slug": "mountain-roads-and-passes",
        "name": "Mountain roads & passes"
+      },
+      {
+       "slug": "cycling-routes",
+       "name": "Cycling routes"
+      },
+      {
+       "slug": "climbing",
+       "name": "Climbing"
       }
      ]
     },
