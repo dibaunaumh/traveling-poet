@@ -180,6 +180,30 @@ defmodule TravelingPoetWeb.AsksTest do
     assert Asks.get(foreign.id).status == "open"
   end
 
+  test "the reader's answer reaches the poet with the app's note; later chat does not",
+       %{conn: conn, user: user, poet: poet} do
+    assert Asks.frame_reply(user.id, "hello") == "hello"
+
+    publish(poet, 3)
+    %{"ask" => %{"id" => id}} = ask!(conn)
+
+    # Telegram: framed before the message is saved, while the ask is open
+    framed = Asks.frame_reply(user.id, "Information flow within organizations")
+    assert framed =~ "ask_id #{id}"
+    assert framed =~ "do not write or publish an entry"
+    assert String.ends_with?(framed, "\n\nInformation flow within organizations")
+
+    # the web chat saves first, then sends: still the answer
+    Chat.create_message(%{user_id: user.id, role: "user", content: "Information flow"})
+    assert Asks.get(id).status == "replied"
+    assert Asks.frame_reply(user.id, "Information flow") =~ "ask_id #{id}"
+
+    # minutes later it is ordinary chat again
+    later = DateTime.utc_now() |> DateTime.add(-5, :minute) |> DateTime.truncate(:second)
+    Repo.update_all(from(a in Ask, where: a.id == ^id), set: [replied_at: later])
+    assert Asks.frame_reply(user.id, "how is Tangier?") == "how is Tangier?"
+  end
+
   test "the notification opens the chat; Telegram carries the question itself", %{poet: poet} do
     ask = %Ask{id: 7, question: "What should I hunt down for you?"}
 

@@ -190,6 +190,50 @@ defmodule TravelingPoet.Asks do
     :ok
   end
 
+  @doc """
+  The ask a reader's message is answering, if any: one still open, or one
+  this very message just marked replied (the web chat saves before it
+  sends). Later messages in the reply window are ordinary chat.
+  """
+  def answering(user_id) do
+    now = DateTime.utc_now()
+    just_now = now |> DateTime.add(-120, :second) |> DateTime.truncate(:second)
+
+    Ask
+    |> where(user_id: ^user_id)
+    |> where([a], a.inserted_at >= ^window_start(now))
+    |> where(
+      [a],
+      a.status == "open" or (a.status == "replied" and a.replied_at >= ^just_now)
+    )
+    |> order_by(desc: :inserted_at, desc: :id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @doc """
+  What the poet is sent for a reader's message: the message itself, headed by
+  a note from the app when it answers the poet's question. Left to find the
+  ask on its own, a poet answered in chat just after midnight read its day
+  plan instead, and wrote the day's excursion into an old topic. The note is
+  for the poet only; the chat keeps the reader's own words.
+  """
+  def frame_reply(user_id, text) do
+    case answering(user_id) do
+      nil -> text
+      ask -> answer_note(ask) <> "\n\n" <> text
+    end
+  end
+
+  @doc false
+  def answer_note(%Ask{} = ask) do
+    "[From the app: this message answers the question you asked them " <>
+      "(ask_id #{ask.id}): \"#{ask.question}\". For each interest they name, call " <>
+      "propose_topic with ask_id #{ask.id}; it becomes one of their topics at once. " <>
+      "Then answer them in a line or two. This is a chat turn: do not travel, and do " <>
+      "not write or publish an entry for it; the daily run does that.]"
+  end
+
   @doc "A topic came of the reader's answer."
   def mark_answered(%Ask{} = ask) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)

@@ -483,7 +483,10 @@ defmodule TravelingPoetWeb.JournalLive do
     pid = socket.assigns.gateway_socket_pid
 
     if pid do
-      GatewaySocket.send_message(pid, message)
+      GatewaySocket.send_message(
+        pid,
+        TravelingPoet.Asks.frame_reply(socket.assigns.user.id, message)
+      )
     else
       send_update(ChatSidebarComponent,
         id: "chat-sidebar",
@@ -1325,7 +1328,8 @@ defmodule TravelingPoetWeb.JournalLive do
     pid = socket.assigns.gateway_socket_pid
 
     if pid do
-      GatewaySocket.send_message(pid, message)
+      # A reply to the poet's question goes with a note naming it (Asks).
+      GatewaySocket.send_message(pid, TravelingPoet.Asks.frame_reply(user.id, message))
     else
       lv = self()
       sprite_name = user.sprite_name
