@@ -101,13 +101,17 @@ defmodule TravelingPoetWeb.SettingsTopicsTest do
 
     html =
       view
-      |> form("#add-topic-form", %{"label" => "post-rock", "domain" => "music"})
+      |> form("#add-taste-music", %{"label" => "post-rock"})
       |> render_submit()
 
     taste = Topics.get_by_label(poet.id, "post-rock")
     assert taste.domain == "music"
     assert taste.status == "active"
-    assert html =~ "Music"
+    assert html =~ ~s(id="tastes-music")
+    assert html =~ "post-rock"
+    # the subjects list above stays subjects only
+    refute view |> element("#topics #topic-#{taste.id}") |> has_element?()
+    assert view |> element("#tastes-music #topic-#{taste.id}") |> has_element?()
   end
 
   test "a duplicate topic is refused with a flash, not a crash", %{conn: conn} do
