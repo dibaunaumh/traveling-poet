@@ -59,9 +59,11 @@ defmodule TravelingPoet.ChangeStream.Registry do
   # + encryption keys) — anyone holding a row can notify that phone, so they
   # never leave this database; apns_devices likewise (the iOS app's push
   # tokens). visit_events: anonymous page analytics, not
-  # domain state.
+  # domain state. paragraph_reads: how long a reader looks at each paragraph
+  # of their own journal, private to them and the app's taste profile.
   @excluded [
     TravelingPoet.Analytics.VisitEvent,
+    TravelingPoet.Reading.ParagraphRead,
     Geocoder.CacheEntry,
     TravelingPoet.WebPush.Subscription,
     TravelingPoet.Apns.Device,

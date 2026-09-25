@@ -24,7 +24,8 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.Journal.Marker
   alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoet.{Guide, Topics}
-  alias TravelingPoet.Journal.{EntryBundle, Spreads}
+  alias TravelingPoet.Journal.{EntryBundle, Paragraphs, Spreads}
+  alias TravelingPoet.Reading
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
@@ -425,6 +426,18 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   @impl true
+  # The ReadingTime hook's report: time per paragraph key on the entry being
+  # read. Reading.record/3 checks the owner, the switch and the keys.
+  def handle_event("paragraph_reads", %{"entry_id" => id, "reads" => reads}, socket) do
+    entry = socket.assigns[:entry]
+
+    if entry && to_string(entry.id) == to_string(id) && is_map(reads) do
+      Reading.record(socket.assigns.user, entry, reads)
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("marker_remove", %{"id" => id}, socket) do
     Markers.remove_marker(socket.assigns.user.id, id)
     {:noreply, assign_markers(socket, socket.assigns.entry)}
@@ -1056,6 +1069,18 @@ defmodule TravelingPoetWeb.JournalLive do
                 </.link>
               </:controls>
             </.finds_spread>
+            <%!-- reading time per paragraph, for the taste profile: the
+                  owner's own journal only, and only with the switch on --%>
+            <div
+              :if={@user.reading_signals and !places_spread?(assigns) and !finds_spread?(assigns)}
+              id={"reading-#{@entry.id}"}
+              phx-hook="ReadingTime"
+              data-entry-id={@entry.id}
+              data-target={"entry-#{@entry.id}"}
+              data-kinds={Enum.join(Paragraphs.prose_kinds(), " ")}
+              hidden
+            >
+            </div>
             <.entry_spread
               :if={!places_spread?(assigns) and !finds_spread?(assigns)}
               id={"entry-#{@entry.id}"}

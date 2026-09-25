@@ -44,6 +44,8 @@ defmodule TravelingPoet.Accounts.User do
 
     field :daily_budget_cents, :integer, default: 100
     field :quota_exempt, :boolean, default: false
+    # reading time on their own journal, for the taste profile (Reading)
+    field :reading_signals, :boolean, default: true
 
     # Credits (milli-credits; see TravelingPoet.Credits)
     field :credits_balance, :integer, default: 0
@@ -88,6 +90,7 @@ defmodule TravelingPoet.Accounts.User do
       :apple_refresh_token,
       :ai_consent_at,
       :onboarding_completed,
+      :reading_signals,
       :onboarding_step,
       :last_seen_at,
       :telegram_chat_id,

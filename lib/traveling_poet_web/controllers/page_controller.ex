@@ -81,12 +81,13 @@ defmodule TravelingPoetWeb.PageController do
   @contact "dibaunaumh@gmail.com"
   # Bumped by hand when either document changes in a way that matters.
   @legal_updated "20 September 2026"
+  @privacy_updated "25 September 2026"
 
   @doc "The privacy policy, at the url Google's OAuth consent screen points at."
   def privacy(conn, _params) do
     conn
     |> assign(:page_title, "Privacy Policy")
-    |> render(:privacy, contact: @contact, updated: @legal_updated)
+    |> render(:privacy, contact: @contact, updated: @privacy_updated)
   end
 
   @doc "The terms of service, alongside the privacy policy."
