@@ -149,10 +149,23 @@ defmodule TravelingPoet.Credits do
         {:error, :unknown_pack}
 
       pack ->
-        apply(user, to_milli(pack.credits), "purchase",
-          reference: reference,
-          metadata: Map.merge(metadata, %{"pack_id" => pack.id, "cents" => pack.cents})
-        )
+        result =
+          apply(user, to_milli(pack.credits), "purchase",
+            reference: reference,
+            metadata: Map.merge(metadata, %{"pack_id" => pack.id, "cents" => pack.cents})
+          )
+
+        # The admins hear of a new purchase once; a webhook replay is
+        # {:ok, :duplicate} and says nothing.
+        with {:ok, %CreditTransaction{} = tx} <- result do
+          Phoenix.PubSub.broadcast(
+            TravelingPoet.PubSub,
+            "admin_events",
+            {:credits_purchased, tx.id}
+          )
+        end
+
+        result
     end
   end
 

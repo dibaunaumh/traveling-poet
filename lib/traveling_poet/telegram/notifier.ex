@@ -3,7 +3,10 @@ defmodule TravelingPoet.Telegram.Notifier do
   Sends a Telegram note to the paired owner when their poet publishes a
   journal entry, when their credits run low, when a composed book edition
   is ready, and when the poet asks them something (`Asks`): the question
-  itself, so a reply in Telegram reaches the poet as a chat turn. Opt-out of publish notes via poet settings
+  itself, so a reply in Telegram reaches the poet as a chat turn.
+
+  The admins hear of the business's own events on `"admin_events"`: a new
+  sign-up and a credit purchase, through `Alerts.notify_admins/1`. Opt-out of publish notes via poet settings
   `"telegram_notify" => false`.
   """
 
@@ -27,6 +30,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "admin_events")
       {:ok, %{}}
     else
       :ignore
@@ -144,10 +148,71 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:user_signed_up, user_id, identity}, state) do
+    with %{} = user <- Accounts.get_user(user_id) do
+      TravelingPoet.Alerts.notify_admins(signup_alert_text(user, identity, user_count()))
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:credits_purchased, tx_id}, state) do
+    with %{} = tx <- TravelingPoet.Repo.get(TravelingPoet.Credits.CreditTransaction, tx_id),
+         %{} = user <- Accounts.get_user(tx.user_id) do
+      TravelingPoet.Alerts.notify_admins(purchase_alert_text(user, tx))
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
 
   @doc "The poet's question as a Telegram message: its words, signed. Pure, for tests."
   def question_text(poet, ask), do: "#{ask.question}\n\n(#{poet.name}. Just reply here.)"
+
+  @doc "What the admins are told about a new sign-up. Pure, for tests."
+  def signup_alert_text(user, identity, count) do
+    via =
+      case identity do
+        :apple_id -> "Apple"
+        :google_id -> "Google"
+        _ -> "sign-in"
+      end
+
+    "New reader ##{count}: #{user.name || "(no name)"} <#{user.email}>, via #{via}.\n" <>
+      TravelingPoet.Alerts.admin_url("/admin")
+  end
+
+  @doc "What the admins are told about a credit purchase. Pure, for tests."
+  def purchase_alert_text(user, tx) do
+    meta = tx.metadata || %{}
+    [provider | _] = String.split(tx.reference || "unknown", ":", parts: 2)
+
+    store =
+      case {provider, meta["environment"]} do
+        {"apple", "Sandbox"} -> "Apple, sandbox"
+        {"apple", _} -> "Apple"
+        {"stripe", _} -> "Stripe"
+        {other, _} -> other
+      end
+
+    price =
+      case meta["cents"] do
+        cents when is_integer(cents) ->
+          " for $" <> :erlang.float_to_binary(cents / 100, decimals: 2)
+
+        _ ->
+          ""
+      end
+
+    "Credits bought: #{user.name || "(no name)"} <#{user.email}>, " <>
+      "#{TravelingPoet.Credits.format(tx.amount)} credits#{price} (#{store}).\n" <>
+      TravelingPoet.Alerts.admin_url("/admin")
+  end
+
+  defp user_count, do: TravelingPoet.Repo.aggregate(TravelingPoet.Accounts.User, :count)
 
   @doc "The note that says a planned trip moved on the calendar. Pure, for tests."
   def trip_changed_text(poet, trip, link) do

@@ -87,6 +87,7 @@ The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram pol
 - `"journal:published"`: `{:journal_published, poet_id, entry_id}` for cross-cutting listeners (notifiers, landing map).
 - `"credits:low"`.
 - `"trips"`: `{:trip_suggested, user_id, trip_id}` for the notifiers; `{:trips_updated}` goes on the user topic.
+- `"admin_events"`: `{:user_signed_up, user_id, identity}` and `{:credits_purchased, transaction_id}` (new purchases only, never a replay); `Telegram.Notifier` pages the admins through `Alerts.notify_admins/1`.
 - `"asks"`: `{:reader_asked, user_id, ask_id}` for the notifiers (push, APNs, Telegram); `{:poet_asked, chat_message}` goes on the user topic so an open chat shows it.
 
 ### Contexts worth knowing before touching them

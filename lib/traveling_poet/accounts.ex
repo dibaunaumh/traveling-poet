@@ -52,6 +52,13 @@ defmodule TravelingPoet.Accounts do
                |> Repo.insert() do
           # Welcome credits; idempotent on "signup:<id>" so a retry can't double-grant.
           {:ok, _} = TravelingPoet.Credits.grant_signup(user)
+
+          Phoenix.PubSub.broadcast(
+            TravelingPoet.PubSub,
+            "admin_events",
+            {:user_signed_up, user.id, identity}
+          )
+
           {:ok, Repo.get!(User, user.id)}
         end
     end
