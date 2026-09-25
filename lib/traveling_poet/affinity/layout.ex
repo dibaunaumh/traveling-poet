@@ -13,7 +13,7 @@ defmodule TravelingPoet.Affinity.Layout do
   @width 1000
   @height 640
   # the strip at the top of each subject's region kept for its name
-  @label_band 36
+  @label_band 50
 
   def width, do: @width
   def height, do: @height
