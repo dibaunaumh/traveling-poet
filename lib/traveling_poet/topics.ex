@@ -63,6 +63,9 @@ defmodule TravelingPoet.Topics do
       id: t.id,
       label: t.label,
       kind: t.kind,
+      # nil for a subject; for a taste, the domain it is a taste in, and the
+      # label is the taste in the companion's words (see Topic).
+      domain: t.domain,
       status: t.status,
       every_days: t.every_days,
       last_excursion_on: last_on(t),
@@ -72,7 +75,9 @@ defmodule TravelingPoet.Topics do
       last_answer: last_answer(t.id),
       # Where the excursions into this topic already went, oldest first.
       # A date alone told the poet nothing: Nam and Tobias, 2026-09-23.
-      past_destinations: past_destinations(t.id)
+      past_destinations: past_destinations(t.id),
+      # What taste days already recommended, so a find is never repeated.
+      past_finds: past_finds(t)
     }
   end
 
@@ -178,7 +183,9 @@ defmodule TravelingPoet.Topics do
         {:ok, topic, :already_active}
 
       %Topic{} = topic ->
-        with {:ok, topic} <- update(topic, %{status: "active", source: "ask"}),
+        changes = %{status: "active", source: "ask", domain: attrs["domain"] || topic.domain}
+
+        with {:ok, topic} <- update(topic, changes),
              do: {:ok, topic, :kept}
 
       nil ->
@@ -309,12 +316,33 @@ defmodule TravelingPoet.Topics do
       topic_id: x.topic_id,
       label: topic && topic.label,
       kind: topic && topic.kind,
+      domain: topic && topic.domain,
       requested_destination: x.requested_destination,
       requested_url: x.requested_url,
       source: x.source,
-      past_destinations: past_destinations(x.topic_id)
+      past_destinations: past_destinations(x.topic_id),
+      past_finds: past_finds(topic)
     }
   end
+
+  @past_finds 40
+
+  @doc """
+  The names of the finds already brought back from a taste's excursions,
+  newest first (at most #{@past_finds}); empty for a subject, whose
+  destinations already say where it went.
+  """
+  def past_finds(%Topic{domain: domain, id: topic_id}) when is_binary(domain) do
+    Find
+    |> join(:inner, [f], x in Excursion, on: x.journal_entry_id == f.journal_entry_id)
+    |> where([_f, x], x.topic_id == ^topic_id)
+    |> order_by([f], desc: f.entry_date, asc: f.position)
+    |> limit(@past_finds)
+    |> select([f], f.name)
+    |> Repo.all()
+  end
+
+  def past_finds(_topic), do: []
 
   @doc """
   Where the published excursions into a topic went, oldest first: the

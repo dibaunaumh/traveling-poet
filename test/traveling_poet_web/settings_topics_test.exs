@@ -96,6 +96,20 @@ defmodule TravelingPoetWeb.SettingsTopicsTest do
     assert is_nil(Topics.get(poet.id, other.id))
   end
 
+  test "a taste is added with its domain and shows it", %{conn: conn} do
+    {_user, poet, view, _html} = mount(conn)
+
+    html =
+      view
+      |> form("#add-topic-form", %{"label" => "post-rock", "domain" => "music"})
+      |> render_submit()
+
+    taste = Topics.get_by_label(poet.id, "post-rock")
+    assert taste.domain == "music"
+    assert taste.status == "active"
+    assert html =~ "Music"
+  end
+
   test "a duplicate topic is refused with a flash, not a crash", %{conn: conn} do
     {_user, _poet, view, _html} = mount(conn)
 

@@ -187,7 +187,11 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply, socket}
 
       label ->
-        attrs = %{label: label, kind: parse_kind(params["kind"])}
+        attrs =
+          case parse_domain(params["domain"]) do
+            nil -> %{label: label, kind: parse_kind(params["kind"])}
+            domain -> %{label: label, domain: domain}
+          end
 
         case Topics.create(poet.id, attrs) do
           {:ok, _} ->
@@ -788,6 +792,18 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp cadence_options,
     do: [{5, "every 5 days"}, {7, "every week"}, {10, "every 10 days"}, {14, "every two weeks"}]
 
+  # A topic is a subject unless it is a taste in one of these.
+  defp domain_options,
+    do: [
+      {"", "a subject"}
+      | Enum.map(Topic.domains(), &{&1, "taste in " <> String.downcase(Topic.domain_name(&1))})
+    ]
+
+  defp parse_domain(value) when is_binary(value),
+    do: if(value in Topic.domains(), do: value)
+
+  defp parse_domain(_), do: nil
+
   defp kind_options,
     do: [{"", "not sure"}, {"professional", "work or study"}, {"personal", "passion"}]
 
@@ -1282,7 +1298,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
             <.settings_section id="topics" title={"Topics " <> @poet.name <> " follows for you"}>
               <p class="text-sm opacity-60 mb-3">
-                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
+                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. A taste works the same way: tell {@poet.name} what you listen to, read, watch, love outdoors or like to give, and on its day it goes looking for new things that fit. Tell {@poet.name} in chat, or add one here.
               </p>
 
               <p :if={@topics == []} class="text-sm opacity-50 mb-2">
@@ -1312,7 +1328,14 @@ defmodule TravelingPoetWeb.SettingsLive do
                       value={topic.label}
                       class="input input-bordered input-sm flex-1 min-w-40"
                     />
-                    <select name="kind" class="select select-bordered select-sm">
+                    <span :if={topic.domain} class="badge badge-ghost badge-sm">
+                      {Topic.domain_name(topic.domain)}
+                    </span>
+                    <select
+                      :if={is_nil(topic.domain)}
+                      name="kind"
+                      class="select select-bordered select-sm"
+                    >
                       <option
                         :for={{value, label} <- kind_options()}
                         value={value}
@@ -1423,8 +1446,11 @@ defmodule TravelingPoetWeb.SettingsLive do
                   type="text"
                   name="label"
                   class="input input-bordered input-sm flex-1"
-                  placeholder="Add a topic, like kit airplanes or embodied minds"
+                  placeholder="Add a topic, like kit airplanes, or a taste, like post-rock"
                 />
+                <select name="domain" class="select select-bordered select-sm">
+                  <option :for={{value, label} <- domain_options()} value={value}>{label}</option>
+                </select>
                 <select name="kind" class="select select-bordered select-sm">
                   <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
                 </select>

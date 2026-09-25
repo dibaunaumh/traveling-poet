@@ -5,8 +5,12 @@ defmodule TravelingPoet.Topics.Topic do
   an excursion into one of these (a conference, a festival, a lab, a company)
   and writes back about it.
 
-  Topics are structural, not tastes: each has its own excursions and entries.
-  What the companion likes about those entries is a `Preferences.Preference`.
+  A topic is either a subject (`domain` nil: "embodied minds") or a taste in
+  a domain (`domain` set: music "post-rock, Sigur Ros"), where the label is
+  the companion's taste in their own words and an excursion into it is a day
+  discovering new things that fit it. Either way each has its own excursions
+  and entries. How the companion likes those entries written (tone, length)
+  is a `Preferences.Preference`, not a topic.
 
   `status`: "proposed" (the poet suggested it from chat; waits for the
   companion to keep it in Settings), "active", "paused". Only active topics
@@ -17,6 +21,15 @@ defmodule TravelingPoet.Topics.Topic do
   import Ecto.Changeset
 
   @kinds ~w(professional personal)
+  # The domains a taste can be in, in the order the poet asks about them.
+  @domains ~w(music books film_tv outdoors gifts)
+  @domain_names %{
+    "music" => "Music",
+    "books" => "Books",
+    "film_tv" => "Film & TV",
+    "outdoors" => "Outdoors",
+    "gifts" => "Gadgets & gifts"
+  }
   @statuses ~w(proposed active paused)
   # "settings": typed in by the companion. "chat": proposed by the poet from
   # what the companion said. "ask": the companion's answer to a question the
@@ -30,6 +43,7 @@ defmodule TravelingPoet.Topics.Topic do
     field :key, :string
     field :label, :string
     field :kind, :string
+    field :domain, :string
     field :status, :string, default: "proposed"
     field :source, :string, default: "settings"
     field :every_days, :integer, default: @default_every_days
@@ -42,6 +56,8 @@ defmodule TravelingPoet.Topics.Topic do
   end
 
   def kinds, do: @kinds
+  def domains, do: @domains
+  def domain_name(domain), do: Map.get(@domain_names, domain)
   def statuses, do: @statuses
   def sources, do: @sources
   def cadence_range, do: @cadence_range
@@ -50,11 +66,22 @@ defmodule TravelingPoet.Topics.Topic do
   @doc false
   def changeset(topic, attrs) do
     topic
-    |> cast(attrs, [:poet_id, :label, :kind, :status, :source, :every_days, :position, :evidence])
+    |> cast(attrs, [
+      :poet_id,
+      :label,
+      :kind,
+      :domain,
+      :status,
+      :source,
+      :every_days,
+      :position,
+      :evidence
+    ])
     |> update_change(:label, &String.trim/1)
     |> validate_required([:poet_id, :label])
     |> validate_length(:label, min: 2, max: 80)
     |> validate_inclusion(:kind, @kinds)
+    |> validate_inclusion(:domain, @domains)
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:source, @sources)
     |> validate_number(:every_days,

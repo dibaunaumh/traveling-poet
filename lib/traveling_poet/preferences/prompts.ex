@@ -104,7 +104,7 @@ defmodule TravelingPoet.Preferences.Prompts do
     subject = "excursions into #{label}"
 
     %{
-      question: "An excursion into #{label}. Worth the day?",
+      question: excursion_question(excursion.topic, label),
       source: "app",
       options: [
         %{
@@ -117,7 +117,7 @@ defmodule TravelingPoet.Preferences.Prompts do
         },
         %{
           "id" => "different_angle",
-          "label" => "A different angle",
+          "label" => angle_label(excursion.topic),
           "dimension" => "topic",
           "polarity" => "avoid",
           "key" => Preferences.derive_key("topic", "this angle on #{label}"),
@@ -135,6 +135,18 @@ defmodule TravelingPoet.Preferences.Prompts do
       ]
     }
   end
+
+  # A taste day brings back things to try, so the question is whether they
+  # fit; a subject's day is a trip, so whether it was worth taking.
+  defp excursion_question(%{domain: domain}, _label) when is_binary(domain),
+    do:
+      "Finds for your taste in " <>
+        "#{String.downcase(TravelingPoet.Topics.Topic.domain_name(domain))}. Did they land?"
+
+  defp excursion_question(_topic, label), do: "An excursion into #{label}. Worth the day?"
+
+  defp angle_label(%{domain: domain}) when is_binary(domain), do: "Not quite my taste"
+  defp angle_label(_topic), do: "A different angle"
 
   defp catalogue(entry) do
     place = entry.place_name || "here"

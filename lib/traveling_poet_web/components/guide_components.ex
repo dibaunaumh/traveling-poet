@@ -18,6 +18,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   @topic_filters [
     {"all", "All"},
     {"ideas", "Talks and papers"},
+    {"works", "Music, books, films"},
     {"things", "Products"},
     {"happenings", "Events and venues"}
   ]
@@ -511,6 +512,9 @@ defmodule TravelingPoetWeb.GuideComponents do
     """
   end
 
+  # Taste-day find kinds read better as what they are.
+  def humanize_category("screen"), do: "Film or series"
+  def humanize_category("outing"), do: "Outdoors"
   def humanize_category(category), do: String.capitalize(category)
 
   def format_date(%Date{} = date), do: Calendar.strftime(date, "%b %-d")
