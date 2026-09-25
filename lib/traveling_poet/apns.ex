@@ -114,7 +114,13 @@ defmodule TravelingPoet.Apns do
         url: "#{@hosts[device.environment]}/3/device/#{device.token}",
         json: notification(payload),
         headers: headers(payload),
-        connect_options: [protocols: [:http2]],
+        # Not [:http2] alone: Finch opens an HTTP/2-only pool in the
+        # background and refuses requests until it is up
+        # (:pool_not_available). Notifications are rare, so every one met a
+        # cold pool and none ever reached Apple. Offering both lets the
+        # request open its own connection; ALPN still settles on HTTP/2,
+        # which is all Apple speaks.
+        connect_options: [protocols: [:http1, :http2]],
         retry: false,
         receive_timeout: 15_000
       ]
