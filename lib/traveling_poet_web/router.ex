@@ -80,6 +80,7 @@ defmodule TravelingPoetWeb.Router do
     post "/preferences", PreferenceController, :create
     post "/topics", TopicController, :propose
     post "/excursions", TopicController, :request
+    post "/asks", AskController, :create
     post "/location", LocationController, :update
     post "/hold", RouteController, :hold
     post "/itinerary_stops", RouteController, :insert_stop

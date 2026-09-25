@@ -21,6 +21,7 @@ defmodule TravelingPoet.WebPush.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
       {:ok, %{}}
     else
       :ignore
@@ -35,6 +36,19 @@ defmodule TravelingPoet.WebPush.Notifier do
 
       if sent + pruned > 0 do
         Logger.info("web push: entry #{entry_id} — #{sent} sent, #{pruned} pruned")
+      end
+    end)
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:reader_asked, user_id, ask_id}, state) do
+    Task.start(fn ->
+      {sent, pruned} = WebPush.notify_poet_question(user_id, ask_id)
+
+      if sent + pruned > 0 do
+        Logger.info("web push: ask #{ask_id} — #{sent} sent, #{pruned} pruned")
       end
     end)
 

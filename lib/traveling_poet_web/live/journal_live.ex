@@ -549,6 +549,13 @@ defmodule TravelingPoetWeb.JournalLive do
   def handle_info({:telegram_paired, _} = msg, socket),
     do: TravelingPoetWeb.TelegramPairing.handle_info(msg, socket)
 
+  # The poet asked something (Asks) while the reader has the journal open.
+  @impl true
+  def handle_info({:poet_asked, message}, socket) do
+    send_update(ChatSidebarComponent, id: "chat-sidebar", append_agent_message: message)
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info({:trips_updated} = msg, socket),
     do: TravelingPoetWeb.TripSuggestions.handle_info(msg, socket)

@@ -1,7 +1,7 @@
 defmodule TravelingPoetWeb.Api.AgentController do
   use TravelingPoetWeb, :controller
 
-  alias TravelingPoet.{Chat, Journal, Markers, Poets, Preferences, Topics}
+  alias TravelingPoet.{Asks, Chat, Journal, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Preferences.Cadence
   alias TravelingPoet.Poets.Poet
 
@@ -105,7 +105,14 @@ defmodule TravelingPoetWeb.Api.AgentController do
           engagement: engagement_for(poet),
           # The APP decides when to ask, not the poet: an agent told to ask
           # "sometimes" asks every time.
-          ask_prompt: ask_prompt?(poet)
+          ask_prompt: ask_prompt?(poet),
+          # Whether to ask your companion what they are into, today, in chat
+          # (the `ask_reader` tool, after publishing). nil = do not ask. The
+          # app decides this too; `reason` is no_topics | check_in.
+          ask_reader: Asks.due(poet),
+          # Your question still waiting on an answer, if any. When they answer
+          # with an interest, pass its id as `ask_id` to propose_topic.
+          open_ask: open_ask_payload(poet)
         })
     end
   end
@@ -133,6 +140,22 @@ defmodule TravelingPoetWeb.Api.AgentController do
         |> Enum.max(fn -> nil end),
       unopened_streak: recent |> Enum.take_while(&is_nil(&1.owner_viewed_at)) |> length()
     }
+  end
+
+  defp open_ask_payload(poet) do
+    case Asks.open_ask(poet.id) || recently_replied(poet) do
+      nil -> nil
+      ask -> %{id: ask.id, about: ask.about, question: ask.question, status: ask.status}
+    end
+  end
+
+  # Replied to, but no topic taken from it yet: the poet may still be in the
+  # middle of that conversation.
+  defp recently_replied(poet) do
+    case Asks.history(poet.id, 1) do
+      [%{status: "replied"} = ask] -> Asks.answerable(poet.id, ask.id)
+      _ -> nil
+    end
   end
 
   defp ask_prompt?(poet) do

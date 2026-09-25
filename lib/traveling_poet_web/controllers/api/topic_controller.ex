@@ -5,13 +5,18 @@ defmodule TravelingPoetWeb.Api.TopicController do
   ADD, and what it adds waits as "proposed" until the companion keeps it in
   Settings. The poet cannot activate, pause or remove a topic, and cannot
   claim the companion typed it.
+
+  The exception is an answer: with `ask_id` naming the poet's recent ask
+  (`Asks`), the companion's answer becomes an active topic at once. An
+  `ask_id` that is not this poet's recent ask is ignored, and the topic is
+  only proposed.
   """
 
   use TravelingPoetWeb, :controller
 
   require Logger
 
-  alias TravelingPoet.{Poets, Topics}
+  alias TravelingPoet.{Asks, Poets, Topics}
   alias TravelingPoet.Topics.Topic
 
   def propose(conn, %{"label" => label} = params) when is_binary(label) do
@@ -19,22 +24,9 @@ defmodule TravelingPoetWeb.Api.TopicController do
 
     with {:ok, poet} <- fetch_poet(user),
          {:ok, attrs} <- validate(params, label) do
-      case Topics.propose(poet.id, attrs) do
-        {:ok, topic, already_known} ->
-          unless already_known,
-            do: Logger.info("Topic proposed for poet #{poet.id}: #{topic.label}")
-
-          json(conn, %{
-            ok: true,
-            topic: Topics.topic_payload(topic),
-            # Tells the poet whether this is news, so it does not announce
-            # the same topic twice.
-            already_known: already_known,
-            note: note(topic, already_known)
-          })
-
-        {:error, changeset} ->
-          conn |> put_status(422) |> json(%{error: errors(changeset)})
+      case Asks.answerable(poet.id, params["ask_id"]) do
+        nil -> propose_topic(conn, poet, attrs)
+        ask -> add_from_answer(conn, poet, ask, attrs)
       end
     else
       {:error, :no_poet} ->
@@ -47,6 +39,54 @@ defmodule TravelingPoetWeb.Api.TopicController do
 
   def propose(conn, _params) do
     conn |> put_status(422) |> json(%{error: "label is required"})
+  end
+
+  defp add_from_answer(conn, poet, ask, attrs) do
+    case Topics.add_from_ask(poet.id, attrs) do
+      {:ok, topic, outcome} ->
+        {:ok, _} = Asks.mark_answered(ask)
+
+        if outcome in [:added, :kept],
+          do: Logger.info("Topic from an answer for poet #{poet.id}: #{topic.label}")
+
+        json(conn, %{
+          ok: true,
+          topic: Topics.topic_payload(topic),
+          active: topic.status == "active",
+          already_known: outcome != :added,
+          note: answer_note(outcome)
+        })
+
+      {:error, changeset} ->
+        conn |> put_status(422) |> json(%{error: errors(changeset)})
+    end
+  end
+
+  defp answer_note(:added),
+    do: "active now: an excursion into it comes soon; they can change it in Settings"
+
+  defp answer_note(:kept), do: "they had it waiting in Settings; it is active now"
+  defp answer_note(:already_active), do: "already one of their topics"
+  defp answer_note(:paused), do: "they paused this topic; leave it paused, do not press it"
+
+  defp propose_topic(conn, poet, attrs) do
+    case Topics.propose(poet.id, attrs) do
+      {:ok, topic, already_known} ->
+        unless already_known,
+          do: Logger.info("Topic proposed for poet #{poet.id}: #{topic.label}")
+
+        json(conn, %{
+          ok: true,
+          topic: Topics.topic_payload(topic),
+          # Tells the poet whether this is news, so it does not announce
+          # the same topic twice.
+          already_known: already_known,
+          note: note(topic, already_known)
+        })
+
+      {:error, changeset} ->
+        conn |> put_status(422) |> json(%{error: errors(changeset)})
+    end
   end
 
   @doc """

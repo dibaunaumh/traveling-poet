@@ -204,6 +204,12 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     |> begin_own_turn()
   end
 
+  defp handle_forwarded_event(%{append_agent_message: msg}, socket) do
+    if Enum.any?(socket.assigns.messages, &(&1.id == msg.id)),
+      do: socket,
+      else: assign(socket, :messages, socket.assigns.messages ++ [msg])
+  end
+
   defp handle_forwarded_event(_assigns, socket), do: socket
 
   defp begin_external_turn(socket) do

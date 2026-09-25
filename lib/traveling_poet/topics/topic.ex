@@ -19,8 +19,10 @@ defmodule TravelingPoet.Topics.Topic do
   @kinds ~w(professional personal)
   @statuses ~w(proposed active paused)
   # "settings": typed in by the companion. "chat": proposed by the poet from
-  # what the companion said. "onboarding": reserved for a first-run source.
-  @sources ~w(settings chat onboarding)
+  # what the companion said. "ask": the companion's answer to a question the
+  # poet asked them (`Asks`), active at once. "onboarding": reserved for a
+  # first-run source.
+  @sources ~w(settings chat ask onboarding)
   @cadence_range 3..30
   @default_every_days 7
 

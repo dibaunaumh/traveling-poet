@@ -43,7 +43,7 @@ defmodule TravelingPoet.AgentPluginTest do
                        journal_put_places journal_publish generate_illustration
                        record_preference update_location hold_here insert_stop
                        propose_topic get_book_context book_put_matter
-                       find_reference_photos) do
+                       find_reference_photos ask_reader) do
       assert expected in names, "#{expected} is not registered in the plugin"
     end
   end
