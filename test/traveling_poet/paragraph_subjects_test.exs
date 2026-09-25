@@ -128,4 +128,70 @@ defmodule TravelingPoet.ParagraphSubjectsTest do
       assert TopicTagging.tag_paragraphs_async(entry.id) == :disabled
     end
   end
+
+  describe "a page's subjects" do
+    alias TravelingPoet.Journal.PageSubjects
+
+    @mind "literature-and-ideas/fields-of-thought/mind-and-cognitive-science"
+
+    defp paragraph(entry, key, topic, second \\ nil) do
+      %ParagraphSubject{}
+      |> ParagraphSubject.changeset(%{
+        poet_id: entry.poet_id,
+        journal_entry_id: entry.id,
+        key: key,
+        topic: topic,
+        second_topic: second,
+        classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> Repo.insert!()
+    end
+
+    test "come from its paragraphs and places, weighted, and roll up the tree" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet, %{entry_date: ~D[2026-09-21]})
+
+      paragraph(entry, "a", @jazz)
+      paragraph(entry, "b", @weaving, @jazz)
+      paragraph(entry, "c", nil)
+
+      place_fixture(poet, entry, %{name: "Hot Clube"})
+      |> TravelingPoet.Guide.Place.topics_changeset(%{
+        topic: @jazz,
+        topics_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> Repo.update!()
+
+      assert [%{path: @jazz, weight: 2.5}, %{path: @weaving, weight: 1.0}] =
+               subjects = PageSubjects.of_entry(entry.id)
+
+      assert_in_delta Enum.sum(Enum.map(subjects, & &1.share)), 1.0, 0.0001
+
+      assert [%{path: "music-and-performance"}, %{path: "crafts-and-design"}] =
+               PageSubjects.at_depth(subjects, 1)
+
+      assert PageSubjects.of_entry(
+               published_entry_fixture(poet, %{entry_date: ~D[2026-09-22]}).id
+             ) == []
+    end
+
+    test "an excursion day weighs its topic's subject as the day's theme" do
+      poet = poet_fixture(user_fixture())
+      entry = published_entry_fixture(poet, %{entry_date: ~D[2026-09-21]})
+      topic = topic_fixture(poet, %{label: "Embodied minds"})
+
+      topic
+      |> TravelingPoet.Topics.Topic.subjects_changeset(%{
+        subject: @mind,
+        subjects_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> Repo.update!()
+
+      excursion_fixture(poet, topic, entry)
+      paragraph(entry, "a", @jazz)
+
+      assert [%{path: @mind, weight: 2.0}, %{path: @jazz, weight: 1.0}] =
+               PageSubjects.of_entry(entry.id)
+    end
+  end
 end
