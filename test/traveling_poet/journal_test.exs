@@ -152,6 +152,22 @@ defmodule TravelingPoet.JournalTest do
     end
   end
 
+  describe "unattached_illustrations/2" do
+    test "a drawing pinned to a prose section is still drawn; one on an illustration section is not",
+         %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      drawing = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      # What a first entry did on prod: the drawing's id on the description,
+      # which cannot show it, and no illustration section at all.
+      on_prose = [%{kind: "description", media_id: drawing.id}, %{kind: "poem", media_id: nil}]
+      assert Enum.map(Journal.unattached_illustrations(entry, on_prose), & &1.id) == [drawing.id]
+
+      on_illustration = [%{kind: "illustration", media_id: drawing.id}]
+      assert Journal.unattached_illustrations(entry, on_illustration) == []
+    end
+  end
+
   describe "spot drawings" do
     test "a spot drawing needs sources like any other drawing, and never renders as a taped photo",
          %{poet: poet} do

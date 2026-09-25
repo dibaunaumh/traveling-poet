@@ -276,6 +276,10 @@ defmodule TravelingPoet.Journal do
   when the agent generates the drawing but fumbles the final
   journal_put_sections wiring (observed with cheaper models). The renderer
   shows these anyway so a fumble never costs the reader the drawing.
+
+  Only an `illustration` section can show a drawing, so only one claims it.
+  A drawing pinned to a prose section (a first entry put its Lisbon drawing
+  on the description) would otherwise be claimed and never drawn.
   """
   def unattached_illustrations(%Entry{} = entry, sections) do
     Map.get(unattached_illustrations_by_entry([%{entry | sections: sections}]), entry.id, [])
@@ -293,7 +297,11 @@ defmodule TravelingPoet.Journal do
 
     referenced_by_entry =
       Map.new(entries, fn e ->
-        {e.id, e.sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)}
+        {e.id,
+         e.sections
+         |> Enum.filter(&(&1.kind == "illustration"))
+         |> Enum.map(& &1.media_id)
+         |> Enum.reject(&is_nil/1)}
       end)
 
     # Guide place drawings are excluded. They belong to a place, not to the
