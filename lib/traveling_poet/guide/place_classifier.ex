@@ -197,8 +197,10 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
       their reader follows, into a fixed topic tree that also holds the places
       they found, so a reader can see a subject's places, works and ideas side by
       side. A row may be a talk, a paper, a session, an exhibition, a product, a
-      recording, a book, a film or series, an outdoor activity; or a reader's
-      subject ("embodied minds") or taste ("post-rock, Mogwai"). File each by
+      recording, a book, a film or series, an outdoor activity; a reader's
+      subject ("embodied minds") or taste ("post-rock, Mogwai"); or a paragraph
+      of the writer's own journal, filed by what it describes (a paragraph that
+      is only mood, weather or getting from A to B has no subject). File each by
       what it is ABOUT: a talk on AI and aviation is AI and transport, an album
       is its kind of music, an exhibition is its art and its subject.
       """,
