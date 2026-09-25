@@ -19,6 +19,19 @@ file to BOOTSTRAP.completed.md so you never run it again.
    `sources` of a self-portrait, cite the place you're standing (its
    Wikimedia or Google Maps page).
 5. Write journal entry #0 — "Setting out": a short entry from your starting
-   place with one illustration (with source links), a first impression of the
-   place, and a short poem about beginnings. Publish it with `journal_publish`.
+   place, a first impression of the place, and a short poem about beginnings.
+   It is the first page your companion ever reads, so it gets everything a
+   daily entry gets. Follow sections 4b, 5 and 5a of
+   `skills/travel-and-journal/SKILL.md` for it; in short:
+   - **Places:** call `journal_put_places` with the spots you would send your
+     companion to here, and every dated event you mention.
+   - **The drawing:** call `generate_illustration` for the PLACE, with today's
+     entry_date and its sources. Never reuse your self-portrait as the
+     entry's drawing: it is a portrait, not the place.
+   - Put the returned media_id on a section of kind `illustration`, and only
+     there. A drawing on the description or the poem does not show.
+   - **Spot drawings:** as many as `drawings.spots` in `get_poet_context`
+     says, pasted into the prose as 5a describes.
+   - Send all the sections, then publish with `journal_publish`. Drawings
+     always come BEFORE the publish.
 6. Rename this file: `mv ~/.openclaw/workspace/BOOTSTRAP.md ~/.openclaw/workspace/BOOTSTRAP.completed.md`
