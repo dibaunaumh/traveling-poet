@@ -19,7 +19,7 @@ defmodule TravelingPoet.Discover do
 
   alias TravelingPoet.{Poets, Repo}
   alias TravelingPoet.Guide.{Place, PlaceTopics}
-  alias TravelingPoet.Journal.{Entry, Media}
+  alias TravelingPoet.Journal.{Entry, Media, Section}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Topics.{Excursion, Find}
 
@@ -416,11 +416,25 @@ defmodule TravelingPoet.Discover do
     |> Repo.all()
   end
 
+  # The page's drawing as the journal shows it: the one its illustration
+  # section points to. Poets sometimes draw before the page exists, so the
+  # media row was never linked to the entry (20 pages on prod by
+  # 2026-09-25); the linked illustration is only the fallback.
   defp first_drawing(entry_id) do
-    Media
-    |> where(journal_entry_id: ^entry_id, kind: "illustration")
-    |> order_by(asc: :id)
-    |> limit(1)
-    |> Repo.one()
+    section_drawing =
+      Section
+      |> join(:inner, [s], m in Media, on: m.id == s.media_id)
+      |> where([s], s.journal_entry_id == ^entry_id and s.kind == "illustration")
+      |> order_by([s], asc: s.position)
+      |> limit(1)
+      |> select([_s, m], m)
+      |> Repo.one()
+
+    section_drawing ||
+      Media
+      |> where(journal_entry_id: ^entry_id, kind: "illustration")
+      |> order_by(asc: :id)
+      |> limit(1)
+      |> Repo.one()
   end
 end

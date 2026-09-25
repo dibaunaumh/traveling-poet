@@ -58,7 +58,25 @@ defmodule TravelingPoet.Journal do
         )
         |> Repo.insert!()
       end)
+      |> tap(&link_media(entry, &1))
     end)
+  end
+
+  # A drawing made before its page existed was never linked to it; the
+  # section that shows it links it now, so everything that looks for a
+  # page's drawings by entry (Discover, the book) finds it. Only
+  # this poet's unlinked media: nothing already on another page moves.
+  defp link_media(entry, sections) do
+    ids = sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)
+
+    if ids != [] do
+      Repo.update_all(
+        from(m in Media,
+          where: m.id in ^ids and m.poet_id == ^entry.poet_id and is_nil(m.journal_entry_id)
+        ),
+        set: [journal_entry_id: entry.id]
+      )
+    end
   end
 
   # Publishing an already-published entry is a REVISION: the poet re-put its
