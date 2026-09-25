@@ -5,7 +5,7 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
 
   A server-side text LLM call, like `Guide.Extractor`, and for the same
   reason: this is the app keeping its own records consistent, not the poet
-  writing. Asking each poet to pick from 157 topics in every
+  writing. Asking each poet to pick from 180 topics in every
   `journal_put_places` would cost every sprite the whole tree in context and
   trust the one step poets have fumbled before (events left out of places).
 
