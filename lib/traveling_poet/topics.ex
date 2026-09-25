@@ -6,7 +6,9 @@ defmodule TravelingPoet.Topics do
   creates, edits, pauses and removes topics in Settings; the poet may only
   PROPOSE one (`propose/2`, from what the companion said in chat), which waits
   as "proposed" until the companion keeps it. The poet never activates,
-  pauses or deletes a topic.
+  pauses or deletes a topic. One exception: the companion's own answer to a
+  question the poet asked them (`add_from_ask/3`) is active at once, because
+  answering is the companion's deliberate act, not the poet's inference.
   """
 
   import Ecto.Query, except: [update: 2, update: 3]
@@ -154,6 +156,41 @@ defmodule TravelingPoet.Topics do
           {:ok, topic} -> {:ok, topic, false}
           {:error, changeset} -> {:error, changeset}
         end
+    end
+  end
+
+  @doc """
+  A topic from the companion's answer to the poet's ask: active at once,
+  source "ask". A topic already under that key keeps what the companion
+  decided (paused stays paused, active stays as it is); one still waiting
+  as proposed is kept, since they have now said it themselves.
+
+  Returns `{:ok, topic, :added | :kept | :already_active | :paused}`.
+  """
+  def add_from_ask(poet_id, attrs) do
+    attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
+    case get_by_label(poet_id, attrs["label"] || "") do
+      %Topic{status: "paused"} = topic ->
+        {:ok, topic, :paused}
+
+      %Topic{status: "active"} = topic ->
+        {:ok, topic, :already_active}
+
+      %Topic{} = topic ->
+        with {:ok, topic} <- update(topic, %{status: "active", source: "ask"}),
+             do: {:ok, topic, :kept}
+
+      nil ->
+        attrs =
+          attrs
+          |> Map.put("poet_id", poet_id)
+          |> Map.put("status", "active")
+          |> Map.put("source", "ask")
+          |> Map.put("position", next_position(poet_id))
+
+        with {:ok, topic} <- %Topic{} |> Topic.changeset(attrs) |> Repo.insert(),
+             do: {:ok, topic, :added}
     end
   end
 

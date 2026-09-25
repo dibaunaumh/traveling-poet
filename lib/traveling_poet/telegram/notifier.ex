@@ -1,8 +1,9 @@
 defmodule TravelingPoet.Telegram.Notifier do
   @moduledoc """
   Sends a Telegram note to the paired owner when their poet publishes a
-  journal entry, when their credits run low, and when a composed book
-  edition is ready. Opt-out of publish notes via poet settings
+  journal entry, when their credits run low, when a composed book edition
+  is ready, and when the poet asks them something (`Asks`): the question
+  itself, so a reply in Telegram reaches the poet as a chat turn. Opt-out of publish notes via poet settings
   `"telegram_notify" => false`.
   """
 
@@ -25,6 +26,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "credits:low")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
       {:ok, %{}}
     else
       :ignore
@@ -128,7 +130,24 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:reader_asked, user_id, ask_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
+         %{} = ask <- TravelingPoet.Asks.get(ask_id) do
+      Client.send_message(chat_id, question_text(poet, ask))
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc "The poet's question as a Telegram message: its words, signed. Pure, for tests."
+  def question_text(poet, ask), do: "#{ask.question}\n\n(#{poet.name}. Just reply here.)"
 
   @doc "The note that says a planned trip moved on the calendar. Pure, for tests."
   def trip_changed_text(poet, trip, link) do

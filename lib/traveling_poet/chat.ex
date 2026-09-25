@@ -32,10 +32,22 @@ defmodule TravelingPoet.Chat do
     |> Enum.reverse()
   end
 
+  @doc """
+  Saves a message. A reader's own message (web or Telegram, not the app's
+  triggers) also counts as their reply to an open ask (`Asks`).
+  """
   def create_message(attrs) do
-    %ChatMessage{}
-    |> ChatMessage.changeset(attrs)
-    |> Repo.insert()
+    result =
+      %ChatMessage{}
+      |> ChatMessage.changeset(attrs)
+      |> Repo.insert()
+
+    with {:ok, %ChatMessage{role: "user", channel: channel} = msg} when channel != "system" <-
+           result do
+      TravelingPoet.Asks.note_reader_message(msg.user_id)
+    end
+
+    result
   end
 
   @doc """

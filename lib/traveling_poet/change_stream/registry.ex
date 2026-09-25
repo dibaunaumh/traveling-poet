@@ -47,6 +47,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Guide.Place,
     Preferences.Preference,
     Preferences.EntryPrompt,
+    TravelingPoet.Asks.Ask,
     # aggregates only; the raw visit_events below stay excluded
     TravelingPoet.Analytics.FunnelDay
   ]

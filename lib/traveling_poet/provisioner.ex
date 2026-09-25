@@ -730,10 +730,23 @@ defmodule TravelingPoet.Provisioner do
             properties: {
               label: { type: "string", description: "The topic in your companion's own words, short, e.g. 'kit airplanes'" },
               kind: { type: "string", enum: ["professional", "personal"], description: "A field they work or study in, or a passion. Leave out when unsure." },
-              quote: { type: "string", description: "What they actually said, shown to them beside the proposal" }
+              quote: { type: "string", description: "What they actually said, shown to them beside the proposal" },
+              ask_id: { type: "integer", description: "Only when this answers your question (open_ask.id in get_poet_context): the topic is then active at once, no waiting in Settings" }
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "ask_reader",
+          description: "Ask your companion what they are into, in chat, with a notification to their phone. Only when ask_reader in get_poet_context is set (the app decides the day; any other day is refused), and only after journal_publish. One question, in your voice, grown from today; never a survey.",
+          parameters: {
+            type: "object",
+            required: ["question"],
+            properties: {
+              question: { type: "string", description: "One or two sentences, at most 280 characters" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/asks", asParams(raw)); }
         });
         ctx.registerTool({
           name: "request_excursion",

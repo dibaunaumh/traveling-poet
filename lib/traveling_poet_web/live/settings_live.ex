@@ -794,6 +794,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp topic_status_label(%Topic{status: "proposed"}), do: "proposed by your poet"
   defp topic_status_label(%Topic{status: "paused"}), do: "paused"
   defp topic_status_label(%Topic{source: "chat"}), do: "from chat"
+  defp topic_status_label(%Topic{source: "ask"}), do: "from your answer"
   defp topic_status_label(_), do: nil
 
   # "last excursion Sep 12, next in 3 days" for an active topic; nothing for

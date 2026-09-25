@@ -155,6 +155,27 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells every device of the owner that their poet asked them something in chat."
+  def notify_poet_question(user_id, ask_id) do
+    with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),
+         %{} = ask <- TravelingPoet.Asks.get(ask_id) do
+      notify_user(user_id, fn -> question_payload(poet, ask) end)
+    else
+      _ -> {0, 0}
+    end
+  end
+
+  @doc "What the device shows when the poet asks something. Pure, for tests."
+  def question_payload(poet, ask) do
+    %{
+      title: "#{poet.name} has a question for you",
+      body: ask.question,
+      url: "/journal?chat=1",
+      tag: "ask-#{ask.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
   @doc "What the device shows when a planned trip moved. Pure, for tests."
   def trip_changed_payload(poet, trip) do
     %{
