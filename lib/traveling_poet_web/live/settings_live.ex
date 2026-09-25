@@ -106,11 +106,14 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp assign_topics(socket) do
     case socket.assigns.poet do
       nil ->
-        socket |> assign(:topics, []) |> assign(:queued_excursions, [])
+        socket |> assign(:topics, []) |> assign(:tastes, %{}) |> assign(:queued_excursions, [])
 
       poet ->
+        {tastes, subjects} = poet.id |> Topics.list() |> Enum.split_with(& &1.domain)
+
         socket
-        |> assign(:topics, Topics.list(poet.id))
+        |> assign(:topics, subjects)
+        |> assign(:tastes, Enum.group_by(tastes, & &1.domain))
         |> assign(:queued_excursions, Topics.list_queued(poet.id))
     end
   end
@@ -792,12 +795,18 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp cadence_options,
     do: [{5, "every 5 days"}, {7, "every week"}, {10, "every 10 days"}, {14, "every two weeks"}]
 
-  # A topic is a subject unless it is a taste in one of these.
-  defp domain_options,
-    do: [
-      {"", "a subject"}
-      | Enum.map(Topic.domains(), &{&1, "taste in " <> String.downcase(Topic.domain_name(&1))})
-    ]
+  # What to write under each domain, and a short example that fits in the
+  # box on a phone.
+  @taste_hints %{
+    "music" => {"Artists, albums or styles you love", "Mogwai, Japanese city pop"},
+    "books" => {"Authors or books you love", "Le Guin, nature writing"},
+    "film_tv" => {"Films, shows or directors you love", "Agnes Varda, Slow Horses"},
+    "outdoors" => {"What you love doing outside", "coastal walks, wild swimming"},
+    "gifts" => {"Gadgets or gifts that delight you", "notebooks, kitchen tools"}
+  }
+
+  defp taste_hint(domain), do: @taste_hints |> Map.fetch!(domain) |> elem(0)
+  defp taste_placeholder(domain), do: "e.g. " <> (@taste_hints |> Map.fetch!(domain) |> elem(1))
 
   defp parse_domain(value) when is_binary(value),
     do: if(value in Topic.domains(), do: value)
@@ -875,6 +884,118 @@ defmodule TravelingPoetWeb.SettingsLive do
     """
   end
 
+  attr :topic, :map, required: true
+  attr :poet_name, :string, required: true
+
+  # One topic or taste: its words, its rhythm, and what can be done with it.
+  defp topic_row(assigns) do
+    ~H"""
+    <li
+      id={"topic-#{@topic.id}"}
+      class={[
+        "p-2 rounded-lg border border-base-200",
+        @topic.status == "paused" && "opacity-60"
+      ]}
+    >
+      <form
+        id={"topic-form-#{@topic.id}"}
+        phx-change="save_topic"
+        phx-value-id={@topic.id}
+        class="flex flex-wrap items-center gap-2"
+      >
+        <input type="hidden" name="topic_id" value={@topic.id} />
+        <input
+          type="text"
+          name="label"
+          phx-debounce="750"
+          value={@topic.label}
+          class="input input-bordered input-sm flex-1 min-w-40"
+        />
+        <select
+          :if={is_nil(@topic.domain)}
+          name="kind"
+          class="select select-bordered select-sm"
+        >
+          <option
+            :for={{value, label} <- kind_options()}
+            value={value}
+            selected={(@topic.kind || "") == value}
+          >
+            {label}
+          </option>
+        </select>
+        <select
+          name="every_days"
+          class="select select-bordered select-sm"
+          disabled={@topic.status == "proposed"}
+        >
+          <option
+            :for={{days, label} <- cadence_options()}
+            value={days}
+            selected={@topic.every_days == days}
+          >
+            {label}
+          </option>
+        </select>
+      </form>
+      <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
+        <span :if={topic_status_label(@topic)}>{topic_status_label(@topic)}</span>
+        <span :if={topic_schedule(@topic, @poet_name)}>{topic_schedule(@topic, @poet_name)}</span>
+        <span :if={@topic.evidence["quote"]} class="italic">
+          &ldquo;{@topic.evidence["quote"]}&rdquo;
+        </span>
+        <span class="flex-1"></span>
+        <button
+          :if={@topic.status == "proposed"}
+          type="button"
+          phx-click="keep_topic"
+          phx-value-id={@topic.id}
+          class="btn btn-primary btn-xs"
+        >
+          Keep
+        </button>
+        <button
+          :if={@topic.status == "proposed"}
+          type="button"
+          phx-click="remove_topic"
+          phx-value-id={@topic.id}
+          class="btn btn-ghost btn-xs"
+        >
+          Not this
+        </button>
+        <button
+          :if={@topic.status == "active"}
+          type="button"
+          phx-click="pause_topic"
+          phx-value-id={@topic.id}
+          class="btn btn-ghost btn-xs"
+        >
+          Pause
+        </button>
+        <button
+          :if={@topic.status == "paused"}
+          type="button"
+          phx-click="resume_topic"
+          phx-value-id={@topic.id}
+          class="btn btn-ghost btn-xs"
+        >
+          Resume
+        </button>
+        <button
+          :if={@topic.status != "proposed"}
+          type="button"
+          phx-click="remove_topic"
+          phx-value-id={@topic.id}
+          class="btn btn-ghost btn-xs"
+          title="Remove"
+        >
+          ✕
+        </button>
+      </div>
+    </li>
+    """
+  end
+
   # The menu's order is the page's order.
   defp nav_sections(poet) do
     [
@@ -883,6 +1004,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       {"trips", "Trips"},
       {"book", "Your book"},
       {"topics", "Topics"},
+      {"tastes", "Tastes"},
       {"learned", "Learned"},
       {"credits", "Credits"},
       {"notifications", "Notifications"},
@@ -1298,7 +1420,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
             <.settings_section id="topics" title={"Topics " <> @poet.name <> " follows for you"}>
               <p class="text-sm opacity-60 mb-3">
-                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. A taste works the same way: tell {@poet.name} what you listen to, read, watch, love outdoors or like to give, and on its day it goes looking for new things that fit. Tell {@poet.name} in chat, or add one here.
+                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
               </p>
 
               <p :if={@topics == []} class="text-sm opacity-50 mb-2">
@@ -1306,113 +1428,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               </p>
 
               <ul class="space-y-2">
-                <li
-                  :for={topic <- @topics}
-                  id={"topic-#{topic.id}"}
-                  class={[
-                    "p-2 rounded-lg border border-base-200",
-                    topic.status == "paused" && "opacity-60"
-                  ]}
-                >
-                  <form
-                    id={"topic-form-#{topic.id}"}
-                    phx-change="save_topic"
-                    phx-value-id={topic.id}
-                    class="flex flex-wrap items-center gap-2"
-                  >
-                    <input type="hidden" name="topic_id" value={topic.id} />
-                    <input
-                      type="text"
-                      name="label"
-                      phx-debounce="750"
-                      value={topic.label}
-                      class="input input-bordered input-sm flex-1 min-w-40"
-                    />
-                    <span :if={topic.domain} class="badge badge-ghost badge-sm">
-                      {Topic.domain_name(topic.domain)}
-                    </span>
-                    <select
-                      :if={is_nil(topic.domain)}
-                      name="kind"
-                      class="select select-bordered select-sm"
-                    >
-                      <option
-                        :for={{value, label} <- kind_options()}
-                        value={value}
-                        selected={(topic.kind || "") == value}
-                      >
-                        {label}
-                      </option>
-                    </select>
-                    <select
-                      name="every_days"
-                      class="select select-bordered select-sm"
-                      disabled={topic.status == "proposed"}
-                    >
-                      <option
-                        :for={{days, label} <- cadence_options()}
-                        value={days}
-                        selected={topic.every_days == days}
-                      >
-                        {label}
-                      </option>
-                    </select>
-                  </form>
-                  <div class="flex items-center gap-2 mt-1 text-xs opacity-60">
-                    <span :if={topic_status_label(topic)}>{topic_status_label(topic)}</span>
-                    <span :if={topic_schedule(topic, @poet.name)}>{topic_schedule(topic, @poet.name)}</span>
-                    <span :if={topic.evidence["quote"]} class="italic">
-                      &ldquo;{topic.evidence["quote"]}&rdquo;
-                    </span>
-                    <span class="flex-1"></span>
-                    <button
-                      :if={topic.status == "proposed"}
-                      type="button"
-                      phx-click="keep_topic"
-                      phx-value-id={topic.id}
-                      class="btn btn-primary btn-xs"
-                    >
-                      Keep
-                    </button>
-                    <button
-                      :if={topic.status == "proposed"}
-                      type="button"
-                      phx-click="remove_topic"
-                      phx-value-id={topic.id}
-                      class="btn btn-ghost btn-xs"
-                    >
-                      Not this
-                    </button>
-                    <button
-                      :if={topic.status == "active"}
-                      type="button"
-                      phx-click="pause_topic"
-                      phx-value-id={topic.id}
-                      class="btn btn-ghost btn-xs"
-                    >
-                      Pause
-                    </button>
-                    <button
-                      :if={topic.status == "paused"}
-                      type="button"
-                      phx-click="resume_topic"
-                      phx-value-id={topic.id}
-                      class="btn btn-ghost btn-xs"
-                    >
-                      Resume
-                    </button>
-                    <button
-                      :if={topic.status != "proposed"}
-                      type="button"
-                      phx-click="remove_topic"
-                      phx-value-id={topic.id}
-                      class="btn btn-ghost btn-xs"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
+                <.topic_row :for={topic <- @topics} topic={topic} poet_name={@poet.name} />
               </ul>
 
               <div :if={@queued_excursions != []} class="mt-3">
@@ -1441,21 +1457,50 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </ul>
               </div>
 
-              <form id="add-topic-form" phx-submit="add_topic" class="flex gap-2 mt-3">
+              <form id="add-topic-form" phx-submit="add_topic" class="mt-3 space-y-2">
                 <input
                   type="text"
                   name="label"
-                  class="input input-bordered input-sm flex-1"
-                  placeholder="Add a topic, like kit airplanes, or a taste, like post-rock"
+                  class="input input-bordered input-sm w-full"
+                  placeholder="Add a topic, like kit airplanes or embodied minds"
                 />
-                <select name="domain" class="select select-bordered select-sm">
-                  <option :for={{value, label} <- domain_options()} value={value}>{label}</option>
-                </select>
-                <select name="kind" class="select select-bordered select-sm">
-                  <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
-                </select>
-                <button type="submit" class="btn btn-sm">Add</button>
+                <div class="flex gap-2">
+                  <select name="kind" class="select select-bordered select-sm flex-1">
+                    <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
+                  </select>
+                  <button type="submit" class="btn btn-sm">Add</button>
+                </div>
               </form>
+            </.settings_section>
+
+            <.settings_section id="tastes" title={"Tastes " <> @poet.name <> " looks for"}>
+              <p class="text-sm opacity-60 mb-3">
+                Tell {@poet.name} what you love in each of these, in your own words. On a taste's day, {@poet.name} goes looking for new things that fit it and brings back a few, each with why it chose them.
+              </p>
+
+              <div class="space-y-4">
+                <div :for={domain <- Topic.domains()} id={"tastes-#{domain}"}>
+                  <h3 class="text-sm font-medium">{Topic.domain_name(domain)}</h3>
+                  <p class="text-xs opacity-60 mb-1">{taste_hint(domain)}</p>
+                  <ul :if={@tastes[domain]} class="space-y-2 mb-2">
+                    <.topic_row
+                      :for={topic <- @tastes[domain]}
+                      topic={topic}
+                      poet_name={@poet.name}
+                    />
+                  </ul>
+                  <form id={"add-taste-#{domain}"} phx-submit="add_topic" class="flex gap-2">
+                    <input type="hidden" name="domain" value={domain} />
+                    <input
+                      type="text"
+                      name="label"
+                      class="input input-bordered input-sm flex-1 min-w-0"
+                      placeholder={taste_placeholder(domain)}
+                    />
+                    <button type="submit" class="btn btn-sm">Add</button>
+                  </form>
+                </div>
+              </div>
             </.settings_section>
 
             <.settings_section id="learned" title={"What " <> @poet.name <> " has learned about you"}>
