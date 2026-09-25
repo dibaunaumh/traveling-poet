@@ -24,6 +24,12 @@ defmodule TravelingPoet.Topics.Find do
     field :media_id, :id
     field :position, :integer, default: 0
     field :source, :string, default: "agent"
+    # Where the find sits on the subject tree (Guide.PlaceTopics), as places
+    # do; set by Guide.TopicTagging, never by the poet: cast only by
+    # topics_changeset/2.
+    field :topic, :string
+    field :second_topic, :string
+    field :topics_classified_at, :utc_datetime
 
     belongs_to :poet, TravelingPoet.Poets.Poet
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
@@ -81,5 +87,20 @@ defmodule TravelingPoet.Topics.Find do
     |> validate_format(:url, ~r/^https?:\/\//, message: "must be an http(s) link")
     |> validate_number(:poet_rating, greater_than_or_equal_to: 1, less_than_or_equal_to: 5)
     |> unique_constraint([:journal_entry_id, :name])
+  end
+
+  @topic_fields [:topic, :second_topic, :topics_classified_at]
+
+  @doc "The topic fields, for carrying them across a wholesale replace."
+  def topic_fields, do: @topic_fields
+
+  @doc """
+  The classifier's verdict on a find. A path not in the tree, or a second
+  topic equal to the first, is dropped rather than failing the write.
+  """
+  def topics_changeset(find, attrs) do
+    find
+    |> cast(attrs, @topic_fields)
+    |> TravelingPoet.Guide.PlaceTopics.drop_unknown_paths([:topic, :second_topic])
   end
 end

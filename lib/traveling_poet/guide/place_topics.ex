@@ -57,4 +57,25 @@ defmodule TravelingPoet.Guide.PlaceTopics do
   end
 
   def normalize_type(_), do: "other"
+
+  @doc """
+  For a changeset carrying a first and a second path in `fields`: an unknown
+  path is dropped, and a second equal to the first (or without a first) too.
+  Shared by places, finds and topics, whose verdicts come from one classifier.
+  """
+  def drop_unknown_paths(changeset, [first, second]) do
+    changeset =
+      Enum.reduce([first, second], changeset, fn field, cs ->
+        case Ecto.Changeset.get_change(cs, field) do
+          nil -> cs
+          path -> if valid?(path), do: cs, else: Ecto.Changeset.put_change(cs, field, nil)
+        end
+      end)
+
+    a = Ecto.Changeset.get_field(changeset, first)
+
+    if a == nil or Ecto.Changeset.get_field(changeset, second) == a,
+      do: Ecto.Changeset.put_change(changeset, second, nil),
+      else: changeset
+  end
 end

@@ -49,6 +49,12 @@ defmodule TravelingPoet.Topics.Topic do
     field :every_days, :integer, default: @default_every_days
     field :position, :integer, default: 0
     field :evidence, :map, default: %{}
+    # Where the topic or taste sits on the subject tree (Guide.PlaceTopics),
+    # set by Guide.TopicTagging: cast only by subjects_changeset/2, and
+    # cleared when the label or domain changes so it is classified again.
+    field :subject, :string
+    field :second_subject, :string
+    field :subjects_classified_at, :utc_datetime
 
     belongs_to :poet, TravelingPoet.Poets.Poet
 
@@ -90,6 +96,23 @@ defmodule TravelingPoet.Topics.Topic do
     )
     |> put_key()
     |> unique_constraint([:poet_id, :key], message: "already follows this topic")
+    |> reset_subjects()
+  end
+
+  # New words mean a new place on the tree.
+  defp reset_subjects(%{data: %{id: id}} = changeset) when not is_nil(id) do
+    if get_change(changeset, :label) || get_change(changeset, :domain),
+      do: change(changeset, subject: nil, second_subject: nil, subjects_classified_at: nil),
+      else: changeset
+  end
+
+  defp reset_subjects(changeset), do: changeset
+
+  @doc "The classifier's verdict on a topic or taste; unknown paths are dropped."
+  def subjects_changeset(topic, attrs) do
+    topic
+    |> cast(attrs, [:subject, :second_subject, :subjects_classified_at])
+    |> TravelingPoet.Guide.PlaceTopics.drop_unknown_paths([:subject, :second_subject])
   end
 
   # Groups a topic by what it is about, ignoring how it was phrased, so

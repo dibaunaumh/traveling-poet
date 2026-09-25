@@ -44,18 +44,18 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
   def classify(places, opts) do
     case api_key(opts) do
       key when key in [nil, ""] -> {:error, :not_configured}
-      key -> request(key, places)
+      key -> request(key, places, Keyword.get(opts, :as, :places))
     end
   end
 
   defp api_key(opts),
     do: Keyword.get(opts, :api_key, Application.get_env(:traveling_poet, :openrouter_api_key))
 
-  defp request(key, places) do
+  defp request(key, places, as) do
     body = %{
       model: model(),
       messages: [
-        %{role: "system", content: system_prompt()},
+        %{role: "system", content: system_prompt(as)},
         %{role: "user", content: user_prompt(places)}
       ],
       response_format: %{type: "json_object"},
@@ -148,7 +148,8 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
           "category=#{p.category}",
           p[:city] && "city=#{p.city}",
           p[:address] && "address=#{p.address}",
-          p[:blurb] && "about=#{String.slice(p.blurb, 0, 300)}"
+          p[:blurb] && "about=#{String.slice(p.blurb, 0, 300)}",
+          p[:context] && "context=#{p.context}"
         ]
         |> Enum.reject(&is_nil/1)
         |> Enum.join(" | ")
@@ -157,17 +158,57 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
     "Classify these places:\n\n" <> Enum.join(lines, "\n")
   end
 
-  @doc false
-  def system_prompt do
+  @doc """
+  The instructions. `:places` (the default) files places a visitor could go
+  to and returns [] for anything else; `:things` files what is not a place
+  on the same tree: excursion finds (talks, papers, exhibitions, products,
+  recordings, books, films) and a reader's topics and tastes, so places,
+  finds and tastes share one set of coordinates.
+  """
+  def system_prompt(as \\ :places)
+
+  def system_prompt(:places) do
+    base_prompt(
+      """
+      You file the places a travel writer found into a fixed topic tree, so readers
+      can browse the world's places by subject (every textile museum, workshop and
+      exhibition side by side).
+      """,
+      """
+      Return [] ONLY when the row is not somewhere a visitor could go:
+                a whole town or region mentioned in passing, a person, an
+                organisation or website, a train line.
+      """
+    )
+  end
+
+  def system_prompt(:things) do
+    base_prompt(
+      """
+      You file what a travel writer found on their days off the road, and what
+      their reader follows, into a fixed topic tree that also holds the places
+      they found, so a reader can see a subject's places, works and ideas side by
+      side. A row may be a talk, a paper, a session, an exhibition, a product, a
+      recording, a book, a film or series, an outdoor activity; or a reader's
+      subject ("embodied minds") or taste ("post-rock, Mogwai"). File each by
+      what it is ABOUT: a talk on AI and aviation is AI and transport, an album
+      is its kind of music, an exhibition is its art and its subject.
+      """,
+      """
+      Return [] ONLY when the row is plainly news coverage of another row or
+                a logistics note, not a thing in itself.
+      """
+    )
+  end
+
+  defp base_prompt(intro, empty_rule) do
     topics =
       Enum.map_join(PlaceTopics.paths(), "\n", fn path ->
         "#{path}  (#{Enum.join(PlaceTopics.names(path), " > ")})"
       end)
 
     """
-    You file the places a travel writer found into a fixed topic tree, so readers
-    can browse the world's places by subject (every textile museum, workshop and
-    exhibition side by side).
+    #{String.trim(intro)}
 
     For each place, return:
       id      the id you were given
@@ -177,9 +218,7 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
               Every real place gets at least one topic: when nothing fits
               exactly, choose the CLOSEST one (a German restaurant with no
               German topic still goes under food, in the nearest cuisine).
-              Return [] ONLY when the row is not somewhere a visitor could go:
-              a whole town or region mentioned in passing, a person, an
-              organisation or website, a train line.
+              #{String.trim(empty_rule)}
       type    what kind of place it is, one of:
               #{Enum.join(PlaceTopics.types(), ", ")}
 

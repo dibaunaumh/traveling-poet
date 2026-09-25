@@ -53,7 +53,7 @@ Migrations run automatically on boot (`Ecto.Migrator` in the supervision tree) w
 
 ### The app is the driver, the sprite is the writer
 
-The Phoenix app never writes journal prose itself. Its only server-side text LLM calls label what poets already wrote: `Guide.Extractor` (places backfill) and `Guide.PlaceClassifier` (place topics). Everything the poet writes happens on its sprite.
+The Phoenix app never writes journal prose itself. Its only server-side text LLM calls label what poets already wrote: `Guide.Extractor` (places backfill) and `Guide.PlaceClassifier` (subject-tree topics for places, and with its `:things` instructions for excursion finds and readers' topics and tastes, so all three share one set of coordinates). Everything the poet writes happens on its sprite.
 
 - `Provisioner` creates the sprite, installs OpenClaw, writes `~/.openclaw/openclaw.json` and `.env`, seeds the workspace from `priv/data/` (AGENTS.md, BOOTSTRAP.md, HEARTBEAT.md, `skills/*/SKILL.md`), generates and installs the `tpoet-plugin` (the agent's tool set, source in `Provisioner.tpoet_plugin_source/2`), starts the gateway, and pairs an Ed25519 device. Idempotent. The OpenClaw heartbeat is disabled in `Provisioner.openclaw_config/3` (a paused sprite has no clock; all cadence is app-side) and `AgentSession` ignores a `HEARTBEAT_OK` reply. `Provisioner.upgrade_workspace/1` rewrites openclaw.json and re-seeds workspace + plugin for one poet; `Provisioner.upgrade_fleet/1` rolls that across every provisioned poet, staggered.
 - `priv/data/**` is read at compile time; editing a SKILL.md or `poet_presets.json` needs `mix compile --force` before the change is picked up.

@@ -199,4 +199,104 @@ defmodule TravelingPoet.PlaceTopicsTest do
       assert TopicTagging.backfill(api_key: "k").places == 0
     end
   end
+
+  describe "finds and tastes on the same tree" do
+    @ai "literature-and-ideas/fields-of-thought/ai-and-computing"
+    @mind "literature-and-ideas/fields-of-thought/mind-and-cognitive-science"
+    @ambient "music-and-performance/music/electronic-and-ambient"
+
+    # Replies as stub_reply/1 does, and sends the system prompt it was given
+    # back to the test.
+    defp stub_things(verdicts) do
+      test = self()
+
+      Req.Test.stub(TravelingPoet.PlaceClassifier, fn conn ->
+        {:ok, body, conn} = Plug.Conn.read_body(conn)
+        [%{"content" => system} | _] = Jason.decode!(body)["messages"]
+        send(test, {:system_prompt, system})
+
+        Req.Test.json(conn, %{
+          "choices" => [%{"message" => %{"content" => Jason.encode!(%{"places" => verdicts})}}]
+        })
+      end)
+    end
+
+    setup do
+      poet = poet_fixture(user_fixture())
+      topic = topic_fixture(poet, %{label: "Embodied minds"})
+      entry = published_entry_fixture(poet, %{entry_date: ~D[2026-09-20]})
+      excursion_fixture(poet, topic, entry)
+
+      {:ok, [talk]} =
+        TravelingPoet.Topics.replace_finds(entry, [
+          %{
+            "name" => "Shanahan on embodiment",
+            "url" => "https://example.com/t",
+            "kind" => "talk"
+          }
+        ])
+
+      %{poet: poet, topic: topic, entry: entry, talk: talk}
+    end
+
+    test "a find is filed by what it is about, with the things instructions",
+         %{entry: entry, talk: talk} do
+      stub_things([%{"id" => talk.id, "topics" => [@ai, @mind], "type" => "other"}])
+
+      assert TopicTagging.tag_finds(entry.id, api_key: "k") == 1
+      assert_receive {:system_prompt, system}
+      assert system =~ "what it is ABOUT"
+      refute system =~ "somewhere a visitor could go"
+
+      talk = Repo.get!(TravelingPoet.Topics.Find, talk.id)
+      assert {talk.topic, talk.second_topic} == {@ai, @mind}
+      assert talk.topics_classified_at
+
+      # the poet re-sends its list: the talk keeps its place on the tree
+      {:ok, [again]} =
+        TravelingPoet.Topics.replace_finds(entry, [
+          %{
+            "name" => "Shanahan on embodiment",
+            "url" => "https://example.com/t2",
+            "kind" => "talk"
+          }
+        ])
+
+      assert again.topic == @ai
+      assert TopicTagging.tag_finds(entry.id, api_key: "k") == 0
+    end
+
+    test "a taste gets its subjects; new words clear them for a fresh look", %{poet: poet} do
+      taste = topic_fixture(poet, %{label: "Colleen, DakhaBrakha", domain: "music"})
+      stub_things([%{"id" => taste.id, "topics" => [@ambient], "type" => "other"}])
+
+      assert TopicTagging.tag_topic(taste.id, api_key: "k") == 1
+      taste = Repo.get!(TravelingPoet.Topics.Topic, taste.id)
+      assert taste.subject == @ambient
+
+      {:ok, same} = TravelingPoet.Topics.update(taste, %{every_days: 10})
+      assert same.subject == @ambient
+
+      {:ok, reworded} = TravelingPoet.Topics.update(same, %{label: "Arvo Part"})
+      assert reworded.subject == nil
+      assert reworded.subjects_classified_at == nil
+    end
+
+    test "the backfill covers finds and topics, dry run unless told to commit",
+         %{talk: talk, topic: topic} do
+      stub_things([%{"id" => talk.id, "topics" => [@ai], "type" => "other"}])
+
+      report = TopicTagging.backfill(target: :finds, api_key: "k")
+      assert report.committed == false
+      assert report.classified == 1
+      assert Repo.get!(TravelingPoet.Topics.Find, talk.id).topic == nil
+
+      TopicTagging.backfill(target: :finds, api_key: "k", commit: true)
+      assert Repo.get!(TravelingPoet.Topics.Find, talk.id).topic == @ai
+
+      stub_things([%{"id" => topic.id, "topics" => [@mind], "type" => "other"}])
+      TopicTagging.backfill(target: :topics, api_key: "k", commit: true)
+      assert Repo.get!(TravelingPoet.Topics.Topic, topic.id).subject == @mind
+    end
+  end
 end

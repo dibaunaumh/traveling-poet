@@ -435,6 +435,10 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   defp save_finds(conn, entry, excursion, usable, dropped, over_cap, params) do
     with {:ok, saved} <- Topics.replace_finds(entry, usable),
          {:ok, excursion} <- Topics.set_destination(excursion, params) do
+      # On the subject tree beside the places, in the background; finds
+      # re-sent under the same name keep theirs.
+      TopicTagging.tag_finds_async(entry.id)
+
       json(
         conn,
         Map.merge(

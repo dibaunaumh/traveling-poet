@@ -116,13 +116,24 @@ defmodule TravelingPoet.Topics do
     %Topic{}
     |> Topic.changeset(attrs)
     |> Repo.insert()
+    |> tag()
   end
 
   def update(%Topic{} = topic, attrs) do
     topic
     |> Topic.changeset(attrs)
     |> Repo.update()
+    |> tag()
   end
+
+  # A new or reworded topic goes on the subject tree in the background
+  # (Guide.TopicTagging); an unchanged one already sits there.
+  defp tag({:ok, %Topic{} = topic} = result) do
+    TravelingPoet.Guide.TopicTagging.tag_topic_async(topic)
+    result
+  end
+
+  defp tag(other), do: other
 
   @doc "The companion keeps a topic the poet proposed."
   def keep(%Topic{} = topic), do: update(topic, %{status: "active", source: "settings"})
@@ -157,7 +168,7 @@ defmodule TravelingPoet.Topics do
         {:ok, existing, true}
 
       nil ->
-        case %Topic{} |> Topic.changeset(attrs) |> Repo.insert() do
+        case %Topic{} |> Topic.changeset(attrs) |> Repo.insert() |> tag() do
           {:ok, topic} -> {:ok, topic, false}
           {:error, changeset} -> {:error, changeset}
         end
@@ -196,7 +207,7 @@ defmodule TravelingPoet.Topics do
           |> Map.put("source", "ask")
           |> Map.put("position", next_position(poet_id))
 
-        with {:ok, topic} <- %Topic{} |> Topic.changeset(attrs) |> Repo.insert(),
+        with {:ok, topic} <- %Topic{} |> Topic.changeset(attrs) |> Repo.insert() |> tag(),
              do: {:ok, topic, :added}
     end
   end
@@ -706,6 +717,7 @@ defmodule TravelingPoet.Topics do
   """
   def replace_finds(%Entry{} = entry, finds_attrs) when is_list(finds_attrs) do
     kept = finds_media_by_name(entry.id)
+    kept_topics = finds_topics_by_name(entry.id)
 
     Repo.transaction(fn ->
       Repo.delete_all(from(f in Find, where: f.journal_entry_id == ^entry.id))
@@ -727,7 +739,9 @@ defmodule TravelingPoet.Topics do
         )
         |> Repo.insert()
         |> case do
-          {:ok, find} -> find
+          # A find re-sent under the same name keeps its place on the subject
+          # tree, as a place does (Guide.replace_places/2).
+          {:ok, find} -> carry_topics(find, Map.get(kept_topics, name))
           # A find without a URL is not a find; the whole list is refused
           # with the reason, and the previous list stays.
           {:error, changeset} -> Repo.rollback(changeset)
@@ -743,6 +757,19 @@ defmodule TravelingPoet.Topics do
     |> Repo.all()
     |> Map.new(&{&1.name, %{"media_id" => &1.media_id}})
   end
+
+  defp finds_topics_by_name(entry_id) do
+    Find
+    |> where(journal_entry_id: ^entry_id)
+    |> where([f], not is_nil(f.topics_classified_at))
+    |> Repo.all()
+    |> Map.new(&{&1.name, Map.take(&1, Find.topic_fields())})
+  end
+
+  defp carry_topics(find, nil), do: find
+
+  defp carry_topics(find, topics),
+    do: find |> Find.topics_changeset(topics) |> Repo.update!()
 
   def attach_find_media(%Find{} = find, media_id) do
     find |> Find.changeset(%{media_id: media_id}) |> Repo.update()
