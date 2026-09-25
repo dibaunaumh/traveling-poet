@@ -380,6 +380,22 @@ defmodule TravelingPoet.Poets do
 
   defp arrived_on?(_poet, _today), do: false
 
+  # A taste (a topic with a domain) is a discovery day for things that fit
+  # it; a subject is a day at a destination.
+  defp excursion_reason(%Topics.Topic{domain: domain}, label, asked) when is_binary(domain) do
+    "a discovery day for their taste in " <>
+      "#{String.downcase(Topics.Topic.domain_name(domain))} (#{label})#{asked}: " <>
+      "a day at your desk, not on the road; you do not move today and it does not " <>
+      "count against your stay; bring back new things that fit that taste, never one " <>
+      "they named and never one of excursion.past_finds"
+  end
+
+  defp excursion_reason(_topic, label, asked) do
+    "an excursion into #{label}#{asked}: a day at your desk, not on the road; " <>
+      "you do not move today and it does not count against your stay; " <>
+      "never one of excursion.past_destinations, you have written those up already"
+  end
+
   defp excursion(route, %Topics.Excursion{} = x) do
     label = x.topic && x.topic.label
 
@@ -392,10 +408,7 @@ defmodule TravelingPoet.Poets do
       travel_today: false,
       day: "excursion",
       excursion: Topics.excursion_payload(x),
-      reason:
-        "an excursion into #{label}#{asked}: a day at your desk, not on the road; " <>
-          "you do not move today and it does not count against your stay; " <>
-          "never one of excursion.past_destinations, you have written those up already"
+      reason: excursion_reason(x.topic, label, asked)
     })
   end
 

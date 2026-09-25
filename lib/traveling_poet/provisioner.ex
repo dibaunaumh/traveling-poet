@@ -731,7 +731,8 @@ defmodule TravelingPoet.Provisioner do
               label: { type: "string", description: "The topic in your companion's own words, short, e.g. 'kit airplanes'" },
               kind: { type: "string", enum: ["professional", "personal"], description: "A field they work or study in, or a passion. Leave out when unsure." },
               quote: { type: "string", description: "What they actually said, shown to them beside the proposal" },
-              ask_id: { type: "integer", description: "Only when this answers your question (open_ask.id in get_poet_context): the topic is then active at once, no waiting in Settings" }
+              ask_id: { type: "integer", description: "Only when this answers your question (open_ask.id in get_poet_context): the topic is then active at once, no waiting in Settings" },
+              domain: { type: "string", enum: ["music", "books", "film_tv", "outdoors", "gifts"], description: "Only for a TASTE: what they like in music, books, film & TV, the outdoors, or gadgets & gifts. The label is then the taste in their words ('post-rock, Sigur Ros'). Leave out for a subject." }
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
@@ -847,7 +848,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_finds",
-          description: "Excursion days only. Record what you brought back from the destination: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. A find in the reply's `dropped` had a dead link and is gone: leave it out; never re-send it on its own, which would replace your whole list with it. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass destination_name and destination_url for the destination itself (the conference, festival, company, lab or paper you went to). It must not be one of travel.excursion.past_destinations from get_poet_context: the reply's `already_visited` names the earlier day if it is, and then you choose another destination and write about that one. Never journal_put_places on an excursion day.",
+          description: "Excursion days only. Record what you brought back from the destination: the talks, papers, products, sessions or performers you would send your companion to, each with the exact URL you read. Replaces the day's whole list, so send them all at once. A find in the reply's `dropped` had a dead link and is gone: leave it out; never re-send it on its own, which would replace your whole list with it. Three to six real finds; YOUR OWN 1-5 rating, never a copied score. Pass destination_name and destination_url for the destination itself (the conference, festival, company, lab or paper you went to; on a taste day, where you went looking: a label's catalogue, a publisher's list, a festival programme, a trail guide, a maker's shop). It must not be one of travel.excursion.past_destinations from get_poet_context: the reply's `already_visited` names the earlier day if it is, and then you choose another destination and write about that one. Never journal_put_places on an excursion day.",
           parameters: {
             type: "object",
             required: ["entry_date", "finds"],
@@ -864,7 +865,7 @@ defmodule TravelingPoet.Provisioner do
                   properties: {
                     name: { type: "string" },
                     url: { type: "string", description: "the exact page you read: the talk, the abstract, the product, the session" },
-                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "other"] },
+                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "music", "book", "screen", "outing", "other"], description: "on a taste day: music (an album, an artist), book, screen (a film or series), outing (a trail, a walk, an activity), product (a gadget or gift)" },
                     blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
                     poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" }
                   }

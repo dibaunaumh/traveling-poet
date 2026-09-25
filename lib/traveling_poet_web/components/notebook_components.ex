@@ -390,12 +390,14 @@ defmodule TravelingPoetWeb.NotebookComponents do
     """
   end
 
-  # Ideas in indigo, things in ochre, happenings in the events purple.
+  # Ideas in indigo, works in madder red, things in ochre, happenings in the
+  # events purple.
   # Public so the book's gazetteer inks its list the same way.
   @doc false
   def find_color(kind) when kind in ~w(paper talk session), do: "#3b4a8c"
   def find_color("product"), do: "#b7791f"
-  def find_color(kind) when kind in ~w(event venue), do: "#8e44ad"
+  def find_color(kind) when kind in ~w(music book screen), do: "#a33b3b"
+  def find_color(kind) when kind in ~w(event venue outing), do: "#8e44ad"
   def find_color(_), do: "#0f766e"
 
   attr :place, :map, required: true

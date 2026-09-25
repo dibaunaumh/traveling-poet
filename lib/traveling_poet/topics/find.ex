@@ -10,7 +10,9 @@ defmodule TravelingPoet.Topics.Find do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(talk paper product session event venue other)
+  # music, book, screen and outing come from taste days (a topic with a
+  # domain); gadgets and gifts are products.
+  @kinds ~w(talk paper product session event venue music book screen outing other)
 
   schema "entry_finds" do
     field :entry_date, :date
@@ -39,10 +41,11 @@ defmodule TravelingPoet.Topics.Find do
   """
   def group_for(kind) when kind in ~w(talk paper session), do: "ideas"
   def group_for("product"), do: "things"
-  def group_for(kind) when kind in ~w(event venue), do: "happenings"
+  def group_for(kind) when kind in ~w(music book screen), do: "works"
+  def group_for(kind) when kind in ~w(event venue outing), do: "happenings"
   def group_for(_), do: "other"
 
-  def filter_groups, do: ~w(all ideas things happenings)
+  def filter_groups, do: ~w(all ideas works things happenings)
 
   @doc "Coerces whatever the model sent into a known kind; unknown becomes other."
   def normalize_kind(value) when is_binary(value) do

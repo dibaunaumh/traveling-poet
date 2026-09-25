@@ -42,6 +42,10 @@ defmodule TravelingPoetWeb.Api.TopicController do
   end
 
   defp add_from_answer(conn, poet, ask, attrs) do
+    # An answer to a question about a domain is a taste in it, whatever the
+    # poet passed.
+    attrs = if ask.about in Topic.domains(), do: Map.put(attrs, :domain, ask.about), else: attrs
+
     case Topics.add_from_ask(poet.id, attrs) do
       {:ok, topic, outcome} ->
         {:ok, _} = Asks.mark_answered(ask)
@@ -204,6 +208,7 @@ defmodule TravelingPoetWeb.Api.TopicController do
   defp validate(params, label) do
     label = String.trim(label)
     kind = params["kind"]
+    domain = blank_to_nil(params["domain"])
 
     cond do
       label == "" ->
@@ -215,8 +220,11 @@ defmodule TravelingPoetWeb.Api.TopicController do
       not is_nil(kind) and kind not in Topic.kinds() ->
         {:error, "kind must be one of: #{Enum.join(Topic.kinds(), ", ")}"}
 
+      not is_nil(domain) and domain not in Topic.domains() ->
+        {:error, "domain must be one of: #{Enum.join(Topic.domains(), ", ")}"}
+
       true ->
-        {:ok, %{label: label, kind: kind, evidence: evidence(params)}}
+        {:ok, %{label: label, kind: kind, domain: domain, evidence: evidence(params)}}
     end
   end
 
@@ -226,6 +234,15 @@ defmodule TravelingPoetWeb.Api.TopicController do
   end
 
   defp evidence(_params), do: %{}
+
+  defp blank_to_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      v -> v
+    end
+  end
+
+  defp blank_to_nil(_), do: nil
 
   defp errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)

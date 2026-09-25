@@ -29,7 +29,7 @@ defmodule TravelingPoet.Asks do
   """
   def due(poet, today \\ Date.utc_today()) do
     case Cadence.due(facts(poet.id), today) do
-      {:ask, reason} -> %{about: "topics", reason: reason}
+      {:ask, reason, about} -> %{about: about, reason: reason}
       :no -> nil
     end
   end
@@ -56,12 +56,20 @@ defmodule TravelingPoet.Asks do
         )
         |> Repo.one()
         |> then(&(&1 && NaiveDateTime.to_date(&1))),
+      domains_known:
+        from(t in Topic,
+          where: t.poet_id == ^poet_id and not is_nil(t.domain),
+          distinct: true,
+          select: t.domain
+        )
+        |> Repo.all(),
       asks:
         poet_id
         |> history(12)
         |> Enum.map(fn a ->
           %{
             asked_on: NaiveDateTime.to_date(a.inserted_at),
+            about: a.about,
             answered: a.status != "open",
             open: open?(a, now)
           }
@@ -228,10 +236,21 @@ defmodule TravelingPoet.Asks do
   @doc false
   def answer_note(%Ask{} = ask) do
     "[From the app: this message answers the question you asked them " <>
-      "(ask_id #{ask.id}): \"#{ask.question}\". For each interest they name, call " <>
-      "propose_topic with ask_id #{ask.id}; it becomes one of their topics at once. " <>
+      "(ask_id #{ask.id}): \"#{ask.question}\". " <>
+      answer_instruction(ask) <>
       "Then answer them in a line or two. This is a chat turn: do not travel, and do " <>
       "not write or publish an entry for it; the daily run does that.]"
+  end
+
+  defp answer_instruction(%Ask{about: "topics", id: id}) do
+    "For each interest they name, call propose_topic with ask_id #{id}; " <>
+      "it becomes one of their topics at once. "
+  end
+
+  defp answer_instruction(%Ask{about: domain, id: id}) do
+    "It is about their taste in #{String.downcase(TravelingPoet.Topics.Topic.domain_name(domain))}: " <>
+      "call propose_topic once with ask_id #{id} and their taste, in their words, as the " <>
+      "label; it becomes their #{domain} taste at once. "
   end
 
   @doc "A topic came of the reader's answer."

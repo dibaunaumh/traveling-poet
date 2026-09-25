@@ -1,8 +1,8 @@
 defmodule TravelingPoet.Asks.Ask do
   @moduledoc """
   A question the poet put to its reader in chat, on a day the app chose
-  (`Asks.Cadence`). Today always about their topics of interest; `about`
-  leaves room for other subjects (music, books) later.
+  (`Asks.Cadence`). `about` is "topics" (what subjects they follow) or a
+  domain (`Topic.domains/0`: their taste in music, books...).
 
   `status`: "open" until the reader writes anything in chat, then "replied";
   "answered" once a topic came of it. An open ask older than
@@ -12,8 +12,8 @@ defmodule TravelingPoet.Asks.Ask do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @abouts ~w(topics)
-  @reasons ~w(no_topics check_in)
+  @abouts ["topics" | TravelingPoet.Topics.Topic.domains()]
+  @reasons ~w(no_topics domain check_in)
   @statuses ~w(open replied answered)
 
   schema "reader_asks" do
