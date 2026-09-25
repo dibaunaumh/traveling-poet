@@ -290,6 +290,20 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("toggle_reading", params, socket) do
+    on = params["reading_signals"] == "true"
+
+    case Accounts.update_user(socket.assigns.user, %{reading_signals: on}) do
+      {:ok, updated} ->
+        unless on, do: TravelingPoet.Reading.forget(updated)
+        {:noreply, assign(socket, :user, updated)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not save that setting.")}
+    end
+  end
+
+  @impl true
   def handle_event("save_poet", params, socket) do
     poet = socket.assigns.poet
 
@@ -1539,6 +1553,25 @@ defmodule TravelingPoetWeb.SettingsLive do
                   </button>
                 </li>
               </ul>
+
+              <form id="reading-signals-form" phx-change="toggle_reading" class="mt-4">
+                <input type="hidden" name="reading_signals" value="false" />
+                <label class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="reading_signals"
+                    value="true"
+                    class="toggle"
+                    checked={@user.reading_signals}
+                  />
+                  <span>
+                    <b>Learn from how I read</b>
+                    <span class="block text-sm opacity-60">
+                      Notes how long you spend on each paragraph of your own journal, so {@poet.name} learns which subjects you linger on. Only on your journal, only for you. Turning it off forgets what was noted.
+                    </span>
+                  </span>
+                </label>
+              </form>
 
               <details :if={@dismissed != []} class="mt-3">
                 <summary class="text-xs opacity-50 cursor-pointer">
