@@ -158,4 +158,44 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
     {:ok, _view, html} = live(conn, ~p"/discover")
     assert html =~ ~s|href="/discover"|
   end
+
+  test "a find picked in the village opens its card, with a way to it and to its page",
+       %{conn: conn} do
+    wren = public_poet("Wren")
+    entry = published_entry_fixture(wren, %{entry_date: ~D[2026-09-01], title: "A day at ECogS"})
+    subject = topic_fixture(wren, %{label: "Embodied minds"})
+    excursion_fixture(wren, subject, entry)
+
+    {:ok, [find]} =
+      TravelingPoet.Topics.replace_finds(entry, [
+        %{
+          "name" => "Shanahan on embodiment",
+          "url" => "https://example.com/talk",
+          "kind" => "talk",
+          "blurb" => "Why a body matters to a mind.",
+          "poet_rating" => 5
+        }
+      ])
+
+    find
+    |> TravelingPoet.Topics.Find.topics_changeset(%{
+      topic: "literature-and-ideas/fields-of-thought/ai-and-computing",
+      topics_classified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> TravelingPoet.Repo.update!()
+
+    {:ok, view, _html} = live(conn, ~p"/discover")
+    render_hook(view, "select", %{"kind" => "find", "id" => find.id, "from" => "map"})
+
+    assert has_element?(view, "#discover-find-#{find.id}", "Shanahan on embodiment")
+    assert has_element?(view, "#discover-find-#{find.id} .discover-find-kind", "Talk")
+    assert has_element?(view, ~s(#discover-find-#{find.id} a[href="https://example.com/talk"]))
+    assert has_element?(view, ~s(#discover-find-#{find.id} a[href="/p/#{wren.slug}/2026-09-01"]))
+
+    assert has_element?(
+             view,
+             "#discover-find-#{find.id} button.discover-subject",
+             "AI & computing"
+           )
+  end
 end

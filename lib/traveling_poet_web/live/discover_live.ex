@@ -33,7 +33,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents, only: [section: 1]
-  import TravelingPoetWeb.GuideComponents, only: [place_card: 1]
+  import TravelingPoetWeb.GuideComponents, only: [place_card: 1, humanize_category: 1]
 
   alias TravelingPoet.{Discover, Poets}
   alias TravelingPoet.Guide.PlaceTopics
@@ -139,8 +139,22 @@ defmodule TravelingPoetWeb.DiscoverLive do
     end
   end
 
+  defp load("find", id) do
+    case Discover.find(id) do
+      nil -> nil
+      overview -> tag(:find, Map.put(overview, :topics, subjects(overview.find)))
+    end
+  end
+
   defp load("poet", slug) when is_binary(slug), do: tag(:poet, Discover.poet(slug))
   defp load(_, _), do: nil
+
+  defp subjects(%{topic: a, second_topic: b}) do
+    [a, b]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&{&1, PlaceTopics.names(&1)})
+    |> Enum.reject(fn {_path, names} -> is_nil(names) end)
+  end
 
   defp tag(_kind, nil), do: nil
   defp tag(kind, overview), do: Map.put(overview, :kind, kind)
@@ -342,6 +356,43 @@ defmodule TravelingPoetWeb.DiscoverLive do
         </a>
         <a
           href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.place.entry_date)}"}
+          class="link"
+        >
+          Read the page it came from
+        </a>
+      </div>
+    </div>
+    """
+  end
+
+  defp overview(%{selected: %{kind: :find}} = assigns) do
+    ~H"""
+    <div class="discover-card" id={"discover-find-#{@selected.find.id}"}>
+      <.byline poet={@selected.poet}>
+        brought back{if @selected.destination, do: " from " <> @selected.destination}
+      </.byline>
+      <p class="discover-find-kind">{humanize_category(@selected.find.kind)}</p>
+      <h2 class="discover-title">{@selected.find.name}</h2>
+      <p :if={@selected.find.blurb} class="discover-teaser">{@selected.find.blurb}</p>
+      <p :if={@selected.find.poet_rating} class="text-xs opacity-60">
+        {@selected.poet.name}&rsquo;s pick: {@selected.find.poet_rating} of 5
+      </p>
+      <div :if={@selected.topics != []} class="discover-subjects" aria-label="Subjects">
+        <button
+          :for={{path, names} <- @selected.topics}
+          type="button"
+          class="discover-subject"
+          phx-click="village"
+          phx-value-topic={path}
+          title="See this subject in the village"
+        >
+          {Enum.join(names, " › ")}
+        </button>
+      </div>
+      <div class="discover-links">
+        <a href={@selected.find.url} class="link" target="_blank" rel="noopener">Open it</a>
+        <a
+          href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.entry.entry_date)}"}
           class="link"
         >
           Read the page it came from

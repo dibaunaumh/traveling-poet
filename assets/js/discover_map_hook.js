@@ -34,6 +34,13 @@
 import L, { touchFriendly } from "./leaflet_setup"
 import { Village } from "./village"
 
+// A village item key ("p12", "f7") as the overview's select event.
+const villageSelect = (key) => ({
+  kind: key[0] === "f" ? "find" : "place",
+  id: Number(key.slice(1)),
+  from: "map",
+})
+
 const STEP_MS = 9000
 const REDUCED_STEP_MS = 15_000
 const FIRST_STEP_MS = 2500
@@ -92,7 +99,8 @@ const DiscoverMap = {
     this.ringLayer = L.layerGroup().addTo(this.map)
 
     this.village = new Village(this.villageEl, {
-      onPlace: (id) => this.pick("vplace", id),
+      // an item key: "p<id>" a place, "f<id>" a find
+      onItem: (key) => this.pick(key[0] === "f" ? "vfind" : "vplace", key),
       onFocus: (path, { user }) => {
         this.subject = path
         this.syncUrl()
@@ -350,14 +358,19 @@ const DiscoverMap = {
   // What the tour turns through, as [{kind, id}], for the view and subject.
   tourQueue() {
     if (this.view === "village") {
-      return this.village.rotation(this.subject).map((id) => ({ kind: "vplace", id }))
+      return this.village
+        .rotation(this.subject)
+        .map((key) => ({ kind: key[0] === "f" ? "vfind" : "vplace", id: key }))
     }
     if (this.subject) {
       // A village place stands for every row merged into it; the map shows
       // whichever of them it has.
+      // The world map has places only; the village's finds stay in the village.
       const byId = new Map(this.village.places.map((p) => [p.id, p]))
       return this.village
         .rotation(this.subject)
+        .filter((key) => key[0] === "p")
+        .map((key) => Number(key.slice(1)))
         .map((vid) => ((byId.get(vid) || {}).ids || [vid]).find((id) => this.places.has(String(id))))
         .filter((id) => id != null)
         .map((id) => ({ kind: "place", id }))
@@ -386,11 +399,12 @@ const DiscoverMap = {
       if (!p) return
       this.ring(p, PLACE_COLOURS[p.group] || RED)
       this.flyTo(p, PLACE_ZOOM)
-    } else if (item.kind === "vplace") {
+    } else if (item.kind === "vplace" || item.kind === "vfind") {
       this.village.highlight(item.id)
+      if (push) this.pushEvent("select", villageSelect(item.id))
+      return
     }
-    const kind = item.kind === "vplace" ? "place" : item.kind
-    if (push) this.pushEvent("select", { kind, id: item.id, from: "map" })
+    if (push) this.pushEvent("select", { kind: item.kind, id: item.id, from: "map" })
   },
 
   stepMs() {
@@ -462,9 +476,9 @@ const DiscoverMap = {
     const i = this.queue ? this.queue.findIndex((q) => q.kind === kind && String(q.id) === String(id)) : -1
     if (i >= 0) this.index = i
 
-    if (kind === "vplace") {
+    if (kind === "vplace" || kind === "vfind") {
       this.village.highlight(id)
-      this.pushEvent("select", { kind: "place", id, from: "map" })
+      this.pushEvent("select", villageSelect(id))
       return
     }
     const item = this.point(kind, id)
