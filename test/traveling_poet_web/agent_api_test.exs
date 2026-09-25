@@ -1080,4 +1080,40 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert body["itinerary"] == []
     assert body["next_stop"] == nil
   end
+
+  describe "publish: a day with no places" do
+    defp publish(conn, date) do
+      conn
+      |> post(~p"/api/agent/journal_entries/#{Date.to_iso8601(date)}/publish", %{})
+      |> json_response(200)
+    end
+
+    test "publishes, and tells the poet to log the day's places", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+
+      body = publish(conn, entry.entry_date)
+
+      assert body["ok"]
+      assert body["missing"] == ["places"]
+      assert body["note"] =~ "journal_put_places for 2026-09-25"
+      assert Journal.get_entry(poet.id, entry.entry_date).status == "published"
+    end
+
+    test "says nothing once places are logged", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      place_fixture(poet, entry)
+
+      body = publish(conn, entry.entry_date)
+
+      refute Map.has_key?(body, "missing")
+      refute Map.has_key?(body, "note")
+    end
+
+    test "says nothing on an excursion day, which has finds instead", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      excursion_fixture(poet, topic_fixture(poet), entry)
+
+      refute Map.has_key?(publish(conn, entry.entry_date), "missing")
+    end
+  end
 end

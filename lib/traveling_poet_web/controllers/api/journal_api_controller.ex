@@ -575,13 +575,41 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
               # The page's paragraphs on the subject tree, for the reader's
               # taste profile; a revision tags only the paragraphs it changed.
               TopicTagging.tag_paragraphs_async(published.id)
-              json(conn, %{ok: true, published_at: published.published_at})
+
+              json(
+                conn,
+                Map.merge(
+                  %{ok: true, published_at: published.published_at},
+                  publish_notes(published)
+                )
+              )
 
             {:error, changeset} ->
               conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})
           end
       end
     end)
+  end
+
+  # A day at a place with nothing in the trip guide: first entries skipped
+  # journal_put_places on 6 of 8 new poets, and the reader found an empty
+  # Places tab. The entry stays published (refusing it would cost the day);
+  # the reply tells the poet to log them now. An excursion has finds instead.
+  defp publish_notes(entry) do
+    if Topics.excursion_of(entry) == nil and Guide.list_places_for_entry(entry.id) == [] do
+      date = Date.to_iso8601(entry.entry_date)
+
+      %{
+        missing: ["places"],
+        note:
+          "Published, but no places are logged for #{date}, so your companion's Places " <>
+            "page is empty. Call journal_put_places for #{date} now with the places and " <>
+            "dated events this entry names (travel-and-journal, section 4b). You do not " <>
+            "need to publish again."
+      }
+    else
+      %{}
+    end
   end
 
   defp with_poet_and_date(conn, date_str, fun) do
