@@ -572,6 +572,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         entry ->
           case Journal.publish_entry(entry) do
             {:ok, published} ->
+              # The page's paragraphs on the subject tree, for the reader's
+              # taste profile; a revision tags only the paragraphs it changed.
+              TopicTagging.tag_paragraphs_async(published.id)
               json(conn, %{ok: true, published_at: published.published_at})
 
             {:error, changeset} ->

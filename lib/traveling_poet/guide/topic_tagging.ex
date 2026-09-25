@@ -22,6 +22,7 @@ defmodule TravelingPoet.Guide.TopicTagging do
   alias TravelingPoet.Guide.{Place, PlaceClassifier, PlaceTopics}
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Topics.{Excursion, Find, Topic}
+  alias TravelingPoet.Journal.{ParagraphSubject, Paragraphs, Section}
   alias TravelingPoet.Repo
 
   @batch 20
@@ -74,6 +75,113 @@ defmodule TravelingPoet.Guide.TopicTagging do
     |> where([t], is_nil(t.subjects_classified_at))
     |> Repo.all()
     |> classify_things(&topic_row/1, &save_topic/2, opts)
+  end
+
+  @doc """
+  Puts a published entry's paragraphs on the subject tree, in the background:
+  only paragraphs whose words are new (a revision's untouched paragraphs
+  keep their row, `Journal.Paragraphs`). Called on every publish.
+  """
+  def tag_paragraphs_async(entry_id) do
+    if enabled?(), do: Task.start(fn -> tag_paragraphs(entry_id) end), else: :disabled
+  end
+
+  @doc "Classifies an entry's new paragraphs now. Returns how many were saved."
+  def tag_paragraphs(entry_id, opts \\ []) do
+    case Repo.get(Entry, entry_id) do
+      %Entry{status: "published"} = entry ->
+        {saved, _seen} =
+          classify_paragraphs(entry, fresh_paragraphs(entry), Keyword.put(opts, :commit, true))
+
+        saved
+
+      _ ->
+        0
+    end
+  end
+
+  defp fresh_paragraphs(entry) do
+    known =
+      ParagraphSubject
+      |> where(journal_entry_id: ^entry.id)
+      |> select([p], p.key)
+      |> Repo.all()
+      |> MapSet.new()
+
+    Section
+    |> where(journal_entry_id: ^entry.id)
+    |> Repo.all()
+    |> Paragraphs.of_sections()
+    |> Enum.reject(&MapSet.member?(known, &1.key))
+  end
+
+  # Paragraphs are not rows until classified: numbered for the model, then
+  # written (commit) or only reported. Returns {saved, [{%{name}, verdict}]}.
+  defp classify_paragraphs(entry, paragraphs, opts) do
+    context = paragraph_context(entry)
+
+    paragraphs
+    |> Enum.with_index(1)
+    |> Enum.chunk_every(@batch)
+    |> Enum.reduce({0, []}, fn batch, {saved, seen} ->
+      rows =
+        Enum.map(batch, fn {p, i} ->
+          %{
+            id: i,
+            name: String.slice(p.text, 0, 400),
+            category: "journal paragraph",
+            context: context
+          }
+        end)
+
+      case PlaceClassifier.classify(rows, Keyword.put(opts, :as, :things)) do
+        {:ok, verdicts} ->
+          answered = Enum.filter(batch, fn {_p, i} -> verdicts[i] end)
+
+          if opts[:commit],
+            do: Enum.each(answered, fn {p, i} -> save_paragraph(entry, p, verdicts[i]) end)
+
+          {saved + length(answered),
+           seen ++
+             Enum.map(answered, fn {p, i} ->
+               {%{name: String.slice(p.text, 0, 80)}, verdicts[i]}
+             end)}
+
+        {:error, reason} ->
+          Logger.warning("TopicTagging: #{length(batch)} paragraphs failed: #{inspect(reason)}")
+          {saved, seen}
+      end
+    end)
+  end
+
+  defp paragraph_context(%Entry{} = entry) do
+    label =
+      Repo.one(
+        from x in Excursion,
+          join: t in Topic,
+          on: t.id == x.topic_id,
+          where: x.journal_entry_id == ^entry.id,
+          select: t.label
+      )
+
+    if label,
+      do: "from a journal page written on a day spent on #{label}",
+      else: "from a journal page written in #{entry.place_name || "a place on the road"}"
+  end
+
+  defp save_paragraph(entry, p, verdict) do
+    %ParagraphSubject{}
+    |> ParagraphSubject.changeset(%{
+      poet_id: entry.poet_id,
+      journal_entry_id: entry.id,
+      key: p.key,
+      section_kind: p.section_kind,
+      excerpt: String.slice(p.text, 0, 160),
+      topic: verdict.topic,
+      second_topic: verdict.second_topic,
+      classified_at: now()
+    })
+    |> Repo.insert(on_conflict: :nothing, conflict_target: [:journal_entry_id, :key])
   end
 
   defp classify_things(items, row_fun, save_fun, opts) do
@@ -236,7 +344,28 @@ defmodule TravelingPoet.Guide.TopicTagging do
 
       :topics ->
         backfill_things(Topic, :subjects_classified_at, &topic_row/1, &save_topic/2, opts)
+
+      :paragraphs ->
+        backfill_paragraphs(opts)
     end
+  end
+
+  # Every published entry's paragraphs not yet classified; `limit:` counts
+  # entries, newest first. Dry run unless commit: true.
+  defp backfill_paragraphs(opts) do
+    commit = Keyword.get(opts, :commit, false)
+
+    Entry
+    |> where(status: "published")
+    |> order_by(desc: :entry_date)
+    |> then(&if(opts[:limit], do: limit(&1, ^opts[:limit]), else: &1))
+    |> Repo.all()
+    |> Enum.reduce({[], []}, fn entry, {ps, vs} ->
+      fresh = fresh_paragraphs(entry)
+      {_saved, seen} = classify_paragraphs(entry, fresh, Keyword.put(opts, :commit, commit))
+      {ps ++ Enum.map(fresh, &%{name: String.slice(&1.text, 0, 80)}), vs ++ seen}
+    end)
+    |> then(fn {paragraphs, verdicts} -> report(paragraphs, verdicts, commit) end)
   end
 
   # Finds and topics: the same dry run and report as places, with the
