@@ -2480,6 +2480,34 @@ body::before {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* The card's links are its point ("Read this page"): they stay at the
+   bottom and never clip. What gives way is the drawing's image, cropped
+   shorter (object-fit: cover); its caption and source links stay whole,
+   and so does everything else on the card. */
+.discover-compact .discover-card > * { flex: none; }
+.discover-compact .discover-card > .taped-photo {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.discover-compact .discover-card > .taped-photo img {
+  flex: 0 1 auto;
+  min-height: 3rem;
+}
+.discover-compact .discover-card > .taped-photo figcaption {
+  flex: none;
+  /* The sources stay, a drawing always cites them, but in small type so
+     the image keeps most of the room. */
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+.discover-compact .discover-card > .discover-links {
+  margin-top: auto;
+  padding-top: 0.5rem;
 }
 .discover-compact .discover-tour-nav { flex: none; }
 

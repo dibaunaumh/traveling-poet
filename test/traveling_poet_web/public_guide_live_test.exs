@@ -29,6 +29,23 @@ defmodule TravelingPoetWeb.PublicGuideLiveTest do
     saved
   end
 
+  test "the public journal and guide carry no World map or Guide buttons of their own",
+       %{conn: conn} do
+    # Discover and Guide are in the site's own menu now; the old buttons
+    # pointed "World map" at a home page that no longer is one.
+    {_user, poet} = public_poet()
+    seed(poet, [place("Tasca do Chico")])
+
+    {:ok, journal, _html} = live(conn, ~p"/p/#{poet.slug}")
+    refute render(journal) =~ "World map"
+    refute has_element?(journal, ~s(main a.btn[href="/p/#{poet.slug}/guide"]))
+
+    {:ok, guide, _html} = live(conn, ~p"/p/#{poet.slug}/guide")
+    refute render(guide) =~ "World map"
+    # the way back to the poet's journal stays
+    assert has_element?(guide, ~s(a[href="/p/#{poet.slug}"]), "Journal")
+  end
+
   test "a public poet's guide is readable by anyone, signed out", %{conn: conn} do
     {_user, poet} = public_poet()
     seed(poet, [place("Tasca do Chico"), place("Miradouro", %{"category" => "viewpoint"})])
@@ -86,13 +103,13 @@ defmodule TravelingPoetWeb.PublicGuideLiveTest do
 
   test "the guide and journal link to each other", %{conn: conn} do
     {_user, poet} = public_poet()
-    publish = published_entry_fixture(poet)
+    # the journal reaches the guide through a page's places, which is all
+    # the guide has to show
+    seed(poet, [place("Tasca do Chico")])
+    entry_date = Date.to_iso8601(Date.utc_today())
 
-    {:ok, _} =
-      TravelingPoet.Journal.replace_sections(publish, [%{kind: "description", body: "hi"}])
-
-    {:ok, _view, journal} = live(conn, ~p"/p/#{poet.slug}")
-    assert journal =~ ~s|href="/p/#{poet.slug}/guide"|
+    {:ok, _view, journal} = live(conn, ~p"/p/#{poet.slug}/#{entry_date}?spread=places")
+    assert journal =~ ~s|href="/p/#{poet.slug}/guide|
 
     {:ok, _view, guide} = live(conn, ~p"/p/#{poet.slug}/guide")
     assert guide =~ ~s|href="/p/#{poet.slug}"|
