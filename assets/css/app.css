@@ -2745,12 +2745,11 @@ body::before {
 
 
 /* The taste map in Settings (AffinityComponents.taste_map/1). */
+.taste-map { max-width: 30rem; }
 .taste-map svg { width: 100%; height: auto; display: block; border-radius: 0.75rem; overflow: hidden; }
 .taste-map-region { fill: hsl(var(--hue) 45% 60%); fill-opacity: 0.16; stroke: var(--color-base-100); stroke-width: 3; }
-.taste-map-label { font-size: 20px; fill: currentColor; opacity: 0.55; }
+.taste-map-label { font-size: 30px; fill: currentColor; opacity: 0.6; }
 .taste-map-dot { stroke: var(--color-base-100); stroke-width: 2; }
 .taste-map-dot.is-for { fill: hsl(140 55% 38%); }
 .taste-map-dot.is-against { fill: hsl(2 70% 50%); }
 .taste-map-key { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 999px; vertical-align: middle; }
-.taste-map-key.is-for { background: hsl(140 55% 38%); }
-.taste-map-key.is-against { background: hsl(2 70% 50%); }

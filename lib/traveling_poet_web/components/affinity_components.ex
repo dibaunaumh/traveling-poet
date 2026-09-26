@@ -27,6 +27,11 @@ defmodule TravelingPoetWeb.AffinityComponents do
     "science-industry-and-play" => 170
   }
 
+  # Colours are attributes as well as CSS: a page showing new markup under a
+  # stylesheet loaded before a deploy drew every shape black.
+  @for_color "hsl(140 55% 38%)"
+  @against_color "hsl(2 70% 50%)"
+
   # Below this a subject is noise, not a leaning.
   @min_dot 0.3
 
@@ -42,7 +47,9 @@ defmodule TravelingPoetWeb.AffinityComponents do
         regions: regions,
         dots: dots,
         width: Layout.width(),
-        height: Layout.height()
+        height: Layout.height(),
+        for_color: @for_color,
+        against_color: @against_color
       )
 
     ~H"""
@@ -59,9 +66,20 @@ defmodule TravelingPoetWeb.AffinityComponents do
             width={r.w}
             height={r.h}
             class="taste-map-region"
+            fill={"hsl(#{hue(r.path)} 45% 60%)"}
+            fill-opacity="0.16"
             style={"--hue: #{hue(r.path)}"}
           />
-          <text :if={label(r)} x={r.x + 10} y={r.y + 26} class="taste-map-label">{label(r)}</text>
+          <text
+            :if={label(r)}
+            x={r.x + 12}
+            y={r.y + 36}
+            class="taste-map-label"
+            fill="currentColor"
+            fill-opacity="0.6"
+          >
+            {label(r)}
+          </text>
         </g>
         <circle
           :for={d <- @dots}
@@ -69,14 +87,16 @@ defmodule TravelingPoetWeb.AffinityComponents do
           cy={d.y}
           r={d.r}
           class={["taste-map-dot", d.for? && "is-for", !d.for? && "is-against"]}
+          fill={if d.for?, do: @for_color, else: @against_color}
           style={"opacity: #{d.opacity}"}
         >
           <title>{d.title}</title>
         </circle>
       </svg>
       <figcaption class="text-xs opacity-60 mt-1">
-        <span class="taste-map-key is-for"></span>
-        leaning toward <span class="taste-map-key is-against ml-3"></span>
+        <span class="taste-map-key" style={"background: #{@for_color}"}></span>
+        leaning toward
+        <span class="taste-map-key ml-3" style={"background: #{@against_color}"}></span>
         leaning away
       </figcaption>
     </figure>
@@ -98,7 +118,7 @@ defmodule TravelingPoetWeb.AffinityComponents do
       %{
         x: Float.round(x, 1),
         y: Float.round(y, 1),
-        r: Float.round(6 + 10 * strength, 1),
+        r: Float.round(10 + 14 * strength, 1),
         opacity: Float.round(0.3 + 0.7 * strength, 2),
         for?: s.score > 0,
         title: "#{topic} (#{subject}): #{if s.score > 0, do: "toward", else: "away"}"
@@ -109,7 +129,7 @@ defmodule TravelingPoetWeb.AffinityComponents do
   # A subject's name, or its first word when the whole name would overflow
   # its region ("Festivals" for "Festivals & community"); none in a sliver.
   defp label(%{name: name, w: w}) do
-    fits = fn text -> String.length(text) * 10.5 <= w - 20 end
+    fits = fn text -> String.length(text) * 15.5 <= w - 24 end
     short = name |> String.split([" ", ","]) |> hd()
 
     cond do
