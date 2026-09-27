@@ -351,7 +351,10 @@ defmodule TravelingPoet.Discover do
   def poet(slug, today \\ Date.utc_today()) when is_binary(slug) do
     with %Poet{} = poet <- Poets.get_public_poet_by_slug(slug),
          %Poet{} <- public_poet(poet.id) do
-      entries = published_entries([poet.id])
+      # Every published page counts, pinned on the map or not: an excursion
+      # day has no place, and the count is of pages, not of pins.
+      entries =
+        Repo.all(from e in Entry, where: e.poet_id == ^poet.id and e.status == "published")
 
       days =
         case entries do

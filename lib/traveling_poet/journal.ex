@@ -41,6 +41,61 @@ defmodule TravelingPoet.Journal do
     end
   end
 
+  @doc """
+  A day at a place saved with half its coordinates (the poet sent `lat` and
+  left out `lng`: 13 pages on prod by 2026-09-27) takes the poet's current
+  location, which `update_location` set before the entry was written. Such
+  a page was missing from every map and from the poet's page count. An
+  excursion day has no place, so it is left alone.
+  """
+  def complete_coordinates(%Entry{} = entry, poet) do
+    lat = Map.get(poet, :current_lat)
+    lng = Map.get(poet, :current_lng)
+
+    if incomplete?(entry) and is_number(lat) and is_number(lng) do
+      entry |> Entry.changeset(%{lat: lat, lng: lng}) |> Repo.update!()
+    else
+      entry
+    end
+  end
+
+  defp incomplete?(%Entry{place_name: place, lat: lat, lng: lng}),
+    do: is_binary(place) and place != "" and (is_nil(lat) or is_nil(lng))
+
+  @doc """
+  Repairs published pages saved before `complete_coordinates/2` existed:
+  each takes the coordinates of the stay it was written in
+  (`Guide.path_point_for/1`). Excursion days are skipped. A dry run unless
+  `commit: true`; returns `[{entry_id, date, place_name, {lat, lng} | nil}]`.
+  """
+  def backfill_coordinates(opts \\ []) do
+    commit = Keyword.get(opts, :commit, false)
+
+    Entry
+    |> where([e], e.status == "published" and not is_nil(e.place_name))
+    |> where([e], is_nil(e.lat) or is_nil(e.lng))
+    |> order_by(asc: :entry_date)
+    |> Repo.all()
+    |> Enum.reject(&TravelingPoet.Topics.excursion_of/1)
+    |> Enum.map(fn entry ->
+      stay =
+        case TravelingPoet.Guide.path_point_for(entry) do
+          nil -> nil
+          id -> Repo.get(TravelingPoet.Poets.PathPoint, id)
+        end
+
+      coords =
+        if stay && is_number(stay.lat) && is_number(stay.lng), do: {stay.lat, stay.lng}
+
+      if commit && coords do
+        {lat, lng} = coords
+        entry |> Entry.changeset(%{lat: lat, lng: lng}) |> Repo.update!()
+      end
+
+      {entry.id, entry.entry_date, entry.place_name, coords}
+    end)
+  end
+
   @doc "Replaces an entry's sections wholesale (agent sends the full ordered list)."
   def replace_sections(%Entry{} = entry, sections_attrs) when is_list(sections_attrs) do
     Repo.transaction(fn ->

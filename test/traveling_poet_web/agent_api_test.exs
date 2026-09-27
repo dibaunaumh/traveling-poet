@@ -1116,4 +1116,18 @@ defmodule TravelingPoetWeb.AgentApiTest do
       refute Map.has_key?(publish(conn, entry.entry_date), "missing")
     end
   end
+
+  test "an entry saved with lat but no lng takes the poet's location", %{conn: conn, poet: poet} do
+    conn
+    |> post(~p"/api/agent/journal_entries", %{
+      "entry_date" => "2026-09-27",
+      "title" => "The well that holds the sky",
+      "place_name" => "Sintra, Portugal",
+      "lat" => 38.802
+    })
+    |> json_response(200)
+
+    entry = Journal.get_entry(poet.id, ~D[2026-09-27])
+    assert {entry.lat, entry.lng} == {poet.current_lat, poet.current_lng}
+  end
 end

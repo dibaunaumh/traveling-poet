@@ -193,4 +193,35 @@ defmodule TravelingPoet.JournalTest do
       assert Journal.spot_markdown(spot) == "![a cup](/media/#{spot.id})"
     end
   end
+
+  describe "coordinates" do
+    test "a day at a place saved with half its coordinates takes the poet's", %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-26], lat: 38.707, lng: nil})
+      fixed = Journal.complete_coordinates(entry, poet)
+      assert {fixed.lat, fixed.lng} == {poet.current_lat, poet.current_lng}
+
+      whole = entry_fixture(poet, %{entry_date: ~D[2026-09-27], lat: 1.0, lng: 2.0})
+      assert Journal.complete_coordinates(whole, poet) == whole
+
+      off_the_road = entry_fixture(poet, %{entry_date: ~D[2026-09-28], place_name: nil})
+      assert Journal.complete_coordinates(off_the_road, poet).lng == nil
+    end
+
+    test "backfill takes each page's stay; dry run writes nothing", %{poet: poet} do
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.8, lng: -9.38, place_name: "Sintra"})
+
+      {:ok, entry} =
+        Journal.upsert_entry(poet.id, Date.utc_today(), %{place_name: "Sintra", lat: 38.8})
+
+      {:ok, entry} = Journal.publish_entry(entry)
+
+      assert [{id, _, "Sintra", {38.8, -9.38}}] = Journal.backfill_coordinates()
+      assert id == entry.id
+      assert Journal.get_entry(poet.id, entry.entry_date).lng == nil
+
+      Journal.backfill_coordinates(commit: true)
+      assert Journal.get_entry(poet.id, entry.entry_date).lng == -9.38
+      assert Journal.backfill_coordinates() == []
+    end
+  end
 end
