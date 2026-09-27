@@ -34,6 +34,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         {:ok, entry} ->
           case Topics.link_entry(entry, params) do
             {:ok, excursion} ->
+              entry = Journal.complete_coordinates(entry, poet)
               prompt = maybe_attach_prompt(entry, params["prompt"])
 
               json(

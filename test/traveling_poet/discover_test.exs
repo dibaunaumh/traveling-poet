@@ -330,5 +330,15 @@ defmodule TravelingPoet.DiscoverTest do
       assert Discover.entry("1 OR 1=1") == nil
       assert Discover.entry(%{}) == nil
     end
+
+    test "a poet's page count includes pages that are not on the map" do
+      nam = on_the_road("Nam")
+      page(nam, ~D[2026-09-01])
+      page(nam, ~D[2026-09-02], %{lng: nil})
+      page(nam, ~D[2026-09-03], %{place_name: nil, lat: nil, lng: nil})
+
+      assert %{stats: %{entries: 3, days: 3}} =
+               Discover.poet(nam.slug, ~D[2026-09-03])
+    end
   end
 end
