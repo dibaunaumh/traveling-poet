@@ -86,6 +86,31 @@ defmodule TravelingPoet.PlaceTopicsTest do
       assert PlaceClassifier.parse_response(raw, [1]) == %{}
     end
 
+    test "a path missing its subject is completed; one naming no single topic is not" do
+      # What the model sent for Nam's taste-day finds, 2026-09-27.
+      raw =
+        Jason.encode!(%{
+          "places" => [
+            %{
+              "id" => 65,
+              "topics" => ["music/traditional-and-world-music", "music/electronic-and-ambient"],
+              "type" => "music"
+            },
+            %{"id" => 66, "topics" => ["traditional-and-world-music"], "type" => "music"}
+          ]
+        })
+
+      assert %{
+               65 => %{
+                 topic: "music-and-performance/music/traditional-and-world-music",
+                 second_topic: "music-and-performance/music/electronic-and-ambient",
+                 place_type: "music"
+               }
+             } = verdicts = PlaceClassifier.parse_response(raw, [65, 66], :things)
+
+      refute Map.has_key?(verdicts, 66)
+    end
+
     test "garbage is no verdicts, never a crash" do
       assert PlaceClassifier.parse_response("not json", [1]) == %{}
       assert PlaceClassifier.parse_response(nil, [1]) == %{}

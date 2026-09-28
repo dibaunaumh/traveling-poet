@@ -190,6 +190,12 @@ defmodule TravelingPoet.Guide.TopicTagging do
     |> Enum.reduce(0, fn batch, count ->
       case PlaceClassifier.classify(Enum.map(batch, row_fun), Keyword.put(opts, :as, :things)) do
         {:ok, verdicts} ->
+          # An answer with nothing usable in it leaves the rows untagged and
+          # due for the next run; say so, or a batch goes quietly missing.
+          if map_size(verdicts) == 0 do
+            Logger.warning("TopicTagging: no usable verdict for #{length(batch)} things")
+          end
+
           count + Enum.count(batch, &(verdicts[&1.id] && save_fun.(&1, verdicts[&1.id])))
 
         {:error, reason} ->

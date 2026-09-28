@@ -31,6 +31,17 @@ defmodule TravelingPoet.Guide.PlaceTopics do
            end)
           |> Map.new()
 
+  # "subtopic/topic" -> the whole path, for the suffixes that name exactly
+  # one leaf.
+  @by_suffix @leaves
+             |> Map.keys()
+             |> Enum.group_by(&(&1 |> String.split("/") |> Enum.drop(1) |> Enum.join("/")))
+             |> Enum.flat_map(fn
+               {suffix, [path]} -> [{suffix, path}]
+               _ -> []
+             end)
+             |> Map.new()
+
   @types ~w(museum gallery exhibition performance_venue festival_or_event place_of_worship
             historic_site building_or_monument park_or_garden trail_or_viewpoint natural_site
             market shop restaurant cafe bar_or_brewery neighbourhood workshop other)
@@ -43,6 +54,20 @@ defmodule TravelingPoet.Guide.PlaceTopics do
 
   @doc "Is this a path in the tree (a whole third-level path, nothing else)?"
   def valid?(path), do: Map.has_key?(@leaves, path)
+
+  @doc """
+  A path as the classifier wrote it, made whole: a valid path as it is, and
+  one missing its subject ("music/flamenco" for
+  "music-and-performance/music/flamenco") completed when that names exactly
+  one topic. Taste-day finds came back like that (Nam, 2026-09-27) and the
+  whole answer was thrown away. Anything else is nil.
+  """
+  def resolve(path) when is_binary(path) do
+    path = path |> String.trim() |> String.trim("/")
+    if valid?(path), do: path, else: Map.get(@by_suffix, path)
+  end
+
+  def resolve(_), do: nil
 
   @doc "The names along a path: `[\"Art\", \"Modern & contemporary art\", \"Contemporary art\"]`, or nil."
   def names(path), do: Map.get(@leaves, path)
