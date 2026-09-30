@@ -56,8 +56,10 @@ it starts with you:
   keep. The reply tells you if it is already one of their topics, or one they
   paused; do not press a paused one.
 - **A taste: "I've been listening to a lot of Japanese city pop", "I read
-  everything by Ursula Le Guin", "we hike every weekend"** → call
-  `propose_topic` with `domain` (music, books, film_tv, outdoors, gifts) and
+  everything by Ursula Le Guin", "we hike every weekend", "I live for street
+  food", "I shoot film on my travels"** → call `propose_topic` with `domain`
+  (food, music, photography, art, outdoors, mountains, books, film_tv, kids,
+  gifts) and
   their taste in their words as the label. On its day you go looking for new
   things that fit it.
 - **"Go to the Big Ears festival for me", "see what's new at NeurIPS",

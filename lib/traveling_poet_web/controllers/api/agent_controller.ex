@@ -86,6 +86,9 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # the ones the poet proposed that still wait in Settings. Paused
           # topics are withheld on purpose.
           topics: Topics.payload(poet.id),
+          # The reader's passions (food, photography, mountains...): they
+          # steer where you go next and at least half of every day's places.
+          focus: Topics.focus(poet.id),
           # Which day of the journey today is. The app counts; you never do.
           # Use it in the chat postcard ("Day 17"), not in the entry title.
           journey_day:

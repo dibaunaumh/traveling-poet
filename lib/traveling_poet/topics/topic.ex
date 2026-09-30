@@ -22,14 +22,38 @@ defmodule TravelingPoet.Topics.Topic do
 
   @kinds ~w(professional personal)
   # The domains a taste can be in, in the order the poet asks about them.
-  @domains ~w(music books film_tv outdoors gifts)
+  @domains ~w(food music photography art outdoors mountains books film_tv kids gifts)
   @domain_names %{
+    "food" => "Food & drink",
     "music" => "Music",
+    "photography" => "Photography",
+    "art" => "Art & architecture",
+    "outdoors" => "Outdoors",
+    "mountains" => "Mountains & climbing",
     "books" => "Books",
     "film_tv" => "Film & TV",
-    "outdoors" => "Outdoors",
+    "kids" => "Kids' attractions",
     "gifts" => "Gadgets & gifts"
   }
+  # Passions a poet can serve on an ordinary day, in the places it logs and
+  # where it goes next (`Topics.focus/1`). Books, film and gifts are not
+  # found by walking a town; they keep their own taste days.
+  @place_domains ~w(food music photography art outdoors mountains kids)
+  # What to type for a taste in each domain, and an example: shared by the
+  # onboarding passions and the Settings tastes.
+  @hints %{
+    "food" => {"What you love to eat and drink", "street food, natural wine"},
+    "photography" => {"What you love to photograph", "street scenes at dusk, wildlife"},
+    "art" => {"Art and buildings you seek out", "Bauhaus, contemporary painting"},
+    "mountains" => {"Peaks and climbing you love", "alpine routes, via ferratas"},
+    "kids" => {"What your kids love doing", "science museums, playgrounds, zoos"},
+    "music" => {"Artists, albums or styles you love", "Mogwai, Japanese city pop"},
+    "books" => {"Authors or books you love", "Le Guin, nature writing"},
+    "film_tv" => {"Films, shows or directors you love", "Agnes Varda, Slow Horses"},
+    "outdoors" => {"What you love doing outside", "coastal walks, wild swimming"},
+    "gifts" => {"Gadgets or gifts that delight you", "notebooks, kitchen tools"}
+  }
+
   @statuses ~w(proposed active paused)
   # "settings": typed in by the companion. "chat": proposed by the poet from
   # what the companion said. "ask": the companion's answer to a question the
@@ -63,7 +87,11 @@ defmodule TravelingPoet.Topics.Topic do
 
   def kinds, do: @kinds
   def domains, do: @domains
+  def place_domains, do: @place_domains
   def domain_name(domain), do: Map.get(@domain_names, domain)
+
+  @doc "`{hint, example}` for a domain's input: what to type, and a sample."
+  def hint(domain), do: Map.fetch!(@hints, domain)
   def statuses, do: @statuses
   def sources, do: @sources
   def cadence_range, do: @cadence_range

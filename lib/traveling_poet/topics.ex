@@ -119,6 +119,22 @@ defmodule TravelingPoet.Topics do
     |> tag()
   end
 
+  @doc """
+  The reader's passions a poet serves every day, not only on taste days:
+  their active tastes in a domain found by walking a town
+  (`Topic.place_domains/0`: food, photography, mountains...), oldest first,
+  at most three. `[%{domain, name, taste}]`, where `taste` is their words.
+  """
+  def focus(poet_id) do
+    Topic
+    |> where([t], t.poet_id == ^poet_id and t.status == "active")
+    |> where([t], t.domain in ^Topic.place_domains())
+    |> order_by(asc: :position, asc: :id)
+    |> limit(3)
+    |> Repo.all()
+    |> Enum.map(&%{domain: &1.domain, name: Topic.domain_name(&1.domain), taste: &1.label})
+  end
+
   def update(%Topic{} = topic, attrs) do
     topic
     |> Topic.changeset(attrs)

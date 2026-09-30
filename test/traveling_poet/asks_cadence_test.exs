@@ -4,7 +4,7 @@ defmodule TravelingPoet.AsksCadenceTest do
   alias TravelingPoet.Asks.Cadence
 
   @today ~D[2026-10-01]
-  @all ~w(music books film_tv outdoors gifts)
+  @all TravelingPoet.Topics.Topic.domains()
 
   defp facts(overrides) do
     Map.merge(
@@ -46,22 +46,22 @@ defmodule TravelingPoet.AsksCadenceTest do
     base = %{active_topics: 1}
 
     assert Cadence.due(facts(Map.put(base, :asks, [ask(10, true)])), @today) ==
-             {:ask, "domain", "music"}
+             {:ask, "domain", "food"}
 
-    asked_music = Map.put(base, :asks, [ask(3, true, "music"), ask(10, true)])
-    assert Cadence.due(facts(asked_music), @today) == :no
+    asked_food = Map.put(base, :asks, [ask(3, true, "food"), ask(10, true)])
+    assert Cadence.due(facts(asked_food), @today) == :no
 
-    week_later = Map.put(base, :asks, [ask(7, false, "music"), ask(14, true)])
-    assert Cadence.due(facts(week_later), @today) == {:ask, "domain", "books"}
+    week_later = Map.put(base, :asks, [ask(7, false, "food"), ask(14, true)])
+    assert Cadence.due(facts(week_later), @today) == {:ask, "domain", "music"}
 
-    # a music taste they typed in Settings is known: no need to ask
-    known = Map.merge(base, %{domains_known: ["music", "books"]})
-    assert Cadence.due(facts(known), @today) == {:ask, "domain", "film_tv"}
+    # tastes they picked at onboarding or typed in Settings are known
+    known = Map.merge(base, %{domains_known: ["food", "music"]})
+    assert Cadence.due(facts(known), @today) == {:ask, "domain", "photography"}
   end
 
   test "after every domain was asked once: a monthly check-in, unknown domains first" do
-    asked = for {d, i} <- Enum.with_index(@all), do: ask(70 - i * 7, true, d)
-    base = %{active_topics: 1, domains_known: ["music", "film_tv", "outdoors", "gifts"]}
+    asked = for {d, i} <- Enum.with_index(@all), do: ask(100 - i * 7, true, d)
+    base = %{active_topics: 1, domains_known: @all -- ["books"]}
 
     # books was asked longest ago of the unknown ones, and a month has passed
     assert Cadence.due(facts(Map.put(base, :asks, Enum.reverse(asked))), @today) ==
