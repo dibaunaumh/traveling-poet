@@ -189,6 +189,7 @@ defmodule TravelingPoetWeb.PushNotifications do
         <button type="button" data-push-action="dismiss" class="btn btn-ghost btn-sm opacity-60">
           Not now
         </button>
+        <.expect channel={:push} name={@poet.name} id="push-nudge-expect" />
       </div>
     </div>
     """
@@ -197,6 +198,40 @@ defmodule TravelingPoetWeb.PushNotifications do
   defp next_place(%{place: place}) when is_binary(place), do: ", from #{place}"
   defp next_place(%{moving?: true}), do: ", from somewhere new"
   defp next_place(_), do: ""
+
+  attr :channel, :atom, required: true, values: [:push, :telegram, :email]
+  attr :name, :string, default: nil
+  attr :id, :string, default: nil
+
+  @doc """
+  What a channel will send and how often, in one line under every offer. A
+  reader said the offers never told her how often, or for what. Keep it true
+  to what the notifiers send: a page a day (WebPush/Telegram/Email
+  notifiers), the poet's question (`Asks.Cadence`, at most weekly), and on
+  Telegram a low-credits note. Trips and books only follow something the
+  reader started, so they go unmentioned.
+  """
+  def expect(assigns) do
+    assigns = assign(assigns, :text, expect_text(assigns.channel, assigns.name || "your poet"))
+
+    ~H"""
+    <p id={@id} class="text-xs opacity-60">{@text}</p>
+    """
+  end
+
+  def expect_text(:push, name),
+    do:
+      "One a day, when #{name} publishes a new page, and now and then a question " <>
+        "from #{name}, never more than once a week. Never marketing."
+
+  def expect_text(:telegram, name),
+    do:
+      "One message a day, when #{name} publishes a new page, now and then a question " <>
+        "from #{name}, never more than once a week, and a note if your credits run low. " <>
+        "Never marketing."
+
+  def expect_text(:email, name),
+    do: "One email a day, only when #{name} publishes a new page."
 
   attr :push, :map, required: true
   attr :poet, :any, required: true
@@ -218,7 +253,7 @@ defmodule TravelingPoetWeb.PushNotifications do
     >
       <p :if={@push.state == :unknown} class="opacity-60">Checking this device for notifications.</p>
       <div :if={@push.state == :available} class="space-y-2">
-        <p class="font-medium">Get a nudge on this device when {@poet.name} publishes.</p>
+        <p class="font-medium">Get a notification on this device when {@poet.name} publishes.</p>
         <button type="button" data-push-action="subscribe" class="btn btn-secondary btn-sm">
           Turn on notifications
         </button>
@@ -247,10 +282,7 @@ defmodule TravelingPoetWeb.PushNotifications do
       <p :if={@push.state == :unsupported and @push.native?} class="opacity-70">
         Notifications are not available on this device right now. Telegram works everywhere.
       </p>
-      <p class="opacity-60 text-xs" id="notification-promise">
-        Notifications are only for new entries and notes about your account, such as credits
-        running low. Never marketing.
-      </p>
+      <.expect channel={:push} name={@poet.name} id="notification-promise" />
     </div>
     """
   end
@@ -267,8 +299,9 @@ defmodule TravelingPoetWeb.PushNotifications do
       phx-hook="WebPush"
       data-vapid-key={TravelingPoet.WebPush.public_key()}
     >
-      <h2 class="font-semibold mb-2">Notifications</h2>
+      <h2 class="font-semibold mb-2">This device</h2>
       <div class="text-sm space-y-2">
+        <.expect channel={:push} name={@poet && @poet.name} id="push-settings-expect" />
         <p :if={@push.state == :unknown} class="opacity-60">Checking this device…</p>
         <p :if={@push.state == :unsupported and !@push.native?} class="opacity-60">
           This browser can't receive push notifications.

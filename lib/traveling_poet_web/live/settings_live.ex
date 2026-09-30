@@ -1756,7 +1756,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   <span>
                     <b>Email me each new page</b>
                     <span class="block text-sm opacity-60">
-                      A short email with the day's drawing when {@poet.name} publishes, to {@user.email}.
+                      One email a day, only when {@poet.name} publishes a new page, with its drawing. To {@user.email}.
                     </span>
                   </span>
                 </label>
@@ -1764,7 +1764,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               <div class="settings-rule"></div>
               <.push_settings push={@push} poet={@poet} />
               <div class="settings-rule"></div>
-              <.telegram_settings telegram={@telegram} user={@user} />
+              <.telegram_settings telegram={@telegram} user={@user} poet={@poet} />
             </.settings_section>
 
             <.settings_section id="account" title="Account">
