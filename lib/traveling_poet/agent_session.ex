@@ -117,11 +117,9 @@ defmodule TravelingPoet.AgentSession do
   def heartbeat_reply?(content), do: content in ["HEARTBEAT_OK", "NO_REPLY"]
 
   defp finish_reply(user, content, response_id, persist?, channel) do
-    if persist? and content != "" and
-         not Chat.recent_agent_message_exists?(user.id, content) do
-      Chat.create_message(%{
+    if persist? and content != "" do
+      Chat.create_agent_message_once(%{
         user_id: user.id,
-        role: "agent",
         content: content,
         response_id: response_id,
         channel: channel

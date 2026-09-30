@@ -3,6 +3,8 @@ defmodule TravelingPoet.ChatVisibilityTest do
 
   import TravelingPoet.Fixtures
 
+  import Ecto.Query
+
   alias TravelingPoet.Chat
 
   test "system triggers stay out of the visible conversation, the poet's replies stay in" do
@@ -33,5 +35,25 @@ defmodule TravelingPoet.ChatVisibilityTest do
     refute "/travel-and-journal" in contents
     assert "Today I walked to Sintra." in contents
     assert "hi" in contents
+  end
+
+  test "two savers finishing the same reply at once keep one message" do
+    user = user_fixture()
+    reply = %{user_id: user.id, content: "Samual, I'm Ezra Halloway.", response_id: "r1"}
+
+    results =
+      1..4
+      |> Enum.map(fn _ ->
+        Task.async(fn -> TravelingPoet.Chat.create_agent_message_once(reply) end)
+      end)
+      |> Enum.map(&Task.await/1)
+
+    assert Enum.count(results, &match?({:ok, %TravelingPoet.Chat.ChatMessage{}}, &1)) == 1
+    assert Enum.count(results, &(&1 == {:ok, :duplicate})) == 3
+
+    assert TravelingPoet.Repo.aggregate(
+             from(m in TravelingPoet.Chat.ChatMessage, where: m.user_id == ^user.id),
+             :count
+           ) == 1
   end
 end

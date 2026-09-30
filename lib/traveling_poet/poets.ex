@@ -12,6 +12,14 @@ defmodule TravelingPoet.Poets do
   def get_poet_by_user(user_id), do: Repo.get_by(Poet, user_id: user_id)
   def get_public_poet_by_slug(slug), do: Repo.get_by(Poet, slug: slug, is_public: true)
 
+  @doc "Every poet's name, normalized (`Presets.normalize/1`), for picking a free one."
+  def taken_names do
+    Poet
+    |> select([p], p.name)
+    |> Repo.all()
+    |> MapSet.new(&TravelingPoet.Poets.Presets.normalize/1)
+  end
+
   def list_public_poets do
     Poet
     |> where(is_public: true, status: "active")
