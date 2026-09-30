@@ -572,6 +572,26 @@ defmodule TravelingPoet.Poets do
     end
   end
 
+  @doc """
+  The stay a move would go back to: where the poet stands now, or any
+  earlier stop, by the same name or within 10 km. nil for somewhere new.
+
+  A wandering poet is told never to go back, and did anyway: Hilma spent
+  Sept 20-30 in Shirakawa-go, out for a day and back twice, then "moved"
+  to Shirakawa-go three days running, each move restarting the stay clock.
+  """
+  def earlier_stay(poet_id, %{lat: lat, lng: lng} = target) do
+    name = Map.get(target, :place_name)
+
+    poet_id
+    |> list_path_points()
+    |> Enum.find(fn p ->
+      same_place?(p.place_name, name) or
+        (is_number(p.lat) and is_number(p.lng) and
+           distance_km(p.lat, p.lng, lat, lng) <= @same_place_km)
+    end)
+  end
+
   @doc "Whether the poet's current place is one it has stayed in before."
   def returning?(%Poet{current_place_name: name} = poet) when is_binary(name) do
     poet.id
