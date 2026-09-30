@@ -60,7 +60,7 @@ config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Com
 # sandbox owner anyway.
 config :traveling_poet, provision_in_background: false
 # No sprite to restart before a first-entry retry (FirstEntry.fresh_start/1).
-config :traveling_poet, first_entry_fresh_start: false
+config :traveling_poet, fresh_start_on_retry: false
 # Resend calls go to a stub; an unstubbed one raises.
 config :traveling_poet, email_req_options: [plug: {Req.Test, TravelingPoet.Email}]
 

@@ -7,8 +7,10 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   Checks hourly (`:fleet_health_check_interval_minutes`, env
   FLEET_HEALTH_CHECK_INTERVAL_MINUTES; 0/absent disables). Each poet is
   reported at most once per UTC day — a fleet-wide outage is one message a
-  day, not one an hour. Dedup state lives in the process, so a deploy may
-  re-send the day's alert; that beats persisting a table for it.
+  day, not one an hour. A poet's alert is remembered as a `fleet_alert` usage
+  row, so it survives a deploy: kept in the process, four deploys on
+  2026-09-30 paged Udi about Samuel's poet four times. The budget warning is
+  still remembered in the process only.
 
   Recipients: see `TravelingPoet.Alerts`.
   """
@@ -16,7 +18,10 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   use GenServer
   require Logger
 
-  alias TravelingPoet.{Alerts, FleetHealth, OpenRouter}
+  import Ecto.Query
+
+  alias TravelingPoet.{Alerts, FleetHealth, OpenRouter, Repo, Usage}
+  alias TravelingPoet.Usage.UsageEvent
 
   # First check soon after boot: an interval-later first tick means a deploy
   # defers the day's alerts by a full hour.
@@ -60,9 +65,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   defp run_check(state) do
     today = Date.utc_today()
 
-    fresh =
-      FleetHealth.problems()
-      |> Enum.reject(fn row -> Map.get(state.alerted, row.poet.id) == today end)
+    fresh = unalerted(FleetHealth.problems(), today)
 
     credits = credit_warning()
     credits_fresh? = credits != nil and Map.get(state.alerted, :openrouter) != today
@@ -70,6 +73,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
     if fresh != [] or credits_fresh? do
       case Alerts.notify_admins(message(fresh, credits_fresh? && credits)) do
         :ok ->
+          Enum.each(fresh, &Usage.record(&1.poet.user_id, "fleet_alert"))
           Logger.warning("FleetHealth.Alerter: alerted on #{length(fresh)} poet(s)")
 
         {:error, reason} ->
@@ -77,9 +81,23 @@ defmodule TravelingPoet.FleetHealth.Alerter do
       end
     end
 
-    alerted = Enum.reduce(fresh, state.alerted, &Map.put(&2, &1.poet.id, today))
-    alerted = if credits_fresh?, do: Map.put(alerted, :openrouter, today), else: alerted
+    alerted =
+      if credits_fresh?, do: Map.put(state.alerted, :openrouter, today), else: state.alerted
+
     %{state | alerted: alerted}
+  end
+
+  @doc "The problem rows not yet reported today, by the `fleet_alert` rows."
+  def unalerted(rows, today \\ Date.utc_today()),
+    do: Enum.reject(rows, &alerted_today?(&1.poet.user_id, today))
+
+  defp alerted_today?(user_id, today) do
+    start = DateTime.new!(today, ~T[00:00:00], "Etc/UTC")
+
+    UsageEvent
+    |> where(user_id: ^user_id, kind: "fleet_alert")
+    |> where([e], e.occurred_at >= ^start)
+    |> Repo.exists?()
   end
 
   # The budget behind every poet. Worth its own line in the alert: when this is

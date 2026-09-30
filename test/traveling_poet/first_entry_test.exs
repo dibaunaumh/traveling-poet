@@ -73,13 +73,13 @@ defmodule TravelingPoet.FirstEntryTest do
 
   describe "a retry starts from a fresh conversation" do
     setup do
-      Application.put_env(:traveling_poet, :first_entry_fresh_start, true)
+      Application.put_env(:traveling_poet, :fresh_start_on_retry, true)
       Application.put_env(:traveling_poet, :gateway_boot_ms, 0)
       Application.put_env(:traveling_poet, :sprites_client, TravelingPoet.SpritesClientRecorder)
       Application.put_env(:traveling_poet, :sprites_client_listener, self())
 
       on_exit(fn ->
-        Application.put_env(:traveling_poet, :first_entry_fresh_start, false)
+        Application.put_env(:traveling_poet, :fresh_start_on_retry, false)
         Application.delete_env(:traveling_poet, :gateway_boot_ms)
         Application.delete_env(:traveling_poet, :sprites_client)
         Application.delete_env(:traveling_poet, :sprites_client_listener)

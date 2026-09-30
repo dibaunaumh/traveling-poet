@@ -26,7 +26,18 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Credits, Accounts, AgentSession, Books, Journal, Poets, Repo, Usage}
+  alias TravelingPoet.{
+    Credits,
+    Accounts,
+    AgentSession,
+    Books,
+    Journal,
+    Poets,
+    Provisioner,
+    Repo,
+    Usage
+  }
+
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
@@ -175,8 +186,11 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   defp do_run(user, poet) do
     Logger.info("DailyJourneyScheduler: running poet #{poet.id} (user #{user.id})")
-    started_at = DateTime.utc_now() |> DateTime.truncate(:second)
+    retry? = attempts_today(user.id, DateTime.utc_now()) > 0
     {:ok, attempt} = Usage.record(user.id, "daily_run_attempt")
+    before_attempt(user, retry?)
+
+    started_at = DateTime.utc_now() |> DateTime.truncate(:second)
 
     # A planned trip whose day has come starts (and a finished one closes)
     # before the day is decided and priced.
@@ -203,6 +217,13 @@ defmodule TravelingPoet.DailyJourneyScheduler do
           "DailyJourneyScheduler: poet #{poet.id} not charged (#{inspect(reason)}) — skipping"
         )
     end
+  end
+
+  @doc false
+  # A retry never continues the conversation that failed: an overflowed or
+  # derailed session only fails again (Provisioner.fresh_start/1).
+  def before_attempt(user, retry?) do
+    if retry?, do: Provisioner.fresh_start(user), else: :first
   end
 
   # The run's outcome is what reached the reader, not what the agent said.
