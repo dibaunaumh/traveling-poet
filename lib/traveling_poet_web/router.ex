@@ -36,6 +36,17 @@ defmodule TravelingPoetWeb.Router do
     post "/e", Api.BeaconController, :create
   end
 
+  # One-click unsubscribe from the daily email: a mail app POSTs here with no
+  # session or CSRF token; the signed token in the path is the authorization.
+  pipeline :one_click do
+  end
+
+  scope "/email", TravelingPoetWeb do
+    pipe_through :one_click
+
+    post "/unsubscribe/:token", EmailController, :unsubscribe
+  end
+
   scope "/webhooks", TravelingPoetWeb do
     pipe_through :webhooks
 
@@ -48,6 +59,8 @@ defmodule TravelingPoetWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/email/unsubscribe/:token", EmailController, :show
+    get "/email/unsubscribed", EmailController, :done
     # The hero's destination box: remembers the place across Google sign-in
     get "/start", PageController, :start
     get "/privacy", PageController, :privacy

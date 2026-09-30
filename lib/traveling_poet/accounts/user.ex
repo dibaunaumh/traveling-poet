@@ -46,6 +46,8 @@ defmodule TravelingPoet.Accounts.User do
     field :quota_exempt, :boolean, default: false
     # reading time on their own journal, for the taste profile (Reading)
     field :reading_signals, :boolean, default: true
+    # the daily page email (Email.Notifier); off from Settings or the email's link
+    field :email_notify, :boolean, default: true
 
     # Credits (milli-credits; see TravelingPoet.Credits)
     field :credits_balance, :integer, default: 0
@@ -91,6 +93,7 @@ defmodule TravelingPoet.Accounts.User do
       :ai_consent_at,
       :onboarding_completed,
       :reading_signals,
+      :email_notify,
       :onboarding_step,
       :last_seen_at,
       :telegram_chat_id,

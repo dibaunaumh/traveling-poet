@@ -109,6 +109,10 @@ config :traveling_poet,
     ),
   # Contact the push services may use about our traffic; a URL is valid too.
   vapid_subject: System.get_env("VAPID_SUBJECT"),
+  # Daily page email via Resend (Email, Email.Notifier). Nil in test: requests
+  # go to the Req.Test stub, and the notifier stays off.
+  resend_api_key: if(config_env() == :test, do: nil, else: System.get_env("RESEND_API_KEY")),
+  email_from: System.get_env("EMAIL_FROM", "Traveling Poet <journal@poet.travel>"),
   web_push_notifier: config_env() != :test,
   # Sign in with Apple (the iOS app), and later APNs and the App Store, all
   # signed with the one .p8 key from the developer account. nil in test, so a

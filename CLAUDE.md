@@ -74,6 +74,7 @@ The Phoenix app never writes journal prose itself. Its only server-side text LLM
 | `Trips.CalendarSync` | `CALENDAR_SYNC_INTERVAL_MINUTES` (+ `CALENDAR_ENABLED`: admins / all / off) | Reads connected Google Calendars, runs the pure `Trips.Detector` over the events, and stores trip suggestions via `Trips.reconcile/4`; tests call `sync_user/1` |
 | `Telegram.Poller` / `Telegram.Notifier` | `TELEGRAM_BOT_TOKEN` | Pairing, chat relay, publish notes |
 | `WebPush.Notifier` | VAPID keys | Browser push on publish |
+| `Email.Notifier` | `RESEND_API_KEY` (+ `EMAIL_FROM`) | The daily page email on publish, via Resend's HTTP API (`Email`, Req only). Skips readers with `users.email_notify` off and Hide My Email relay addresses; the drawing uses a signed `?sig=` so private journals work (`MediaController`); one-click unsubscribe at `/email/unsubscribe/:token` (POST outside CSRF, the signed token is the auth) |
 | `Geocoder.Limiter` | always on | Serialises every Nominatim call to 1 req/s app-wide. All geocoding must go through it |
 
 Operator paging goes through `Alerts.notify_admins/1` (`ALERT_TELEGRAM_CHAT_ID`, else every admin who paired Telegram). Callers compose and dedup; it only sends.

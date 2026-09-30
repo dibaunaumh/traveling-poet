@@ -29,6 +29,7 @@ defmodule TravelingPoet.Application do
       # Push notifier, to browsers and to the iOS app (no-op unless the VAPID
       # keys or the Apple key are set)
       TravelingPoet.WebPush.Notifier,
+      TravelingPoet.Email.Notifier,
       # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.FleetHealth.Alerter,
       # Reads connected Google Calendars for upcoming trips (no-op unless

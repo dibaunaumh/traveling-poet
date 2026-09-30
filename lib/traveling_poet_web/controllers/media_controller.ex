@@ -13,7 +13,7 @@ defmodule TravelingPoetWeb.MediaController do
     with {media_id, ""} <- Integer.parse(id),
          media when not is_nil(media) <- Journal.get_media(media_id),
          poet when not is_nil(poet) <- Poets.get_poet(media.poet_id),
-         :ok <- authorize(conn, poet) do
+         :ok <- authorize(conn, poet, media.id) do
       case S3.download_file(media.s3_key) do
         {:ok, bytes} ->
           conn
@@ -33,12 +33,26 @@ defmodule TravelingPoetWeb.MediaController do
   @doc false
   # Public for tests: the render cookie path cannot be exercised through show/2
   # without a bucket.
-  def authorize(conn, poet) do
+  def authorize(conn, poet, media_id \\ nil) do
     cond do
       poet.is_public -> :ok
+      # a drawing in the owner's daily email (Email.Notifier.media_sig/1)
+      signed?(conn, media_id) -> :ok
       match?(%{id: id} when id == poet.user_id, conn.assigns[:current_user]) -> :ok
       rendering_this_poet?(conn, poet) -> :ok
       true -> :forbidden
+    end
+  end
+
+  defp signed?(_conn, nil), do: false
+
+  defp signed?(conn, media_id) do
+    case conn.params do
+      %{"sig" => sig} when is_binary(sig) ->
+        TravelingPoet.Email.Notifier.verify_media_sig(sig, media_id)
+
+      _ ->
+        false
     end
   end
 

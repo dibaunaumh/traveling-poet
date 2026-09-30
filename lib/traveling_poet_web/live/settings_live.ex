@@ -317,6 +317,16 @@ defmodule TravelingPoetWeb.SettingsLive do
   end
 
   @impl true
+  def handle_event("toggle_email", params, socket) do
+    case Accounts.update_user(socket.assigns.user, %{
+           email_notify: params["email_notify"] == "true"
+         }) do
+      {:ok, updated} -> {:noreply, assign(socket, :user, updated)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not save that setting.")}
+    end
+  end
+
+  @impl true
   def handle_event("toggle_reading", params, socket) do
     on = params["reading_signals"] == "true"
 
@@ -1733,6 +1743,25 @@ defmodule TravelingPoetWeb.SettingsLive do
             </.settings_section>
 
             <.settings_section id="notifications" title="Notifications">
+              <form id="email-notify-form" phx-change="toggle_email" class="mb-4">
+                <input type="hidden" name="email_notify" value="false" />
+                <label class="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    name="email_notify"
+                    value="true"
+                    class="toggle"
+                    checked={@user.email_notify}
+                  />
+                  <span>
+                    <b>Email me each new page</b>
+                    <span class="block text-sm opacity-60">
+                      A short email with the day's drawing when {@poet.name} publishes, to {@user.email}.
+                    </span>
+                  </span>
+                </label>
+              </form>
+              <div class="settings-rule"></div>
               <.push_settings push={@push} poet={@poet} />
               <div class="settings-rule"></div>
               <.telegram_settings telegram={@telegram} user={@user} />
