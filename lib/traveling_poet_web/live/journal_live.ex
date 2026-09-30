@@ -198,6 +198,13 @@ defmodule TravelingPoetWeb.JournalLive do
     socket
     |> assign(:entries, entries)
     |> assign(:entry, entry)
+    # Under the latest page only: when the next one comes, and from where.
+    |> assign(
+      :next_page,
+      if(entry && entries != [] && hd(entries).id == entry.id,
+        do: TravelingPoet.NextPage.for(poet)
+      )
+    )
     |> assign(:journey_start, Journal.first_published_date(poet.id))
     |> assign(:entry_media, bundle.media)
     |> assign(:extra_media, bundle.extra_media)
@@ -986,7 +993,6 @@ defmodule TravelingPoetWeb.JournalLive do
           >
           </div>
 
-          <.push_nudge push={@push} poet={@poet} entry={@entry} />
           <.trip_nudge trips={@trips} poet={@poet} />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
@@ -1114,6 +1120,7 @@ defmodule TravelingPoetWeb.JournalLive do
                 </.link>
               </:controls>
               <:right_footer>
+                <.push_nudge push={@push} poet={@poet} entry={@entry} next={@next_page} />
                 <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
                   <div :if={is_nil(@prompt_answer)}>
                     <p class="text-sm font-medium mb-2">{@prompt.question}</p>

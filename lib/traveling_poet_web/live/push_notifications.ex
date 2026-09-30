@@ -140,50 +140,63 @@ defmodule TravelingPoetWeb.PushNotifications do
   attr :push, :map, required: true
   attr :poet, :any, required: true
   attr :entry, :any, default: nil
+  attr :next, :map, default: nil, doc: "`NextPage.for/1`, set under the latest page only"
 
   @doc """
-  The journal's one-line invitation, shown once there is an entry to be
-  nudged about and this device could receive one. "Not now" is remembered
-  per device (localStorage), since the choice is about this device.
+  The line under the reader's latest page: when the next one comes and from
+  where (the time is rewritten into the reader's own zone by the LocalTime
+  hook), then, if this device could get a notification, the offer to send
+  one. The offer sits here because this is the moment the reader wants the
+  next page. "Not now" is remembered per device (localStorage): the offer
+  comes back once a day later, and a second "Not now" is final.
   """
   def push_nudge(assigns) do
     ~H"""
     <div
-      :if={@push.configured? && @entry}
+      :if={@entry && @next}
       id="push-nudge"
-      phx-hook="WebPush"
-      data-vapid-key={TravelingPoet.WebPush.public_key()}
+      class="border-t border-base-300 pt-3 mt-4 text-sm"
+      phx-hook={@push.configured? && "WebPush"}
+      data-vapid-key={@push.configured? && TravelingPoet.WebPush.public_key()}
     >
+      <p id="next-page-line" class="opacity-80">
+        Next page: <time
+          id="next-page-at"
+          phx-hook="LocalTime"
+          datetime={DateTime.to_iso8601(@next.at)}
+        >{Calendar.strftime(@next.at, "%-d %b around %H:%M UTC")}</time>{next_place(@next)}.
+      </p>
       <div
-        :if={@push.state in [:available, :needs_install] and not @push.dismissed?}
-        class="alert alert-soft text-sm mt-4 flex-wrap"
+        :if={
+          @push.configured? and @push.state in [:available, :needs_install] and
+            not @push.dismissed?
+        }
+        class="flex flex-wrap items-center gap-2 mt-2"
         role="status"
       >
-        <.icon name="hero-bell" class="size-5 shrink-0" />
-        <span :if={@push.state == :available} class="flex-1 min-w-48">
-          Want a nudge when {@poet.name} writes the next entry?
+        <button
+          :if={@push.state == :available}
+          type="button"
+          data-push-action="subscribe"
+          class="btn btn-primary btn-sm"
+        >
+          <.icon name="hero-bell" class="size-4" /> Get it the moment it lands
+        </button>
+        <span :if={@push.state == :needs_install} class="flex-1 min-w-48 opacity-80">
+          To get it the moment it lands, use Share, then Add to Home Screen, and turn on
+          notifications from there.
         </span>
-        <span :if={@push.state == :needs_install} class="flex-1 min-w-48">
-          To get a nudge when {@poet.name} publishes, add Poet to your Home Screen
-          (Share → Add to Home Screen), then turn on notifications from there.
-        </span>
-        <div class="flex items-center gap-1">
-          <button
-            :if={@push.state == :available}
-            type="button"
-            data-push-action="subscribe"
-            class="btn btn-primary btn-sm"
-          >
-            Turn on notifications
-          </button>
-          <button type="button" data-push-action="dismiss" class="btn btn-ghost btn-sm opacity-60">
-            Not now
-          </button>
-        </div>
+        <button type="button" data-push-action="dismiss" class="btn btn-ghost btn-sm opacity-60">
+          Not now
+        </button>
       </div>
     </div>
     """
   end
+
+  defp next_place(%{place: place}) when is_binary(place), do: ", from #{place}"
+  defp next_place(%{moving?: true}), do: ", from somewhere new"
+  defp next_place(_), do: ""
 
   attr :push, :map, required: true
   attr :poet, :any, required: true
