@@ -50,7 +50,11 @@ defmodule TravelingPoet.DailyEmailTest do
 
     assert_receive {:resend, "/emails", ["Bearer re_test"], sent}
     assert sent["to"] == ["mani@example.com"]
-    assert sent["subject"] =~ "Kenji Driftwood in Tokyo: The scramble & the silence"
+    # from the poet, titled like a letter, not a newsletter
+    assert sent["from"] == ~s("Kenji Driftwood via Traveling Poet" <journal@poet.travel>)
+    assert sent["subject"] == "The scramble & the silence"
+    assert sent["html"] =~ "Kenji Driftwood in Tokyo"
+    refute sent["html"] =~ "background"
     assert sent["html"] =~ "Fourteen million people went around me."
     # escaped in the html, plain in the text
     assert sent["html"] =~ "The scramble &amp; the silence"
@@ -116,6 +120,13 @@ defmodule TravelingPoet.DailyEmailTest do
       })
 
     refute email.html =~ "<img"
-    assert email.subject == "Day 1 · Kenji Driftwood in Tokyo: The scramble & the silence"
+    assert email.subject == "The scramble & the silence"
+  end
+
+  test "odd poet names can't break the sender header" do
+    assert TravelingPoet.Email.from_poet(~s(Ada "the" <Wanderer>\r\nBcc: x)) ==
+             ~s("Ada the WandererBcc: x via Traveling Poet" <journal@poet.travel>)
+
+    assert TravelingPoet.Email.from_poet("  ") == TravelingPoet.Email.from()
   end
 end
