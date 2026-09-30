@@ -48,6 +48,7 @@ defmodule TravelingPoetWeb.PublicGuideLive do
          socket
          |> assign(:poet, poet)
          |> assign(:selected, nil)
+         |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
          |> assign(:page_title, "#{poet.name}'s trip guide")}
     end
   end
@@ -72,6 +73,9 @@ defmodule TravelingPoetWeb.PublicGuideLive do
 
   def handle_event("select_place", %{"id" => id}, socket),
     do: {:noreply, GuideState.select_place(socket, id)}
+
+  def handle_event("toggle_bookmark", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
   @impl true
   def handle_info({:guide_geocoded, _poet_id}, socket), do: {:noreply, reload(socket)}
@@ -120,8 +124,15 @@ defmodule TravelingPoetWeb.PublicGuideLive do
           media={@media}
           poet={@poet}
           unmapped={@unmapped}
+          bookmarks={@bookmarks}
         />
-        <.list_view :if={@view == "list"} places={@places} media={@media} poet={@poet} />
+        <.list_view
+          :if={@view == "list"}
+          places={@places}
+          media={@media}
+          poet={@poet}
+          bookmarks={@bookmarks}
+        />
         <.itinerary_view
           :if={@view == "itinerary"}
           days={@days}

@@ -13,7 +13,7 @@ defmodule TravelingPoetWeb.GuideState do
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [push_event: 3]
 
-  alias TravelingPoet.{Guide, Journal, Poets, Topics}
+  alias TravelingPoet.{Bookmarks, Guide, Journal, Poets, Topics}
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Topics.Find
 
@@ -24,6 +24,8 @@ defmodule TravelingPoetWeb.GuideState do
   # List, not map, is the default: coordinates arrive asynchronously and are
   # allowed to fail, so list is the view that always has something in it.
   @default_view "list"
+  # What the reader saved (card-70) has no stays or days: map and list only.
+  @saved_views ~w(map list)
 
   def views, do: @views
 
@@ -37,14 +39,23 @@ defmodule TravelingPoetWeb.GuideState do
   list and itinerary updated correctly and only the map lied.
   """
   def apply_params(socket, params) do
-    socket = socket |> assign_journeys() |> assign_topic(params["topic"])
+    # Saved is the reader's own, like topics: only the owner's guide opts in.
+    saved? = socket.assigns[:show_topics] == true and params["saved"] == "1"
+
+    socket =
+      socket
+      |> assign_journeys()
+      |> assign(:saved_view, saved?)
+      |> assign_topic(if(saved?, do: nil, else: params["topic"]))
 
     # A topic opens on its route: the drawing stands where the map does for
     # places, and a map asked for by URL lands there too.
     {views, filters, default_view} =
-      if socket.assigns.topic,
-        do: {@topic_views, Find.filter_groups(), "route"},
-        else: {@views, Guide.filter_groups(), @default_view}
+      cond do
+        saved? -> {@saved_views, Guide.filter_groups(), @default_view}
+        socket.assigns.topic -> {@topic_views, Find.filter_groups(), "route"}
+        true -> {@views, Guide.filter_groups(), @default_view}
+      end
 
     socket
     |> assign(:view, param(params, "view", views, default_view))
@@ -71,12 +82,14 @@ defmodule TravelingPoetWeb.GuideState do
   # public guide never does, so a crafted ?topic= there is simply ignored and
   # a public page never lists what its poet's companion follows.
   defp assign_journeys(socket) do
-    journeys =
+    {journeys, saved_count} =
       if socket.assigns[:show_topics],
-        do: Topics.list_guide_topics(socket.assigns.poet.id),
-        else: []
+        do:
+          {Topics.list_guide_topics(socket.assigns.poet.id),
+           Bookmarks.count(socket.assigns.current_user.id)},
+        else: {[], 0}
 
-    assign(socket, :journeys, journeys)
+    socket |> assign(:journeys, journeys) |> assign(:saved_count, saved_count)
   end
 
   defp assign_topic(socket, requested) do
@@ -122,6 +135,7 @@ defmodule TravelingPoetWeb.GuideState do
   unreachable from BOTH views -- the owner does not get an early look at what
   the poet has not published yet, and the public view cannot leak one.
   """
+  def assign_places(%{assigns: %{saved_view: true}} = socket), do: assign_saved(socket)
   def assign_places(%{assigns: %{topic: %{} = _topic}} = socket), do: assign_finds(socket)
 
   def assign_places(socket) do
@@ -189,6 +203,61 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:unmapped, 0)
     |> assign(:selected, nil)
   end
+
+  @doc """
+  The reader's saved places and finds, from any poet (`Bookmarks.list/1`).
+  Places go on the map and list under the usual filters; finds sit below
+  the list. Each item links back to the page it came from.
+  """
+  def assign_saved(socket) do
+    %{current_user: user, poet: own, filter: filter} = socket.assigns
+    saved = Bookmarks.list(user.id)
+
+    places = for %{item: %TravelingPoet.Guide.Place{} = p} <- saved, do: p
+    finds = for %{item: %Find{} = f} <- saved, do: f
+    shown = if filter == "all", do: places, else: Enum.filter(places, &in_group?(&1, filter))
+
+    poets = for %{poet: %{} = poet} <- saved, into: %{}, do: {poet.id, poet}
+
+    sources =
+      for %{item: item, poet: poet} <- saved, into: %{}, do: {item.id, source(poet, own, item)}
+
+    map_places =
+      shown
+      |> Enum.flat_map(fn p -> Guide.map_payload([p], (poets[p.poet_id] || own).name) end)
+      |> Enum.with_index(1)
+      |> Enum.map(fn {pin, n} -> %{pin | n: n} end)
+
+    socket
+    |> assign(:counts, Guide.counts_by_group(places))
+    |> assign(:places, shown)
+    |> assign(:days, [])
+    |> assign(:map_places, map_places)
+    |> assign(:unmapped, Guide.unmapped_count(shown))
+    |> assign(:media, media_for(shown ++ finds))
+    |> assign(:saved_finds, finds)
+    |> assign(:saved_poets, poets)
+    |> assign(:saved_sources, sources)
+    |> assign(:excursions, [])
+    |> assign(:excursion, nil)
+    |> assign(:route, nil)
+    |> assign(:finds, [])
+    |> assign(:find_days, [])
+    |> keep_selection()
+  end
+
+  # The reader's own pages open in their journal, anyone else's in public.
+  defp source(nil, _own, _item), do: nil
+
+  defp source(poet, own, %{entry_date: %Date{} = date}) do
+    day = Date.to_iso8601(date)
+
+    if poet.id == own.id,
+      do: {"From your journal", "/journal/#{day}"},
+      else: {"From #{poet.name}'s journal", "/p/#{poet.slug}/#{day}"}
+  end
+
+  defp source(_poet, _own, _item), do: nil
 
   # One stop per excursion, numbered in the order they happened, each with
   # the finds that survived the filter. An excursion the filter emptied
@@ -270,6 +339,7 @@ defmodule TravelingPoetWeb.GuideState do
       "filter" => filter,
       "stay" => stay && to_string(stay.id),
       "topic" => topic && to_string(topic.id),
+      "saved" => socket.assigns[:saved_view] && "1",
       "excursion" => excursion && to_string(excursion.id)
     }
     |> Map.merge(Map.new(overrides, fn {k, v} -> {to_string(k), to_string(v)} end))

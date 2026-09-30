@@ -31,23 +31,28 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :stay, :map, default: nil
   attr :view, :string, required: true
   attr :topic, :map, default: nil, doc: "set when the guide shows a topic's excursions"
+  attr :saved, :boolean, default: false, doc: "the reader's Saved view"
 
   def guide_header(assigns) do
     assigns =
       assign(
         assigns,
         :view_options,
-        if(assigns.topic,
-          do: [{"route", "Route"} | Enum.reject(@views, &(elem(&1, 0) == "map"))],
-          else: @views
-        )
+        cond do
+          assigns.saved -> Enum.reject(@views, &(elem(&1, 0) == "itinerary"))
+          assigns.topic -> [{"route", "Route"} | Enum.reject(@views, &(elem(&1, 0) == "map"))]
+          true -> @views
+        end
       )
 
     ~H"""
     <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
       <div>
         <h1 class="text-2xl font-semibold">Trip guide</h1>
-        <p :if={is_nil(@topic)} class="text-sm opacity-60 mt-1">
+        <p :if={@saved} class="text-sm opacity-60 mt-1">
+          Places and finds you saved, from any poet
+        </p>
+        <p :if={is_nil(@topic) and not @saved} class="text-sm opacity-60 mt-1">
           Places, food and events <span :if={@stay}>for {@stay.place_name}</span>
           <span :if={is_nil(@stay)}>from {@poet.name}'s travels</span>
         </p>
@@ -119,20 +124,30 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   attr :journeys, :list, required: true, doc: "[{topic, excursion_count}] from GuideState"
   attr :topic, :map, default: nil
+  attr :saved_count, :integer, default: 0
+  attr :saved, :boolean, default: false, doc: "the Saved view is open"
 
   @doc """
   One row for every journey the guide can show: the places of the road, then
   each topic with excursions behind it. Rendered only when there is a topic
-  to switch to, so a guide with places alone looks exactly as it did.
+  to switch to, so a guide with places alone looks exactly as it did. Saved
+  (card-70) sits last, once the reader has saved anything.
   """
   def journey_switcher(assigns) do
     ~H"""
-    <div :if={@journeys != []} id="guide-journeys" class="flex flex-wrap items-center gap-2 mb-4">
+    <div
+      :if={@journeys != [] or @saved_count > 0 or @saved}
+      id="guide-journeys"
+      class="flex flex-wrap items-center gap-2 mb-4"
+    >
       <button
         id="guide-journey-places"
         phx-click="set_journey"
         phx-value-topic=""
-        class={["btn btn-sm", if(is_nil(@topic), do: "btn-neutral", else: "btn-ghost")]}
+        class={[
+          "btn btn-sm",
+          if(is_nil(@topic) and not @saved, do: "btn-neutral", else: "btn-ghost")
+        ]}
       >
         <.icon name="hero-map-pin" class="size-4" /> Places
       </button>
@@ -148,6 +163,15 @@ defmodule TravelingPoetWeb.GuideComponents do
       >
         <.icon name="hero-book-open" class="size-4" /> {topic.label}
         <span class="opacity-50 text-xs">{count}</span>
+      </button>
+      <button
+        :if={@saved_count > 0 or @saved}
+        id="guide-journey-saved"
+        phx-click="set_saved"
+        class={["btn btn-sm", if(@saved, do: "btn-neutral", else: "btn-ghost")]}
+      >
+        <.icon name="hero-bookmark" class="size-4" /> Saved
+        <span class="opacity-50 text-xs">{@saved_count}</span>
       </button>
     </div>
     """
@@ -194,6 +218,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :media, :map, required: true
   attr :poet, :map, required: true
   attr :entry_url, :any, default: nil, doc: "fn date -> path of the entry, or nil"
+  attr :bookmarks, :any, default: nil, doc: "the reader's saved keys, nil hides Save"
 
   def find_list_view(assigns) do
     assigns = assign(assigns, :by_entry, Map.new(assigns.excursions, &{&1.journal_entry_id, &1}))
@@ -207,6 +232,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         media={@media[find.media_id]}
         poet={@poet}
         entry_url={@entry_url}
+        saved={saved(@bookmarks, find)}
       />
     </div>
     """
@@ -217,6 +243,8 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :media, :map, default: nil
   attr :poet, :map, required: true
   attr :entry_url, :any, default: nil
+  attr :saved, :any, default: nil, doc: "true/false shows the Save button; nil hides it"
+  attr :source, :any, default: nil, doc: "{label, path} to the page it came from"
 
   def find_card(assigns) do
     ~H"""
@@ -235,8 +263,11 @@ defmodule TravelingPoetWeb.GuideComponents do
           </span>
         </div>
 
-        <div class="text-xs opacity-60">
-          {humanize_category(@find.kind)}<span :if={@excursion}> at {destination_label(@excursion)}</span>
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs opacity-60">
+            {humanize_category(@find.kind)}<span :if={@excursion}> at {destination_label(@excursion)}</span>
+          </div>
+          <.save_button :if={is_boolean(@saved)} saved={@saved} kind="find" item={@find} />
         </div>
         <.poet_pick :if={@find.poet_rating} place={@find} poet={@poet} />
 
@@ -257,6 +288,9 @@ defmodule TravelingPoetWeb.GuideComponents do
             class="link text-sm opacity-70"
           >
             Read the entry
+          </.link>
+          <.link :if={@source} navigate={elem(@source, 1)} class="link text-sm opacity-70">
+            {elem(@source, 0)}
           </.link>
         </div>
       </div>
@@ -350,6 +384,10 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :media, :map, required: true
   attr :poet, :map, required: true
   attr :unmapped, :integer, default: 0
+  attr :bookmarks, :any, default: nil, doc: "the reader's saved keys, nil hides Save"
+  attr :poets, :map, default: nil, doc: "poet_id => poet, when places come from several poets"
+  attr :sources, :map, default: %{}, doc: "place id => {label, path}"
+  attr :hint, :string, default: nil
 
   def map_view(assigns) do
     ~H"""
@@ -368,10 +406,12 @@ defmodule TravelingPoetWeb.GuideComponents do
           :if={@selected}
           place={@selected}
           media={@media[@selected.media_id]}
-          poet={@poet}
+          poet={poet_for(@poets, @selected, @poet)}
+          saved={saved(@bookmarks, @selected)}
+          source={@sources[@selected.id]}
         />
         <p :if={is_nil(@selected)} class="text-sm opacity-60 p-4">
-          Pick a pin to see what {@poet.name} said about it.
+          {@hint || "Pick a pin to see what #{@poet.name} said about it."}
         </p>
       </div>
     </div>
@@ -383,14 +423,27 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :places, :list, required: true
   attr :media, :map, required: true
   attr :poet, :map, required: true
+  attr :bookmarks, :any, default: nil, doc: "the reader's saved keys, nil hides Save"
+  attr :poets, :map, default: nil, doc: "poet_id => poet, when places come from several poets"
+  attr :sources, :map, default: %{}, doc: "place id => {label, path}"
 
   def list_view(assigns) do
     ~H"""
     <div id="guide-list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <.place_card :for={place <- @places} place={place} media={@media[place.media_id]} poet={@poet} />
+      <.place_card
+        :for={place <- @places}
+        place={place}
+        media={@media[place.media_id]}
+        poet={poet_for(@poets, place, @poet)}
+        saved={saved(@bookmarks, place)}
+        source={@sources[place.id]}
+      />
     </div>
     """
   end
+
+  defp poet_for(nil, _item, poet), do: poet
+  defp poet_for(poets, item, poet), do: Map.get(poets, item.poet_id) || poet
 
   attr :days, :list, required: true
   attr :media, :map, required: true
@@ -433,6 +486,8 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :place, :map, required: true
   attr :media, :map, default: nil
   attr :poet, :map, required: true
+  attr :saved, :any, default: nil, doc: "true/false shows the Save button; nil hides it"
+  attr :source, :any, default: nil, doc: "{label, path} to the page it came from"
 
   def place_card(assigns) do
     ~H"""
@@ -451,7 +506,10 @@ defmodule TravelingPoetWeb.GuideComponents do
           </span>
         </div>
 
-        <div class="text-xs opacity-60">{humanize_category(@place.category)}</div>
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-xs opacity-60">{humanize_category(@place.category)}</div>
+          <.save_button :if={is_boolean(@saved)} saved={@saved} kind="place" item={@place} />
+        </div>
         <.event_dates place={@place} />
         <.poet_pick :if={@place.poet_rating} place={@place} poet={@poet} />
 
@@ -467,10 +525,40 @@ defmodule TravelingPoetWeb.GuideComponents do
         >
           View details ↗
         </a>
+        <.link :if={@source} navigate={elem(@source, 1)} class="link text-xs opacity-70">
+          {elem(@source, 0)}
+        </.link>
       </div>
     </div>
     """
   end
+
+  attr :saved, :boolean, required: true
+  attr :kind, :string, required: true
+  attr :item, :map, required: true
+
+  @doc "Save or unsave a place or find; rendered only for a signed-in reader."
+  def save_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      id={"save-#{@kind}-#{@item.id}"}
+      phx-click="toggle_bookmark"
+      phx-value-kind={@kind}
+      phx-value-id={@item.id}
+      class={["btn btn-ghost btn-xs gap-1 px-1", @saved && "text-primary"]}
+      aria-pressed={to_string(@saved)}
+      title={if @saved, do: "Saved. Tap to remove", else: "Save to your guide"}
+    >
+      <.icon name={if @saved, do: "hero-bookmark-solid", else: "hero-bookmark"} class="size-4" />
+      <span class="text-xs">{if @saved, do: "Saved", else: "Save"}</span>
+    </button>
+    """
+  end
+
+  @doc "Whether an item is in the reader's saved keys; nil when there is no reader."
+  def saved(nil, _item), do: nil
+  def saved(keys, item), do: TravelingPoet.Bookmarks.saved?(keys, item)
 
   # An event with no dates cannot be planned around, and one whose dates have
   # passed must say so rather than sit in the guide looking current -- the

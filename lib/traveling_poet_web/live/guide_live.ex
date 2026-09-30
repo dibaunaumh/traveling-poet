@@ -15,7 +15,7 @@ defmodule TravelingPoetWeb.GuideLive do
   import TravelingPoetWeb.GuideComponents
   import TravelingPoetWeb.RouteComponents
 
-  alias TravelingPoetWeb.GuideState
+  alias TravelingPoetWeb.{Bookmarking, GuideState}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -29,7 +29,10 @@ defmodule TravelingPoetWeb.GuideLive do
 
       # Topics are the owner's own; the public guide leaves this off.
       {:ok,
-       assign(socket, poet: poet, selected: nil, show_topics: true, page_title: "Trip guide")}
+       socket
+       |> assign(poet: poet, selected: nil, show_topics: true, page_title: "Trip guide")
+       |> assign(saved_finds: [], saved_poets: %{}, saved_sources: %{})
+       |> Bookmarking.assign_bookmarks()}
     else
       {:ok, push_navigate(socket, to: ~p"/onboarding")}
     end
@@ -53,8 +56,20 @@ defmodule TravelingPoetWeb.GuideLive do
   # destinations. A topic has no map, so a reader on the map lands on its route.
   def handle_event("set_journey", %{"topic" => topic}, socket) do
     view = if topic != "" and socket.assigns.view == "map", do: "route", else: socket.assigns.view
-    overrides = [topic: topic, excursion: "", filter: "all", view: view]
+    overrides = [topic: topic, excursion: "", filter: "all", view: view, saved: ""]
     {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
+  end
+
+  def handle_event("set_saved", _params, socket) do
+    view = if socket.assigns.view == "map", do: "map", else: "list"
+    overrides = [saved: "1", topic: "", excursion: "", stay: "", filter: "all", view: view]
+    {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
+  end
+
+  # Saving here, or unsaving from the Saved view, which then drops the card.
+  def handle_event("toggle_bookmark", params, socket) do
+    {:noreply, socket} = Bookmarking.handle_event("toggle_bookmark", params, socket)
+    {:noreply, socket |> GuideState.apply_params(current_params(socket))}
   end
 
   def handle_event("set_excursion", %{"excursion" => excursion}, socket),
@@ -73,6 +88,8 @@ defmodule TravelingPoetWeb.GuideLive do
 
   defp guide_path(socket, overrides), do: ~p"/guide?#{GuideState.query(socket, overrides)}"
 
+  defp current_params(socket), do: Map.new(GuideState.query(socket, []))
+
   defp finds_entry_path(%Date{} = date), do: ~p"/journal/#{Date.to_iso8601(date)}?spread=finds"
 
   ## Rendering
@@ -81,8 +98,61 @@ defmodule TravelingPoetWeb.GuideLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:guide}>
-      <.guide_header poet={@poet} stay={@stay} view={@view} topic={@topic} />
-      <.journey_switcher journeys={@journeys} topic={@topic} />
+      <.guide_header poet={@poet} stay={@stay} view={@view} topic={@topic} saved={@saved_view} />
+      <.journey_switcher
+        journeys={@journeys}
+        topic={@topic}
+        saved_count={@saved_count}
+        saved={@saved_view}
+      />
+
+      <div :if={@saved_view} id="guide-saved">
+        <.filter_chips filter={@filter} counts={@counts} />
+        <p
+          :if={@places == [] and @saved_finds == []}
+          id="guide-saved-empty"
+          class="text-sm opacity-60 py-10 text-center"
+        >
+          Nothing saved <span :if={@filter != "all"}>under this filter</span>
+          <span :if={@filter == "all"}>
+            yet. Tap Save on a place or find, here, in any public guide, or in Discover.
+          </span>
+        </p>
+        <.map_view
+          :if={@view == "map" and @places != []}
+          map_places={@map_places}
+          selected={@selected}
+          media={@media}
+          poet={@poet}
+          unmapped={@unmapped}
+          bookmarks={@bookmarks}
+          poets={@saved_poets}
+          sources={@saved_sources}
+          hint="Pick a pin to see the place you saved."
+        />
+        <.list_view
+          :if={@view == "list" and @places != []}
+          places={@places}
+          media={@media}
+          poet={@poet}
+          bookmarks={@bookmarks}
+          poets={@saved_poets}
+          sources={@saved_sources}
+        />
+        <div :if={@saved_finds != []} id="guide-saved-finds" class="mt-8">
+          <h2 class="font-semibold mb-3">Finds you saved</h2>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <.find_card
+              :for={find <- @saved_finds}
+              find={find}
+              media={@media[find.media_id]}
+              poet={@saved_poets[find.poet_id] || @poet}
+              saved={saved(@bookmarks, find)}
+              source={@saved_sources[find.id]}
+            />
+          </div>
+        </div>
+      </div>
 
       <div :if={@topic}>
         <.filter_chips filter={@filter} counts={@counts} options={topic_filters()} />
@@ -109,6 +179,7 @@ defmodule TravelingPoetWeb.GuideLive do
           media={@media}
           poet={@poet}
           entry_url={&finds_entry_path/1}
+          bookmarks={@bookmarks}
         />
         <.excursion_itinerary_view
           :if={@view == "itinerary"}
@@ -120,12 +191,12 @@ defmodule TravelingPoetWeb.GuideLive do
         />
       </div>
 
-      <.filter_chips :if={is_nil(@topic)} filter={@filter} counts={@counts} />
-      <.stay_switcher :if={is_nil(@topic)} stays={@stays} stay={@stay} />
+      <.filter_chips :if={is_nil(@topic) and not @saved_view} filter={@filter} counts={@counts} />
+      <.stay_switcher :if={is_nil(@topic) and not @saved_view} stays={@stays} stay={@stay} />
 
-      <.empty_state :if={is_nil(@topic) and @places == []} poet={@poet} />
+      <.empty_state :if={is_nil(@topic) and not @saved_view and @places == []} poet={@poet} />
 
-      <div :if={is_nil(@topic) and @places != []}>
+      <div :if={is_nil(@topic) and not @saved_view and @places != []}>
         <.map_view
           :if={@view == "map"}
           map_places={@map_places}
@@ -133,8 +204,15 @@ defmodule TravelingPoetWeb.GuideLive do
           media={@media}
           poet={@poet}
           unmapped={@unmapped}
+          bookmarks={@bookmarks}
         />
-        <.list_view :if={@view == "list"} places={@places} media={@media} poet={@poet} />
+        <.list_view
+          :if={@view == "list"}
+          places={@places}
+          media={@media}
+          poet={@poet}
+          bookmarks={@bookmarks}
+        />
         <.itinerary_view
           :if={@view == "itinerary"}
           days={@days}
