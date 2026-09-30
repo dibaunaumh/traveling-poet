@@ -615,11 +615,23 @@ defmodule TravelingPoetWeb.NotebookComponents do
          doc = MDEx.traverse_and_update(doc, &own_images_only(&1, allowed)),
          doc = %{doc | nodes: link_places(doc.nodes, place_links)},
          {:ok, html} <- MDEx.to_html(doc, sanitize: MDEx.Document.default_sanitize_options()) do
-      Phoenix.HTML.raw(html)
+      Phoenix.HTML.raw(mark_lone_drawings(html))
     else
       _ -> text
     end
   end
+
+  # A paragraph holding a drawing and nothing else gets `class="spot-alone"`,
+  # so the page can close the gap it would open. CSS could not tell: its
+  # `:only-child` ignores text, so a drawing followed by plain text in the
+  # same paragraph matched too, got line-height 0, and its text collapsed
+  # into one black smudge (Kenji Driftwood's koi, 2026-09-30). Added after
+  # the sanitizer, which strips classes; the pattern only ever matches markup
+  # the sanitizer itself produced.
+  @lone_drawing ~r{<p>(\s*(?:<a [^>]*>\s*)?<img [^>]*>(?:\s*</a>)?\s*)</p>}
+
+  defp mark_lone_drawings(html),
+    do: Regex.replace(@lone_drawing, html, ~s(<p class="spot-alone">\\1</p>))
 
   # The spot drawings a body actually embeds, in order, so their sources can
   # be listed under it.

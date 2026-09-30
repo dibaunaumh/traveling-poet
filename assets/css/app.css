@@ -1039,9 +1039,10 @@ mark.marker.marker-sent {
 }
 
 /* the image sits in a paragraph of its own; that paragraph must not open
-   a blank 2rem gap above the text the drawing belongs to */
-.notebook-page .prose p:has(> img:only-child),
-.notebook-page .prose p:has(> a:only-child > img:only-child) {
+   a blank 2rem gap above the text the drawing belongs to. Marked by the
+   server (NotebookComponents.raw_markdown/3): a :has(:only-child) selector
+   also caught a drawing followed by plain text, and collapsed the text. */
+.notebook-page .prose p.spot-alone {
   margin: 0;
   line-height: 0;
 }
