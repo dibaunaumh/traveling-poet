@@ -115,7 +115,7 @@ defmodule TravelingPoet.Guide.PlaceClassifier do
     |> Enum.filter(&(is_map(&1) and MapSet.member?(asked, to_string(&1["id"]))))
     |> Enum.flat_map(fn verdict ->
       given = verdict |> Map.get("topics", []) |> List.wrap()
-      topics = given |> Enum.filter(&(is_binary(&1) and PlaceTopics.valid?(&1))) |> Enum.uniq()
+      topics = given |> Enum.map(&PlaceTopics.resolve/1) |> Enum.reject(&is_nil/1) |> Enum.uniq()
 
       # Topics named but none in the tree: a bad answer, not a verdict that
       # the row is no place. Left for the next run, never "untaggable".
