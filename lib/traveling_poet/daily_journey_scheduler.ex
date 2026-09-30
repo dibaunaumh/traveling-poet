@@ -205,7 +205,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     case Credits.debit_daily_run(user, poet, attempt.id, day: plan.day, scouting: plan.scouting) do
       {:ok, _} ->
         outcome =
-          AgentSession.run(user, @trigger,
+          AgentSession.run(user, trigger_for(poet, plan),
             channel: "system",
             reply_timeout_ms: @reply_timeout_ms
           )
@@ -224,6 +224,30 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   # derailed session only fails again (Provisioner.fresh_start/1).
   def before_attempt(user, retry?) do
     if retry?, do: Provisioner.fresh_start(user), else: :first
+  end
+
+  @doc """
+  The message that starts the day: `/travel-and-journal`, plus a line naming
+  each day file the poet must read today. The daily skill hands excursion,
+  scouting and asking to their own files (so a normal day reads less); the
+  app already knows which apply, so it says so up front instead of hoping
+  the poet notices a pointer. Stays out of the reader's chat (system channel).
+  """
+  def trigger_for(poet, plan) do
+    dir = "skills/travel-and-journal"
+
+    reads =
+      [
+        plan.day == "excursion" &&
+          "Today is an excursion day: after SKILL.md, read #{dir}/excursion.md once and follow it.",
+        plan.scouting &&
+          "Today you scout your companion's route: after SKILL.md, read #{dir}/scout.md once and follow it.",
+        TravelingPoet.Asks.due(poet) != nil &&
+          "Today you also ask your companion one question: after publishing, read #{dir}/asking.md once and follow it."
+      ]
+      |> Enum.filter(& &1)
+
+    Enum.join([@trigger | reads], "\n")
   end
 
   # The run's outcome is what reached the reader, not what the agent said.
