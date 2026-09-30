@@ -150,6 +150,40 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert html =~ "needs a name"
     end
 
+    test "passions picked at onboarding become active tastes that steer every day",
+         %{conn: conn} do
+      {user, view, _html} = mount(conn)
+      render_click(view, "next", %{})
+
+      for domain <- ~w(food photography mountains art) do
+        render_click(view, "toggle_passion", %{"domain" => domain})
+      end
+
+      # three at most: the fourth tile is disabled and its click ignored
+      html = render(view)
+      assert html =~ ~r/id="passion-art"[^>]*disabled/s
+
+      view
+      |> form("#onboarding-passions", %{
+        "passion_words" => %{"food" => "street food, natural wine", "mountains" => ""}
+      })
+      |> render_change()
+
+      render_click(view, "next", %{})
+      render_click(view, "create_poet", %{})
+
+      poet = Poets.get_poet_by_user(user.id)
+
+      assert [
+               %{domain: "food", taste: "street food, natural wine"},
+               %{domain: "photography", taste: "Photography"},
+               %{domain: "mountains", taste: "Mountains & climbing"}
+             ] = TravelingPoet.Topics.focus(poet.id)
+
+      assert Enum.all?(TravelingPoet.Topics.list(poet.id), &(&1.source == "onboarding"))
+      assert "Food & drink: street food, natural wine" in poet.settings["user_interests"]
+    end
+
     test "interest chips and free text both reach the poet", %{conn: conn} do
       {user, view, _html} = mount(conn)
 

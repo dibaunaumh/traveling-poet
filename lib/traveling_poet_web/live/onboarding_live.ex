@@ -12,6 +12,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   alias TravelingPoet.{Accounts, Geocoder, Poets, Provisioner}
   alias TravelingPoet.Poets.Presets
+  alias TravelingPoet.Topics
+  alias TravelingPoet.Topics.Topic
 
   require Logger
 
@@ -56,6 +58,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:location_results, [])
         |> assign(:location_error, nil)
         |> assign(:show_location_search, false)
+        |> assign(:passions, [])
+        |> assign(:passion_words, %{})
         |> assign(:interest_options, Presets.interests())
         |> assign(:selected_interests, MapSet.new())
         |> assign(:custom_interests, "")
@@ -278,6 +282,24 @@ defmodule TravelingPoetWeb.OnboardingLive do
      assign(socket, :stops, List.delete_at(socket.assigns.stops, String.to_integer(idx)))}
   end
 
+  # Up to three passions, in the order picked (the first is the strongest).
+  @max_passions 3
+
+  @impl true
+  def handle_event("toggle_passion", %{"domain" => domain}, socket) do
+    passions = socket.assigns.passions
+
+    passions =
+      cond do
+        domain in passions -> List.delete(passions, domain)
+        domain not in Topic.domains() -> passions
+        length(passions) >= @max_passions -> passions
+        true -> passions ++ [domain]
+      end
+
+    {:noreply, assign(socket, :passions, passions)}
+  end
+
   @impl true
   def handle_event("toggle_interest", %{"label" => label}, socket) do
     selected =
@@ -340,6 +362,17 @@ defmodule TravelingPoetWeb.OnboardingLive do
       # The first stop is where the poet starts: visited on arrival.
       if assigns.mode == "scout", do: Poets.start_itinerary(poet, assigns.stops)
 
+      # Each passion is a taste from day one: it steers every day's places
+      # (Topics.focus/1) and gets its own days off the road.
+      for {domain, label} <- passion_tastes(assigns) do
+        Topics.create(poet.id, %{
+          label: label,
+          domain: domain,
+          kind: "personal",
+          source: "onboarding"
+        })
+      end
+
       user_name =
         case String.trim(assigns.user_name) do
           "" -> user.name
@@ -391,8 +424,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:verbosity, parse_verbosity(params["verbosity"], socket.assigns.verbosity))
 
       :journey ->
-        assign(
-          socket,
+        words =
+          case params["passion_words"] do
+            %{} = typed -> Map.merge(socket.assigns.passion_words, typed)
+            _ -> socket.assigns.passion_words
+          end
+
+        socket
+        |> assign(:passion_words, words)
+        |> assign(
           :custom_interests,
           Map.get(params, "custom_interests", socket.assigns.custom_interests)
         )
@@ -482,8 +522,27 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   defp effective_interests(assigns) do
-    (Enum.to_list(assigns.selected_interests) ++ Presets.split_interests(assigns.custom_interests))
+    passions = Enum.map(passion_tastes(assigns), fn {d, label} -> passion_line(d, label) end)
+
+    (passions ++
+       Enum.to_list(assigns.selected_interests) ++
+       Presets.split_interests(assigns.custom_interests))
     |> Enum.uniq()
+  end
+
+  # `[{domain, label}]`: the reader's words, or the domain's own name.
+  defp passion_tastes(assigns) do
+    Enum.map(assigns.passions, fn domain ->
+      case String.trim(Map.get(assigns.passion_words, domain) || "") do
+        "" -> {domain, Topic.domain_name(domain)}
+        words -> {domain, String.slice(words, 0, 120)}
+      end
+    end)
+  end
+
+  defp passion_line(domain, label) do
+    name = Topic.domain_name(domain)
+    if label == name, do: name, else: "#{name}: #{label}"
   end
 
   defp validate_mode_inputs(%{mode: "scout", stops: []}),
@@ -794,9 +853,57 @@ defmodule TravelingPoetWeb.OnboardingLive do
             </ol>
           </div>
 
+          <div class="mb-6" id="passions">
+            <span class="text-sm font-medium">What do you travel for?</span>
+            <span class="block text-xs opacity-60">
+              Pick up to three. {@poet_name} will look for them in every place it visits.
+            </span>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+              <button
+                :for={domain <- Topic.domains()}
+                type="button"
+                id={"passion-#{domain}"}
+                phx-click="toggle_passion"
+                phx-value-domain={domain}
+                aria-pressed={to_string(domain in @passions)}
+                disabled={domain not in @passions and length(@passions) >= 3}
+                class={[
+                  "btn btn-sm justify-start",
+                  if(domain in @passions, do: "btn-primary", else: "btn-outline")
+                ]}
+              >
+                {Topic.domain_name(domain)}
+              </button>
+            </div>
+            <form
+              :if={@passions != []}
+              id="onboarding-passions"
+              phx-change="capture"
+              phx-submit="next"
+              class="mt-3 space-y-2"
+            >
+              <label :for={domain <- @passions} class="block">
+                <span class="text-xs opacity-70">
+                  {Topic.domain_name(domain)}: {domain |> Topic.hint() |> elem(0) |> String.downcase()}
+                  <span class="opacity-60">(optional)</span>
+                </span>
+                <input
+                  type="text"
+                  name={"passion_words[#{domain}]"}
+                  id={"passion-words-#{domain}"}
+                  value={Map.get(@passion_words, domain, "")}
+                  maxlength="120"
+                  phx-debounce="300"
+                  class="input input-bordered input-sm w-full"
+                  placeholder={"e.g. " <> (domain |> Topic.hint() |> elem(1))}
+                />
+              </label>
+            </form>
+          </div>
+
           <div class="mb-6">
             <span class="text-sm font-medium">
-              What would you love postcards about? <span class="opacity-50">(optional)</span>
+              Anything else you'd love postcards about? <span class="opacity-50">(optional)</span>
             </span>
             <div class="mt-2">
               <.interest_chips interests={@interest_options} selected={@selected_interests} />

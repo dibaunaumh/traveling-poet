@@ -30,7 +30,8 @@ defmodule TravelingPoetWeb.TastesTest do
 
   test "with a topic, the poet asks about music; the answer becomes a music taste",
        %{conn: conn, user: user, poet: poet} do
-    topic_fixture(poet, %{label: "Embodied minds"})
+    # a food taste picked at onboarding: known, so music is the next domain
+    topic_fixture(poet, %{label: "street food", domain: "food"})
 
     body = conn |> get(~p"/api/agent/context") |> json_response(200)
     assert body["ask_reader"] == %{"about" => "music", "reason" => "domain"}
@@ -54,8 +55,8 @@ defmodule TravelingPoetWeb.TastesTest do
     assert body["topic"]["domain"] == "music"
     assert body["topic"]["status"] == "active"
 
-    # music is known now: next week is books
-    assert Asks.facts(poet.id).domains_known == ["music"]
+    # music is known now, beside food: next week is photography
+    assert Enum.sort(Asks.facts(poet.id).domains_known) == ["food", "music"]
   end
 
   test "a taste heard in chat is proposed with its domain; a made-up domain is refused",
@@ -69,7 +70,7 @@ defmodule TravelingPoetWeb.TastesTest do
     assert Topics.get_by_label(poet.id, "Japanese city pop").domain == "music"
 
     assert conn
-           |> post(~p"/api/agent/topics", %{"label" => "tapas", "domain" => "food"})
+           |> post(~p"/api/agent/topics", %{"label" => "linen shirts", "domain" => "fashion"})
            |> json_response(422)
   end
 

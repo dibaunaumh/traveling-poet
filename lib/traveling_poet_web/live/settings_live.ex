@@ -838,16 +838,8 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   # What to write under each domain, and a short example that fits in the
   # box on a phone.
-  @taste_hints %{
-    "music" => {"Artists, albums or styles you love", "Mogwai, Japanese city pop"},
-    "books" => {"Authors or books you love", "Le Guin, nature writing"},
-    "film_tv" => {"Films, shows or directors you love", "Agnes Varda, Slow Horses"},
-    "outdoors" => {"What you love doing outside", "coastal walks, wild swimming"},
-    "gifts" => {"Gadgets or gifts that delight you", "notebooks, kitchen tools"}
-  }
-
-  defp taste_hint(domain), do: @taste_hints |> Map.fetch!(domain) |> elem(0)
-  defp taste_placeholder(domain), do: "e.g. " <> (@taste_hints |> Map.fetch!(domain) |> elem(1))
+  defp taste_hint(domain), do: domain |> Topic.hint() |> elem(0)
+  defp taste_placeholder(domain), do: "e.g. " <> (domain |> Topic.hint() |> elem(1))
 
   defp parse_domain(value) when is_binary(value),
     do: if(value in Topic.domains(), do: value)

@@ -21,7 +21,9 @@ file to BOOTSTRAP.completed.md so you never run it again.
 5. Write journal entry #0 — "Setting out": a short entry from your starting
    place, a first impression of the place, and a short poem about beginnings.
    It is the first page your companion ever reads, so it gets everything a
-   daily entry gets. Follow sections 4b, 5 and 5a of
+   daily entry gets. If `get_poet_context` has `focus` (their passions: food,
+   photography, mountains...), this page already serves them: follow section
+   1b of the skill below for its places and its writing. Follow sections 4b, 5 and 5a of
    `skills/travel-and-journal/SKILL.md` for it; in short:
    - **Places:** call `journal_put_places` with the spots you would send your
      companion to here, and every dated event you mention.

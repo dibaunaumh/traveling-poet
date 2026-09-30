@@ -652,7 +652,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "get_poet_context",
-          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode, or a planned trip), recent feedback, learned_profile (what your companion has actually asked for), topics (subjects they follow beyond places), and travel: the app's decision for today, with travel.day = move | stay | excursion and travel.scouting + travel.trip when your companion's own upcoming trip is being scouted. Read it every run: it outranks your instincts and the interests baked into your workspace.",
+          description: "Your poet profile, mission mode (wander/scout), current location, days at location, itinerary + next_stop (scout mode, or a planned trip), recent feedback, learned_profile (what your companion has actually asked for), topics (subjects they follow beyond places), focus (their passions: food, photography, mountains... which steer where you go and what you log every day), and travel: the app's decision for today, with travel.day = move | stay | excursion and travel.scouting + travel.trip when your companion's own upcoming trip is being scouted. Read it every run: it outranks your instincts and the interests baked into your workspace.",
           parameters: {},
           execute: function() { return call("GET", "/api/agent/context"); }
         });
@@ -732,7 +732,7 @@ defmodule TravelingPoet.Provisioner do
               kind: { type: "string", enum: ["professional", "personal"], description: "A field they work or study in, or a passion. Leave out when unsure." },
               quote: { type: "string", description: "What they actually said, shown to them beside the proposal" },
               ask_id: { type: "integer", description: "Only when this answers your question (open_ask.id in get_poet_context): the topic is then active at once, no waiting in Settings" },
-              domain: { type: "string", enum: ["music", "books", "film_tv", "outdoors", "gifts"], description: "Only for a TASTE: what they like in music, books, film & TV, the outdoors, or gadgets & gifts. The label is then the taste in their words ('post-rock, Sigur Ros'). Leave out for a subject." }
+              domain: { type: "string", enum: #{Jason.encode!(TravelingPoet.Topics.Topic.domains())}, description: "Only for a TASTE: what they like in food & drink, music, photography, art & architecture, the outdoors, mountains & climbing, books, film & TV, kids' attractions, or gadgets & gifts. The label is then the taste in their words ('natural wine, street food'; 'post-rock, Sigur Ros'). Leave out for a subject." }
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
