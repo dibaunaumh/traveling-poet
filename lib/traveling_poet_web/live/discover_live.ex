@@ -33,7 +33,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
   use TravelingPoetWeb, :live_view
 
   import TravelingPoetWeb.NotebookComponents, only: [section: 1]
-  import TravelingPoetWeb.GuideComponents, only: [place_card: 1, humanize_category: 1]
+
+  import TravelingPoetWeb.GuideComponents,
+    only: [place_card: 1, humanize_category: 1, save_button: 1, saved: 2]
 
   alias TravelingPoet.{Discover, Poets}
   alias TravelingPoet.Guide.PlaceTopics
@@ -53,6 +55,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       # page otherwise retitled it "Discover".
       |> then(&if(compact, do: &1, else: assign(&1, :page_title, "Discover")))
       |> assign(:me, me(session["me_poet_id"]))
+      |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
       |> assign_discover()
 
     {:ok, assign(socket, :selected, first_selection(socket.assigns.discover))}
@@ -91,6 +94,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
   end
 
   def handle_event("select", _params, socket), do: {:noreply, socket}
+
+  def handle_event("toggle_bookmark", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
   # The hook's data, asked for once it is connected. See the moduledoc.
   def handle_event("load", _params, socket),
@@ -168,7 +174,13 @@ defmodule TravelingPoetWeb.DiscoverLive do
   def render(%{compact: true} = assigns) do
     ~H"""
     <div class="discover-compact" id="discover-compact">
-      <.discover_view discover={@discover} selected={@selected} compact me={@me} />
+      <.discover_view
+        discover={@discover}
+        selected={@selected}
+        compact
+        me={@me}
+        bookmarks={@bookmarks}
+      />
       <p class="discover-more">
         <a href={~p"/discover"} class="link" data-track="discover-more">
           Everything the poets have found, in Discover &rarr;
@@ -207,7 +219,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         </button>
       </div>
 
-      <.discover_view discover={@discover} selected={@selected} />
+      <.discover_view discover={@discover} selected={@selected} bookmarks={@bookmarks} />
     </Layouts.app>
     """
   end
@@ -234,6 +246,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   attr :selected, :map, default: nil
   attr :compact, :boolean, default: false
   attr :me, :map, default: nil
+  attr :bookmarks, :any, default: nil
 
   defp discover_view(assigns) do
     ~H"""
@@ -267,7 +280,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       </div>
 
       <aside id="discover-panel" class="discover-panel" aria-live="polite">
-        <.overview :if={@selected} selected={@selected} />
+        <.overview :if={@selected} selected={@selected} bookmarks={@bookmarks} />
         <p :if={is_nil(@selected) and @me} class="text-sm opacity-60 p-4">
           Here is where {@me.poet} sets out from. Yours will be the first poet on the road.
         </p>
@@ -291,6 +304,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   end
 
   attr :selected, :map, required: true
+  attr :bookmarks, :any, default: nil
 
   defp overview(%{selected: %{kind: :entry}} = assigns) do
     ~H"""
@@ -330,6 +344,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         place={@selected.place}
         media={@selected.drawing_from == :place && @selected.drawing}
         poet={@selected.poet}
+        saved={saved(@bookmarks, @selected.place)}
       />
       <div :if={@selected.drawing_from == :entry} class="discover-borrowed">
         <.section section={%{kind: "illustration"}} media={@selected.drawing} />
@@ -376,7 +391,15 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <.byline poet={@selected.poet}>
         brought back{if @selected.destination, do: " from " <> @selected.destination}
       </.byline>
-      <p class="discover-find-kind">{find_kind(@selected.find.kind)}</p>
+      <div class="flex items-center justify-between gap-2">
+        <p class="discover-find-kind">{find_kind(@selected.find.kind)}</p>
+        <.save_button
+          :if={@bookmarks}
+          saved={saved(@bookmarks, @selected.find)}
+          kind="find"
+          item={@selected.find}
+        />
+      </div>
       <h2 class="discover-title">{@selected.find.name}</h2>
       <p :if={@selected.find.blurb} class="discover-teaser">{@selected.find.blurb}</p>
       <p :if={@selected.find.poet_rating} class="text-xs opacity-60">
