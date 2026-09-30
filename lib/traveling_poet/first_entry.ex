@@ -257,23 +257,8 @@ defmodule TravelingPoet.FirstEntry do
   defp failed(user), do: Usage.record(user.id, @failed_kind)
 
   # A retry starts from a clean conversation, never on top of the attempt
-  # that failed (see Provisioner.fresh_conversation/1). Off in test, where
-  # there is no sprite to restart.
-  defp fresh_start(user) do
-    if Application.get_env(:traveling_poet, :first_entry_fresh_start, true) do
-      case Provisioner.fresh_conversation(user) do
-        :ok ->
-          Logger.info("FirstEntry: fresh conversation for user #{user.id} before retrying")
-          # the gateway takes a few seconds to take connections again
-          Process.sleep(Application.get_env(:traveling_poet, :gateway_boot_ms, 10_000))
-
-        other ->
-          Logger.warning(
-            "FirstEntry: fresh conversation failed for user #{user.id}: #{inspect(other)}"
-          )
-      end
-    end
-  end
+  # that failed (see Provisioner.fresh_start/1).
+  defp fresh_start(user), do: Provisioner.fresh_start(user)
 
   @doc "Convenience for a console: force a poet's first entry, ignoring the cap."
   def force(poet_id) do

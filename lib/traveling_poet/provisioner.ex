@@ -221,6 +221,39 @@ defmodule TravelingPoet.Provisioner do
   and sat idle; a fresh conversation published the page in ten minutes.
   """
   def fresh_conversation(user) do
+    do_fresh_conversation(user)
+  end
+
+  @doc """
+  `fresh_conversation/1` before a retry, then a pause for the gateway to take
+  connections again. Used by every retry of an agent turn that failed
+  (`FirstEntry`, `DailyJourneyScheduler`): a retry inside the conversation
+  that failed inherits whatever broke it. Samuel's poet, 2026-09-30: the
+  first run overflowed its context re-reading its skill, and both retries
+  continued the same overflowed session. Off in test (`:fresh_start_on_retry`),
+  where there is no sprite to restart.
+  """
+  def fresh_start(user) do
+    if Application.get_env(:traveling_poet, :fresh_start_on_retry, true) do
+      case fresh_conversation(user) do
+        :ok ->
+          Logger.info("Provisioner: fresh conversation for user #{user.id} before a retry")
+          Process.sleep(Application.get_env(:traveling_poet, :gateway_boot_ms, 10_000))
+          :ok
+
+        other ->
+          Logger.warning(
+            "Provisioner: fresh conversation failed for user #{user.id}: #{inspect(other)}"
+          )
+
+          other
+      end
+    else
+      :skipped
+    end
+  end
+
+  defp do_fresh_conversation(user) do
     name = user.sprite_name || default_sprite_name(user.id)
     sessions = "~/.openclaw/agents/main/sessions"
     client = Application.get_env(:traveling_poet, :sprites_client, SpritesClient)

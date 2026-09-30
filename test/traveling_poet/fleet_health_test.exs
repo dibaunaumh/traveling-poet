@@ -96,6 +96,23 @@ defmodule TravelingPoet.FleetHealthTest do
     assert row_for(due, noon()).status == :failing
   end
 
+  # Four deploys on 2026-09-30 each re-sent the day's alert about the same
+  # poet: the "already told" memory lived in the process.
+  test "a poet already reported today is not reported again, even after a restart" do
+    due = poet_due_at(8)
+
+    for _ <- 1..DailyJourneyScheduler.max_attempts_per_day() do
+      {:ok, _} = Usage.record(due.user_id, "daily_run_attempt")
+    end
+
+    rows = FleetHealth.problems(noon())
+    assert [_] = TravelingPoet.FleetHealth.Alerter.unalerted(rows)
+
+    {:ok, _} = Usage.record(due.user_id, "fleet_alert")
+    assert TravelingPoet.FleetHealth.Alerter.unalerted(rows) == []
+    assert [_] = TravelingPoet.FleetHealth.Alerter.unalerted(rows, Date.add(Date.utc_today(), 1))
+  end
+
   test "paused poets are inactive, never problems" do
     poet = poet_due_at(8)
     {:ok, paused} = TravelingPoet.Poets.update_poet(poet, %{status: "paused"})
