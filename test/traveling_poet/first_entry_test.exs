@@ -65,7 +65,7 @@ defmodule TravelingPoet.FirstEntryTest do
 
     # This is the case that stranded two poets: the kickoff ran, nothing was
     # published, and nothing ever tried again.
-    age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+    age_attempts(user.id, FirstEntry.stale_attempt_minutes() + 1)
 
     assert [{^user, retry_poet}] = FirstEntry.pending()
     assert retry_poet.id == poet.id
@@ -99,7 +99,7 @@ defmodule TravelingPoet.FirstEntryTest do
     test "a retry sets the old conversation aside and restarts the gateway first",
          %{user: user, poet: poet} do
       {:ok, _} = Usage.record(user.id, "first_entry_attempt")
-      age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+      age_attempts(user.id, FirstEntry.stale_attempt_minutes() + 1)
 
       assert FirstEntry.ensure_started(user, poet) == :started
 
@@ -111,6 +111,26 @@ defmodule TravelingPoet.FirstEntryTest do
     end
   end
 
+  test "an attempt that ended without a page is retried 5 minutes later, not 20" do
+    user = user_fixture(%{sprite_provisioned: true})
+    poet = poet_fixture(user)
+    {:ok, _} = Usage.record(user.id, "first_entry_attempt")
+    age_attempts(user.id, 8)
+
+    # still running at 8 minutes: a healthy first page takes 5-10
+    assert FirstEntry.status(user, poet) == :in_flight
+    assert FirstEntry.pending() == []
+
+    # it ended without a page: wait a moment, then go again
+    {:ok, _} = Usage.record(user.id, "first_entry_failed")
+    assert FirstEntry.status(user, poet) == :retry_pending
+    assert FirstEntry.ensure_started(user, poet) == :retry_pending
+    assert FirstEntry.pending() == []
+
+    later = DateTime.add(DateTime.utc_now(), FirstEntry.retry_after_minutes() + 1, :minute)
+    assert [{_, _}] = FirstEntry.pending(later)
+  end
+
   test "retries stop at the cap rather than hammering a broken agent" do
     user = user_fixture(%{sprite_provisioned: true})
     poet = poet_fixture(user)
@@ -119,7 +139,7 @@ defmodule TravelingPoet.FirstEntryTest do
       {:ok, _} = Usage.record(user.id, "first_entry_attempt")
     end
 
-    age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+    age_attempts(user.id, FirstEntry.stale_attempt_minutes() + 1)
 
     assert FirstEntry.ensure_started(user, poet) == :exhausted
     assert FirstEntry.pending() == []
@@ -146,14 +166,14 @@ defmodule TravelingPoet.FirstEntryTest do
       {:ok, _} = Usage.record(user.id, "first_entry_attempt")
       assert FirstEntry.status(user, poet) == :in_flight
 
-      age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+      age_attempts(user.id, FirstEntry.stale_attempt_minutes() + 1)
       assert FirstEntry.status(user, poet) == :retry_pending
 
       for _ <- 2..FirstEntry.max_attempts() do
         {:ok, _} = Usage.record(user.id, "first_entry_attempt")
       end
 
-      age_attempts(user.id, FirstEntry.retry_after_minutes() + 1)
+      age_attempts(user.id, FirstEntry.stale_attempt_minutes() + 1)
       assert FirstEntry.status(user, poet) == :exhausted
 
       {:ok, entry} = Journal.upsert_entry(poet.id, Date.utc_today(), %{title: "First"})

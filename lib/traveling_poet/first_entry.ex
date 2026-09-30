@@ -35,11 +35,17 @@ defmodule TravelingPoet.FirstEntry do
   @trigger "/onboard"
   @attempt_kind "first_entry_attempt"
   @reply_timeout_ms 10 * 60 * 1000
+  @failed_kind "first_entry_failed"
   @max_attempts 3
-  @retry_after_minutes 15
+  # A new reader may be watching: retry soon after an attempt ends without a
+  # page. An attempt that never reports back counts as over after the second
+  # figure (a healthy first page takes 5-10 minutes).
+  @retry_after_minutes 5
+  @stale_attempt_minutes 20
 
   def max_attempts, do: @max_attempts
   def retry_after_minutes, do: @retry_after_minutes
+  def stale_attempt_minutes, do: @stale_attempt_minutes
 
   @doc """
   Starts the first-entry run for this user unless one is already in flight,
@@ -53,19 +59,26 @@ defmodule TravelingPoet.FirstEntry do
       :waiting_for_sprite ->
         :not_ready
 
-      state when state in [:starting, :retry_pending] ->
-        {:ok, _} = Usage.record(user.id, @attempt_kind)
+      :retry_pending = state ->
+        if cooling?(user.id, now), do: state, else: start(user, poet, state)
 
-        Task.start(fn ->
-          if state == :retry_pending, do: fresh_start(user)
-          run(user, poet)
-        end)
-
-        :started
+      :starting = state ->
+        start(user, poet, state)
 
       state ->
         state
     end
+  end
+
+  defp start(user, poet, state) do
+    {:ok, _} = Usage.record(user.id, @attempt_kind)
+
+    Task.start(fn ->
+      if state == :retry_pending, do: fresh_start(user)
+      run(user, poet)
+    end)
+
+    :started
   end
 
   @doc """
@@ -74,8 +87,8 @@ defmodule TravelingPoet.FirstEntry do
 
     * `:waiting_for_sprite` - no sprite yet, nothing can run
     * `:starting` - sprite ready, no attempt made yet
-    * `:in_flight` - an attempt started in the last `retry_after_minutes/0`
-    * `:retry_pending` - the last attempt produced no page; the watchdog will retry
+    * `:in_flight` - an attempt is running: no outcome yet, younger than `stale_attempt_minutes/0`
+    * `:retry_pending` - the last attempt produced no page; retried `retry_after_minutes/0` after it ended
     * `:exhausted` - out of attempts; the daily run is the next chance
     * `:done` - a published entry exists
   """
@@ -88,7 +101,7 @@ defmodule TravelingPoet.FirstEntry do
     cond do
       not user.sprite_provisioned -> :waiting_for_sprite
       published?(poet) -> :done
-      recent_attempt?(user.id, now) -> :in_flight
+      running?(user.id, now) -> :in_flight
       attempts(user.id) >= @max_attempts -> :exhausted
       attempts(user.id) == 0 -> :starting
       true -> :retry_pending
@@ -123,6 +136,7 @@ defmodule TravelingPoet.FirstEntry do
           "#{poet.name}'s first page failed to start: #{inspect(reason)}"
         )
 
+        failed(user)
         :failed
     end
   end
@@ -146,7 +160,8 @@ defmodule TravelingPoet.FirstEntry do
 
       {user, poet} ->
         user.sprite_provisioned and not published?(poet) and
-          attempts(user.id) < @max_attempts and not recent_attempt?(user.id, now)
+          attempts(user.id) < @max_attempts and not running?(user.id, now) and
+          not cooling?(user.id, now)
     end)
   end
 
@@ -180,6 +195,7 @@ defmodule TravelingPoet.FirstEntry do
           )
       )
 
+      failed(user)
       :no_entry
     end
   end
@@ -199,15 +215,46 @@ defmodule TravelingPoet.FirstEntry do
     |> Repo.one()
   end
 
-  # One run holds the sprite awake for minutes; don't stack another on top.
-  defp recent_attempt?(user_id, now) do
-    cutoff = DateTime.add(now, -@retry_after_minutes, :minute)
+  # The latest attempt is still going: no outcome recorded since it started,
+  # and not yet stale. One run holds the sprite awake for minutes; don't
+  # stack another on top.
+  defp running?(user_id, now) do
+    case latest(user_id, @attempt_kind) do
+      nil ->
+        false
 
-    UsageEvent
-    |> where(user_id: ^user_id, kind: @attempt_kind)
-    |> where([e], e.occurred_at >= ^cutoff)
-    |> Repo.exists?()
+      started ->
+        is_nil(latest_since(user_id, @failed_kind, started)) and
+          DateTime.diff(now, started, :minute) < @stale_attempt_minutes
+    end
   end
+
+  # The latest attempt ended without a page a moment ago: wait a little.
+  defp cooling?(user_id, now) do
+    with %DateTime{} = started <- latest(user_id, @attempt_kind),
+         %DateTime{} = failed <- latest_since(user_id, @failed_kind, started) do
+      DateTime.diff(now, failed, :minute) < @retry_after_minutes
+    else
+      _ -> false
+    end
+  end
+
+  defp latest(user_id, kind) do
+    UsageEvent
+    |> where(user_id: ^user_id, kind: ^kind)
+    |> select([e], max(e.occurred_at))
+    |> Repo.one()
+  end
+
+  defp latest_since(user_id, kind, since) do
+    UsageEvent
+    |> where(user_id: ^user_id, kind: ^kind)
+    |> where([e], e.occurred_at >= ^since)
+    |> select([e], max(e.occurred_at))
+    |> Repo.one()
+  end
+
+  defp failed(user), do: Usage.record(user.id, @failed_kind)
 
   # A retry starts from a clean conversation, never on top of the attempt
   # that failed (see Provisioner.fresh_conversation/1). Off in test, where
