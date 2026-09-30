@@ -29,7 +29,7 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
 
   defp owner do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
-    poet = poet_fixture(user, %{name: "Solveig"})
+    poet = poet_fixture(user, %{name: "Solveig", status: "active"})
     {user, poet}
   end
 
@@ -43,13 +43,17 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
       assert html =~ "data-vapid-key=\"#{WebPush.public_key()}\""
       refute html =~ "Turn on notifications"
 
+      assert html =~ ~s(id="next-page-line")
+      refute html =~ "the moment it lands"
+
       html = render_hook(view, "push_state", %{"state" => "available", "dismissed" => false})
-      assert html =~ "Want a nudge when Solveig writes the next entry?"
+      assert html =~ "Get it the moment it lands"
       assert html =~ ~s(data-push-action="subscribe")
       assert html =~ ~s(data-push-action="dismiss")
 
       html = render_hook(view, "push_state", %{"state" => "available", "dismissed" => true})
-      refute html =~ "Turn on notifications"
+      refute html =~ "Get it the moment it lands"
+      assert html =~ ~s(id="next-page-line")
     end
 
     test "on an iPhone browser tab it explains Home Screen instead", %{conn: conn} do
@@ -69,8 +73,22 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
 
       for state <- ~w(unsupported denied subscribed) do
         html = render_hook(view, "push_state", %{"state" => state, "dismissed" => false})
-        refute html =~ "Want a nudge", "nudge shown for #{state}"
+        refute html =~ "the moment it lands", "offer shown for #{state}"
       end
+    end
+
+    test "only under the latest page", %{conn: conn} do
+      {user, poet} = owner()
+      first = publish_entry(poet)
+      published_entry_fixture(poet, %{entry_date: ~D[2026-09-05]})
+
+      {:ok, _view, html} = live(sign_in(conn, user), ~p"/journal")
+      assert html =~ ~s(id="next-page-line")
+
+      {:ok, _view, html} =
+        live(sign_in(conn, user), ~p"/journal?date=#{Date.to_iso8601(first.entry_date)}")
+
+      refute html =~ ~s(id="next-page-line")
     end
 
     test "no entry yet means nothing to nudge about", %{conn: conn} do

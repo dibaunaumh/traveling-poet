@@ -23,7 +23,23 @@
 
 import {isNative, call, listen, rememberDeviceToken} from "./native"
 
+// "Not now" is {n, at}: the first one hides the offer for a day, the second
+// for good. The old value "1" (one dismissal, time unknown) counts as a
+// first "Not now" made long ago, so those readers see the offer once more.
 const DISMISS_KEY = "tpoet.push.dismissed"
+const REOFFER_MS = 24 * 60 * 60 * 1000
+
+function readDismissal() {
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY)
+    if (!raw) return {n: 0, at: 0}
+    if (raw === "1") return {n: 1, at: 0}
+    const {n, at} = JSON.parse(raw)
+    return {n: Number(n) || 0, at: Number(at) || 0}
+  } catch (_e) {
+    return {n: 0, at: 0}
+  }
+}
 
 const WebPush = {
   mounted() {
@@ -59,7 +75,8 @@ const WebPush = {
   },
 
   dismissed() {
-    try { return localStorage.getItem(DISMISS_KEY) === "1" } catch (_e) { return false }
+    const {n, at} = readDismissal()
+    return n >= 2 || (n === 1 && Date.now() - at < REOFFER_MS)
   },
 
   report(state, extra = {}) {
@@ -166,7 +183,8 @@ const WebPush = {
   },
 
   dismiss() {
-    try { localStorage.setItem(DISMISS_KEY, "1") } catch (_e) {}
+    const {n} = readDismissal()
+    try { localStorage.setItem(DISMISS_KEY, JSON.stringify({n: n + 1, at: Date.now()})) } catch (_e) {}
     this.report(this.state)
   },
 }
