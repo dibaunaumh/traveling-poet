@@ -57,4 +57,37 @@ defmodule TravelingPoet.DailyJourneySchedulerTest do
       assert_received {:sprites_service, "sprite-ezra", :start, "openclaw-gateway"}
     end
   end
+
+  describe "the day's trigger names the files the day needs" do
+    setup do
+      user = user_fixture()
+      %{poet: poet_fixture(user, %{status: "active"})}
+    end
+
+    test "a plain day is just the command", %{poet: poet} do
+      assert DailyJourneyScheduler.trigger_for(poet, %{day: "stay", scouting: false}) ==
+               "/travel-and-journal"
+    end
+
+    # The daily skill hands these days to their own files; the app knows
+    # which apply, so the poet never has to notice a pointer.
+    test "an excursion or scouting day names its file", %{poet: poet} do
+      excursion = DailyJourneyScheduler.trigger_for(poet, %{day: "excursion", scouting: false})
+      assert excursion =~ ~r{\A/travel-and-journal\n}
+      assert excursion =~ "skills/travel-and-journal/excursion.md"
+      refute excursion =~ "scout.md"
+
+      scout = DailyJourneyScheduler.trigger_for(poet, %{day: "move", scouting: true})
+      assert scout =~ "skills/travel-and-journal/scout.md"
+      refute scout =~ "excursion.md"
+    end
+
+    test "a day the poet asks its companion names asking.md", %{poet: poet} do
+      for d <- 1..3, do: published_entry_fixture(poet, %{entry_date: Date.add(~D[2026-09-01], d)})
+      assert TravelingPoet.Asks.due(poet) != nil
+
+      assert DailyJourneyScheduler.trigger_for(poet, %{day: "stay", scouting: false}) =~
+               "skills/travel-and-journal/asking.md"
+    end
+  end
 end

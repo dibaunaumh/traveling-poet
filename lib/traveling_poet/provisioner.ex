@@ -31,11 +31,18 @@ defmodule TravelingPoet.Provisioner do
   @heartbeat_md File.read!(@heartbeat_path)
 
   @skill_names ~w(travel-and-journal discover poem chat-companion onboard revise-entry compose-book)
-  @skill_contents (for skill <- @skill_names, into: %{} do
-                     path = "priv/data/skills/#{skill}/SKILL.md"
+  # Every .md in a skill's folder ships: SKILL.md, plus the day files a long
+  # skill hands off to (travel-and-journal's scout.md, excursion.md,
+  # asking.md), read only on the days they apply.
+  @skill_contents (for skill <- @skill_names,
+                       path <- Path.wildcard("priv/data/skills/#{skill}/*.md"),
+                       into: %{} do
                      Module.put_attribute(__MODULE__, :external_resource, path)
-                     {"#{skill}/SKILL.md", File.read!(path)}
+                     {"#{skill}/#{Path.basename(path)}", File.read!(path)}
                    end)
+
+  @doc false
+  def skill_files, do: @skill_contents
 
   @doc """
   Derives a user's default sprite name, namespaced per environment so prod and
