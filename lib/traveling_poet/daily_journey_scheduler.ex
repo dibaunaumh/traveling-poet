@@ -106,6 +106,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
       user = Accounts.get_user(poet.user_id)
 
       user != nil and user.sprite_provisioned and
+        set_out?(poet) and
         past_publish_hour?(poet, now) and
         not published_today?(poet, now) and
         not ran_recently?(user.id, now) and
@@ -349,6 +350,11 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   end
 
   defp past_publish_hour?(poet, now), do: now.hour >= publish_hour(poet)
+
+  # Entry #0 is FirstEntry.Watchdog's, not the daily run's: a poet whose
+  # reader signed up after its publish hour was sent /travel-and-journal 85s
+  # into its /onboard turn (user 25, 2026-09-29), two turns on one sprite.
+  defp set_out?(poet), do: Journal.latest_published_entry(poet.id) != nil
 
   # The reader having today's entry is the goal, so it is also the stopping
   # condition — independent of whether the usage ledger managed to record the

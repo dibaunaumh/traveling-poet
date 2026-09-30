@@ -17,9 +17,30 @@ defmodule TravelingPoet.RunAccountingTest do
 
   # Publish hour is derived from poet.id unless set; pin it so "now" is
   # unambiguously past it.
+  # Set out yesterday: entry #0 is published, so daily runs are due.
   defp provisioned_poet(name) do
     user = user_fixture(%{sprite_provisioned: true, credits: 10})
-    poet_fixture(user, %{name: name, status: "active", settings: %{"journal_hour_utc" => 0}})
+
+    poet =
+      poet_fixture(user, %{name: name, status: "active", settings: %{"journal_hour_utc" => 0}})
+
+    entry = published_entry_fixture(poet, %{entry_date: Date.add(Date.utc_today(), -1)})
+    yesterday = DateTime.add(DateTime.utc_now(:second), -1, :day)
+    entry |> Ecto.Changeset.change(published_at: yesterday) |> TravelingPoet.Repo.update!()
+    poet
+  end
+
+  test "a poet still writing entry #0 is not due, whatever its hour" do
+    user = user_fixture(%{sprite_provisioned: true, credits: 10})
+
+    poet_fixture(user, %{
+      name: "Cassius",
+      status: "active",
+      settings: %{"journal_hour_utc" => 0}
+    })
+
+    now = Date.utc_today() |> DateTime.new!(~T[22:00:00], "Etc/UTC")
+    refute "Cassius" in due_names(now)
   end
 
   test "a poet who already published today is never re-run" do

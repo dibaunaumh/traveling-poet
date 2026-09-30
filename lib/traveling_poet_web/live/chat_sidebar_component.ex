@@ -131,20 +131,18 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     user = socket.assigns.user
 
     # Save the agent message unless it is empty (tool-only turn) or
-    # AgentSession already persisted this same reply for a turn it drove.
+    # AgentSession already saved this same reply for a turn it drove.
     socket =
-      if content != "" and not Chat.recent_agent_message_exists?(user.id, content) do
-        {:ok, msg} =
-          Chat.create_message(%{
-            user_id: user.id,
-            role: "agent",
-            content: content,
-            response_id: response_id
-          })
-
+      with true <- content != "",
+           {:ok, %Chat.ChatMessage{} = msg} <-
+             Chat.create_agent_message_once(%{
+               user_id: user.id,
+               content: content,
+               response_id: response_id
+             }) do
         assign(socket, :messages, socket.assigns.messages ++ [msg])
       else
-        socket
+        _ -> socket
       end
 
     socket

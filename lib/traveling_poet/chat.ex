@@ -51,6 +51,23 @@ defmodule TravelingPoet.Chat do
   end
 
   @doc """
+  Saves a poet's reply once. The same reply reaches two savers when a reader
+  has the journal open during a turn the app drives (the browser's stream
+  and `AgentSession`); each checked `recent_agent_message_exists?/2` before
+  the other had inserted, and the reader saw the poet's hello twice (3 of 4
+  onboardings, Sept 2026). The check and the insert now run under one lock
+  per reader. Returns `{:ok, message}`, or `{:ok, :duplicate}` when this
+  reply is already saved.
+  """
+  def create_agent_message_once(%{user_id: user_id, content: content} = attrs) do
+    :global.trans({{__MODULE__, :agent_reply, user_id}, self()}, fn ->
+      if recent_agent_message_exists?(user_id, content),
+        do: {:ok, :duplicate},
+        else: create_message(Map.put(attrs, :role, "agent"))
+    end)
+  end
+
+  @doc """
   Whether an identical agent message was persisted in the last `minutes` —
   the scheduler's dedup guard: when the journal page is open during a
   scheduled run, the ChatSidebarComponent persists the streamed reply too.

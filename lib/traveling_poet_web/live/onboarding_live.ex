@@ -38,7 +38,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:page_title, "Set up your poet")
         |> assign(:step, :poet)
         |> assign(:user_name, user.name || "")
-        |> assign(:poet_name, Presets.random_name())
+        |> assign(:taken_names, Poets.taken_names())
+        |> then(&assign(&1, :poet_name, Presets.random_name(nil, &1.assigns.taken_names)))
         |> assign(:personalities, Presets.personalities())
         |> assign(:personality_idx, Presets.random_personality_index())
         |> assign(:personality_custom, "")
@@ -147,7 +148,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   @impl true
   def handle_event("shuffle_name", _params, socket) do
-    {:noreply, assign(socket, :poet_name, Presets.random_name(socket.assigns.poet_name))}
+    %{poet_name: shown, taken_names: taken} = socket.assigns
+    {:noreply, assign(socket, :poet_name, Presets.random_name(shown, taken))}
   end
 
   @impl true
