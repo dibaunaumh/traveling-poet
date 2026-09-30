@@ -7,7 +7,15 @@ defmodule TravelingPoet.Email.EntryEmail do
 
   The drawing is linked with a signed `?sig=` (`MediaController`), so it
   shows for a private journal too without making the image public.
+
+  It reads as a note from the poet, not a newsletter: sent as "Nam via
+  Traveling Poet", the page title as the subject, plain text and one
+  drawing, an ordinary link, one quiet line to stop. The first version had a
+  brand sender, a coloured button, a tinted page and a branded footer, and
+  Gmail filed it under Promotions.
   """
+
+  alias TravelingPoet.Email
 
   alias TravelingPoet.WebPush
 
@@ -19,11 +27,12 @@ defmodule TravelingPoet.Email.EntryEmail do
   def build(%{user: user, poet: poet, entry: entry, day: day} = a) do
     push = WebPush.entry_payload(poet, entry, day)
     title = present(entry.title)
-    subject = if title, do: "#{push.title}: #{title}", else: push.title
+    subject = title || push.title
     teaser = push.body
 
     %{
       to: user.email,
+      from: Email.from_poet(poet.name),
       subject: subject,
       html: html(a, push.title, title, teaser),
       text: text(a, push.title, title, teaser),
@@ -39,22 +48,19 @@ defmodule TravelingPoet.Email.EntryEmail do
     drawing =
       if a[:drawing_url],
         do:
-          ~s(<p style="margin:20px 0"><a href="#{esc(a.page_url)}"><img src="#{esc(a.drawing_url)}" alt="#{esc(title || heading)}" width="520" style="max-width:100%;height:auto;border-radius:10px"></a></p>),
+          ~s(<p><a href="#{esc(a.page_url)}"><img src="#{esc(a.drawing_url)}" alt="#{esc(title || heading)}" width="480" style="max-width:100%;height:auto"></a></p>),
         else: ""
 
     """
     <!doctype html>
-    <html><body style="margin:0;padding:24px;background:#fbfaf7;color:#222;font-family:Georgia,'Times New Roman',serif">
-    <div style="max-width:560px;margin:0 auto">
-    <p style="margin:0 0 4px;color:#6b6b6b;font-size:14px">#{esc(heading)}</p>
-    #{if title, do: ~s(<h1 style="margin:0 0 12px;font-size:24px;font-weight:normal">#{esc(title)}</h1>), else: ""}
-    <p style="margin:0;font-size:17px;line-height:1.5">#{esc(teaser)}</p>
+    <html><body style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:#222">
+    <div style="max-width:560px">
+    <p>#{esc(heading)}</p>
+    #{if title, do: "<p><b>#{esc(title)}</b></p>", else: ""}
+    <p>#{esc(teaser)}</p>
     #{drawing}
-    <p style="margin:20px 0"><a href="#{esc(a.page_url)}" style="background:#2f5d62;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-size:15px">Read today's page</a></p>
-    <p style="margin:32px 0 0;color:#8a8a8a;font-size:12px;font-family:Helvetica,Arial,sans-serif">
-    #{esc(a.poet.name)} writes to you once a day from Traveling Poet.
-    <a href="#{esc(a.unsubscribe_url)}" style="color:#8a8a8a">Stop these emails</a>
-    </p>
+    <p><a href="#{esc(a.page_url)}">Read today's page</a></p>
+    <p style="font-size:13px;color:#777">A new page from #{esc(a.poet.name)} each day. <a href="#{esc(a.unsubscribe_url)}" style="color:#777">Stop these emails</a></p>
     </div>
     </body></html>
     """
@@ -69,7 +75,7 @@ defmodule TravelingPoet.Email.EntryEmail do
       "",
       "Read today's page: #{a.page_url}",
       "",
-      "#{a.poet.name} writes to you once a day from Traveling Poet.",
+      "A new page from #{a.poet.name} each day.",
       "Stop these emails: #{a.unsubscribe_url}"
     ]
     |> Enum.reject(&is_nil/1)

@@ -19,14 +19,33 @@ defmodule TravelingPoet.Email do
     do: Application.get_env(:traveling_poet, :email_from, "Traveling Poet <journal@poet.travel>")
 
   @doc """
-  Sends one message: `%{to, subject, html, text}` and optional `headers`.
+  "Nam via Traveling Poet" at the configured address: mail from a named
+  person, not a brand, is what Gmail keeps out of Promotions. The name is
+  quoted, and anything that could break the header is dropped.
+  """
+  def from_poet(name) when is_binary(name) do
+    address =
+      case Regex.run(~r/<([^>]+)>/, from()) do
+        [_, address] -> address
+        _ -> from()
+      end
+
+    clean = name |> String.replace(~r/["\\<>\r\n]/, "") |> String.trim()
+    if clean == "", do: from(), else: ~s("#{clean} via Traveling Poet" <#{address}>)
+  end
+
+  def from_poet(_), do: from()
+
+  @doc """
+  Sends one message: `%{to, subject, html, text}` and optional `from` and
+  `headers`.
   Returns `{:ok, id}` or `{:error, reason}`.
   """
   def deliver(%{to: to, subject: subject, html: html, text: text} = message, opts \\ []) do
     key = Keyword.get(opts, :api_key, key())
 
     body = %{
-      from: from(),
+      from: Map.get(message, :from, from()),
       to: [to],
       subject: subject,
       html: html,
