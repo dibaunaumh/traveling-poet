@@ -887,6 +887,47 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert hd(points).place_name == "Sintra, Portugal"
   end
 
+  describe "POST /location never goes back" do
+    defp move(conn, attrs), do: post(conn, ~p"/api/agent/location", attrs)
+
+    test "to where the poet stands, or to an earlier stop by name or by distance",
+         %{conn: conn, poet: poet} do
+      sintra = %{lat: 38.8029, lng: -9.3817, place_name: "Sintra, Portugal"}
+      assert %{"ok" => true} = conn |> move(sintra) |> json_response(200)
+
+      # Hilma, Sept 27-29: "moved" to where she already was
+      assert %{"error" => "already visited", "note" => note} =
+               conn |> move(sintra) |> json_response(422)
+
+      assert note =~ "you are there now"
+
+      assert %{"ok" => true} =
+               conn
+               |> move(%{lat: 38.7223, lng: -9.1393, place_name: "Lisbon, Portugal"})
+               |> json_response(200)
+
+      # back to Sintra under another name, 1 km off: still Sintra
+      assert %{"already_visited" => %{"place_name" => "Sintra, Portugal"}, "note" => note} =
+               conn
+               |> move(%{lat: 38.797, lng: -9.39, place_name: "Vila de Sintra"})
+               |> json_response(422)
+
+      assert note =~ "you stayed there from"
+      assert length(TravelingPoet.Poets.list_path_points(poet.id)) == 2
+    end
+
+    test "a stop the companion asked for may be a return", %{conn: conn, poet: poet} do
+      sintra = %{lat: 38.8029, lng: -9.3817, place_name: "Sintra, Portugal"}
+      conn |> move(sintra) |> json_response(200)
+      conn |> move(%{lat: 41.15, lng: -8.61, place_name: "Porto, Portugal"}) |> json_response(200)
+
+      {:ok, stop} = TravelingPoet.Poets.add_stop(poet.id, Map.put(sintra, :source, "chat"))
+
+      assert %{"ok" => true} =
+               conn |> move(Map.put(sintra, :itinerary_stop_id, stop.id)) |> json_response(200)
+    end
+  end
+
   test "illustration generation validates prompt and config", %{conn: conn} do
     # no IMAGE_GEN_API_KEY in test env -> 503, never a crash
     assert %{"error" => _} =
