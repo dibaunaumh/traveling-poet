@@ -28,7 +28,7 @@ defmodule TravelingPoet.FirstEntry do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, AgentSession, Journal, Poets, Repo, Usage}
+  alias TravelingPoet.{Accounts, AgentSession, Journal, Poets, Provisioner, Repo, Usage}
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Usage.UsageEvent
 
@@ -55,7 +55,12 @@ defmodule TravelingPoet.FirstEntry do
 
       state when state in [:starting, :retry_pending] ->
         {:ok, _} = Usage.record(user.id, @attempt_kind)
-        Task.start(fn -> run(user, poet) end)
+
+        Task.start(fn ->
+          if state == :retry_pending, do: fresh_start(user)
+          run(user, poet)
+        end)
+
         :started
 
       state ->
@@ -113,6 +118,11 @@ defmodule TravelingPoet.FirstEntry do
 
       {:error, reason} ->
         Logger.warning("FirstEntry: user #{user.id} onboard failed: #{inspect(reason)}")
+
+        TravelingPoet.Alerts.notify_admins(
+          "#{poet.name}'s first page failed to start: #{inspect(reason)}"
+        )
+
         :failed
     end
   end
@@ -153,9 +163,21 @@ defmodule TravelingPoet.FirstEntry do
       Logger.info("FirstEntry: user #{user.id} published their first entry")
       :published
     else
+      n = attempts(user.id)
+
       Logger.warning(
         "FirstEntry: user #{user.id} finished onboard without publishing " <>
-          "(attempt #{attempts(user.id)} of #{@max_attempts})"
+          "(attempt #{n} of #{@max_attempts})"
+      )
+
+      # A new reader is often watching this happen; the operator should know
+      # before they do.
+      TravelingPoet.Alerts.notify_admins(
+        "#{poet.name}'s first page did not publish (attempt #{n} of #{@max_attempts}). " <>
+          if(n < @max_attempts,
+            do: "Retrying in #{@retry_after_minutes} minutes with a fresh conversation.",
+            else: "No retries left."
+          )
       )
 
       :no_entry
@@ -185,6 +207,25 @@ defmodule TravelingPoet.FirstEntry do
     |> where(user_id: ^user_id, kind: @attempt_kind)
     |> where([e], e.occurred_at >= ^cutoff)
     |> Repo.exists?()
+  end
+
+  # A retry starts from a clean conversation, never on top of the attempt
+  # that failed (see Provisioner.fresh_conversation/1). Off in test, where
+  # there is no sprite to restart.
+  defp fresh_start(user) do
+    if Application.get_env(:traveling_poet, :first_entry_fresh_start, true) do
+      case Provisioner.fresh_conversation(user) do
+        :ok ->
+          Logger.info("FirstEntry: fresh conversation for user #{user.id} before retrying")
+          # the gateway takes a few seconds to take connections again
+          Process.sleep(Application.get_env(:traveling_poet, :gateway_boot_ms, 10_000))
+
+        other ->
+          Logger.warning(
+            "FirstEntry: fresh conversation failed for user #{user.id}: #{inspect(other)}"
+          )
+      end
+    end
   end
 
   @doc "Convenience for a console: force a poet's first entry, ignoring the cap."

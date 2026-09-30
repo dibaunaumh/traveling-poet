@@ -212,6 +212,32 @@ defmodule TravelingPoet.Provisioner do
   end
 
   @doc """
+  Gives a poet a fresh conversation: stops the gateway, sets the session
+  files aside (kept as `sessions-reset-<unix time>`, never deleted), starts
+  it again. The workspace (BOOTSTRAP.md, skills, memory) is untouched.
+
+  For a retry of entry #0: Kenji Driftwood's second attempt (2026-09-30)
+  inherited the derailed first one, overflowed its context at 64 messages
+  and sat idle; a fresh conversation published the page in ten minutes.
+  """
+  def fresh_conversation(user) do
+    name = user.sprite_name || default_sprite_name(user.id)
+    sessions = "~/.openclaw/agents/main/sessions"
+    client = Application.get_env(:traveling_poet, :sprites_client, SpritesClient)
+
+    with {:ok, _} <- client.stop_service(name, "openclaw-gateway"),
+         {:ok, _} <-
+           client.exec(
+             name,
+             "ts=$(date +%s); mkdir -p #{sessions}-reset-$ts && " <>
+               "mv #{sessions}/* #{sessions}-reset-$ts/ 2>/dev/null; true"
+           ),
+         {:ok, _} <- client.start_service(name, "openclaw-gateway") do
+      :ok
+    end
+  end
+
+  @doc """
   Re-seed workspace files (skills/AGENTS/scripts) AND the tool plugin on an
   existing sprite.
 
@@ -530,12 +556,15 @@ defmodule TravelingPoet.Provisioner do
     `generate_illustration` (the app renders them for you).
 
     ## Skills
-    Skills live under #{@workspace}/skills/ — scan the SKILL.md descriptions
-    and load the matching one before acting. `/travel-and-journal` triggers the
-    daily ritual; `/onboard` triggers your first-session bootstrap;
-    `/revise-entry` brings the feedback markers your companion left on an
-    entry, for you to act on; `/compose-book` asks you to write the words
-    around your journal for a printed edition your companion paid for.
+    Skills live under #{@workspace}/skills/<name>/SKILL.md. A command names its
+    skill exactly; read that file first, never guess another path:
+    `/onboard` is #{@workspace}/skills/onboard/SKILL.md (your first-session
+    bootstrap, which sends you to #{@workspace}/BOOTSTRAP.md);
+    `/travel-and-journal` is skills/travel-and-journal/SKILL.md (the daily
+    ritual); `/revise-entry` is skills/revise-entry/SKILL.md (the feedback
+    markers your companion left on an entry, for you to act on);
+    `/compose-book` is skills/compose-book/SKILL.md (the words around your
+    journal for a printed edition your companion paid for).
 
     ## Uploaded files
     Files your companion attaches in chat arrive at #{@workspace}/uploads/.
