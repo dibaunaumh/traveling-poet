@@ -486,6 +486,40 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       assert length(agent_messages) == 1
     end
 
+    test "a message sent while the first entry is being written is held, never sent into it",
+         %{conn: conn} do
+      # A ready sprite: without the hold this message would go to the gateway
+      # mid-/onboard and derail entry #0 (Kenji Driftwood, 2026-09-30).
+      user =
+        agent_user_fixture(%{
+          onboarding_completed: true,
+          sprite_url: "https://sprite.example.test",
+          gateway_token: "gw",
+          credits: 10
+        })
+
+      _poet = poet_fixture(user)
+      {:ok, _} = TravelingPoet.Usage.record(user.id, "first_entry_attempt")
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, view, _html} = live(conn, ~p"/journal")
+
+      send(view.pid, {:chat_send, "tell me about family friendly events", false})
+      send(view.pid, {:chat_send, "and markets too", false})
+      html = render(view)
+
+      assert html =~ ~s(id="chat-held-note")
+
+      assert :sys.get_state(view.pid).socket.assigns.held_message ==
+               "tell me about family friendly events\n\nand markets too"
+
+      # nothing went out: no chat turn was spent on it
+      refute TravelingPoet.Repo.get_by(TravelingPoet.Usage.UsageEvent,
+               user_id: user.id,
+               kind: "chat_turn"
+             )
+    end
+
     test "a message the gateway turns away mid-onboard is held, then sent when the turn ends",
          %{conn: conn} do
       user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})

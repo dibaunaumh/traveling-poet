@@ -484,6 +484,14 @@ defmodule TravelingPoetWeb.JournalLive do
         Usage.record(user.id, "chat_turn")
         consume_and_dispatch_attachment(socket, message)
 
+      # The first entry is being written: a message sent into that turn does
+      # not wait, it derails it. Kenji Driftwood's reader asked a question 18
+      # seconds into /onboard (2026-09-30); the poet answered it and never
+      # drew or wrote entry #0. Hold it; it goes out once the page is up.
+      socket.assigns.first_entry == :in_flight ->
+        send_update(ChatSidebarComponent, id: "chat-sidebar", stream_held: true)
+        {:noreply, hold(socket, message)}
+
       true ->
         Usage.record(user.id, "chat_turn")
         dispatch_to_gateway(socket, message)
@@ -1298,6 +1306,13 @@ defmodule TravelingPoetWeb.JournalLive do
     busy_rejection?(reason) and socket.assigns.first_entry == :in_flight and
       is_nil(socket.assigns.held_message) and is_binary(socket.assigns.last_sent)
   end
+
+  # One held message; a second sent while waiting joins the first.
+  defp hold(%{assigns: %{held_message: nil}} = socket, message),
+    do: assign(socket, :held_message, message)
+
+  defp hold(%{assigns: %{held_message: held}} = socket, message),
+    do: assign(socket, :held_message, held <> "\n\n" <> message)
 
   defp resend_held(%{assigns: %{held_message: nil}} = socket), do: socket
 
