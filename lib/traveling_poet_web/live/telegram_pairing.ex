@@ -56,6 +56,7 @@ defmodule TravelingPoetWeb.TelegramPairing do
 
   attr :telegram, :map, required: true
   attr :user, :any, required: true
+  attr :poet, :any, default: nil
 
   @doc "The settings section: paired state, unpair, or mint a link."
   def telegram_settings(assigns) do
@@ -64,7 +65,12 @@ defmodule TravelingPoetWeb.TelegramPairing do
     <div :if={!@telegram.configured?} class="text-sm opacity-60">
       Telegram isn't configured on this server.
     </div>
-    <div :if={@telegram.configured?}>
+    <div :if={@telegram.configured?} class="space-y-2">
+      <TravelingPoetWeb.PushNotifications.expect
+        channel={:telegram}
+        name={@poet && @poet.name}
+        id="telegram-settings-expect"
+      />
       <div :if={@user.telegram_chat_id} class="flex items-center gap-3">
         <span class="text-sm">
           Paired{if @user.telegram_username, do: " as @#{@user.telegram_username}"}
@@ -106,9 +112,11 @@ defmodule TravelingPoetWeb.TelegramPairing do
       </div>
       <div :if={is_nil(@user.telegram_chat_id)} class="space-y-2">
         <p class="font-medium">Get the first entry on Telegram.</p>
-        <p class="opacity-70">
-          Pair once and {@poet.name} will message you there whenever a page is published.
-        </p>
+        <TravelingPoetWeb.PushNotifications.expect
+          channel={:telegram}
+          name={@poet.name}
+          id="telegram-tip-expect"
+        />
         <button
           :if={is_nil(@telegram.link)}
           phx-click="telegram_pair_link"

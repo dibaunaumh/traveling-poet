@@ -48,6 +48,9 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
 
       html = render_hook(view, "push_state", %{"state" => "available", "dismissed" => false})
       assert html =~ "Get it the moment it lands"
+      # says what it will send, and how often
+      assert html =~ "One a day, when Solveig publishes a new page"
+      assert html =~ "never more than once a week"
       assert html =~ ~s(data-push-action="subscribe")
       assert html =~ ~s(data-push-action="dismiss")
 
@@ -107,7 +110,7 @@ defmodule TravelingPoetWeb.PushNotificationsTest do
       refute html =~ "Turn on notifications"
 
       html = render_hook(view, "push_state", %{"state" => "available", "dismissed" => false})
-      assert html =~ "Get a nudge on this device when Solveig publishes."
+      assert html =~ "Get a notification on this device when Solveig publishes."
       assert html =~ "Turn on notifications"
       assert html =~ ~s(data-push-action="subscribe")
     end
