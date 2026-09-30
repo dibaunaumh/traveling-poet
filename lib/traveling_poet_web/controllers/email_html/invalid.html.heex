@@ -1,0 +1,11 @@
+<Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+  <article class="legal">
+    <h1>This link does not work</h1>
+    <p>
+      You can turn the daily emails off under Notifications in <.link
+        navigate={~p"/settings"}
+        class="link"
+      >Settings</.link>.
+    </p>
+  </article>
+</Layouts.app>

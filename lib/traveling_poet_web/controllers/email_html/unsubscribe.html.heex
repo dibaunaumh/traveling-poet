@@ -1,0 +1,12 @@
+<Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+  <article class="legal" id="email-unsubscribe">
+    <h1>Stop the daily emails?</h1>
+    <p>
+      Your poet will keep writing; you just won't get an email when a new page is up.
+      You can turn them back on in Settings.
+    </p>
+    <form method="post" action={~p"/email/unsubscribe/#{@token}"}>
+      <button type="submit" class="btn btn-primary">Stop the emails</button>
+    </form>
+  </article>
+</Layouts.app>
