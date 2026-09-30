@@ -67,6 +67,28 @@ defmodule TravelingPoetWeb.NotebookComponentsTest do
     refute bare =~ "<a "
   end
 
+  test "only a paragraph holding nothing but a drawing is marked to close its gap" do
+    media = %TravelingPoet.Journal.Media{
+      id: 724,
+      sources: %{"items" => [%{"url" => "https://example.com/pond", "label" => "the pond"}]}
+    }
+
+    # Kenji Driftwood's koi: the drawing line runs straight into its text, one
+    # paragraph, no other element. It must stay an ordinary paragraph, or its
+    # text collapses (line-height 0) into one black line.
+    koi =
+      html(
+        raw_markdown("![a koi](/media/724)\nAn hour later I was in the garden.", %{724 => media})
+      )
+
+    refute koi =~ "spot-alone"
+    assert koi =~ ~s(<p><a href="https://example.com/pond")
+
+    alone = html(raw_markdown("Before.\n\n![a koi](/media/724)\n\nAfter.", %{724 => media}))
+    assert alone =~ ~s(<p class="spot-alone"><a href="https://example.com/pond")
+    assert alone =~ "<p>After.</p>"
+  end
+
   test "a media path with anything after the id is not vouched for" do
     refute html(raw_markdown("![x](/media/42/../../secret)", [42])) =~ "<img"
     refute html(raw_markdown("![x](/media/42?x=1)", [42])) =~ "<img"
