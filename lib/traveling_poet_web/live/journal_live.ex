@@ -44,6 +44,7 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
+    socket = TravelingPoetWeb.Bookmarking.assign_bookmarks(socket)
 
     cond do
       not user.onboarding_completed ->
@@ -324,6 +325,9 @@ defmodule TravelingPoetWeb.JournalLive do
     do: TravelingPoetWeb.PushNotifications.handle_event(event, params, socket)
 
   @impl true
+  def handle_event("toggle_bookmark", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
+
   def handle_event("toggle_chat", _params, socket) do
     {:noreply, assign(socket, :sidebar_open, !socket.assigns.sidebar_open)}
   end
@@ -1042,6 +1046,7 @@ defmodule TravelingPoetWeb.JournalLive do
               place_media={@place_media}
               guide_url={guide_url(@stay_id)}
               stay_count={@stay_count}
+              bookmarks={@bookmarks}
             >
               <:map>
                 <div
@@ -1071,6 +1076,7 @@ defmodule TravelingPoetWeb.JournalLive do
               spread={@spread}
               poet={@poet}
               find_media={@find_media}
+              bookmarks={@bookmarks}
               guide_url={finds_guide_url(@entry)}
             >
               <:controls>

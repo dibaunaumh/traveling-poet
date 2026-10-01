@@ -79,4 +79,29 @@ defmodule TravelingPoetWeb.BookmarksLiveTest do
     {:ok, _view, html} = live(signed_in(conn, reader), ~p"/p/#{other.slug}/guide?saved=1")
     refute html =~ ~s(id="guide-saved")
   end
+
+  # Udi on card-70: save from the journal's Places view, not only the guide.
+  describe "the journal's Places spread" do
+    test "your own journal saves a stop", %{conn: conn, reader: reader, cafe: cafe} do
+      {:ok, view, html} = live(signed_in(conn, reader), ~p"/journal/2026-09-27?spread=places")
+      assert html =~ ~s(id="stop-#{cafe.id}")
+
+      html = view |> element("#stop-#{cafe.id} #save-place-#{cafe.id}") |> render_click()
+      assert html =~ ~s(aria-pressed="true")
+      assert Bookmarks.saved?(Bookmarks.keys(reader.id), cafe)
+    end
+
+    test "another poet's public journal saves a stop when signed in, and offers none signed out",
+         %{conn: conn, reader: reader, other: other, inn: inn} do
+      {:ok, view, _} =
+        live(signed_in(conn, reader), ~p"/p/#{other.slug}/2026-09-28?spread=places")
+
+      view |> element("#stop-#{inn.id} #save-place-#{inn.id}") |> render_click()
+      assert Bookmarks.saved?(Bookmarks.keys(reader.id), inn)
+
+      {:ok, _view, html} = live(build_conn(), ~p"/p/#{other.slug}/2026-09-28?spread=places")
+      assert html =~ ~s(id="stop-#{inn.id}")
+      refute html =~ ~s(id="save-place-#{inn.id}")
+    end
+  end
 end
