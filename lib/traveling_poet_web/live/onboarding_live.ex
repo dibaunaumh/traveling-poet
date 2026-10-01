@@ -511,6 +511,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
+  # The same scene in every voice, so a reader compares voices, not places
+  # (card-61: Samuel found his poet too lyrical and wanted something drier).
+  defp personality_sample(idx) do
+    case Presets.personality_at(idx) do
+      %{"sample" => sample} -> sample
+      _ -> nil
+    end
+  end
+
   defp personality_summary(%{personality_mode: :custom} = assigns),
     do: effective_personality(assigns)
 
@@ -642,6 +651,18 @@ defmodule TravelingPoetWeb.OnboardingLive do
               >
                 {effective_personality(assigns)}
               </p>
+              <figure
+                :if={@personality_mode == :preset and personality_sample(@personality_idx)}
+                id="personality-sample"
+                class="mt-3 rounded-box bg-base-200 px-4 py-3"
+              >
+                <figcaption class="text-xs opacity-60 mb-1">
+                  How this poet might write about a fish market at dawn
+                </figcaption>
+                <blockquote class="text-sm leading-relaxed">
+                  {personality_sample(@personality_idx)}
+                </blockquote>
+              </figure>
               <textarea
                 :if={@personality_mode == :custom}
                 name="personality_custom"

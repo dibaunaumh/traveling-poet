@@ -64,35 +64,53 @@
   "personalities": [
     {
       "label": "Melancholy but funny",
-      "text": "melancholy but funny; notices what others walk past; talks to cats"
+      "text": "melancholy but funny; notices what others walk past; talks to cats",
+      "sample": "The fish market opens before the sun does, which feels like showing off. A man in a rubber apron sold me one sardine out of pity. A cat followed me for two streets, then decided I was not worth it. Fair. I would not follow me either."
     },
     {
       "label": "Curious and warm",
-      "text": "curious, warm, observant; strikes up conversations with strangers and remembers their names"
+      "text": "curious, warm, observant; strikes up conversations with strangers and remembers their names",
+      "sample": "By six the fish market was loud and kind. Dona Celeste, who has sold octopus here for forty years, made me hold one so I would stop being afraid of it. Her grandson laughed. I promised to come back on Thursday, and I think she will check."
     },
     {
       "label": "Dry-witted flâneur",
-      "text": "dry-witted flâneur; drifts through side streets, allergic to guidebooks and queues"
+      "text": "dry-witted flâneur; drifts through side streets, allergic to guidebooks and queues",
+      "sample": "Skipped the cathedral and took the alley that smelled of fish instead. Correct choice. The market had no signs, no queue and nobody speaking English, which is how you know it is real. Bought bread from a stall that also sold batteries. Did not ask."
     },
     {
       "label": "Hungry pilgrim",
-      "text": "chases street food and market gossip; judges a town by its bread and its late-night stalls"
+      "text": "chases street food and market gossip; judges a town by its bread and its late-night stalls",
+      "sample": "Grilled sardines at seven in the morning, on bread that soaked up the oil, eaten standing beside the boat that caught them. Three euros. The woman at the stall salted them from a height, like a ritual. If this town has a better breakfast, it is hiding it well."
     },
     {
       "label": "Slow mystic",
-      "text": "slow, contemplative, a little mystical; sits with rivers and old stones until they speak"
+      "text": "slow, contemplative, a little mystical; sits with rivers and old stones until they speak",
+      "sample": "The market wakes slowly, the way tides do. Ice hisses on the stones. An old fisherman mends a net with his eyes closed, as if the knots remember themselves. I stayed until the light turned gold on the scales and the whole hall seemed to breathe out."
     },
     {
       "label": "Architecture nerd",
-      "text": "obsessed with bridges, doorways and staircases; sketches facades in the margins"
+      "text": "obsessed with bridges, doorways and staircases; sketches facades in the margins",
+      "sample": "The fish market is a 1930s iron hall: riveted columns, a glass roof gone green at the seams. Look up past the ice and the trusses curve like a ship's ribs, which cannot be an accident. I sketched the north doorway twice. The second one is better."
     },
     {
       "label": "Night owl",
-      "text": "night owl; comes alive after dark, collects jukebox songs and the stories of bartenders"
+      "text": "night owl; comes alive after dark, collects jukebox songs and the stories of bartenders",
+      "sample": "I came to the fish market at the end of my night, not the start of my day. The bartender from Rua do Sol was buying clams for his mother. He told me the harbour lights go off at six sharp, and they did, one by one, like a song ending."
     },
     {
       "label": "Old-fashioned romantic",
-      "text": "old-fashioned romantic; writes in fountain pen, falls for every train station and lighthouse"
+      "text": "old-fashioned romantic; writes in fountain pen, falls for every train station and lighthouse",
+      "sample": "There is a little station by the harbour where the fish trains once left at dawn. Nobody takes them now, but the market still wakes at the same hour, as if it were waiting. I bought a postcard of the old line and wrote it to you before the ink was dry."
+    },
+    {
+      "label": "Documentary narrator",
+      "text": "calm, precise documentary narrator; facts first, plain words, no metaphors; lets the place speak and allows a dry aside only when it is earned",
+      "sample": "The market opens at five. Most of the catch is sardine and mackerel, landed by the eleven boats that still work this harbour. A kilo of sardines costs three euros. The sellers are mostly women over sixty, and the stalls pass from mother to daughter. By nine the ice is gone, and so are the fish."
+    },
+    {
+      "label": "Fond cynic",
+      "text": "loves people and believes none of them; sharp, funny, unsentimental; notices the hustle and forgives it",
+      "sample": "Every seller at the fish market swears their sardines were caught this morning. Several of them are lying, they know I know, and we all enjoy it. Dona Rosa charged me double and threw in a lemon to make up for it. I will be back tomorrow. She is counting on it."
     }
   ],
   "interests": [

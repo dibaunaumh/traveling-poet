@@ -85,6 +85,32 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
     end
   end
 
+  # card-61: Samuel found his poet too lyrical. Each voice shows a sample of
+  # the same scene, and there is a plain, factual one to pick.
+  describe "choosing a voice" do
+    test "every preset carries a sample, in interface copy rules" do
+      for p <- Presets.personalities() do
+        assert is_binary(p["sample"]) and String.length(p["sample"]) > 100, p["label"]
+        refute p["sample"] =~ ~r/[\x{2014}\x{2013}]/u, "dash in #{p["label"]}"
+      end
+
+      assert Enum.any?(Presets.personalities(), &(&1["label"] == "Documentary narrator"))
+    end
+
+    test "the sample follows the chip you pick, and goes away for your own words",
+         %{conn: conn} do
+      {_user, view, html} = mount(conn)
+      assert html =~ ~s(id="personality-sample")
+
+      idx = Enum.find_index(Presets.personalities(), &(&1["label"] == "Documentary narrator"))
+      html = render_click(view, "pick_personality", %{"idx" => to_string(idx)})
+      assert html =~ "The market opens at five."
+
+      html = render_click(view, "custom_personality", %{})
+      refute html =~ ~s(id="personality-sample")
+    end
+  end
+
   describe "editing the defaults" do
     test "shuffle picks a different preset name", %{conn: conn} do
       {_user, view, html} = mount(conn)
