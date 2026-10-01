@@ -38,12 +38,13 @@ import {initNative} from "./native"
 import AppleIAP from "./apple_iap_hook"
 import ReadingTime from "./reading_time_hook"
 import LocalTime from "./local_time_hook"
+import AutoDismiss from "./auto_dismiss_hook"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LocalTime},
+  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LocalTime, AutoDismiss},
 })
 
 // Show progress bar on live navigation and form submits

@@ -31,7 +31,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
     socket =
       if params["purchased"] == "1",
-        do: put_flash(socket, :info, "Credits added — happy travels!"),
+        do: put_flash(socket, :info, "Credits added. Happy travels!"),
         else: socket
 
     # Back from the iOS app's sign-in sheet after connecting Drive or
