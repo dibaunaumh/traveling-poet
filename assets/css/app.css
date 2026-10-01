@@ -2754,3 +2754,23 @@ body::before {
 .taste-map-dot.is-for { fill: hsl(140 55% 38%); }
 .taste-map-dot.is-against { fill: hsl(2 70% 50%); }
 .taste-map-key { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 999px; vertical-align: middle; }
+
+/* Flash messages: clear of the status bar and Dynamic Island, and on a phone
+   a full-width banner instead of a narrow card wedged in the corner. */
+.toast.toast-top {
+  top: calc(env(safe-area-inset-top) + 0.75rem);
+}
+
+@media (max-width: 639px) {
+  .toast.toast-top {
+    inset-inline-start: 0.75rem;
+    inset-inline-end: 0.75rem;
+    width: auto;
+    max-width: none;
+  }
+
+  .toast.toast-top > .alert {
+    width: 100%;
+    max-width: none;
+  }
+}

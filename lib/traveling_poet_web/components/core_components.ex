@@ -50,6 +50,11 @@ defmodule TravelingPoetWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+
+  attr :autohide, :boolean,
+    default: true,
+    doc: "closes itself after a few seconds (AutoDismiss hook); off for the reconnect notices"
+
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
@@ -64,6 +69,8 @@ defmodule TravelingPoetWeb.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class="toast toast-top toast-end z-50"
+      phx-hook={@autohide && "AutoDismiss"}
+      data-autohide-ms={@autohide && if(@kind == :error, do: 9000, else: 5000)}
       {@rest}
     >
       <div class={[

@@ -226,6 +226,7 @@ defmodule TravelingPoetWeb.Layouts do
       <.flash
         id="client-error"
         kind={:error}
+        autohide={false}
         title={gettext("We can't find the internet")}
         phx-disconnected={
           show(".phx-client-error #client-error")
@@ -241,6 +242,7 @@ defmodule TravelingPoetWeb.Layouts do
       <.flash
         id="server-error"
         kind={:error}
+        autohide={false}
         title={gettext("Something went wrong!")}
         phx-disconnected={
           show(".phx-server-error #server-error")
