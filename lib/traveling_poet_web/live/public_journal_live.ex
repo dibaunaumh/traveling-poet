@@ -24,6 +24,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         {:ok,
          socket
          |> assign(:poet, poet)
+         |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
          |> assign(:page_title, "#{poet.name} — Traveling Poet")
          |> assign_journal(poet, nil)}
     end
@@ -85,6 +86,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   end
 
   @impl true
+  def handle_event("toggle_bookmark", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
+
   def handle_event("react", %{"kind" => kind}, socket) do
     user = socket.assigns[:current_user]
     entry = socket.assigns.entry
@@ -267,6 +271,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             place_media={@place_media}
             guide_url={guide_url(@poet, @stay_id)}
             stay_count={@stay_count}
+            bookmarks={@bookmarks}
           >
             <:map>
               <div
@@ -296,6 +301,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             spread={@spread}
             poet={@poet}
             find_media={@find_media}
+            bookmarks={@bookmarks}
           >
             <:controls>
               <.link

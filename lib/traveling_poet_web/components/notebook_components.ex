@@ -189,6 +189,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :place_media, :map, default: %{}, doc: "media by id, for place drawings"
   attr :guide_url, :string, required: true, doc: "the guide, opened on this entry's stay"
   attr :stay_count, :integer, default: 0, doc: "places in the whole stay"
+  attr :bookmarks, :any, default: nil, doc: "the reader's saved keys; nil hides Save"
   attr :rest, :global
 
   slot :map, required: true, doc: "the map element; the caller owns its hook and payload"
@@ -231,7 +232,15 @@ defmodule TravelingPoetWeb.NotebookComponents do
           <li :for={{place, n} <- Enum.with_index(@stops, 1)} id={"stop-#{place.id}"} class="stop">
             <.place_stamp place={place} n={n} />
             <div class="stop-body">
-              <div class="stop-name">{place.name}</div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="stop-name">{place.name}</div>
+                <GuideComponents.save_button
+                  :if={@bookmarks}
+                  saved={GuideComponents.saved(@bookmarks, place)}
+                  kind="place"
+                  item={place}
+                />
+              </div>
               <GuideComponents.event_dates place={place} />
               <GuideComponents.poet_pick :if={place.poet_rating} place={place} poet={@poet} />
               <p :if={place.blurb} class="stop-blurb">{place.blurb}</p>
@@ -275,6 +284,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
     default: nil,
     doc: "the topic in the owner's guide; nil on public pages"
 
+  attr :bookmarks, :any, default: nil, doc: "the reader's saved keys; nil hides Save"
   attr :rest, :global
 
   slot :controls
@@ -331,10 +341,18 @@ defmodule TravelingPoetWeb.NotebookComponents do
           <li :for={{find, n} <- Enum.with_index(@finds, 1)} id={"find-#{find.id}"} class="stop">
             <.find_stamp find={find} n={n} />
             <div class="stop-body">
-              <div class="stop-name">
-                <a href={find.url} target="_blank" rel="noopener noreferrer nofollow">
-                  {find.name}
-                </a>
+              <div class="flex items-start justify-between gap-2">
+                <div class="stop-name">
+                  <a href={find.url} target="_blank" rel="noopener noreferrer nofollow">
+                    {find.name}
+                  </a>
+                </div>
+                <GuideComponents.save_button
+                  :if={@bookmarks}
+                  saved={GuideComponents.saved(@bookmarks, find)}
+                  kind="find"
+                  item={find}
+                />
               </div>
               <GuideComponents.poet_pick :if={find.poet_rating} place={find} poet={@poet} />
               <p :if={find.blurb} class="stop-blurb">{find.blurb}</p>
