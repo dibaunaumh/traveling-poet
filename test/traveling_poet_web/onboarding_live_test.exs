@@ -85,7 +85,7 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
     end
   end
 
-  # card-61: Samuel found his poet too lyrical. Each voice shows a sample of
+  # card-61: a reader found their poet too lyrical. Each voice shows a sample of
   # the same scene, and there is a plain, factual one to pick.
   describe "choosing a voice" do
     test "every preset carries a sample, in interface copy rules" do

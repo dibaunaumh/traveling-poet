@@ -168,7 +168,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
       assert html =~ "Limited Use"
       assert html =~ "drive.file"
 
-      assert html =~ "dibaunaumh@gmail.com"
+      assert html =~ "support@poet.travel"
       assert html =~ "deleted"
       assert html =~ ~s(href="/terms")
     end
@@ -181,7 +181,7 @@ defmodule TravelingPoetWeb.PageControllerTest do
       assert html =~ "Credits"
       assert html =~ "16 or older"
       assert html =~ "without warranties"
-      assert html =~ "dibaunaumh@gmail.com"
+      assert html =~ "support@poet.travel"
       assert html =~ ~s(href="/privacy")
     end
 

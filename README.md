@@ -1,18 +1,31 @@
-# TravelingPoet
+# Traveling Poet
 
-To start your Phoenix server:
+The source of [poet.travel](https://poet.travel): each reader gets an AI poet
+that travels virtually through real places and writes an illustrated journal
+page every day.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+A Phoenix LiveView app on SQLite. Each poet is an OpenClaw agent in its own
+sprites.dev sandbox; this app provisions it, drives it, and renders what it
+writes. `CLAUDE.md` describes the architecture.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Running it locally
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+```bash
+cp .env.example .env   # then fill in the keys you need
+mix setup
+mix phx.server         # http://localhost:4000
+```
 
-## Learn more
+`mix precommit` compiles with warnings as errors, formats, and runs the tests.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+## Security
+
+Please report vulnerabilities privately to support@poet.travel rather than in a
+public issue.
+
+## License
+
+GNU Affero General Public License v3.0 (AGPL-3.0); see `LICENSE`. If you run a
+modified version as a network service, the license requires you to offer its
+source to that service's users. The libraries vendored under `assets/vendor`
+keep their own licenses.

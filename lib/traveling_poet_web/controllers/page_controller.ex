@@ -78,7 +78,7 @@ defmodule TravelingPoetWeb.PageController do
   defp maybe_park_place(conn, ""), do: conn
   defp maybe_park_place(conn, place), do: put_session(conn, :start_place, place)
 
-  @contact "dibaunaumh@gmail.com"
+  @contact "support@poet.travel"
   # Bumped by hand when either document changes in a way that matters.
   @legal_updated "20 September 2026"
   @privacy_updated "30 September 2026"

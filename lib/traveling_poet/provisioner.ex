@@ -235,7 +235,7 @@ defmodule TravelingPoet.Provisioner do
   `fresh_conversation/1` before a retry, then a pause for the gateway to take
   connections again. Used by every retry of an agent turn that failed
   (`FirstEntry`, `DailyJourneyScheduler`): a retry inside the conversation
-  that failed inherits whatever broke it. Samuel's poet, 2026-09-30: the
+  that failed inherits whatever broke it. One poet, 2026-09-30: the
   first run overflowed its context re-reading its skill, and both retries
   continued the same overflowed session. Off in test (`:fresh_start_on_retry`),
   where there is no sprite to restart.

@@ -408,7 +408,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
 
   defp focus_point(_), do: nil
 
-  @report_to "dibaunaumh@gmail.com"
+  @report_to "support@poet.travel"
 
   # The page being reported travels in the subject, so a report needs no
   # explaining to be actionable.
