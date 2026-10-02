@@ -46,7 +46,7 @@ defmodule TravelingPoet.DailyJourneySchedulerTest do
       refute_received {:sprites_service, _, _, _}
     end
 
-    # Samuel's poet, 2026-09-30: the first run overflowed its context and both
+    # One poet, 2026-09-30: the first run overflowed its context and both
     # retries continued the same overflowed session.
     test "a retry sets the old conversation aside first", %{user: user} do
       assert DailyJourneyScheduler.before_attempt(user, true) == :ok

@@ -48,3 +48,24 @@ npm-debug.log
 
 # Eval runs (mix tpoet.eval_*): images, reports, raw artifacts
 /evals/
+
+# Agent tooling: local settings, worktrees, and the Alice.In workspace
+# credentials and state. The onboarding docs and scripts stay tracked.
+.claude/settings.local.json
+.claude/worktrees/
+.claude/alice/state.json
+.claude/alice/config.json
+.claude/alice/onboard/*
+!.claude/alice/onboard/ONBOARD.md
+!.claude/alice/onboard/MAPPING.md
+!.claude/alice/onboard/ADAPTERS.md
+!.claude/alice/onboard/prior.mjs
+!.claude/alice/onboard/linear.mjs
+.codex/alice/state.json
+.codex/alice/config.json
+.codex/alice/onboard/*
+!.codex/alice/onboard/ONBOARD.md
+!.codex/alice/onboard/MAPPING.md
+!.codex/alice/onboard/ADAPTERS.md
+!.codex/alice/onboard/prior.mjs
+!.codex/alice/onboard/linear.mjs

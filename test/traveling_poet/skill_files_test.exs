@@ -3,7 +3,7 @@ defmodule TravelingPoet.SkillFilesTest do
 
   alias TravelingPoet.Provisioner
 
-  # Samuel's poet, 2026-09-30: the 30 KB daily skill, re-read in chunks,
+  # One poet, 2026-09-30: the 30 KB daily skill, re-read in chunks,
   # overflowed the model's context before the poet wrote anything. The day
   # kinds most runs never see live in their own files.
   test "the daily skill stays small and hands day-specific parts to their own files" do

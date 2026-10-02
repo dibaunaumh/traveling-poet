@@ -512,7 +512,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   # The same scene in every voice, so a reader compares voices, not places
-  # (card-61: Samuel found his poet too lyrical and wanted something drier).
+  # (card-61: a reader found their poet too lyrical and wanted something drier).
   defp personality_sample(idx) do
     case Presets.personality_at(idx) do
       %{"sample" => sample} -> sample

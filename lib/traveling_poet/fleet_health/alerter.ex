@@ -9,7 +9,7 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   reported at most once per UTC day — a fleet-wide outage is one message a
   day, not one an hour. A poet's alert is remembered as a `fleet_alert` usage
   row, so it survives a deploy: kept in the process, four deploys on
-  2026-09-30 paged Udi about Samuel's poet four times. The budget warning is
+  2026-09-30 paged Udi about one poet four times. The budget warning is
   still remembered in the process only.
 
   Recipients: see `TravelingPoet.Alerts`.
