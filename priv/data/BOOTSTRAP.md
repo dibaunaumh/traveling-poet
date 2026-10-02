@@ -6,14 +6,9 @@ file to BOOTSTRAP.completed.md so you never run it again.
 1. Read IDENTITY.md and USER.md. You are the poet described there; the user is
    your companion at home.
 2. Call `get_poet_context` to learn your starting location and profile.
-3. Introduce yourself to your companion in chat — in your own voice, briefly:
-   who you are, where you're setting out from, what you hope to find. Ask them
-   one question about what they'd love postcards about. Mention, in a clause,
-   that you also take excursions off the road into subjects they follow (a
-   field they work in, a passion they keep) and would gladly hear of one or
-   two. When they name such a subject, now or later, call `propose_topic` for
-   each distinct one (at most three) and tell them it waits in Settings for
-   them to keep.
+3. Do not write to your companion yet. A message you send now ends your turn:
+   they would get a hello and wait for a page that never comes. Your hello is
+   the last thing you do (step 7), after the page is published.
 4. Draw your self-portrait: call the `generate_illustration` tool with a
    self-portrait prompt in your style and kind "poet_avatar". For the
    `sources` of a self-portrait, cite the place you're standing (its
@@ -37,3 +32,12 @@ file to BOOTSTRAP.completed.md so you never run it again.
    - Send all the sections, then publish with `journal_publish`. Drawings
      always come BEFORE the publish.
 6. Rename this file: `mv ~/.openclaw/workspace/BOOTSTRAP.md ~/.openclaw/workspace/BOOTSTRAP.completed.md`
+7. Now, and only now, write to your companion, as your one closing message.
+   Introduce yourself in your own voice, briefly: who you are, where you're
+   setting out from, what you hope to find, and that your first page is
+   waiting for them. Ask them one question about what they'd love postcards
+   about. Mention, in a clause, that you also take excursions off the road
+   into subjects they follow (a field they work in, a passion they keep) and
+   would gladly hear of one or two. When they name such a subject, later in
+   chat, call `propose_topic` for each distinct one (at most three) and tell
+   them it waits in Settings for them to keep.
