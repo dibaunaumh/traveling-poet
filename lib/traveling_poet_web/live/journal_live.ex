@@ -8,6 +8,7 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
   import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_nudge: 1]
+  import TravelingPoetWeb.ProductTour, only: [product_tour: 1]
 
   alias TravelingPoet.{
     Accounts,
@@ -105,6 +106,8 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
           |> assign_journal(poet, nil)
+          |> then(&assign(&1, :tour_open, &1.assigns.entries == []))
+          |> assign(:tour_ready, false)
           |> allow_upload(:chat_attachment,
             accept: :any,
             max_entries: 1,
@@ -138,7 +141,12 @@ defmodule TravelingPoetWeb.JournalLive do
             do: socket,
             else: assign_journal(socket, poet, date)
 
-        {:noreply, socket |> assign_spread(params["spread"]) |> open_chat(params) |> push_map()}
+        {:noreply,
+         socket
+         |> assign_spread(params["spread"])
+         |> open_chat(params)
+         |> open_tour(params)
+         |> push_map()}
     end
   end
 
@@ -148,6 +156,10 @@ defmodule TravelingPoetWeb.JournalLive do
     do: socket |> assign(:mobile_chat_open, true) |> assign(:sidebar_open, true)
 
   defp open_chat(socket, _params), do: socket
+
+  # `?tour=1` (Settings links it) opens the product tour above the journal.
+  defp open_tour(socket, %{"tour" => "1"}), do: assign(socket, :tour_open, true)
+  defp open_tour(socket, _params), do: socket
 
   defp same_entry?(%{assigns: %{entry: %{entry_date: shown}}}, %Date{} = date), do: shown == date
   defp same_entry?(_socket, _date), do: false
@@ -327,6 +339,10 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
+
+  def handle_event("close_tour", _params, socket) do
+    {:noreply, socket |> assign(:tour_open, false) |> assign(:tour_ready, false)}
+  end
 
   def handle_event("toggle_chat", _params, socket) do
     {:noreply, assign(socket, :sidebar_open, !socket.assigns.sidebar_open)}
@@ -660,6 +676,7 @@ defmodule TravelingPoetWeb.JournalLive do
        |> assign(:poet, poet)
        |> assign_journal(poet, nil)
        |> assign(:first_entry, :done)
+       |> assign(:tour_ready, socket.assigns.tour_open)
        |> resend_held()
        |> put_flash(:info, "#{poet.name} published a new journal entry!")}
     end
@@ -752,6 +769,25 @@ defmodule TravelingPoetWeb.JournalLive do
   # appeared. The gateway wiring runs underneath so /onboard still auto-fires.
   defp awaiting_first_entry?(assigns), do: assigns.entries == []
   defp provisioning?(assigns), do: assigns.sprite_status == :not_provisioned
+
+  # The wait, in one line above the tour, so watching it never hides it.
+  defp tour_status(assigns) do
+    %{poet: poet, first_entry: first_entry} = assigns
+    so_far = minutes_so_far(setup_minutes(poet))
+
+    cond do
+      !awaiting_first_entry?(assigns) -> nil
+      provisioning?(assigns) -> "Setting up #{poet.name}'s room. #{so_far}"
+      first_entry == :in_flight -> "#{poet.name} is writing your first page. #{so_far}"
+      first_entry == :retry_pending -> "#{poet.name} is starting the first page again."
+      first_entry == :exhausted -> nil
+      true -> "#{poet.name} is about to open the notebook. #{so_far}"
+    end
+  end
+
+  defp minutes_so_far(0), do: "Just started."
+  defp minutes_so_far(1), do: "1 minute so far."
+  defp minutes_so_far(n), do: "#{n} minutes so far."
 
   # Whole minutes since the poet was created. The waiting cards re-render every
   # @setup_refresh_ms, so this ticks along on its own and the wait shows its own
@@ -980,6 +1016,13 @@ defmodule TravelingPoetWeb.JournalLive do
               {if @sidebar_open, do: "Hide chat", else: "Chat"}
             </button>
           </div>
+
+          <.product_tour
+            :if={@tour_open}
+            status={tour_status(assigns)}
+            ready={@tour_ready}
+            closable={!awaiting_first_entry?(assigns)}
+          />
 
           <.excursion_route
             :if={!awaiting_first_entry?(assigns) and not is_nil(@route) and !finds_spread?(assigns)}
