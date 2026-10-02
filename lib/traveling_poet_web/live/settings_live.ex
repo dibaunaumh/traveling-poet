@@ -1067,7 +1067,12 @@ defmodule TravelingPoetWeb.SettingsLive do
       <div class="mx-auto max-w-5xl px-4 py-8">
         <div class="flex items-center justify-between mb-6">
           <h1 class="text-2xl font-semibold">Settings</h1>
-          <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">← Journal</.link>
+          <div class="flex items-center gap-1">
+            <.link id="take-the-tour" navigate={~p"/journal?tour=1"} class="btn btn-ghost btn-sm">
+              Take the tour
+            </.link>
+            <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">← Journal</.link>
+          </div>
         </div>
 
         <div :if={@poet} class="settings-layout">
