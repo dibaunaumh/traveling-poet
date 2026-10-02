@@ -15,6 +15,7 @@ defmodule TravelingPoetWeb.Api.ArtifactController do
       conn
       |> put_resp_content_type(MIME.from_path(rel_path))
       |> put_resp_header("content-disposition", disposition(rel_path, params["download"]))
+      |> put_resp_header("x-content-type-options", "nosniff")
       |> put_resp_header("cache-control", "private, max-age=60")
       |> send_file(200, local_path)
     else
@@ -67,11 +68,19 @@ defmodule TravelingPoetWeb.Api.ArtifactController do
   defp ensure_sprite(%{sprite_name: name}) when is_binary(name) and name != "", do: {:ok, name}
   defp ensure_sprite(_), do: {:error, :no_sprite}
 
-  defp disposition(rel_path, download) when download in ["1", "true"] do
-    ~s(attachment; filename="#{Path.basename(rel_path)}")
-  end
+  # The file was written by the agent, which reads untrusted pages, and this
+  # route answers on poet.travel with the reader's session. Only formats that
+  # cannot carry script open in the browser; HTML, SVG and the rest download.
+  @inline ~w(.png .jpg .jpeg .webp .gif .pdf .txt .md)
 
-  defp disposition(_rel_path, _), do: "inline"
+  @doc false
+  def disposition(rel_path, download) do
+    inline? = String.downcase(Path.extname(rel_path)) in @inline
+
+    if inline? and download not in ["1", "true"],
+      do: "inline",
+      else: ~s(attachment; filename="#{Path.basename(rel_path)}")
+  end
 
   defp error(conn, status, code) do
     conn

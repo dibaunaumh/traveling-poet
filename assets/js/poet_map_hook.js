@@ -190,7 +190,11 @@ const PoetMap = {
 
     if (data.current) {
       const m = L.marker([data.current.lat, data.current.lng]).addTo(this.layer)
-      m.bindPopup(`<b>${data.poet || "Your poet"}</b><br/>${data.current.name || ""}`)
+      const label = document.createElement("div")
+      const who = document.createElement("b")
+      who.textContent = data.poet || "Your poet"
+      label.append(who, document.createElement("br"), data.current.name || "")
+      m.bindPopup(label)
     }
 
     // The entry being read, ringed so it is distinguishable from the path dots
