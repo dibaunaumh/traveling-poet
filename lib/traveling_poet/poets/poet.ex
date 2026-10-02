@@ -55,11 +55,24 @@ defmodule TravelingPoet.Poets.Poet do
       :status
     ])
     |> validate_required([:user_id, :name])
+    |> validate_name()
     |> put_slug()
     |> validate_required([:slug])
     |> validate_inclusion(:status, @statuses)
     |> unique_constraint(:slug)
     |> unique_constraint(:user_id)
+  end
+
+  @name_max 60
+
+  @doc "The longest name a poet may have."
+  def name_max, do: @name_max
+
+  # A poet's name is shown on public maps and pages: short, and never markup.
+  defp validate_name(changeset) do
+    changeset
+    |> validate_length(:name, max: @name_max)
+    |> validate_format(:name, ~r/\A[^<>]*\z/, message: "can't contain < or >")
   end
 
   defp put_slug(changeset) do

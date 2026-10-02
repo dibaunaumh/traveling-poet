@@ -108,6 +108,7 @@ defmodule TravelingPoet.Journal do
         |> Section.changeset(
           attrs
           |> Map.new(fn {k, v} -> {to_string(k), v} end)
+          |> own_media(entry.poet_id)
           |> Map.put("journal_entry_id", entry.id)
           |> Map.put_new("position", i)
         )
@@ -301,7 +302,7 @@ defmodule TravelingPoet.Journal do
     from_section =
       entry.sections
       |> Enum.filter(&(&1.kind == "illustration" and &1.media_id))
-      |> Enum.find_value(&get_media(&1.media_id))
+      |> Enum.find_value(&get_own_media(entry.poet_id, &1.media_id))
 
     from_section || List.first(unattached_illustrations(entry, entry.sections))
   end
@@ -309,6 +310,27 @@ defmodule TravelingPoet.Journal do
   ## Media
 
   def get_media(id), do: Repo.get(Media, id)
+
+  @doc "A media row, only if it belongs to this poet."
+  def get_own_media(poet_id, id), do: Repo.get_by(Media, id: id, poet_id: poet_id)
+
+  @doc """
+  Drops a `media_id` that is not this poet's own from section, place or find
+  attrs. Media ids are sequential, so an agent could otherwise point its page
+  at another poet's drawing, and the page email would sign a link to it even
+  when that journal is private.
+  """
+  def own_media(%{"media_id" => id} = attrs, poet_id) when not is_nil(id) do
+    owned? =
+      case Integer.parse(to_string(id)) do
+        {int, ""} -> Repo.exists?(from(m in Media, where: m.id == ^int and m.poet_id == ^poet_id))
+        _ -> false
+      end
+
+    if owned?, do: attrs, else: Map.put(attrs, "media_id", nil)
+  end
+
+  def own_media(attrs, _poet_id), do: attrs
 
   @doc "The media rows for these ids, by id. Nils and unknown ids are simply absent."
   def media_by_ids(ids) do

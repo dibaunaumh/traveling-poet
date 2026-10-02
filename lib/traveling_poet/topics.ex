@@ -748,6 +748,7 @@ defmodule TravelingPoet.Topics do
         |> Find.changeset(
           attrs
           |> Map.merge(Map.get(kept, name, %{}))
+          |> TravelingPoet.Journal.own_media(entry.poet_id)
           |> Map.put("poet_id", entry.poet_id)
           |> Map.put("journal_entry_id", entry.id)
           |> Map.put("entry_date", entry.entry_date)

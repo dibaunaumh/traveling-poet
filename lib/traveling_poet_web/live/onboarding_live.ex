@@ -560,9 +560,20 @@ defmodule TravelingPoetWeb.OnboardingLive do
   defp validate_mode_inputs(_), do: :ok
 
   defp validate_poet_name(name) do
-    case String.trim(name) do
-      "" -> {:error, "Your poet needs a name — type one or press Shuffle."}
-      trimmed -> {:ok, trimmed}
+    trimmed = String.trim(name)
+
+    cond do
+      trimmed == "" ->
+        {:error, "Your poet needs a name — type one or press Shuffle."}
+
+      String.length(trimmed) > TravelingPoet.Poets.Poet.name_max() ->
+        {:error, "Keep the name under #{TravelingPoet.Poets.Poet.name_max()} characters."}
+
+      String.contains?(trimmed, ["<", ">"]) ->
+        {:error, "A name can't contain < or >."}
+
+      true ->
+        {:ok, trimmed}
     end
   end
 

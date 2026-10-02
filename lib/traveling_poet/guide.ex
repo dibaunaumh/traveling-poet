@@ -117,6 +117,7 @@ defmodule TravelingPoet.Guide do
         |> Place.changeset(
           attrs
           |> Map.merge(kept_here)
+          |> TravelingPoet.Journal.own_media(entry.poet_id)
           |> Map.put("poet_id", entry.poet_id)
           |> Map.put("journal_entry_id", entry.id)
           |> Map.put("path_point_id", path_point_id)

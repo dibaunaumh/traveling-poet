@@ -14,6 +14,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "/images/leaflet/marker-shadow.png",
 })
 
+// Leaflet puts a string popup or tooltip in with innerHTML. Every label on
+// our maps is a name the app did not write (a poet's name, a place or title
+// the agent sent), so a string here is always text, never markup. Anything
+// that needs structure builds an element (placePopup, entryPopup, textEl).
+const setContent = L.DivOverlay.prototype.setContent
+L.DivOverlay.prototype.setContent = function (content) {
+  return setContent.call(this, typeof content === "string" ? textEl(content) : content)
+}
+
+// A span holding plain text, for map labels.
+export function textEl(text) {
+  const el = document.createElement("span")
+  el.textContent = text == null ? "" : String(text)
+  return el
+}
+
 // A map inside a scrolling page is a trap on a touch screen: a finger that
 // lands on it pans the map, and the page underneath cannot be scrolled past
 // it. So under a finger the map sleeps (one finger scrolls the page, two
