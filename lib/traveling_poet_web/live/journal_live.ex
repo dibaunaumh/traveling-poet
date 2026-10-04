@@ -177,17 +177,26 @@ defmodule TravelingPoetWeb.JournalLive do
   # The map div is phx-update="ignore" (Leaflet owns its DOM), so a changed
   # data-points attribute does NOT re-render it. Paging between entries has to
   # tell the hook directly or the map silently keeps the previous day's view.
+  # The where-to-stay spread rings its areas; every other view shows the
+  # journey (and, on the Places spread, the day's stops).
+  defp map_payload(%{assigns: %{spread: %{key: "stay"} = spread, poet: poet}}),
+    do: stay_map_data(spread, poet.name)
+
+  defp map_payload(socket) do
+    map_points(
+      socket.assigns.path_points,
+      socket.assigns.poet,
+      socket.assigns.entry,
+      map_places(socket)
+    )
+  end
+
   defp push_map(socket) do
     if connected?(socket) and socket.assigns.entries != [] do
       push_event(
         socket,
         "map:update",
-        map_points(
-          socket.assigns.path_points,
-          socket.assigns.poet,
-          socket.assigns.entry,
-          map_places(socket)
-        )
+        map_payload(socket)
       )
     else
       socket
@@ -294,6 +303,9 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
+
+  defp stay_spread?(%{spread: %{key: "stay"}}), do: true
+  defp stay_spread?(_assigns), do: false
 
   # An excursion has no coordinates to pin; its journey is a drawing, and it
   # takes the map's place at the top of the page.
@@ -1031,7 +1043,10 @@ defmodule TravelingPoetWeb.JournalLive do
           />
 
           <div
-            :if={!awaiting_first_entry?(assigns) and !places_spread?(assigns) and is_nil(@route)}
+            :if={
+              !awaiting_first_entry?(assigns) and !places_spread?(assigns) and !stay_spread?(assigns) and
+                is_nil(@route)
+            }
             id="poet-map"
             phx-hook="PoetMap"
             phx-update="ignore"
@@ -1132,10 +1147,41 @@ defmodule TravelingPoetWeb.JournalLive do
                 </.link>
               </:controls>
             </.finds_spread>
+            <.stay_spread
+              :if={stay_spread?(assigns)}
+              id={"stay-#{@entry.id}"}
+              entry={@entry}
+              day={Journal.journey_day(@entry, @journey_start)}
+              spread={@spread}
+              poet={@poet}
+            >
+              <:map>
+                <div
+                  id="poet-map"
+                  phx-hook="PoetMap"
+                  phx-update="ignore"
+                  class="taped-map-canvas z-0"
+                  data-points={Jason.encode!(stay_map_data(@spread, @poet.name))}
+                >
+                </div>
+              </:map>
+              <:controls>
+                <.link
+                  :for={{label, date} <- entry_nav(@entries, @entry)}
+                  navigate={~p"/journal/#{date}"}
+                  class="btn btn-ghost btn-xs"
+                >
+                  {label}
+                </.link>
+              </:controls>
+            </.stay_spread>
             <%!-- reading time per paragraph, for the taste profile: the
                   owner's own journal only, and only with the switch on --%>
             <div
-              :if={@user.reading_signals and !places_spread?(assigns) and !finds_spread?(assigns)}
+              :if={
+                @user.reading_signals and !places_spread?(assigns) and !finds_spread?(assigns) and
+                  !stay_spread?(assigns)
+              }
               id={"reading-#{@entry.id}"}
               phx-hook="ReadingTime"
               data-entry-id={@entry.id}
@@ -1145,7 +1191,7 @@ defmodule TravelingPoetWeb.JournalLive do
             >
             </div>
             <.entry_spread
-              :if={!places_spread?(assigns) and !finds_spread?(assigns)}
+              :if={!places_spread?(assigns) and !finds_spread?(assigns) and !stay_spread?(assigns)}
               id={"entry-#{@entry.id}"}
               entry={@entry}
               day={Journal.journey_day(@entry, @journey_start)}

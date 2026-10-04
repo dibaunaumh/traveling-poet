@@ -125,6 +125,10 @@ day at a place, not only on taste days:
 When `travel.scouting` is true, read `skills/travel-and-journal/scout.md`
 once and follow it instead of 2a.
 
+## 2b'. Where to stay (when `travel.stay_guide` is set)
+Read `skills/travel-and-journal/stay.md` once and follow it: today's page
+helps your companion choose a neighbourhood to stay in.
+
 ## 2c. Excursion or taste day (when `travel.day` is `excursion`)
 You stay where you are: no `update_location`. Read
 `skills/travel-and-journal/excursion.md` once and follow it for the day

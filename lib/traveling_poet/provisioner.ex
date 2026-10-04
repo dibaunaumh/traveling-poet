@@ -589,7 +589,7 @@ defmodule TravelingPoet.Provisioner do
     ## Your tools
     The tpoet-plugin gives you: `get_poet_context`, `get_feedback`,
     `journal_upsert_entry`, `journal_get_entry`, `journal_put_sections`,
-    `journal_put_places`, `generate_illustration`, `find_reference_photos`,
+    `journal_put_places`, `journal_put_stay_areas`, `generate_illustration`, `find_reference_photos`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
     `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
     `request_excursion`, `journal_put_finds`, `get_book_context`,
@@ -915,6 +915,36 @@ defmodule TravelingPoet.Provisioner do
           execute: function(_id, raw) {
             var a = asParams(raw);
             return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/places", { places: a.places });
+          }
+        });
+        ctx.registerTool({
+          name: "journal_put_stay_areas",
+          description: "Where-to-stay days only (travel.stay_guide in get_poet_context). Record the neighbourhoods you weighed as a base for your companion's trip in this city: three or four real areas, what each is like for THEM (judged against focus and their tastes), and which one you would pick. Replaces the day's whole list. The app finds each area on the map and replies with how many of your mapped places lie within a short walk of it (`near`); write the page from those counts, never invent them. An area with on_map false could not be found: fix its name (the district's usual name, as a map knows it) and send the list again.",
+          parameters: {
+            type: "object",
+            required: ["entry_date", "areas"],
+            properties: {
+              entry_date: { type: "string", description: "YYYY-MM-DD" },
+              areas: {
+                type: "array",
+                description: "three or four; at most five",
+                items: {
+                  type: "object",
+                  required: ["name", "summary"],
+                  properties: {
+                    name: { type: "string", description: "the neighbourhood's usual name, as a map knows it (e.g. Kazimierz)" },
+                    summary: { type: "string", description: "two sentences in your voice: what staying there is like" },
+                    best_for: { type: "string", description: "one line: what in it serves THIS reader (their mornings, meals, shops)" },
+                    tradeoffs: { type: "string", description: "one line, plainly: what they give up there (noise, distance, prices)" },
+                    recommended: { type: "boolean", description: "true for the one you would pick; exactly one" }
+                  }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/stay_areas", { areas: a.areas });
           }
         });
         ctx.registerTool({

@@ -242,6 +242,8 @@ defmodule TravelingPoet.DailyJourneyScheduler do
           "Today is an excursion day: after SKILL.md, read #{dir}/excursion.md once and follow it.",
         plan.scouting &&
           "Today you scout your companion's route: after SKILL.md, read #{dir}/scout.md once and follow it.",
+        plan[:stay_guide] &&
+          "Today you help your companion choose where to stay: after SKILL.md, read #{dir}/stay.md once and follow it.",
         TravelingPoet.Asks.due(poet) != nil &&
           "Today you also ask your companion one question: after publishing, read #{dir}/asking.md once and follow it."
       ]

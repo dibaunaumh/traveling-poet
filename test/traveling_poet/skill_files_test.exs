@@ -12,7 +12,7 @@ defmodule TravelingPoet.SkillFilesTest do
 
     assert byte_size(skill) < 24_000
 
-    for day_file <- ~w(scout.md excursion.md asking.md) do
+    for day_file <- ~w(scout.md excursion.md asking.md stay.md) do
       assert Map.has_key?(files, "travel-and-journal/#{day_file}"), "#{day_file} not shipped"
       assert skill =~ "skills/travel-and-journal/#{day_file}"
     end

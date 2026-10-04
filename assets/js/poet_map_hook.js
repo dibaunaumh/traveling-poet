@@ -218,10 +218,29 @@ const PoetMap = {
       L.marker([p.lat, p.lng], { icon: placeIcon(p) }).bindPopup(placePopup(p)).addTo(this.layer)
     })
 
+    // Where to stay (card-90): each neighbourhood the poet weighed as a ring
+    // a ten-minute walk across, the recommended one in the accent colour.
+    const areas = (data.areas || []).filter((a) => typeof a.lat === "number")
+    areas.forEach((a) => {
+      L.circle([a.lat, a.lng], {
+        radius: a.radius_m || 800,
+        color: a.recommended ? "#c0392b" : "#2f5d62",
+        weight: a.recommended ? 3 : 2,
+        fillOpacity: a.recommended ? 0.12 : 0.06,
+      })
+        .bindTooltip(a.name, { direction: "center", permanent: true, className: "stay-area-label" })
+        .addTo(this.layer)
+    })
+
     // Stops win the viewport (that page is about them), then focus: the
     // reader is looking at that day, not at wherever the poet happens to be.
+    // On a where-to-stay page the areas win: that page is about them.
     this.fit(() => {
-      if (stops.length > 1) {
+      if (areas.length > 0) {
+        const pts = areas.map((a) => [a.lat, a.lng])
+        if (pts.length > 1) this.map.fitBounds(pts, { padding: [50, 50], maxZoom: 15 })
+        else this.map.setView(pts[0], 14)
+      } else if (stops.length > 1) {
         this.map.fitBounds(stops, { padding: [40, 40], maxZoom: 15 })
       } else if (stops.length === 1) {
         this.map.setView(stops[0], 14)

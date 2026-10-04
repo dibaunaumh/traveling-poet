@@ -40,7 +40,7 @@ defmodule TravelingPoet.AgentPluginTest do
     names = tool_names()
 
     for expected <- ~w(journal_upsert_entry journal_get_entry journal_put_sections
-                       journal_put_places journal_publish generate_illustration
+                       journal_put_places journal_put_stay_areas journal_publish generate_illustration
                        record_preference update_location hold_here insert_stop
                        propose_topic get_book_context book_put_matter
                        find_reference_photos ask_reader) do

@@ -68,17 +68,26 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   # The map div is phx-update="ignore" (Leaflet owns its DOM), so a changed
   # data-points attribute does NOT re-render it. Paging between entries has to
   # tell the hook directly or the map silently keeps the previous day's view.
+  # The where-to-stay spread rings its areas; every other view shows the
+  # journey (and, on the Places spread, the day's stops).
+  defp map_payload(%{assigns: %{spread: %{key: "stay"} = spread, poet: poet}}),
+    do: stay_map_data(spread, poet.name)
+
+  defp map_payload(socket) do
+    map_points(
+      socket.assigns.path_points,
+      socket.assigns.poet,
+      socket.assigns.entry,
+      map_places(socket)
+    )
+  end
+
   defp push_map(socket) do
     if connected?(socket) do
       push_event(
         socket,
         "map:update",
-        map_points(
-          socket.assigns.path_points,
-          socket.assigns.poet,
-          socket.assigns.entry,
-          map_places(socket)
-        )
+        map_payload(socket)
       )
     else
       socket
@@ -172,6 +181,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   defp finds_spread?(%{spread: %{key: "finds"}}), do: true
   defp finds_spread?(_assigns), do: false
 
+  defp stay_spread?(%{spread: %{key: "stay"}}), do: true
+  defp stay_spread?(_assigns), do: false
+
   # No coordinates to pin on an excursion: the journey is drawn instead.
   defp assign_route(socket, poet, entry) do
     case entry && Topics.excursion_of(entry) do
@@ -246,7 +258,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         />
 
         <div
-          :if={!places_spread?(assigns) and is_nil(@route)}
+          :if={!places_spread?(assigns) and !stay_spread?(assigns) and is_nil(@route)}
           id="public-poet-map"
           phx-hook="PoetMap"
           phx-update="ignore"
@@ -313,8 +325,36 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               </.link>
             </:controls>
           </.finds_spread>
+          <.stay_spread
+            :if={stay_spread?(assigns)}
+            id={"stay-#{@entry.id}"}
+            entry={@entry}
+            day={Journal.journey_day(@entry, @journey_start)}
+            spread={@spread}
+            poet={@poet}
+          >
+            <:map>
+              <div
+                id="public-poet-map"
+                phx-hook="PoetMap"
+                phx-update="ignore"
+                class="taped-map-canvas z-0"
+                data-points={Jason.encode!(stay_map_data(@spread, @poet.name))}
+              >
+              </div>
+            </:map>
+            <:controls>
+              <.link
+                :for={{label, date} <- entry_nav(@entries, @entry)}
+                navigate={~p"/p/#{@poet.slug}/#{date}"}
+                class="btn btn-ghost btn-xs"
+              >
+                {label}
+              </.link>
+            </:controls>
+          </.stay_spread>
           <.entry_spread
-            :if={!places_spread?(assigns) and !finds_spread?(assigns)}
+            :if={!places_spread?(assigns) and !finds_spread?(assigns) and !stay_spread?(assigns)}
             id={"entry-#{@entry.id}"}
             entry={@entry}
             day={Journal.journey_day(@entry, @journey_start)}

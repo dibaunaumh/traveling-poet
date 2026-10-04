@@ -84,6 +84,20 @@ defmodule TravelingPoet.Journal.Spreads do
     end
   end
 
+  @doc """
+  The where-to-stay spread (card-90): a map of the areas and the poet's
+  places around them on the left, the areas ranked on the right as
+  `{:area, %{area: area, near: counts}}`.
+  """
+  def stay(ranked, places) do
+    %{
+      key: "stay",
+      label: "Where to stay",
+      left: [{:map, %{areas: Enum.map(ranked, & &1.area), places: places}}],
+      right: Enum.map(ranked, &{:area, &1})
+    }
+  end
+
   # Pure: reads only what the caller loaded. An unloaded association counts
   # as no excursion; callers that want the Finds spread preload it.
   defp excursion_of(entry) do

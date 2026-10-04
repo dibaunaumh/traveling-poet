@@ -6,7 +6,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   alias TravelingPoet.DeadLinks
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
-  alias TravelingPoet.Guide.{Geocoding, TopicTagging}
+  alias TravelingPoet.Guide.{Geocoding, Stay, StayArea, TopicTagging}
   alias TravelingPoet.Journal.Marker
 
   # A day's finds, not a directory. The skill asks for 2-4; this is the
@@ -248,6 +248,44 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   def put_places(conn, _params) do
     conn |> put_status(422) |> json(%{error: "places (list) is required"})
+  end
+
+  # Where to stay (card-90): the neighbourhoods the poet weighed for the
+  # reader's base, on the day the app marks travel.stay_guide. The app
+  # finds each on the map and counts what is near; the reply says so, so
+  # the poet can write from the counts rather than guess them.
+  def put_stay_areas(conn, %{"date" => date_str, "areas" => areas}) when is_list(areas) do
+    with_poet_and_date(conn, date_str, fn poet, date ->
+      case {Journal.get_entry(poet.id, date), poet.current_place_name} do
+        {nil, _} ->
+          conn
+          |> put_status(404)
+          |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
+
+        {_entry, city} when city in [nil, ""] ->
+          conn |> put_status(422) |> json(%{error: "you have no current place to weigh areas in"})
+
+        {entry, city} ->
+          {:ok, saved} = Stay.replace_areas(entry, areas, city)
+          ranked = Stay.ranked(saved, Stay.places_near(poet.id, saved))
+
+          json(conn, %{
+            ok: true,
+            city: city,
+            areas:
+              Enum.map(ranked, fn %{area: a, near: n} ->
+                %{name: a.name, recommended: a.recommended, on_map: StayArea.mapped?(a), near: n}
+              end),
+            note:
+              "near = your mapped places within a #{round(Stay.walk_km() * 1000)} m walk. " <>
+                "An area not on_map could not be found; check its spelling."
+          })
+      end
+    end)
+  end
+
+  def put_stay_areas(conn, _params) do
+    conn |> put_status(422) |> json(%{error: "areas (list) is required"})
   end
 
   defp do_put_places(conn, poet, entry, places) do
