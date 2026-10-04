@@ -105,6 +105,8 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
+          |> assign(:hotels, nil)
+          |> assign(:hotel_query, %{"adults" => "2"})
           |> assign_journal(poet, nil)
           |> then(&assign(&1, :tour_open, &1.assigns.entries == []))
           |> assign(:tour_ready, false)
@@ -352,6 +354,44 @@ defmodule TravelingPoetWeb.JournalLive do
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
+  # Hotels for the reader's dates on a where-to-stay page (card-92): one
+  # search around the area the poet picked, ranked against its places. The
+  # partner call can take seconds, so it runs off the LiveView process.
+  def handle_event("find_hotels", params, socket) do
+    query = Map.take(params, ["checkin", "checkout", "adults"])
+
+    with %{key: "stay", left: [{:map, %{areas: areas, places: places}}]} <- socket.assigns.spread,
+         {:ok, checkin} <- Date.from_iso8601(query["checkin"] || ""),
+         {:ok, checkout} <- Date.from_iso8601(query["checkout"] || ""),
+         true <- Date.compare(checkout, checkin) == :gt,
+         %{} = centre <- hotel_centre(areas, socket.assigns.poet) do
+      adults = parse_adults(query["adults"])
+
+      {:noreply,
+       socket
+       |> assign(hotels: :loading, hotel_query: query)
+       |> start_async(:hotels, fn ->
+         with {:ok, found} <- TravelingPoet.Hotels.search(centre, checkin, checkout, adults) do
+           ranked =
+             found
+             |> TravelingPoet.Hotels.Rank.rank(places, areas)
+             |> Enum.take(6)
+             |> Enum.map(fn h ->
+               Map.put(
+                 h,
+                 :book_url,
+                 TravelingPoet.Hotels.booking_url(h, checkin, checkout, adults)
+               )
+             end)
+
+           {:ok, ranked}
+         end
+       end)}
+    else
+      _ -> {:noreply, assign(socket, hotels: {:error, :bad_dates}, hotel_query: query)}
+    end
+  end
+
   def handle_event("close_tour", _params, socket) do
     {:noreply, socket |> assign(:tour_open, false) |> assign(:tour_ready, false)}
   end
@@ -483,6 +523,32 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   ## Chat wiring (ported from alice-in-goals DashboardLive)
+
+  @impl true
+  def handle_async(:hotels, {:ok, result}, socket),
+    do: {:noreply, assign(socket, :hotels, result)}
+
+  def handle_async(:hotels, {:exit, _reason}, socket),
+    do: {:noreply, assign(socket, :hotels, {:error, :failed})}
+
+  defp parse_adults(value) do
+    case Integer.parse(to_string(value || "2")) do
+      {n, _} -> n |> max(1) |> min(6)
+      :error -> 2
+    end
+  end
+
+  # The area the poet picked, else the first one found on the map, else
+  # wherever the poet is.
+  defp hotel_centre(areas, poet) do
+    mapped = Enum.filter(areas, &TravelingPoet.Guide.StayArea.mapped?/1)
+
+    case Enum.find(mapped, & &1.recommended) || List.first(mapped) do
+      %{lat: lat, lng: lng} -> %{lat: lat, lng: lng}
+      nil when is_number(poet.current_lat) -> %{lat: poet.current_lat, lng: poet.current_lng}
+      nil -> nil
+    end
+  end
 
   @impl true
   def handle_info({:chat_send, message}, socket) do
@@ -1174,6 +1240,9 @@ defmodule TravelingPoetWeb.JournalLive do
                   {label}
                 </.link>
               </:controls>
+              <:hotels :if={TravelingPoet.Hotels.configured?()}>
+                <.hotel_search hotels={@hotels} query={@hotel_query} poet={@poet} />
+              </:hotels>
             </.stay_spread>
             <%!-- reading time per paragraph, for the taste profile: the
                   owner's own journal only, and only with the switch on --%>

@@ -53,6 +53,7 @@ config :traveling_poet,
 config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}]
 # Wikimedia Commons lookups (find_reference_photos) too
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]
+config :traveling_poet, hotels_req_options: [plug: {Req.Test, TravelingPoet.Hotels}]
 
 # Onboarding and mode switches provision the sprite in a background task.
 # Never do that from the test suite: with SPRITES_TOKEN/OPENROUTER_API_KEY in
