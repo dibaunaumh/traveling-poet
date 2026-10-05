@@ -73,10 +73,13 @@ defmodule TravelingPoetWeb.Router do
     get "/book/render/:token", BookController, :render_pdf
     # Files the agent produced in its sprite workspace (chat attachments etc.)
     get "/api/artifacts", Api.ArtifactController, :show
+    # A reader's Saved list shared with friends (card-93); the token is the key.
+    get "/shared/:token/places.kml", GuideExportController, :shared_kml
 
     live_session :public,
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do
       live "/discover", DiscoverLive
+      live "/shared/:token", SharedSavedLive
       live "/p/:slug", PublicJournalLive
       # Must precede /p/:slug/:date so "guide" isn't swallowed as a date.
       live "/p/:slug/guide", PublicGuideLive

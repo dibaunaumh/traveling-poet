@@ -8,14 +8,18 @@ defmodule TravelingPoetWeb.GuideExportController do
   alias TravelingPoet.{Bookmarks, MapsLinks}
 
   def saved_kml(conn, _params) do
-    user = conn.assigns.current_user
+    send_kml(conn, Bookmarks.places(conn.assigns.current_user.id))
+  end
 
-    places =
-      user.id
-      |> Bookmarks.list()
-      |> Enum.filter(&(&1.bookmark.kind == "place"))
-      |> Enum.map(& &1.item)
+  @doc "The same file from a shared Saved list, for the friends it was shared with."
+  def shared_kml(conn, %{"token" => token}) do
+    case Bookmarks.shared_by(token) do
+      nil -> conn |> put_status(404) |> text("Not found")
+      owner -> send_kml(conn, Bookmarks.places(owner.id))
+    end
+  end
 
+  defp send_kml(conn, places) do
     conn
     |> put_resp_content_type("application/vnd.google-earth.kml+xml")
     |> put_resp_header("content-disposition", ~s(attachment; filename="traveling-poet-saved.kml"))

@@ -561,6 +561,70 @@ defmodule TravelingPoetWeb.GuideComponents do
     """
   end
 
+  attr :id, :string, default: "saved-to-maps"
+  attr :kml_url, :string, required: true
+
+  @doc """
+  Saved places into Google Maps. Google offers no way for an app to fill a
+  Maps list, so this is the My Maps route: import the file once, and the
+  map shows in the Google Maps app under Saved and can be shared from there.
+  """
+  def maps_export(assigns) do
+    ~H"""
+    <details id={@id} class="mt-3 text-sm">
+      <summary class="cursor-pointer link">Put these places in Google Maps</summary>
+      <ol class="mt-2 ml-5 list-decimal space-y-1 opacity-80">
+        <li><a href={@kml_url} class="link">Download the places file</a>.</li>
+        <li>
+          Open <a
+            href="https://www.google.com/mymaps"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link"
+          >Google My Maps</a>,
+          create a map, and choose Import with that file.
+        </li>
+        <li>
+          The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends.
+        </li>
+      </ol>
+    </details>
+    """
+  end
+
+  attr :token, :string, default: nil
+
+  @doc "The owner's switch for sharing their Saved list with friends (card-93)."
+  def share_saved(assigns) do
+    ~H"""
+    <div id="share-saved" class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <button
+        :if={is_nil(@token)}
+        type="button"
+        id="share-saved-start"
+        phx-click="share_saved"
+        class="btn btn-sm"
+      >
+        Share this list with friends
+      </button>
+      <div :if={@token} class="flex flex-wrap items-center gap-2">
+        <span class="opacity-70">Anyone with this link sees these places:</span>
+        <a id="share-saved-link" href={~p"/shared/#{@token}"} target="_blank" class="link break-all">
+          {url(~p"/shared/#{@token}")}
+        </a>
+        <button
+          type="button"
+          id="share-saved-stop"
+          phx-click="stop_sharing"
+          class="btn btn-ghost btn-xs"
+        >
+          Stop sharing
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   attr :plan, :list, required: true, doc: "`Guide.DayPlan.plan/2`"
   attr :days, :integer, required: true
 

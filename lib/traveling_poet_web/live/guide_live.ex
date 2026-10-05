@@ -66,6 +66,16 @@ defmodule TravelingPoetWeb.GuideLive do
     {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
   end
 
+  def handle_event("share_saved", _params, socket) do
+    {:ok, user} = TravelingPoet.Bookmarks.share(socket.assigns.current_user)
+    {:noreply, assign(socket, :current_user, user)}
+  end
+
+  def handle_event("stop_sharing", _params, socket) do
+    {:ok, user} = TravelingPoet.Bookmarks.stop_sharing(socket.assigns.current_user)
+    {:noreply, assign(socket, :current_user, user)}
+  end
+
   def handle_event("plan_days", %{"days" => days}, socket) do
     days =
       case Integer.parse(to_string(days)) do
@@ -119,10 +129,8 @@ defmodule TravelingPoetWeb.GuideLive do
 
       <div :if={@saved_view} id="guide-saved">
         <.filter_chips filter={@filter} counts={@counts} />
-        <p :if={@places != [] and !@native_app} id="saved-to-maps" class="text-sm opacity-70 mt-2">
-          <a href={~p"/guide/saved.kml"} class="link">Download these places for Google Maps</a>
-          (import the file in Google My Maps to carry them on your trip).
-        </p>
+        <.share_saved :if={@places != []} token={@current_user.saved_share_token} />
+        <.maps_export :if={@places != [] and !@native_app} kml_url={~p"/guide/saved.kml"} />
         <.day_plan :if={@day_plan != []} plan={@day_plan} days={@plan_days} />
         <p
           :if={@places == [] and @saved_finds == []}
