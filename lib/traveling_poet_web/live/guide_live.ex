@@ -66,6 +66,27 @@ defmodule TravelingPoetWeb.GuideLive do
     {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
   end
 
+  def handle_event("share_saved", _params, socket) do
+    {:ok, user} = TravelingPoet.Bookmarks.share(socket.assigns.current_user)
+    {:noreply, assign(socket, :current_user, user)}
+  end
+
+  def handle_event("stop_sharing", _params, socket) do
+    {:ok, user} = TravelingPoet.Bookmarks.stop_sharing(socket.assigns.current_user)
+    {:noreply, assign(socket, :current_user, user)}
+  end
+
+  def handle_event("plan_days", %{"days" => days}, socket) do
+    days =
+      case Integer.parse(to_string(days)) do
+        {n, _} -> n |> max(1) |> min(7)
+        :error -> 3
+      end
+
+    {:noreply,
+     socket |> assign(:plan_days, days) |> GuideState.apply_params(current_params(socket))}
+  end
+
   # Saving here, or unsaving from the Saved view, which then drops the card.
   def handle_event("toggle_bookmark", params, socket) do
     {:noreply, socket} = Bookmarking.handle_event("toggle_bookmark", params, socket)
@@ -108,6 +129,9 @@ defmodule TravelingPoetWeb.GuideLive do
 
       <div :if={@saved_view} id="guide-saved">
         <.filter_chips filter={@filter} counts={@counts} />
+        <.share_saved :if={@places != []} token={@current_user.saved_share_token} />
+        <.maps_export :if={@places != [] and !@native_app} kml_url={~p"/guide/saved.kml"} />
+        <.day_plan :if={@day_plan != []} plan={@day_plan} days={@plan_days} />
         <p
           :if={@places == [] and @saved_finds == []}
           id="guide-saved-empty"
