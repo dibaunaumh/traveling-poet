@@ -113,6 +113,12 @@ config :traveling_poet,
   # go to the Req.Test stub, and the notifier stays off.
   resend_api_key: if(config_env() == :test, do: nil, else: System.get_env("RESEND_API_KEY")),
   email_from: System.get_env("EMAIL_FROM", "Traveling Poet <journal@poet.travel>"),
+  # Hotel search on where-to-stay pages (Hotels, card-92) via LiteAPI. Nil in
+  # test: requests go to the Req.Test stub. LITEAPI_BOOKING_URL is the
+  # white-label booking site's hotel URL template; no Book link until set.
+  liteapi_key: if(config_env() == :test, do: nil, else: System.get_env("LITEAPI_KEY")),
+  liteapi_booking_url: System.get_env("LITEAPI_BOOKING_URL"),
+  liteapi_currency: System.get_env("LITEAPI_CURRENCY", "EUR"),
   web_push_notifier: config_env() != :test,
   # Sign in with Apple (the iOS app), and later APNs and the App Store, all
   # signed with the one .p8 key from the developer account. nil in test, so a

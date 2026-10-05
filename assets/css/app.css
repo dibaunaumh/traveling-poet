@@ -2827,3 +2827,15 @@ body::before {
 .stay-near { font-size: 0.8rem; opacity: 0.75; }
 .leaflet-tooltip.stay-area-label { background: transparent; border: 0; box-shadow: none; font-weight: 600; color: #1f2937; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
 .leaflet-tooltip.stay-area-label::before { display: none; }
+
+/* Hotels for the reader's dates on a where-to-stay page (card-92). */
+.hotel-search { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid color-mix(in oklab, var(--color-base-content) 15%, transparent); }
+.hotel-search-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.6rem; margin-top: 0.5rem; }
+.hotel-search-form label { display: flex; flex-direction: column; font-size: 0.75rem; gap: 0.15rem; }
+.hotel-search-form input { border: 1px solid color-mix(in oklab, var(--color-base-content) 25%, transparent); border-radius: 0.4rem; padding: 0.3rem 0.45rem; background: var(--color-base-100); font-size: 0.85rem; }
+.hotel-search-form input[type="number"] { width: 4rem; }
+.hotel-list { list-style: none; margin: 0.9rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
+.hotel { display: flex; gap: 0.75rem; align-items: flex-start; }
+.hotel-photo { width: 4.5rem; height: 4.5rem; object-fit: cover; border-radius: 0.4rem; flex: none; }
+.hotel-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.hotel-price { font-size: 0.9rem; font-weight: 600; }

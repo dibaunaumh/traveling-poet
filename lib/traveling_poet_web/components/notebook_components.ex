@@ -282,6 +282,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   slot :map, required: true, doc: "the PoetMap element, fed by stay_map_data/2"
   slot :controls
+  slot :hotels, doc: "hotel search for the reader's dates (owner's journal only)"
 
   @doc """
   The Where to stay spread (card-90): the neighbourhoods the poet weighed,
@@ -332,6 +333,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             <p :if={near.total > 0} class="stay-near">{near_line(near)}</p>
           </li>
         </ol>
+        {render_slot(@hotels)}
       </div>
     </article>
     """
@@ -353,6 +355,89 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
     "Within a ten-minute walk: " <> Enum.join(parts, ", ")
   end
+
+  attr :hotels, :any, required: true, doc: "nil, :loading, {:ok, ranked}, or {:error, reason}"
+  attr :query, :map, required: true, doc: "checkin, checkout, adults as strings"
+  attr :poet, :map, required: true
+
+  @doc """
+  Hotels for the reader's dates, ranked by value, location and cost
+  (card-92): live prices from LiteAPI, and the poet's places within a walk.
+  Book links go to the partner booking site and may earn the app a
+  commission; they say so.
+  """
+  def hotel_search(assigns) do
+    ~H"""
+    <section id="hotel-search" class="hotel-search">
+      <h4 class="notebook-section-title">Hotels for your dates</h4>
+      <form id="hotel-search-form" phx-submit="find_hotels" class="hotel-search-form">
+        <label>
+          <span>Check in</span>
+          <input type="date" name="checkin" value={@query["checkin"]} required />
+        </label>
+        <label>
+          <span>Check out</span>
+          <input type="date" name="checkout" value={@query["checkout"]} required />
+        </label>
+        <label>
+          <span>Guests</span>
+          <input type="number" name="adults" min="1" max="6" value={@query["adults"] || "2"} />
+        </label>
+        <button type="submit" class="btn btn-sm btn-neutral" disabled={@hotels == :loading}>
+          {if @hotels == :loading, do: "Looking...", else: "Find hotels"}
+        </button>
+      </form>
+      <p :if={match?({:error, _}, @hotels)} class="text-sm text-error mt-2">
+        {hotel_error(@hotels)}
+      </p>
+      <p :if={match?({:ok, []}, @hotels)} class="text-sm opacity-70 mt-2">
+        No rooms found for those dates.
+      </p>
+      <ol :if={match?({:ok, [_ | _]}, @hotels)} class="hotel-list">
+        <li :for={h <- elem(@hotels, 1)} id={"hotel-#{h.id}"} class="hotel">
+          <img :if={h.photo} src={h.photo} alt="" class="hotel-photo" loading="lazy" />
+          <div class="hotel-body">
+            <div class="stop-name">{h.name}</div>
+            <div class="hotel-price">
+              {money(h.per_night, h.currency)} a night, {money(h.total, h.currency)} in all
+            </div>
+            <div :if={h.rating} class="text-sm">
+              {h.rating} guest rating<span :if={h.review_count}>, {h.review_count} reviews</span>
+            </div>
+            <div :if={h.near > 0} class="stay-near">
+              {h.near} of {@poet.name}'s places within a ten-minute walk{if h.area,
+                do: ", in #{h.area}"}
+            </div>
+            <a
+              :if={h.book_url}
+              href={h.book_url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              class="link link-primary text-sm"
+            >
+              See rooms and book ↗
+            </a>
+          </div>
+        </li>
+      </ol>
+      <p :if={match?({:ok, [_ | _]}, @hotels)} class="text-xs opacity-60 mt-2">
+        Prices from our booking partner, for your dates. Booking through these links supports
+        Traveling Poet.
+      </p>
+    </section>
+    """
+  end
+
+  defp hotel_error({:error, :bad_dates}), do: "Check-out has to come after check-in."
+  defp hotel_error({:error, :not_configured}), do: "Hotel search is not switched on yet."
+  defp hotel_error(_), do: "Could not reach our booking partner just now. Try again in a moment."
+
+  defp money(amount, currency) when is_number(amount) do
+    whole = amount |> round() |> Integer.to_string()
+    if currency == "EUR", do: "€" <> whole, else: "#{whole} #{currency}"
+  end
+
+  defp money(_, _), do: ""
 
   @doc "The PoetMap payload for a stay spread: its areas ringed, the poet's places around them."
   def stay_map_data(%{key: "stay", left: [{:map, %{areas: areas, places: places}}]}, poet_name) do
