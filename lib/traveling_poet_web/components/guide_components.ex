@@ -516,15 +516,27 @@ defmodule TravelingPoetWeb.GuideComponents do
         <p :if={@place.blurb} class="text-sm opacity-80 leading-relaxed">{@place.blurb}</p>
         <div :if={@place.address} class="text-xs opacity-50">{@place.address}</div>
 
-        <a
-          :if={@place.source_url}
-          href={@place.source_url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          class="link link-primary text-sm"
-        >
-          View details ↗
-        </a>
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <a
+            :if={@place.source_url}
+            href={@place.source_url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            class="link link-primary text-sm"
+          >
+            View details ↗
+          </a>
+          <a
+            :if={TravelingPoet.MapsLinks.google_url(@place)}
+            id={"maps-#{@place.id}"}
+            href={TravelingPoet.MapsLinks.google_url(@place)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link text-sm opacity-80"
+          >
+            Open in Google Maps ↗
+          </a>
+        </div>
         <.link :if={@source} navigate={elem(@source, 1)} class="link text-xs opacity-70">
           {elem(@source, 0)}
         </.link>

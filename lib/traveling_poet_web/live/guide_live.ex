@@ -108,6 +108,10 @@ defmodule TravelingPoetWeb.GuideLive do
 
       <div :if={@saved_view} id="guide-saved">
         <.filter_chips filter={@filter} counts={@counts} />
+        <p :if={@places != [] and !@native_app} id="saved-to-maps" class="text-sm opacity-70 mt-2">
+          <a href={~p"/guide/saved.kml"} class="link">Download these places for Google Maps</a>
+          (import the file in Google My Maps to carry them on your trip).
+        </p>
         <p
           :if={@places == [] and @saved_finds == []}
           id="guide-saved-empty"
