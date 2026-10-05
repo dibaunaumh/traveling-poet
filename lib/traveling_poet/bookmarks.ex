@@ -20,7 +20,7 @@ defmodule TravelingPoet.Bookmarks do
   alias TravelingPoet.Repo
   alias TravelingPoet.Topics.Find
 
-  @place_fields ~w(name category blurb address lat lng poet_rating source_url media_id starts_on ends_on entry_date path_point_id)a
+  @place_fields ~w(name category blurb address lat lng poet_rating source_url media_id starts_on ends_on entry_date path_point_id hours book_ahead)a
   @find_fields ~w(name url kind blurb poet_rating media_id entry_date)a
 
   @doc "The key a bookmark and its item share."

@@ -230,6 +230,9 @@ an event that has already finished is the one with little value left.
   A festival running 9 September to 3 October is
   `starts_on: "2026-09-09", ends_on: "2026-10-03"`. If it runs a single day,
   set both to that day. Never guess a date; omit it instead.
+- `hours` and `book_ahead` help your companion plan a day: send `hours`
+  exactly as a page you opened states them, and `book_ahead: true` only when
+  a page says to reserve. Omit both when you did not read them.
 - This call **replaces** the day's whole list, so send it complete.
 - The response tells you which addresses could not be located (`not_located`)
   and which links were dead (`dropped`). A dropped place is gone: leave it

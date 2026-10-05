@@ -906,7 +906,9 @@ defmodule TravelingPoet.Provisioner do
                     poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" },
                     source_url: { type: "string", description: "the place's own page, copied from a page you actually fetched" },
                     starts_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" },
-                    ends_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" }
+                    ends_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" },
+                    hours: { type: "string", description: "opening hours exactly as a page you fetched states them, e.g. 'Tue-Sun 12:00-22:00'; omit when you did not read them" },
+                    book_ahead: { type: "boolean", description: "true only when a page you read says to reserve or book (a small dining room, a tasting menu, timed tickets)" }
                   }
                 }
               }

@@ -35,6 +35,26 @@ defmodule TravelingPoetWeb.MapsExportTest do
     refute kml =~ "Nowhere"
   end
 
+  test "the poet's hours and book-ahead flag survive a places re-put" do
+    user = agent_user_fixture()
+    poet = poet_fixture(user)
+    entry = published_entry_fixture(poet)
+
+    [place] =
+      TravelingPoet.Guide.replace_places(entry, [
+        %{
+          "name" => "Starka",
+          "category" => "restaurant",
+          "hours" => "  Mon-Sun\n 12:00-23:00 ",
+          "book_ahead" => true
+        }
+      ])
+      |> elem(1)
+
+    assert place.hours == "Mon-Sun 12:00-23:00"
+    assert place.book_ahead
+  end
+
   describe "a reader's saved places" do
     setup do
       reader = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
@@ -44,12 +64,24 @@ defmodule TravelingPoetWeb.MapsExportTest do
       cafe =
         place_fixture(poet, entry, %{
           name: "Charlotte",
+          category: "cafe",
           address: "plac Szczepański 2, Kraków",
           lat: 50.0646,
           lng: 19.9358
         })
 
+      dinner =
+        place_fixture(poet, entry, %{
+          name: "Pod Baranami",
+          category: "restaurant",
+          lat: 50.0605,
+          lng: 19.9355,
+          hours: "daily 12:00-23:00",
+          book_ahead: true
+        })
+
       {:ok, _} = Bookmarks.toggle(reader.id, "place", cafe.id)
+      {:ok, _} = Bookmarks.toggle(reader.id, "place", dinner.id)
       %{reader: reader, cafe: cafe}
     end
 
@@ -74,6 +106,26 @@ defmodule TravelingPoetWeb.MapsExportTest do
 
       assert has_element?(view, ~s(#saved-to-maps a[href="/guide/saved.kml"]))
       assert has_element?(view, "#maps-#{cafe.id}[href^=\"https://www.google.com/maps/search/\"]")
+    end
+
+    test "Plan my days lays the saves out with hours, booking and a route",
+         %{conn: conn, reader: reader} do
+      {:ok, view, _html} = live(signed_in(conn, reader), ~p"/guide?saved=1")
+
+      # Two places a street apart: one day, and the panel says so.
+      assert has_element?(view, "#plan-day-1")
+      refute has_element?(view, "#plan-day-2")
+      assert has_element?(view, "#day-plan-fewer")
+
+      view |> form("#day-plan-form", %{days: "1"}) |> render_change()
+
+      day = view |> element("#plan-day-1") |> render()
+      assert day =~ "Open daily 12:00-23:00"
+      assert day =~ "Book ahead"
+      # Coffee before dinner.
+      assert :binary.match(day, "Charlotte") < :binary.match(day, "Pod Baranami")
+      assert has_element?(view, ~s(#plan-route-1[href^="https://www.google.com/maps/dir/"]))
+      refute has_element?(view, "#day-plan-fewer")
     end
   end
 end

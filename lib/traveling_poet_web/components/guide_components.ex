@@ -511,6 +511,7 @@ defmodule TravelingPoetWeb.GuideComponents do
           <.save_button :if={is_boolean(@saved)} saved={@saved} kind="place" item={@place} />
         </div>
         <.event_dates place={@place} />
+        <.hours_line place={@place} />
         <.poet_pick :if={@place.poet_rating} place={@place} poet={@poet} />
 
         <p :if={@place.blurb} class="text-sm opacity-80 leading-relaxed">{@place.blurb}</p>
@@ -542,6 +543,82 @@ defmodule TravelingPoetWeb.GuideComponents do
         </.link>
       </div>
     </div>
+    """
+  end
+
+  attr :place, :map, required: true
+
+  @doc "Opening hours as the poet read them, and whether to book ahead."
+  def hours_line(assigns) do
+    ~H"""
+    <div
+      :if={Map.get(@place, :hours) || Map.get(@place, :book_ahead)}
+      class="flex flex-wrap items-center gap-2 text-xs"
+    >
+      <span :if={Map.get(@place, :hours)} class="opacity-70">Open {Map.get(@place, :hours)}</span>
+      <span :if={Map.get(@place, :book_ahead)} class="badge badge-sm badge-outline">Book ahead</span>
+    </div>
+    """
+  end
+
+  attr :plan, :list, required: true, doc: "`Guide.DayPlan.plan/2`"
+  attr :days, :integer, required: true
+
+  @doc """
+  Plan my days (card-91): the saved places split into days by part of town,
+  each day in the order you would walk it, with its route in Google Maps.
+  """
+  def day_plan(assigns) do
+    ~H"""
+    <section id="day-plan" class="mt-4 rounded-box border border-base-300 bg-base-200 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">Plan my days</h2>
+          <p class="text-xs opacity-70">
+            Your saved places, grouped by part of town and in walking order: coffee first, dinner last.
+          </p>
+        </div>
+        <form id="day-plan-form" phx-change="plan_days" class="flex items-center gap-2 text-sm">
+          <label for="day-plan-days">Days</label>
+          <select id="day-plan-days" name="days" class="select select-sm w-20">
+            <option :for={n <- 1..7} value={n} selected={n == @days}>{n}</option>
+          </select>
+        </form>
+      </div>
+
+      <p :if={length(@plan) < @days} id="day-plan-fewer" class="mt-3 text-sm opacity-70">
+        Your saved places fit in {length(@plan)} {if length(@plan) == 1, do: "day", else: "days"}, so the rest are free.
+      </p>
+      <ol class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <li :for={day <- @plan} id={"plan-day-#{day.day}"} class="rounded-box bg-base-100 p-3">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="font-semibold text-sm">Day {day.day}</h3>
+            <a
+              :if={day.route_url}
+              id={"plan-route-#{day.day}"}
+              href={day.route_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link text-xs"
+            >
+              Walk it in Google Maps ↗
+            </a>
+          </div>
+          <ol class="mt-2 space-y-2">
+            <li :for={{place, i} <- Enum.with_index(day.places, 1)} class="flex gap-2 text-sm">
+              <span class="opacity-50 tabular-nums">{i}.</span>
+              <div>
+                <div>
+                  <span class="font-medium">{place.name}</span>
+                  <span class="text-xs opacity-60">{humanize_category(place.category)}</span>
+                </div>
+                <.hours_line place={place} />
+              </div>
+            </li>
+          </ol>
+        </li>
+      </ol>
+    </section>
     """
   end
 

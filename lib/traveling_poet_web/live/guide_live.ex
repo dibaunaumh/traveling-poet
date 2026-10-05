@@ -66,6 +66,17 @@ defmodule TravelingPoetWeb.GuideLive do
     {:noreply, push_patch(socket, to: guide_path(socket, overrides))}
   end
 
+  def handle_event("plan_days", %{"days" => days}, socket) do
+    days =
+      case Integer.parse(to_string(days)) do
+        {n, _} -> n |> max(1) |> min(7)
+        :error -> 3
+      end
+
+    {:noreply,
+     socket |> assign(:plan_days, days) |> GuideState.apply_params(current_params(socket))}
+  end
+
   # Saving here, or unsaving from the Saved view, which then drops the card.
   def handle_event("toggle_bookmark", params, socket) do
     {:noreply, socket} = Bookmarking.handle_event("toggle_bookmark", params, socket)
@@ -112,6 +123,7 @@ defmodule TravelingPoetWeb.GuideLive do
           <a href={~p"/guide/saved.kml"} class="link">Download these places for Google Maps</a>
           (import the file in Google My Maps to carry them on your trip).
         </p>
+        <.day_plan :if={@day_plan != []} plan={@day_plan} days={@plan_days} />
         <p
           :if={@places == [] and @saved_finds == []}
           id="guide-saved-empty"
