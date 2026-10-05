@@ -335,8 +335,22 @@ defmodule TravelingPoet.Poets do
           )
       end
 
-    with_excursion(route, poet, today)
+    route |> with_excursion(poet, today) |> with_stay_guide(poet)
   end
+
+  # Where to stay (card-90): on the first plain day at a Trip Scout stop the
+  # poet weighs the city's neighbourhoods as a base for the reader, once per
+  # city. Not on the move day (the poet is still arriving and its current
+  # place is the last town's) and not on an excursion; the next stay day.
+  defp with_stay_guide(%{scouting: true, day: "stay"} = plan, %Poet{} = poet) do
+    city = poet.current_place_name
+
+    if is_binary(city) and city != "" and not TravelingPoet.Guide.Stay.weighed?(poet.id, city),
+      do: Map.put(plan, :stay_guide, %{city: city}),
+      else: Map.put(plan, :stay_guide, nil)
+  end
+
+  defp with_stay_guide(plan, _poet), do: Map.put(plan, :stay_guide, nil)
 
   # An excursion is a stay day spent off the road, into one of the
   # companion's topics. It never displaces a move (a chat-requested stop and

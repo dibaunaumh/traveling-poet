@@ -45,6 +45,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Credits.CreditTransaction,
     Usage.UsageEvent,
     Guide.Place,
+    Guide.StayArea,
     Journal.ParagraphSubject,
     Preferences.Preference,
     Preferences.EntryPrompt,

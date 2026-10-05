@@ -104,6 +104,7 @@ defmodule TravelingPoetWeb.Router do
     get "/journal_entries/:date", JournalApiController, :show
     put "/journal_entries/:date/sections", JournalApiController, :put_sections
     put "/journal_entries/:date/places", JournalApiController, :put_places
+    put "/journal_entries/:date/stay_areas", JournalApiController, :put_stay_areas
     put "/journal_entries/:date/finds", JournalApiController, :put_finds
     post "/journal_entries/:date/publish", JournalApiController, :publish
     post "/media", MediaApiController, :create

@@ -275,6 +275,106 @@ defmodule TravelingPoetWeb.NotebookComponents do
   defp stop_count(stops), do: "#{length(stops)} #{ngettext("stop", "stops", length(stops))}"
 
   attr :entry, :map, required: true
+  attr :day, :integer, default: nil
+  attr :spread, :map, required: true, doc: "the \"stay\" spread from Journal.Spreads.stay/2"
+  attr :poet, :map, required: true
+  attr :rest, :global
+
+  slot :map, required: true, doc: "the PoetMap element, fed by stay_map_data/2"
+  slot :controls
+
+  @doc """
+  The Where to stay spread (card-90): the neighbourhoods the poet weighed,
+  ringed on a map on the left, ranked on the right with what lies within a
+  short walk of each (the app's count, not the poet's).
+  """
+  def stay_spread(assigns) do
+    ranked = for {:area, ranked} <- assigns.spread.right, do: ranked
+    assigns = assign(assigns, ranked: ranked, city: city_of(ranked))
+
+    ~H"""
+    <article class="spread" {@rest}>
+      <div class="notebook-page spread-page spread-left">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <.entry_heading entry={@entry} day={@day} />
+          <div :if={@controls != []} class="flex items-center gap-1 shrink-0">
+            {render_slot(@controls)}
+          </div>
+        </div>
+        <figure class="taped-map">
+          {render_slot(@map)}
+        </figure>
+        <p class="notebook-caption">
+          Each ring is about a ten-minute walk across.
+        </p>
+      </div>
+      <div class="notebook-page spread-page spread-right">
+        <h3 class="notebook-section-title mb-3">
+          Where to stay{if @city, do: " in #{@city}"}
+        </h3>
+        <ol class="stay-areas">
+          <li
+            :for={%{area: area, near: near} <- @ranked}
+            id={"stay-area-#{area.id}"}
+            class="stay-area"
+          >
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="stop-name">{area.name}</div>
+              <span :if={area.recommended} class="stay-pick">{@poet.name}'s pick</span>
+            </div>
+            <p :if={area.summary} class="text-sm leading-relaxed">{area.summary}</p>
+            <p :if={area.best_for} class="text-sm">
+              <span class="opacity-60">For you:</span> {area.best_for}
+            </p>
+            <p :if={area.tradeoffs} class="text-sm">
+              <span class="opacity-60">The catch:</span> {area.tradeoffs}
+            </p>
+            <p :if={near.total > 0} class="stay-near">{near_line(near)}</p>
+          </li>
+        </ol>
+      </div>
+    </article>
+    """
+  end
+
+  defp city_of([%{area: %{city: city}} | _]), do: city
+  defp city_of(_), do: nil
+
+  # "Within a ten-minute walk: 7 places to eat, 2 shops, 3 sights"
+  defp near_line(near) do
+    parts =
+      [
+        {near.food, "place to eat", "places to eat"},
+        {near.shops, "shop", "shops"},
+        {near.sights, "sight", "sights"}
+      ]
+      |> Enum.filter(fn {n, _, _} -> n > 0 end)
+      |> Enum.map(fn {n, one, many} -> "#{n} #{if n == 1, do: one, else: many}" end)
+
+    "Within a ten-minute walk: " <> Enum.join(parts, ", ")
+  end
+
+  @doc "The PoetMap payload for a stay spread: its areas ringed, the poet's places around them."
+  def stay_map_data(%{key: "stay", left: [{:map, %{areas: areas, places: places}}]}, poet_name) do
+    %{
+      path: [],
+      places: TravelingPoet.Guide.map_payload(places, poet_name),
+      areas:
+        areas
+        |> Enum.filter(&TravelingPoet.Guide.StayArea.mapped?/1)
+        |> Enum.map(fn a ->
+          %{
+            name: a.name,
+            lat: a.lat,
+            lng: a.lng,
+            recommended: a.recommended,
+            radius_m: round(TravelingPoet.Guide.Stay.walk_km() * 1000)
+          }
+        end)
+    }
+  end
+
+  attr :entry, :map, required: true
   attr :spread, :map, required: true, doc: "the Finds spread from Journal.Spreads.pack/4"
   attr :day, :integer, default: nil
   attr :poet, :map, required: true

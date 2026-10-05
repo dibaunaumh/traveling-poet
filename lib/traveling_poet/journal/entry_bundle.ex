@@ -16,6 +16,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
   """
 
   alias TravelingPoet.{Guide, Journal, Poets, Topics}
+  alias TravelingPoet.Guide.Stay
   alias TravelingPoet.Journal.{Spots, Spreads}
 
   defstruct entry: nil,
@@ -59,6 +60,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
     extra_by_entry = Journal.unattached_illustrations_by_entry(entries)
     places_by_entry = Guide.list_places_for_entries(entry_ids)
     finds_by_entry = Topics.list_finds_for_entries(entry_ids)
+    areas_by_entry = Stay.list_for_entries(entry_ids)
 
     media_ids =
       Enum.flat_map(entries, fn e -> Enum.map(e.sections, & &1.media_id) end) ++
@@ -90,9 +92,20 @@ defmodule TravelingPoet.Journal.EntryBundle do
         place_media: pick(all_media, Enum.map(places, & &1.media_id)),
         find_media: pick(all_media, Enum.map(finds, & &1.media_id)),
         stay_id: Guide.path_point_for(entry, stays),
-        spreads: Spreads.pack(entry, media, extra, places ++ finds)
+        spreads:
+          Spreads.pack(entry, media, extra, places ++ finds) ++
+            stay_spread(entry, Map.get(areas_by_entry, entry.id, []))
       }
     end)
+  end
+
+  # A where-to-stay day (card-90) gets a third spread: the areas the poet
+  # weighed, ranked, with every place of the poet's around them for the map.
+  defp stay_spread(_entry, []), do: []
+
+  defp stay_spread(entry, areas) do
+    pool = Stay.places_near(entry.poet_id, areas)
+    [Spreads.stay(Stay.ranked(areas, pool), pool)]
   end
 
   defp pick(all_media, ids) do
