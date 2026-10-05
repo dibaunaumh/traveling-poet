@@ -28,6 +28,33 @@ defmodule TravelingPoet.MapsLinks do
 
   def google_url(_), do: nil
 
+  @doc """
+  A Google Maps walking route through these places in order (a day of a
+  plan, card-91): the first is the start, the last the end, up to eight
+  stops between. Nil with fewer than two mapped places.
+  """
+  def directions_url(places) do
+    points =
+      places
+      |> Enum.filter(&(is_number(Map.get(&1, :lat)) and is_number(Map.get(&1, :lng))))
+      |> Enum.map(&"#{&1.lat},#{&1.lng}")
+
+    case points do
+      [origin | rest] when rest != [] ->
+        destination = List.last(rest)
+        middle = rest |> Enum.drop(-1) |> Enum.take(8)
+
+        query =
+          [api: 1, origin: origin, destination: destination, travelmode: "walking"] ++
+            if(middle == [], do: [], else: [waypoints: Enum.join(middle, "|")])
+
+        "https://www.google.com/maps/dir/?" <> URI.encode_query(query)
+
+      _ ->
+        nil
+    end
+  end
+
   @doc "A KML document of the places that have coordinates."
   def kml(places, title) do
     marks =

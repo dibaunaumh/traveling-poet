@@ -28,6 +28,10 @@ defmodule TravelingPoet.Guide.Place do
     # Events only: what the entry said about when it runs.
     field :starts_on, :date
     field :ends_on, :date
+    # As the page the poet read states them (card-91); nil when it did not.
+    field :hours, :string
+    # A tasting menu, a tiny room: reserve before going.
+    field :book_ahead, :boolean, default: false
     field :position, :integer, default: 0
     field :source, :string, default: "agent"
     # Guide.PlaceTopics: set by the app's classifier, never by the poet, so
@@ -115,11 +119,14 @@ defmodule TravelingPoet.Guide.Place do
       :position,
       :source,
       :starts_on,
-      :ends_on
+      :ends_on,
+      :hours,
+      :book_ahead
     ])
     |> update_change(:category, &normalize_category/1)
     |> update_change(:name, &String.trim/1)
     |> update_change(:blurb, &TravelingPoet.Journal.Blank.clean/1)
+    |> update_change(:hours, &short_hours/1)
     |> validate_required([:poet_id, :journal_entry_id, :entry_date, :name, :category, :position])
     |> validate_inclusion(:category, @categories)
     |> validate_inclusion(:geocode_status, @geocode_statuses)
@@ -127,6 +134,16 @@ defmodule TravelingPoet.Guide.Place do
     |> validate_number(:lat, greater_than_or_equal_to: -90, less_than_or_equal_to: 90)
     |> validate_number(:lng, greater_than_or_equal_to: -180, less_than_or_equal_to: 180)
     |> unique_constraint([:journal_entry_id, :name])
+  end
+
+  # Hours as the page put them, kept to one line a card can show.
+  defp short_hours(nil), do: nil
+
+  defp short_hours(text) do
+    case text |> String.split() |> Enum.join(" ") |> String.slice(0, 120) do
+      "" -> nil
+      line -> line
+    end
   end
 
   @topic_fields [:topic, :second_topic, :place_type, :topics_classified_at]
