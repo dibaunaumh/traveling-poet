@@ -73,10 +73,13 @@ defmodule TravelingPoetWeb.Router do
     get "/book/render/:token", BookController, :render_pdf
     # Files the agent produced in its sprite workspace (chat attachments etc.)
     get "/api/artifacts", Api.ArtifactController, :show
+    # A reader's Saved list shared with friends (card-93); the token is the key.
+    get "/shared/:token/places.kml", GuideExportController, :shared_kml
 
     live_session :public,
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do
       live "/discover", DiscoverLive
+      live "/shared/:token", SharedSavedLive
       live "/p/:slug", PublicJournalLive
       # Must precede /p/:slug/:date so "guide" isn't swallowed as a date.
       live "/p/:slug/guide", PublicGuideLive
@@ -149,6 +152,8 @@ defmodule TravelingPoetWeb.Router do
     get "/journal/book/pdf/:id", BookController, :download_pdf
     get "/journal/book/drive/connect", BookController, :connect_drive
     get "/settings/calendar/connect", CalendarController, :connect
+    # Saved places as KML, for Google My Maps
+    get "/guide/saved.kml", GuideExportController, :saved_kml
     # The iOS app posts StoreKit purchases here to be credited
     post "/iap/apple/transactions", IapController, :create
     # The iOS app's one-time consent to third-party AI

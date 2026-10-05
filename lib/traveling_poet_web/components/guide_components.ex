@@ -511,25 +511,178 @@ defmodule TravelingPoetWeb.GuideComponents do
           <.save_button :if={is_boolean(@saved)} saved={@saved} kind="place" item={@place} />
         </div>
         <.event_dates place={@place} />
+        <.hours_line place={@place} />
         <.poet_pick :if={@place.poet_rating} place={@place} poet={@poet} />
 
         <p :if={@place.blurb} class="text-sm opacity-80 leading-relaxed">{@place.blurb}</p>
         <div :if={@place.address} class="text-xs opacity-50">{@place.address}</div>
 
-        <a
-          :if={@place.source_url}
-          href={@place.source_url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          class="link link-primary text-sm"
-        >
-          View details ↗
-        </a>
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
+          <a
+            :if={@place.source_url}
+            href={@place.source_url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            class="link link-primary text-sm"
+          >
+            View details ↗
+          </a>
+          <a
+            :if={TravelingPoet.MapsLinks.google_url(@place)}
+            id={"maps-#{@place.id}"}
+            href={TravelingPoet.MapsLinks.google_url(@place)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link text-sm opacity-80"
+          >
+            Open in Google Maps ↗
+          </a>
+        </div>
         <.link :if={@source} navigate={elem(@source, 1)} class="link text-xs opacity-70">
           {elem(@source, 0)}
         </.link>
       </div>
     </div>
+    """
+  end
+
+  attr :place, :map, required: true
+
+  @doc "Opening hours as the poet read them, and whether to book ahead."
+  def hours_line(assigns) do
+    ~H"""
+    <div
+      :if={Map.get(@place, :hours) || Map.get(@place, :book_ahead)}
+      class="flex flex-wrap items-center gap-2 text-xs"
+    >
+      <span :if={Map.get(@place, :hours)} class="opacity-70">Open {Map.get(@place, :hours)}</span>
+      <span :if={Map.get(@place, :book_ahead)} class="badge badge-sm badge-outline">Book ahead</span>
+    </div>
+    """
+  end
+
+  attr :id, :string, default: "saved-to-maps"
+  attr :kml_url, :string, required: true
+
+  @doc """
+  Saved places into Google Maps. Google offers no way for an app to fill a
+  Maps list, so this is the My Maps route: import the file once, and the
+  map shows in the Google Maps app under Saved and can be shared from there.
+  """
+  def maps_export(assigns) do
+    ~H"""
+    <details id={@id} class="mt-3 text-sm">
+      <summary class="cursor-pointer link">Put these places in Google Maps</summary>
+      <ol class="mt-2 ml-5 list-decimal space-y-1 opacity-80">
+        <li><a href={@kml_url} class="link">Download the places file</a>.</li>
+        <li>
+          Open <a
+            href="https://www.google.com/mymaps"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link"
+          >Google My Maps</a>,
+          create a map, and choose Import with that file.
+        </li>
+        <li>
+          The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends.
+        </li>
+      </ol>
+    </details>
+    """
+  end
+
+  attr :token, :string, default: nil
+
+  @doc "The owner's switch for sharing their Saved list with friends (card-93)."
+  def share_saved(assigns) do
+    ~H"""
+    <div id="share-saved" class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <button
+        :if={is_nil(@token)}
+        type="button"
+        id="share-saved-start"
+        phx-click="share_saved"
+        class="btn btn-sm"
+      >
+        Share this list with friends
+      </button>
+      <div :if={@token} class="flex flex-wrap items-center gap-2">
+        <span class="opacity-70">Anyone with this link sees these places:</span>
+        <a id="share-saved-link" href={~p"/shared/#{@token}"} target="_blank" class="link break-all">
+          {url(~p"/shared/#{@token}")}
+        </a>
+        <button
+          type="button"
+          id="share-saved-stop"
+          phx-click="stop_sharing"
+          class="btn btn-ghost btn-xs"
+        >
+          Stop sharing
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  attr :plan, :list, required: true, doc: "`Guide.DayPlan.plan/2`"
+  attr :days, :integer, required: true
+
+  @doc """
+  Plan my days (card-91): the saved places split into days by part of town,
+  each day in the order you would walk it, with its route in Google Maps.
+  """
+  def day_plan(assigns) do
+    ~H"""
+    <section id="day-plan" class="mt-4 rounded-box border border-base-300 bg-base-200 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">Plan my days</h2>
+          <p class="text-xs opacity-70">
+            Your saved places, grouped by part of town and in walking order: coffee first, dinner last.
+          </p>
+        </div>
+        <form id="day-plan-form" phx-change="plan_days" class="flex items-center gap-2 text-sm">
+          <label for="day-plan-days">Days</label>
+          <select id="day-plan-days" name="days" class="select select-sm w-20">
+            <option :for={n <- 1..7} value={n} selected={n == @days}>{n}</option>
+          </select>
+        </form>
+      </div>
+
+      <p :if={length(@plan) < @days} id="day-plan-fewer" class="mt-3 text-sm opacity-70">
+        Your saved places fit in {length(@plan)} {if length(@plan) == 1, do: "day", else: "days"}, so the rest are free.
+      </p>
+      <ol class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <li :for={day <- @plan} id={"plan-day-#{day.day}"} class="rounded-box bg-base-100 p-3">
+          <div class="flex items-baseline justify-between gap-2">
+            <h3 class="font-semibold text-sm">Day {day.day}</h3>
+            <a
+              :if={day.route_url}
+              id={"plan-route-#{day.day}"}
+              href={day.route_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link text-xs"
+            >
+              Walk it in Google Maps ↗
+            </a>
+          </div>
+          <ol class="mt-2 space-y-2">
+            <li :for={{place, i} <- Enum.with_index(day.places, 1)} class="flex gap-2 text-sm">
+              <span class="opacity-50 tabular-nums">{i}.</span>
+              <div>
+                <div>
+                  <span class="font-medium">{place.name}</span>
+                  <span class="text-xs opacity-60">{humanize_category(place.category)}</span>
+                </div>
+                <.hours_line place={place} />
+              </div>
+            </li>
+          </ol>
+        </li>
+      </ol>
+    </section>
     """
   end
 

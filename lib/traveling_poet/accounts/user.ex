@@ -48,6 +48,8 @@ defmodule TravelingPoet.Accounts.User do
     field :reading_signals, :boolean, default: true
     # the daily page email (Email.Notifier); off from Settings or the email's link
     field :email_notify, :boolean, default: true
+    # The private link to their Saved list (card-93); nil when not shared.
+    field :saved_share_token, :string
 
     # Credits (milli-credits; see TravelingPoet.Credits)
     field :credits_balance, :integer, default: 0

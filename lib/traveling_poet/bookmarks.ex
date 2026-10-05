@@ -20,7 +20,7 @@ defmodule TravelingPoet.Bookmarks do
   alias TravelingPoet.Repo
   alias TravelingPoet.Topics.Find
 
-  @place_fields ~w(name category blurb address lat lng poet_rating source_url media_id starts_on ends_on entry_date path_point_id)a
+  @place_fields ~w(name category blurb address lat lng poet_rating source_url media_id starts_on ends_on entry_date path_point_id hours book_ahead)a
   @find_fields ~w(name url kind blurb poet_rating media_id entry_date)a
 
   @doc "The key a bookmark and its item share."
@@ -39,6 +39,32 @@ defmodule TravelingPoet.Bookmarks do
   end
 
   def saved?(keys, item), do: MapSet.member?(keys, key(item))
+
+  @doc """
+  The token for a reader's shared Saved list, made on first share (card-93).
+  Anyone with the link sees the places as the owner does, read-only.
+  """
+  def share(%{saved_share_token: token} = user) when is_binary(token), do: {:ok, user}
+
+  def share(user) do
+    token = :crypto.strong_rand_bytes(18) |> Base.url_encode64(padding: false)
+    user |> Ecto.Changeset.change(saved_share_token: token) |> Repo.update()
+  end
+
+  @doc "Stops sharing: the old link stops working, and a new share gets a new one."
+  def stop_sharing(user),
+    do: user |> Ecto.Changeset.change(saved_share_token: nil) |> Repo.update()
+
+  @doc "The reader whose Saved list this token shares, or nil."
+  def shared_by(token) when is_binary(token) and byte_size(token) >= 16,
+    do: Repo.get_by(TravelingPoet.Accounts.User, saved_share_token: token)
+
+  def shared_by(_), do: nil
+
+  @doc "A reader's saved places, as their Saved view shows them."
+  def places(user_id) do
+    for %{item: %Place{} = place} <- list(user_id), do: place
+  end
 
   def count(user_id), do: Repo.aggregate(where(Bookmark, user_id: ^user_id), :count)
 

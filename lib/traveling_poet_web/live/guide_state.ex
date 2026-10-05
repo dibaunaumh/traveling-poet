@@ -232,6 +232,8 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:counts, Guide.counts_by_group(places))
     |> assign(:places, shown)
     |> assign(:days, [])
+    |> assign(:plan_days, plan_days(socket))
+    |> assign(:day_plan, TravelingPoet.Guide.DayPlan.plan(shown, plan_days(socket)))
     |> assign(:map_places, map_places)
     |> assign(:unmapped, Guide.unmapped_count(shown))
     |> assign(:media, media_for(shown ++ finds))
@@ -245,6 +247,9 @@ defmodule TravelingPoetWeb.GuideState do
     |> assign(:find_days, [])
     |> keep_selection()
   end
+
+  # How many days the reader asked Plan my days for; three until they say.
+  defp plan_days(socket), do: Map.get(socket.assigns, :plan_days, 3)
 
   # The reader's own pages open in their journal, anyone else's in public.
   defp source(nil, _own, _item), do: nil

@@ -1,0 +1,103 @@
+defmodule TravelingPoet.MapsLinks do
+  @moduledoc """
+  Takes a reader's places to Google Maps (card-94): a search link per place,
+  and a KML file of their saved places that Google My Maps imports as a map
+  they can carry on the trip. Pure: no Repo, no HTTP.
+  """
+
+  @doc """
+  A Google Maps link for a place: by name and address when there is an
+  address (Maps then lands on the business, not a bare pin), else by its
+  coordinates, else nil.
+  """
+  def google_url(%{name: name} = place) do
+    query =
+      cond do
+        present?(Map.get(place, :address)) ->
+          "#{name}, #{Map.get(place, :address)}"
+
+        is_number(Map.get(place, :lat)) and is_number(Map.get(place, :lng)) ->
+          "#{place.lat},#{place.lng}"
+
+        true ->
+          nil
+      end
+
+    if query, do: "https://www.google.com/maps/search/?api=1&query=" <> URI.encode_www_form(query)
+  end
+
+  def google_url(_), do: nil
+
+  @doc """
+  A Google Maps walking route through these places in order (a day of a
+  plan, card-91): the first is the start, the last the end, up to eight
+  stops between. Nil with fewer than two mapped places.
+  """
+  def directions_url(places) do
+    points =
+      places
+      |> Enum.filter(&(is_number(Map.get(&1, :lat)) and is_number(Map.get(&1, :lng))))
+      |> Enum.map(&"#{&1.lat},#{&1.lng}")
+
+    case points do
+      [origin | rest] when rest != [] ->
+        destination = List.last(rest)
+        middle = rest |> Enum.drop(-1) |> Enum.take(8)
+
+        query =
+          [api: 1, origin: origin, destination: destination, travelmode: "walking"] ++
+            if(middle == [], do: [], else: [waypoints: Enum.join(middle, "|")])
+
+        "https://www.google.com/maps/dir/?" <> URI.encode_query(query)
+
+      _ ->
+        nil
+    end
+  end
+
+  @doc "A KML document of the places that have coordinates."
+  def kml(places, title) do
+    marks =
+      places
+      |> Enum.filter(&(is_number(Map.get(&1, :lat)) and is_number(Map.get(&1, :lng))))
+      |> Enum.map(&placemark/1)
+
+    """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <kml xmlns="http://www.opengis.net/kml/2.2">
+    <Document>
+    <name>#{esc(title)}</name>
+    #{Enum.join(marks, "\n")}
+    </Document>
+    </kml>
+    """
+  end
+
+  defp placemark(place) do
+    description =
+      [Map.get(place, :blurb), Map.get(place, :address), Map.get(place, :source_url)]
+      |> Enum.filter(&present?/1)
+      |> Enum.join("\n")
+
+    """
+    <Placemark>
+    <name>#{esc(place.name)}</name>
+    <description>#{esc(description)}</description>
+    <Point><coordinates>#{place.lng},#{place.lat}</coordinates></Point>
+    </Placemark>
+    """
+  end
+
+  defp present?(v), do: is_binary(v) and String.trim(v) != ""
+
+  defp esc(nil), do: ""
+
+  defp esc(text) do
+    text
+    |> to_string()
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+  end
+end
