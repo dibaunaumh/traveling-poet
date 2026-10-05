@@ -11,7 +11,10 @@ defmodule TravelingPoetWeb.ProductTour do
 
   Each slide's clip lives at `priv/static/images/tour/<id>.mp4` with a poster
   at `<id>.jpg` (recorded in the iPhone Simulator; re-record when a screen
-  changes). A slide whose files are missing shows its text alone.
+  changes; plan-days, share and stay were recorded in headless Chrome at
+  iPhone size with the app's User-Agent, from a seeded local server, before
+  those features reached production). A slide whose files are missing shows
+  its text alone.
   """
   use Phoenix.Component
 
@@ -64,6 +67,20 @@ defmodule TravelingPoetWeb.ProductTour do
       how: "Tap Save on a place, then Saved in the Guide."
     },
     %{
+      id: "plan-days",
+      title: "Plan my days",
+      why:
+        "Turn your saved places into days by neighbourhood, coffee first and dinner last, with opening hours, what to book ahead, and a walking route in Google Maps.",
+      how: "Guide, Saved, then Plan my days."
+    },
+    %{
+      id: "share",
+      title: "Plan it with friends",
+      why:
+        "Share your saved places with the people you travel with, by one private link they can open without an account, or as a map in Google Maps.",
+      how: "Guide, Saved, then Share this list with friends."
+    },
+    %{
       id: "tastes",
       title: "What you travel for",
       why:
@@ -95,6 +112,13 @@ defmodule TravelingPoetWeb.ProductTour do
       why:
         "Switch your poet to Trip Scout and it travels ahead of you through the stops of your itinerary, so you arrive knowing where to go.",
       how: "Settings, Journey."
+    },
+    %{
+      id: "stay",
+      title: "Where to stay",
+      why:
+        "On a Trip Scout trip your poet weighs the neighbourhoods of each city and picks one, then you can compare hotels by price, rating and how close they are to its places.",
+      how: "Open the Where to stay page of that day."
     },
     %{
       id: "calendar",
