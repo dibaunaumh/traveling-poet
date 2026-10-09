@@ -22,6 +22,8 @@ defmodule TravelingPoet.Guide.StayArea do
 
     belongs_to :poet, TravelingPoet.Poets.Poet
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
+    # The shared neighbourhood item (Spaces, kb-002); set by Spaces.Ingest.
+    belongs_to :item, TravelingPoet.Spaces.Item
 
     timestamps()
   end

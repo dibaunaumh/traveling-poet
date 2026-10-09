@@ -12,6 +12,9 @@ defmodule TravelingPoet.Poets.PathPoint do
     field :position, :integer
 
     belongs_to :poet, TravelingPoet.Poets.Poet
+    # The city item this stay is in (Spaces, kb-002): a stay is an item, so
+    # the places found during it hang off the same city across poets.
+    belongs_to :item, TravelingPoet.Spaces.Item
 
     timestamps()
   end

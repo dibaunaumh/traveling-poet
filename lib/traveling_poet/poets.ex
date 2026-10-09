@@ -110,6 +110,8 @@ defmodule TravelingPoet.Poets do
         position: position
       })
       |> Repo.insert!()
+      # A stay is a visit of a city item (Spaces, kb-002).
+      |> TravelingPoet.Spaces.Ingest.stay_for()
 
       poet
       |> Poet.changeset(%{
