@@ -136,6 +136,28 @@ defmodule TravelingPoet.DiscoverTest do
       assert [%{starts: "2026-07-01", ends: "2026-07-31"}] = Discover.village().places
     end
 
+    test "a place's overview lists what the poets linked to it, with a way in when it is public" do
+      nam = on_the_road("Nam")
+      e1 = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+
+      {:ok, [okutan, yudofu]} =
+        TravelingPoet.Guide.replace_places(e1, [
+          %{name: "Okutan", category: "restaurant"},
+          %{name: "Yudofu", category: "restaurant", kind: "dish"}
+        ])
+
+      %{made: 1} =
+        TravelingPoet.Spaces.Ingest.sync_links(e1, [okutan, yudofu], [
+          %{"name" => "Yudofu", "links" => [%{"relation" => "at", "target" => "Okutan"}]}
+        ])
+
+      assert [%{phrase: "here:", name: "Yudofu", kind: "dish", place_id: pid}] =
+               Discover.place(okutan.id).related
+
+      assert pid == yudofu.id
+      assert [%{phrase: "at", name: "Okutan"}] = Discover.place(yudofu.id).related
+    end
+
     test "a place's overview names the other poets and borrows the page's drawing" do
       nam = on_the_road("Nam")
       wren = on_the_road("Wren")

@@ -439,11 +439,58 @@ defmodule TravelingPoet.Discover do
         entry: entry,
         drawing: drawing,
         drawing_from: drawing && from,
-        also: also_found_by(place, entry, poet)
+        also: also_found_by(place, entry, poet),
+        related: related(place)
       }
     else
       _ -> nil
     end
+  end
+
+  # What the poets linked to this place (Spaces links): a dish served here,
+  # the festival it is part of, the artist who made it. Each with the public
+  # place row that opens it, when one exists.
+  defp related(%Place{item_id: nil}), do: []
+
+  defp related(%Place{item_id: item_id}) do
+    item_id
+    |> TravelingPoet.Spaces.related()
+    |> Enum.map(fn %{relation: relation, direction: direction, item: item} ->
+      %{
+        phrase: phrase(relation, direction),
+        name: item.name,
+        kind: item.kind,
+        place_id: public_row_for(item.id)
+      }
+    end)
+  end
+
+  defp phrase("at", :out), do: "at"
+  defp phrase("at", :in), do: "here:"
+  defp phrase("part_of", :out), do: "part of"
+  defp phrase("part_of", :in), do: "includes"
+  defp phrase("made_by", :out), do: "made by"
+  defp phrase("made_by", :in), do: "made"
+  defp phrase("commemorates", :out), do: "commemorates"
+  defp phrase("commemorates", :in), do: "remembered by"
+  defp phrase("about", :out), do: "about"
+  defp phrase("about", :in), do: "the subject of"
+  defp phrase("series_of", :out), do: "a later edition of"
+  defp phrase("series_of", :in), do: "returned as"
+  defp phrase(relation, _), do: String.replace(relation, "_", " ")
+
+  # The newest public, published place row of an item, to open it from a
+  # related line. nil when every row is a private poet's or a find.
+  defp public_row_for(item_id) do
+    Place
+    |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
+    |> join(:inner, [p, _e], po in Poet, on: po.id == p.poet_id)
+    |> where([p, e, po], p.item_id == ^item_id and e.status == "published")
+    |> where([_p, _e, po], po.is_public and po.status == "active")
+    |> order_by([p], desc: p.id)
+    |> limit(1)
+    |> select([p], p.id)
+    |> Repo.one()
   end
 
   # Other public poets who logged the same place: the ones whose rows point

@@ -21,12 +21,15 @@ defmodule TravelingPoet.Spaces.Ingest do
   alias TravelingPoet.Guide.{Place, StayArea}
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Poets.PathPoint
-  alias TravelingPoet.Spaces.{Hierarchy, Item, ItemReview, Resolver}
+  alias TravelingPoet.Spaces.{Hierarchy, Item, ItemReview, Link, Resolver}
   alias TravelingPoet.Topics.Find
 
   # Roughly 1.2 km of latitude; the box only narrows the candidate set,
   # the resolver measures the real distance.
   @box_deg 0.011
+  # The admin hierarchy's subkinds (Spaces.Hierarchy): never a match for an
+  # ordinary place of the same name.
+  @admin ~w(city region country)
   @city_box_deg 0.15
 
   ## Places
@@ -47,9 +50,10 @@ defmodule TravelingPoet.Spaces.Ingest do
 
   defp place_probe(entry, %Place{} = place) do
     {kind, subkind} =
-      case place.category do
-        "event" -> {"event", nil}
-        category -> {"place", place.place_type || category}
+      case {place.kind, place.category} do
+        {kind, _} when is_binary(kind) -> {kind, nil}
+        {_, "event"} -> {"event", nil}
+        {_, category} -> {"place", place.place_type || category}
       end
 
     %{
@@ -66,6 +70,7 @@ defmodule TravelingPoet.Spaces.Ingest do
       topics_classified_at: place.topics_classified_at,
       time_start: place.starts_on,
       time_end: place.ends_on,
+      era: place.era,
       parent_id: stay_item_id(place.path_point_id),
       country_code: stay_country(place.path_point_id)
     }
@@ -136,6 +141,8 @@ defmodule TravelingPoet.Spaces.Ingest do
   def find_kind(kind) when kind in ~w(music book screen), do: "work"
   def find_kind(kind) when kind in ~w(event outing), do: "event"
   def find_kind("venue"), do: "place"
+  def find_kind("person"), do: "person"
+  def find_kind("dish"), do: "dish"
   def find_kind(_), do: "other"
 
   defp find_probe(%Find{} = find) do
@@ -195,6 +202,111 @@ defmodule TravelingPoet.Spaces.Ingest do
       item = refresh(item, probe)
       area |> Ecto.Changeset.change(item_id: item.id) |> Repo.update!()
     end)
+  end
+
+  ## Links the poet reported
+
+  @poet_relations ~w(at part_of made_by commemorates about)
+
+  @doc """
+  The links a put carried (Spaces phase 2): each row's `links`, a list of
+  `%{"relation", "target"}` where the target is the name of another row
+  in the same list, or of something the app already knows in the same
+  city. The entry's earlier poet links are replaced, as the rows are. A
+  target nothing matches is reported back, never invented: a link is only
+  ever between things a poet reported.
+
+  A dish `at` a restaurant takes the restaurant's pin when it has none.
+
+  Returns `%{made: n, unknown: [target]}`.
+  """
+  def sync_links(%Entry{} = entry, rows, attrs_list) when is_list(rows) and is_list(attrs_list) do
+    safely(%{made: 0, unknown: []}, fn ->
+      Repo.delete_all(
+        from(l in Link, where: l.journal_entry_id == ^entry.id and l.source == "poet")
+      )
+
+      by_key =
+        rows
+        |> Enum.reject(&is_nil(&1.item_id))
+        |> Map.new(&{Resolver.name_key(&1.name), &1.item_id})
+
+      attrs_list
+      |> Enum.flat_map(fn attrs ->
+        attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+        from = by_key[Resolver.name_key(to_string(attrs["name"] || ""))]
+        links = if is_list(attrs["links"]), do: attrs["links"], else: []
+        for link <- links, is_map(link), from, do: {from, link}
+      end)
+      |> Enum.reduce(%{made: 0, unknown: []}, fn {from, link}, acc ->
+        link = Map.new(link, fn {k, v} -> {to_string(k), v} end)
+        relation = to_string(link["relation"] || "") |> String.trim() |> String.downcase()
+        target = to_string(link["target"] || "") |> String.trim()
+
+        cond do
+          relation not in @poet_relations or target == "" ->
+            acc
+
+          true ->
+            case by_key[Resolver.name_key(target)] || known_item_id(target, entry.place_name) do
+              nil ->
+                %{acc | unknown: Enum.uniq(acc.unknown ++ [target])}
+
+              ^from ->
+                acc
+
+              to ->
+                case Spaces.link(from, to, relation, source: "poet", journal_entry_id: entry.id) do
+                  {:ok, _} ->
+                    if relation == "at", do: borrow_pin(from, to)
+                    %{acc | made: acc.made + 1}
+
+                  _ ->
+                    acc
+                end
+            end
+        end
+      end)
+    end)
+  end
+
+  # Something the app already knows by that name: in the same city first,
+  # else anywhere when there is exactly one. Never a city, region or country.
+  defp known_item_id(name, city) do
+    key = Resolver.name_key(name)
+    city_key = Resolver.city_key(city)
+
+    base =
+      Item
+      |> where([i], i.status == "active" and i.norm_name == ^key)
+      |> where([i], i.subkind not in @admin or is_nil(i.subkind))
+
+    same_city =
+      if city_key == "",
+        do: nil,
+        else:
+          base
+          |> where([i], fragment("lower(trim(coalesce(?, '')))", i.city) == ^city_key)
+          |> select([i], i.id)
+          |> limit(1)
+          |> Repo.one()
+
+    same_city ||
+      case base |> select([i], i.id) |> limit(2) |> Repo.all() do
+        [only] -> only
+        _ -> nil
+      end
+  end
+
+  # A dish at a restaurant, an exhibition at a museum: the thing sits where
+  # its host does.
+  defp borrow_pin(from_id, to_id) do
+    with %Item{lat: nil} = from <- Repo.get(Item, from_id),
+         %Item{lat: lat, lng: lng} when is_number(lat) <- Repo.get(Item, to_id) do
+      from |> Item.changeset(%{lat: lat, lng: lng, geocode_status: "ok"}) |> Repo.update!()
+    end
+
+    :ok
   end
 
   ## Stays
@@ -340,7 +452,6 @@ defmodule TravelingPoet.Spaces.Ingest do
   # name, and a country or region (Spaces.Hierarchy) is neither. Everything
   # else matches across subkinds (a "museum" and an "attraction" can be
   # one building).
-  @admin ~w(city region country)
   defp maybe_subkind(query, "city"), do: where(query, [i], i.subkind == "city")
 
   defp maybe_subkind(query, _),
@@ -384,7 +495,8 @@ defmodule TravelingPoet.Spaces.Ingest do
         {:city, probe.city, is_nil(item.city)},
         {:country_code, Map.get(probe, :country_code), is_nil(item.country_code)},
         {:time_start, probe.time_start, is_nil(item.time_start)},
-        {:time_end, probe.time_end, is_nil(item.time_end)}
+        {:time_end, probe.time_end, is_nil(item.time_end)},
+        {:era, Map.get(probe, :era), is_nil(item.era)}
       ]
       |> Enum.filter(fn {_field, value, empty?} -> empty? and not is_nil(value) end)
       |> Map.new(fn {field, value, _} -> {field, value} end)

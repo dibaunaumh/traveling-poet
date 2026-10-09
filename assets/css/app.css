@@ -2737,6 +2737,8 @@ body::before {
 
 .discover-borrowed { margin-top: 0.5rem; }
 .discover-also { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8; }
+.discover-related { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.85; padding-left: 0; list-style: none; }
+.discover-related li { margin: 0.1rem 0; }
 .discover-subjects { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
 .discover-subject {
   font-size: 0.78rem;

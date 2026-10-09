@@ -428,6 +428,22 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <p :if={@selected.also != []} class="discover-also">
         Also found by {Enum.map_join(@selected.also, ", ", & &1.name)}
       </p>
+      <ul :if={@selected.related != []} class="discover-related" aria-label="Related">
+        <li :for={r <- @selected.related}>
+          {r.phrase}
+          <button
+            :if={r.place_id}
+            type="button"
+            class="link"
+            phx-click="select"
+            phx-value-kind="place"
+            phx-value-id={r.place_id}
+          >
+            {r.name}
+          </button>
+          <span :if={!r.place_id}>{r.name}</span>
+        </li>
+      </ul>
       <div :if={@selected.topics != []} class="discover-subjects" aria-label="Subjects">
         <button
           :for={{path, names} <- @selected.topics}

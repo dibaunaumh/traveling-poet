@@ -160,6 +160,30 @@ defmodule TravelingPoet.Spaces do
     |> Enum.sort_by(& &1.time_start, {:desc, Date})
   end
 
+  @doc """
+  What an item is linked to, both ways, as `%{relation, direction, item}`:
+  `:out` when this item is the subject ("Yudofu at Okutan", seen from
+  Yudofu), `:in` when it is the object (seen from Okutan). Merged and
+  retired items are left out.
+  """
+  def related(item_id) do
+    outgoing =
+      Link
+      |> join(:inner, [l], i in Item, on: i.id == l.to_item_id)
+      |> where([l, i], l.from_item_id == ^item_id and i.status == "active")
+      |> select([l, i], %{relation: l.relation, direction: :out, item: i})
+      |> Repo.all()
+
+    incoming =
+      Link
+      |> join(:inner, [l], i in Item, on: i.id == l.from_item_id)
+      |> where([l, i], l.to_item_id == ^item_id and i.status == "active")
+      |> select([l, i], %{relation: l.relation, direction: :in, item: i})
+      |> Repo.all()
+
+    outgoing ++ incoming
+  end
+
   @doc "The items directly under an item in the admin hierarchy (a country's regions, a region's cities)."
   def children(item_id, subkind) do
     Item

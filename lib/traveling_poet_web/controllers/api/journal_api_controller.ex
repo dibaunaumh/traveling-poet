@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   require Logger
 
   alias TravelingPoet.DeadLinks
+  alias TravelingPoet.Spaces.Ingest
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Guide.{Geocoding, Stay, StayArea, TopicTagging}
@@ -347,6 +348,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         # Topics for the village, in the background; places re-sent under the
         # same name already carry theirs.
         TopicTagging.tag_entry_async(entry.id)
+        # The links between them (a dish at a restaurant), after the pins so
+        # a dish can take its restaurant's.
+        links = Ingest.sync_links(entry, resolved, usable)
 
         json(conn, %{
           ok: true,
@@ -356,7 +360,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
           dropped: dropped,
           # already in this stay's guide from an earlier day; not saved again
           already_logged: repeats,
-          over_cap: length(over_cap)
+          over_cap: length(over_cap),
+          # links made between your places; unknown names nothing matched
+          links: links
         })
 
       {:error, reason} ->
@@ -477,6 +483,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
       # On the subject tree beside the places, in the background; finds
       # re-sent under the same name keep theirs.
       TopicTagging.tag_finds_async(entry.id)
+      links = Ingest.sync_links(entry, saved, usable)
 
       json(
         conn,
@@ -486,7 +493,8 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
             find_count: length(saved),
             find_ids: Map.new(saved, &{&1.name, &1.id}),
             dropped: dropped,
-            over_cap: length(over_cap)
+            over_cap: length(over_cap),
+            links: links
           },
           already_visited(excursion, params)
         )
