@@ -7,7 +7,9 @@ defmodule TravelingPoet.Spaces.Resolver do
   Rules, in order, for a probe (what was reported) against candidates of the
   same kind:
 
-    1. The same source URL (finds): one page, one item.
+    1. The same source URL, for things that are a page (a talk, a paper, a
+       book): one page, one item. Never for places or events, which cite
+       the venue's page.
     2. The same normalised name (`Guide.name_key/1`) in the same city, or
        within a kilometre of each other, or when neither side has a city or
        coordinates to disagree on (a find, a book). Two "Central Market"s in
@@ -28,7 +30,7 @@ defmodule TravelingPoet.Spaces.Resolver do
   ambiguous pairs; phase 0 writes them to `ItemReview` instead.
   """
 
-  alias TravelingPoet.{Geo, Guide}
+  alias TravelingPoet.Geo
 
   @similar 0.92
   @near_km 0.2
@@ -62,6 +64,23 @@ defmodule TravelingPoet.Spaces.Resolver do
     end
   end
 
+  @doc """
+  A name as a matching key: no accents, case, apostrophes or punctuation,
+  in any script. `Guide.name_key/1` keeps only a-z, which turned 京都市
+  into nothing and refused the item.
+  """
+  def name_key(name) when is_binary(name) do
+    name
+    |> String.normalize(:nfd)
+    |> String.replace(~r/\p{Mn}/u, "")
+    |> String.downcase()
+    |> String.replace(~r/['\x{2019}\x{2018}`]/u, "")
+    |> String.replace(~r/[^\p{L}\p{N}]+/u, " ")
+    |> String.trim()
+  end
+
+  def name_key(_), do: ""
+
   @doc "A URL stripped to what identifies the page: no scheme, www, query or trailing slash."
   def url_key(nil), do: nil
 
@@ -81,13 +100,19 @@ defmodule TravelingPoet.Spaces.Resolver do
   def url_key(_), do: nil
 
   @doc "The city, as a matching key."
-  def city_key(city), do: Guide.name_key(city)
+  def city_key(city), do: name_key(city)
 
   @doc "Name similarity on the normalised names, 0..1."
   def similarity(a, b) when is_binary(a) and is_binary(b), do: String.jaro_distance(a, b)
   def similarity(_, _), do: 0.0
 
-  defp same_url?(%{source_url: url}, %{source_url: other}) when is_binary(url) do
+  # Only for things that ARE a page (a talk, a paper, a book). Two events
+  # at one museum cite the museum's page: on the prod copy "Zen and Ghibli
+  # Exhibition" merged into "Kyoto City KYOCERA Museum of Art" that way.
+  @page_kinds ~w(idea work product other)
+
+  defp same_url?(%{kind: kind, source_url: url}, %{source_url: other})
+       when kind in @page_kinds and is_binary(url) do
     key = url_key(url)
     not is_nil(key) and key == url_key(other)
   end
@@ -118,8 +143,14 @@ defmodule TravelingPoet.Spaces.Resolver do
   defp review_worthy?(probe, item) do
     city?(probe, item) and
       (similarity(probe.norm_name, item.norm_name) >= @similar or
-         contains?(probe.norm_name, item.norm_name))
+         (contains?(probe.norm_name, item.norm_name) and not neighbourhood?(probe, item)))
   end
+
+  # A place inside a neighbourhood carries its name ("Fremont Troll" in
+  # "Fremont"); that is containment, not a duplicate. On the prod copy 17
+  # of 29 review rows were this.
+  defp neighbourhood?(probe, item),
+    do: Map.get(probe, :subkind) == "neighbourhood" or item.subkind == "neighbourhood"
 
   # One name inside the other, both long enough to mean something.
   defp contains?(a, b) do

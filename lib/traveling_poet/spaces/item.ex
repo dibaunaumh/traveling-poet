@@ -19,8 +19,6 @@ defmodule TravelingPoet.Spaces.Item do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias TravelingPoet.Guide
-
   @kinds ~w(place event artwork dish encounter person product idea work other)
   @statuses ~w(active merged retired)
 
@@ -95,7 +93,7 @@ defmodule TravelingPoet.Spaces.Item do
   defp put_norm_name(changeset) do
     case get_change(changeset, :name) do
       nil -> changeset
-      name -> put_change(changeset, :norm_name, Guide.name_key(name))
+      name -> put_change(changeset, :norm_name, TravelingPoet.Spaces.Resolver.name_key(name))
     end
   end
 
@@ -114,7 +112,10 @@ defmodule TravelingPoet.Spaces.Item do
   normalises to nothing. Uniqueness is the caller's (`Spaces.unique_slug/1`).
   """
   def base_slug(name) do
-    case name |> Guide.name_key() |> String.replace(" ", "-") |> String.slice(0, 80) do
+    case name
+         |> TravelingPoet.Spaces.Resolver.name_key()
+         |> String.replace(" ", "-")
+         |> String.slice(0, 80) do
       "" -> "item"
       slug -> slug
     end

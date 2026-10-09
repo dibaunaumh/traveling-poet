@@ -56,7 +56,7 @@ defmodule TravelingPoet.Spaces.Ingest do
       kind: kind,
       subkind: subkind,
       name: place.name,
-      norm_name: TravelingPoet.Guide.name_key(place.name),
+      norm_name: Resolver.name_key(place.name),
       city: entry.place_name,
       lat: if(place.geocode_status == "ok", do: place.lat),
       lng: if(place.geocode_status == "ok", do: place.lng),
@@ -142,7 +142,7 @@ defmodule TravelingPoet.Spaces.Ingest do
       kind: find_kind(find.kind),
       subkind: find.kind,
       name: find.name,
-      norm_name: TravelingPoet.Guide.name_key(find.name),
+      norm_name: Resolver.name_key(find.name),
       city: nil,
       lat: nil,
       lng: nil,
@@ -169,7 +169,7 @@ defmodule TravelingPoet.Spaces.Ingest do
         kind: "place",
         subkind: "neighbourhood",
         name: area.name,
-        norm_name: TravelingPoet.Guide.name_key(area.name),
+        norm_name: Resolver.name_key(area.name),
         city: area.city,
         lat: if(area.geocode_status == "ok", do: area.lat),
         lng: if(area.geocode_status == "ok", do: area.lng),
@@ -206,7 +206,7 @@ defmodule TravelingPoet.Spaces.Ingest do
             kind: "place",
             subkind: "city",
             name: name,
-            norm_name: TravelingPoet.Guide.name_key(name),
+            norm_name: Resolver.name_key(name),
             city: nil,
             lat: point.lat,
             lng: point.lng,
@@ -238,7 +238,7 @@ defmodule TravelingPoet.Spaces.Ingest do
   # The city item for a free-text city name, if one exists; never created
   # here, because only a stay makes a city.
   defp city_item_id(city) do
-    case TravelingPoet.Guide.name_key(city) do
+    case Resolver.name_key(city) do
       "" ->
         nil
 

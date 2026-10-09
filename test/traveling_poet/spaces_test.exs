@@ -89,11 +89,54 @@ defmodule TravelingPoet.SpacesTest do
         })
 
       probe = %{
+        kind: "idea",
         norm_name: "transformers paper",
         source_url: "http://www.arxiv.org/abs/1706.03762/"
       }
 
       assert {:match, ^paper} = Resolver.decide(probe, [paper])
+    end
+
+    test "two events citing one museum page stay two items; two finds citing one page are one" do
+      museum =
+        item(%{
+          norm_name: "kyoto city kyocera museum of art",
+          city: "Kyoto",
+          source_url: "https://kyotocity-kyocera.museum/exhibition/1"
+        })
+
+      probe = %{
+        kind: "event",
+        norm_name: "zen and ghibli exhibition",
+        city: "Kyoto",
+        lat: nil,
+        lng: nil,
+        source_url: "https://kyotocity-kyocera.museum/exhibition/1"
+      }
+
+      assert {:new, []} = Resolver.decide(probe, [museum])
+
+      assert {:match, ^museum} = Resolver.decide(%{probe | kind: "idea"}, [museum])
+    end
+
+    test "a place inside a neighbourhood is not a review candidate for it" do
+      fremont = item(%{norm_name: "fremont", city: "Seattle", subkind: "neighbourhood"})
+
+      probe = %{
+        norm_name: "fremont troll",
+        city: "Seattle",
+        lat: nil,
+        lng: nil,
+        subkind: "attraction"
+      }
+
+      assert {:new, []} = Resolver.decide(probe, [fremont])
+    end
+
+    test "name_key keeps every script, drops accents, case and punctuation" do
+      assert Resolver.name_key("京都市, 京都府, 日本") == "京都市 京都府 日本"
+      assert Resolver.name_key("Dylan's Café!") == "dylans cafe"
+      assert Resolver.name_key(nil) == ""
     end
 
     test "url_key strips what does not identify the page" do
