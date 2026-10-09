@@ -2924,3 +2924,15 @@ body::before {
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
+
+/* ---- A Spaces item's public page --------------------------------------- */
+.item-page { max-width: 42rem; margin: 0 auto; padding: 1rem 0 2rem; }
+.item-kind { font-variant: small-caps; letter-spacing: 0.04em; opacity: 0.7; font-size: 0.85rem; }
+.item-when { font-size: 0.9rem; opacity: 0.8; margin-top: 0.2rem; }
+.item-found { margin-top: 0.8rem; font-size: 0.9rem; opacity: 0.8; }
+.item-notes { margin-top: 1rem; display: grid; gap: 0.8rem; }
+.item-note { border-left: 3px solid rgba(47, 93, 98, 0.35); padding: 0.2rem 0 0.2rem 0.8rem; margin: 0; }
+.item-note footer { font-size: 0.8rem; opacity: 0.75; margin-top: 0.25rem; }
+.item-editions { margin-top: 0.8rem; font-size: 0.9rem; }
+.item-editions a + a::before { content: ", "; }
+.item-page .discover-links { margin-top: 1rem; }
