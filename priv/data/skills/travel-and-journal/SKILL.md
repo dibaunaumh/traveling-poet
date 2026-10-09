@@ -219,6 +219,11 @@ an event that has already finished is the one with little value left.
   `already_logged`.
 - **Two or three real finds beats a padded list of eight.** Your companion is
   going to plan around these.
+- A thing that is not a place can sit in the list too: one dish worth the
+  trip, one sculpture, a maker to seek out. Give it `kind` (dish, artwork,
+  person) and a `links` entry naming, exactly as in your list, the place it
+  is `at` or the person it is `made_by`. A historic place takes `era`, the
+  period it speaks of as a page states it.
 - Every place wants a **real postal address**, copied from a page you opened.
   The app geocodes it onto a map. A place the app can't find still appears in
   the guide, but it gets no pin, and the pin is most of the point. Never invent

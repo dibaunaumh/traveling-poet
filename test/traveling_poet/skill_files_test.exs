@@ -26,4 +26,15 @@ defmodule TravelingPoet.SkillFilesTest do
     assert files["travel-and-journal/scout.md"] =~ "itinerary_stop_id"
     assert files["travel-and-journal/asking.md"] =~ "`ask_reader`"
   end
+
+  # Spaces phase 2: the poet is told, in a few lines, that a dish, an artwork
+  # or a person can sit in the list with a link, and a historic place an era.
+  test "the skill tells the poet about kinds, links and era without growing" do
+    files = Provisioner.skill_files()
+    skill = files["travel-and-journal/SKILL.md"]
+    assert skill =~ "`kind` (dish, artwork,\n  person)"
+    assert skill =~ "`links`"
+    assert skill =~ "`era`"
+    assert files["travel-and-journal/excursion.md"] =~ "person for an artist"
+  end
 end
