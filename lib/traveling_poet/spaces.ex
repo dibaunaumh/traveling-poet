@@ -134,6 +134,40 @@ defmodule TravelingPoet.Spaces do
     |> Repo.all()
   end
 
+  @doc """
+  The time axis, for events: the active event items whose dates cover `on`,
+  or start within `days` after it, soonest first. An event without dates
+  is never "now".
+  """
+  def events_around(on \\ Date.utc_today(), days \\ 30) do
+    horizon = Date.add(on, days)
+
+    Item
+    |> where([i], i.kind == "event" and i.status == "active" and not is_nil(i.time_start))
+    |> where([i], i.time_start <= ^horizon)
+    |> where([i], i.time_start >= ^on or (not is_nil(i.time_end) and i.time_end >= ^on))
+    |> order_by([i], asc: i.time_start)
+    |> Repo.all()
+  end
+
+  @doc "The earlier editions of an event, newest first (the series_of chain)."
+  def earlier_editions(%Item{id: id}) do
+    Link
+    |> where([l], l.from_item_id == ^id and l.relation == "series_of")
+    |> join(:inner, [l], i in Item, on: i.id == l.to_item_id)
+    |> select([_l, i], i)
+    |> Repo.all()
+    |> Enum.sort_by(& &1.time_start, {:desc, Date})
+  end
+
+  @doc "The items directly under an item in the admin hierarchy (a country's regions, a region's cities)."
+  def children(item_id, subkind) do
+    Item
+    |> where([i], i.parent_id == ^item_id and i.subkind == ^subkind and i.status == "active")
+    |> order_by([i], asc: i.name)
+    |> Repo.all()
+  end
+
   @doc "The stays (path points) that are visits of this city item, newest first."
   def stays_at(item_id) do
     PathPoint |> where(item_id: ^item_id) |> order_by(desc: :arrived_at) |> Repo.all()

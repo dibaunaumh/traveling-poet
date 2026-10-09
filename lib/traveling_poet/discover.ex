@@ -136,10 +136,12 @@ defmodule TravelingPoet.Discover do
   and city for a row no item claims yet, keeping the newest row's id and
   every poet who found it.
 
-      %{tree: PlaceTopics.tree(), places: [%{id, item_id, ids, name, city, ikind, topics, date, found_by}]}
+      %{tree: PlaceTopics.tree(), places: [%{id, item_id, ids, name, city, country, ikind, starts, ends, topics, date, found_by}]}
 
   `ikind` is the kind of thing on the item side (place, event; a find's is
-  idea, work, artwork, product), which the kind filter reads.
+  idea, work, artwork, product), which the kind filter reads; `country` its
+  ISO code through the admin hierarchy; `starts` and `ends` an event's
+  dates on the time axis.
 
   `ids` are every row merged into the place, so the world map can show the
   places under a subject; `found_by` is how many poets logged it.
@@ -166,6 +168,9 @@ defmodule TravelingPoet.Discover do
           name: newest.place.name,
           city: newest.city,
           ikind: newest.item_kind || place_kind(newest.place),
+          country: newest.country,
+          starts: iso(Enum.at(newest.item_time, 0) || newest.place.starts_on),
+          ends: iso(Enum.at(newest.item_time, 1) || newest.place.ends_on),
           topics:
             rows
             |> Enum.flat_map(fn r -> [r.place.topic, r.place.second_topic | r.item_topics] end)
@@ -279,10 +284,15 @@ defmodule TravelingPoet.Discover do
       city: e.place_name,
       date: e.entry_date,
       item_topics: [i.topic, i.second_topic],
-      item_kind: i.kind
+      item_kind: i.kind,
+      item_time: [i.time_start, i.time_end],
+      country: i.country_code
     })
     |> Repo.all()
   end
+
+  defp iso(nil), do: nil
+  defp iso(%Date{} = date), do: Date.to_iso8601(date)
 
   # What a place row is on the item side before it has an item.
   defp place_kind(%Place{category: "event"}), do: "event"
