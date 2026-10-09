@@ -1,17 +1,27 @@
 // The global village: every place the poets found, by subject.
 //
-// A zoomable treemap, one level at a time: the 12 subjects, then a subject's
-// subtopics, then their topics, each tile sized by how many places it holds;
-// at a topic, the places themselves as a grid of tiles. A breadcrumb goes
-// back up. A place under two topics appears under both.
+// Two ways to look at a subject. TILES: a zoomable treemap, one level at a
+// time (the 12 subjects, then a subject's subtopics, then their topics,
+// each tile sized by how many things it holds), and at a topic the things
+// themselves as a grid. SHELF: everything under the subject in focus at
+// once, grouped by its child subjects, scrolling, so a reader sees all of
+// "Crafts & design" side by side without drilling to a leaf. A breadcrumb
+// goes back up either way. A thing under two topics appears under both.
+//
+// A KIND filter (places, events, works, ideas...) narrows both, and the
+// world map with them; the DiscoverMap hook owns the chips and tells the
+// village (setKind). The village tells the hook when its mode or kind
+// changed (onState), so the address bar can carry them.
 //
 // Data (Discover.village/0): {tree: [{slug,name,children:[...]}], places:
-// [{id,ids,name,city,topics:[path],date,found_by}], finds: [{id,name,kind,
-// topics,date,found_by}]}, newest first; fetched by the hook only when the
-// village is first opened. Places and finds (talks, papers, recordings...)
-// share the tree; each is an "item" keyed "p<id>" or "f<id>", since a place
-// and a find can have the same id.
-// Topic paths are "subject/subtopic/topic"; a node's path is its prefix.
+// [{id,item_id,ids,name,city,ikind,topics:[path],date,found_by}], finds:
+// [{id,item_id,name,kind,ikind,topics,date,found_by}]}, newest first;
+// fetched by the hook only when the village is first opened. Places and
+// finds (talks, papers, recordings...) share the tree; each is an "item"
+// keyed "p<id>" or "f<id>", since a place and a find can have the same id.
+// `ikind` is what the thing is on the item side (Spaces): place, event,
+// artwork, work, idea, product. Topic paths are "subject/subtopic/topic"; a
+// node's path is its prefix.
 //
 // The Village owns only its own box. The DiscoverMap hook drives it: tells it
 // where to focus, which place to highlight, and asks it for the tour's order.
@@ -33,6 +43,9 @@ const HUES = {
   "science-industry-and-play": 170,
 }
 const hueOf = (slug) => HUES[slug] ?? 200
+
+// The kind filter's values, in step with DiscoverLive's kinds/0. "" is all.
+export const KINDS = ["", "place", "event", "artwork", "work", "idea", "product"]
 
 // Squarified treemap (Bruls, Huizing, van Wijk): lays `items` (each with a
 // numeric `value`) into the rectangle {x, y, w, h}; returns [{item, x, y, w, h}].
@@ -102,11 +115,14 @@ const findKind = (kind) =>
   FIND_KINDS[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Find")
 
 export class Village {
-  constructor(el, { onItem, onFocus }) {
+  constructor(el, { onItem, onFocus, onState }) {
     this.el = el
     this.onItem = onItem
     this.onFocus = onFocus
+    this.onState = onState
     this.focus = ""
+    this.mode = "tiles"
+    this.kind = ""
     this.current = null
     this.el.innerHTML = `<nav class="village-crumbs" aria-label="Subjects"></nav><div class="village-tiles"></div>`
     this.crumbs = this.el.querySelector(".village-crumbs")
@@ -115,6 +131,8 @@ export class Village {
     this.el.addEventListener("click", (e) => {
       const item = e.target.closest("[data-village-item]")
       if (item) return this.onItem(item.dataset.villageItem)
+      const mode = e.target.closest("[data-village-mode]")
+      if (mode) return this.setMode(mode.dataset.villageMode, { user: true })
       const node = e.target.closest("[data-village-node]")
       if (node) return this.setFocus(node.dataset.villageNode, { user: true })
     })
@@ -136,9 +154,22 @@ export class Village {
         b.children.forEach((c) => this.addNode(`${a.slug}/${b.slug}/${c.slug}`, c.name, `${a.slug}/${b.slug}`, 3, hue))
       })
     })
-    // How many places and finds sit under each node (each counts once).
+    this.recount()
+    if (!this.nodes.has(this.focus)) this.focus = ""
+    this.render()
+  }
+
+  addNode(path, name, parent, depth, hue) {
+    this.nodes.set(path, { path, name, depth, children: [], hue })
+    this.nodes.get(parent).children.push(path)
+  }
+
+  // How many things (of the kind in the filter) sit under each node, each
+  // counted once per node.
+  recount() {
+    if (!this.nodes) return
     this.nodes.forEach((n) => (n.count = 0))
-    this.items.forEach((p) => {
+    this.items.filter((p) => this.ofKind(p)).forEach((p) => {
       const seen = new Set()
       p.topics.forEach((t) => {
         const parts = t.split("/")
@@ -150,13 +181,6 @@ export class Village {
         if (n) n.count++
       })
     })
-    if (!this.nodes.has(this.focus)) this.focus = ""
-    this.render()
-  }
-
-  addNode(path, name, parent, depth, hue) {
-    this.nodes.set(path, { path, name, depth, children: [], hue })
-    this.nodes.get(parent).children.push(path)
   }
 
   name(path) {
@@ -164,17 +188,33 @@ export class Village {
     return n ? n.name : ""
   }
 
+  ofKind(item) {
+    return this.kind === "" || item.ikind === this.kind
+  }
+
   under(place, path) {
     return path === "" || place.topics.some((t) => t === path || t.startsWith(path + "/"))
   }
 
-  // Places only: what the world map can show.
+  // Places only (of the kind in the filter): what the world map can show.
   placesUnder(path) {
-    return this.places.filter((p) => this.under(p, path))
+    return this.places.filter((p) => this.ofKind(p) && this.under(p, path))
   }
 
   itemsUnder(path) {
-    return this.items.filter((p) => this.under(p, path))
+    return this.items.filter((p) => this.ofKind(p) && this.under(p, path))
+  }
+
+  // How many things of each kind sit under a subject, for the filter chips.
+  kindCounts(path = this.focus) {
+    const counts = {}
+    KINDS.forEach((k) => (counts[k] = 0))
+    ;(this.items || []).forEach((p) => {
+      if (!this.under(p, path)) return
+      counts[""]++
+      if (p.ikind in counts) counts[p.ikind]++
+    })
+    return counts
   }
 
   // The tour's order under a subject, as item keys: newest first, one item
@@ -206,6 +246,23 @@ export class Village {
     if (this.onFocus) this.onFocus(path, { user })
   }
 
+  setMode(mode, { user = false } = {}) {
+    mode = mode === "shelf" ? "shelf" : "tiles"
+    if (mode === this.mode) return
+    this.mode = mode
+    this.render()
+    if (user && this.onState) this.onState({ mode: this.mode, kind: this.kind })
+  }
+
+  setKind(kind, { user = false } = {}) {
+    kind = KINDS.includes(kind) ? kind : ""
+    if (kind === this.kind) return
+    this.kind = kind
+    this.recount()
+    this.render()
+    if (user && this.onState) this.onState({ mode: this.mode, kind: this.kind })
+  }
+
   highlight(key) {
     this.current = key
     this.tiles.querySelectorAll(".is-current").forEach((el) => el.classList.remove("is-current"))
@@ -213,7 +270,7 @@ export class Village {
     const place = this.items.find((p) => p.key === key)
     if (!place) return
     const node = this.nodes.get(this.focus)
-    if (node.depth === 3) {
+    if (node.depth === 3 || this.mode === "shelf") {
       const el = this.tiles.querySelector(`[data-village-item="${key}"]`)
       if (el) {
         el.classList.add("is-current")
@@ -221,8 +278,10 @@ export class Village {
         // whole home page under a reader every time the tour turned.
         const box = this.tiles
         const top = el.offsetTop // .village-tiles is positioned: its offsetParent
-        if (top < box.scrollTop || top + el.offsetHeight > box.scrollTop + box.clientHeight) {
-          box.scrollTop = top - 8
+        // On the shelf a group's name sticks to the top; leave room for it.
+        const lead = this.mode === "shelf" && node.depth < 3 ? 40 : 8
+        if (top - lead < box.scrollTop || top + el.offsetHeight > box.scrollTop + box.clientHeight) {
+          box.scrollTop = top - lead
         }
       }
       return
@@ -247,16 +306,27 @@ export class Village {
       if (path === "") break
       path = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : ""
     }
-    this.crumbs.innerHTML = trail
+    const crumbs = trail
       .map((p, i) =>
         i === trail.length - 1
           ? `<span aria-current="page">${esc(this.name(p))} <small>${this.nodes.get(p).count}</small></span>`
           : `<button type="button" data-village-node="${esc(p)}">${esc(this.name(p))}</button>`
       )
       .join(`<span class="village-sep" aria-hidden="true">›</span>`)
+    // At a topic there is nothing to group, so the switch stays out of the way.
+    const modes =
+      node.depth === 3
+        ? ""
+        : `<span class="village-mode" role="group" aria-label="How to lay it out">
+            <button type="button" data-village-mode="tiles" aria-pressed="${this.mode === "tiles"}">Tiles</button>
+            <button type="button" data-village-mode="shelf" aria-pressed="${this.mode === "shelf"}">Shelf</button>
+          </span>`
+    this.crumbs.innerHTML = crumbs + modes
 
+    const shelf = node.depth < 3 && this.mode === "shelf"
     this.tiles.classList.toggle("is-grid", node.depth === 3)
-    this.tiles.innerHTML = node.depth === 3 ? this.itemGrid(node) : this.treemap(node)
+    this.tiles.classList.toggle("is-shelf", shelf)
+    this.tiles.innerHTML = node.depth === 3 ? this.itemGrid(node) : shelf ? this.shelf(node) : this.treemap(node)
     if (this.current != null) this.highlight(this.current)
   }
 
@@ -284,20 +354,40 @@ export class Village {
       .join("")
   }
 
-  // A topic's places and finds, newest first. A find says what it is (a
-  // talk, an album) where a place says its city.
+  // Everything under the node at once, grouped by its child subjects (the
+  // fullest first), each group's things newest first. A thing under two
+  // children sits in both groups.
+  shelf(node) {
+    const groups = node.children
+      .map((c) => ({ node: this.nodes.get(c), items: this.itemsUnder(c) }))
+      .filter((g) => g.items.length > 0)
+      .sort((a, b) => b.items.length - a.items.length)
+    if (groups.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
+
+    return groups
+      .map(
+        (g) => `<section class="village-shelf-group">
+          <h3><button type="button" data-village-node="${esc(g.node.path)}">${esc(g.node.name)}</button> <small>${g.items.length}</small></h3>
+          <div class="village-shelf-row">${g.items.map((p) => this.itemTile(p, g.node)).join("")}</div>
+        </section>`
+      )
+      .join("")
+  }
+
+  // A topic's places and finds, newest first.
   itemGrid(node) {
     const items = this.itemsUnder(node.path)
     if (items.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
-    return items
-      .map(
-        (p) => `<button type="button" class="village-place${p.type === "find" ? " village-find" : ""}"
-          data-village-item="${p.key}" style="--tile:hsl(${node.hue} 42% 90%)">
-          <span class="village-place-name">${esc(p.name)}</span>
-          <span class="village-place-where">${esc(p.type === "find" ? findKind(p.kind) : p.city || "")}</span>
-          ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
-        </button>`
-      )
-      .join("")
+    return items.map((p) => this.itemTile(p, node)).join("")
+  }
+
+  // A find says what it is (a talk, an album) where a place says its city.
+  itemTile(p, node) {
+    return `<button type="button" class="village-place${p.type === "find" ? " village-find" : ""}"
+      data-village-item="${p.key}" style="--tile:hsl(${node.hue} 42% 90%)">
+      <span class="village-place-name">${esc(p.name)}</span>
+      <span class="village-place-where">${esc(p.type === "find" ? findKind(p.kind) : p.city || "")}</span>
+      ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
+    </button>`
   }
 }

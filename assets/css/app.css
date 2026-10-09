@@ -2839,3 +2839,84 @@ body::before {
 .hotel-photo { width: 4.5rem; height: 4.5rem; object-fit: cover; border-radius: 0.4rem; flex: none; }
 .hotel-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .hotel-price { font-size: 0.9rem; font-weight: 600; }
+
+/* ---- Discover: the kind filter, the village shelf and a poet's route --- */
+.discover-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin: -0.2rem 0 0.6rem;
+}
+.discover-kinds .spread-chip {
+  padding: 0.2rem 0.7rem;
+  font-size: 0.85rem;
+  gap: 0.3rem;
+}
+.discover-kinds small { opacity: 0.6; font-size: 0.75rem; }
+.discover-kinds small:empty { display: none; }
+
+/* Tiles | Shelf, at the right of the breadcrumb. */
+.village-mode {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: auto;
+  padding: 0.15rem;
+  border: 1px solid var(--color-base-300);
+  border-radius: 999px;
+}
+.village-mode button {
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  opacity: 0.7;
+  text-decoration: none;
+}
+.village-mode button[aria-pressed="true"] {
+  opacity: 1;
+  background: rgba(47, 93, 98, 0.12);
+  font-weight: 600;
+}
+
+/* The shelf: every group under the subject in focus, one after another,
+   scrolling; a group's name sticks to the top while its row goes by. */
+.village-tiles.is-shelf {
+  display: block;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+.village-shelf-group { margin-bottom: 1rem; }
+.village-shelf-group h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0 0 0.35rem;
+  padding: 0.2rem 0;
+  background: var(--color-base-100);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.village-shelf-group h3 button { text-decoration: underline; text-underline-offset: 2px; }
+.village-shelf-group h3 small { opacity: 0.6; font-weight: 400; }
+.village-shelf-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.4rem;
+}
+
+/* A poet's route: numbered stops on the map, and the buttons that draw it. */
+.discover-journeys { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
+.discover-stop span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #2f5d62;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}

@@ -21,6 +21,7 @@ defmodule TravelingPoet.Discover do
   alias TravelingPoet.Guide.{Place, PlaceTopics}
   alias TravelingPoet.Journal.{Entry, Media, Section}
   alias TravelingPoet.Poets.Poet
+  alias TravelingPoet.Spaces.{Ingest, Item}
   alias TravelingPoet.Topics.{Excursion, Find}
 
   # How many entries the tour turns through before it starts over. The map
@@ -135,7 +136,10 @@ defmodule TravelingPoet.Discover do
   and city for a row no item claims yet, keeping the newest row's id and
   every poet who found it.
 
-      %{tree: PlaceTopics.tree(), places: [%{id, item_id, ids, name, city, topics, date, found_by}]}
+      %{tree: PlaceTopics.tree(), places: [%{id, item_id, ids, name, city, ikind, topics, date, found_by}]}
+
+  `ikind` is the kind of thing on the item side (place, event; a find's is
+  idea, work, artwork, product), which the kind filter reads.
 
   `ids` are every row merged into the place, so the world map can show the
   places under a subject; `found_by` is how many poets logged it.
@@ -151,27 +155,25 @@ defmodule TravelingPoet.Discover do
 
     places =
       village_rows(ids)
-      |> Enum.group_by(fn {p, city, _date, _topics} -> place_key(p, city) end)
+      |> Enum.group_by(fn r -> place_key(r.place, r.city) end)
       |> Enum.map(fn {_key, rows} ->
         # ISO strings, not %Date{}: tuples of structs compare field by field.
-        {newest, city, date, _} =
-          Enum.max_by(rows, fn {p, _c, d, _t} -> {Date.to_iso8601(d), p.id} end)
+        newest = Enum.max_by(rows, fn r -> {Date.to_iso8601(r.date), r.place.id} end)
 
         %{
-          id: newest.id,
-          item_id: newest.item_id,
-          name: newest.name,
-          city: city,
+          id: newest.place.id,
+          item_id: newest.place.item_id,
+          name: newest.place.name,
+          city: newest.city,
+          ikind: newest.item_kind || place_kind(newest.place),
           topics:
             rows
-            |> Enum.flat_map(fn {p, _, _, item_topics} ->
-              [p.topic, p.second_topic | item_topics]
-            end)
+            |> Enum.flat_map(fn r -> [r.place.topic, r.place.second_topic | r.item_topics] end)
             |> Enum.reject(&is_nil/1)
             |> Enum.uniq(),
-          date: Date.to_iso8601(date),
-          ids: Enum.map(rows, fn {p, _, _, _} -> p.id end),
-          found_by: rows |> Enum.map(fn {p, _, _, _} -> p.poet_id end) |> Enum.uniq() |> length()
+          date: Date.to_iso8601(newest.date),
+          ids: Enum.map(rows, & &1.place.id),
+          found_by: rows |> Enum.map(& &1.place.poet_id) |> Enum.uniq() |> length()
         }
       end)
       |> Enum.sort_by(&{&1.date, &1.id}, :desc)
@@ -187,27 +189,33 @@ defmodule TravelingPoet.Discover do
   defp village_finds(ids) do
     Find
     |> join(:inner, [f], e in Entry, on: e.id == f.journal_entry_id)
-    |> join(:left, [f, _e], i in TravelingPoet.Spaces.Item, on: i.id == f.item_id)
+    |> join(:left, [f, _e], i in Item, on: i.id == f.item_id)
     |> where([f, e], f.poet_id in ^ids and e.status == "published")
     |> where([f, _e, i], not is_nil(f.topic) or not is_nil(i.topic))
-    |> select([f, e, i], {f, e.entry_date, [i.topic, i.second_topic]})
+    |> select([f, e, i], %{
+      find: f,
+      date: e.entry_date,
+      item_topics: [i.topic, i.second_topic],
+      item_kind: i.kind
+    })
     |> Repo.all()
-    |> Enum.group_by(fn {f, _date, _} -> f.item_id || find_key(f.name) end)
+    |> Enum.group_by(fn r -> r.find.item_id || find_key(r.find.name) end)
     |> Enum.map(fn {_key, rows} ->
-      {newest, date, _} = Enum.max_by(rows, fn {f, d, _} -> {Date.to_iso8601(d), f.id} end)
+      newest = Enum.max_by(rows, fn r -> {Date.to_iso8601(r.date), r.find.id} end)
 
       %{
-        id: newest.id,
-        item_id: newest.item_id,
-        name: newest.name,
-        kind: newest.kind,
+        id: newest.find.id,
+        item_id: newest.find.item_id,
+        name: newest.find.name,
+        kind: newest.find.kind,
+        ikind: newest.item_kind || Ingest.find_kind(newest.find.kind),
         topics:
           rows
-          |> Enum.flat_map(fn {f, _, item_topics} -> [f.topic, f.second_topic | item_topics] end)
+          |> Enum.flat_map(fn r -> [r.find.topic, r.find.second_topic | r.item_topics] end)
           |> Enum.reject(&is_nil/1)
           |> Enum.uniq(),
-        date: Date.to_iso8601(date),
-        found_by: rows |> Enum.map(fn {f, _, _} -> f.poet_id end) |> Enum.uniq() |> length()
+        date: Date.to_iso8601(newest.date),
+        found_by: rows |> Enum.map(& &1.find.poet_id) |> Enum.uniq() |> length()
       }
     end)
     |> Enum.sort_by(&{&1.date, &1.id}, :desc)
@@ -263,11 +271,91 @@ defmodule TravelingPoet.Discover do
   defp village_rows(ids) do
     Place
     |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
-    |> join(:left, [p, _e], i in TravelingPoet.Spaces.Item, on: i.id == p.item_id)
+    |> join(:left, [p, _e], i in Item, on: i.id == p.item_id)
     |> where([p, e], p.poet_id in ^ids and e.status == "published")
     |> where([p, _e, i], not is_nil(p.topic) or not is_nil(i.topic))
-    |> select([p, e, i], {p, e.place_name, e.entry_date, [i.topic, i.second_topic]})
+    |> select([p, e, i], %{
+      place: p,
+      city: e.place_name,
+      date: e.entry_date,
+      item_topics: [i.topic, i.second_topic],
+      item_kind: i.kind
+    })
     |> Repo.all()
+  end
+
+  # What a place row is on the item side before it has an item.
+  defp place_kind(%Place{category: "event"}), do: "event"
+  defp place_kind(_), do: "place"
+
+  @doc """
+  One public poet's visits of a kind, in the order they happened, for a
+  route on the map:
+
+      %{poet: %{slug, name}, kind, stops: [%{id, name, lat, lng, date, city}]}
+
+  Mapped kinds only (place, event): works and ideas have no pins. nil
+  unless the poet is public and on the road.
+  """
+  def journey(slug, kind) when is_binary(slug) and kind in ~w(place event) do
+    with %Poet{} = poet <- Poets.get_public_poet_by_slug(slug),
+         %Poet{} <- public_poet(poet.id) do
+      stops =
+        Place
+        |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
+        |> join(:left, [p, _e], i in Item, on: i.id == p.item_id)
+        |> where([p, e], p.poet_id == ^poet.id and e.status == "published")
+        |> where([p], not is_nil(p.lat) and not is_nil(p.lng))
+        |> where([p, _e, i], fragment("coalesce(?, ?)", i.kind, p.category) in ^kind_rows(kind))
+        |> order_by([p], asc: p.entry_date, asc: p.position, asc: p.id)
+        |> select([p, e], %{
+          id: p.id,
+          name: p.name,
+          lat: p.lat,
+          lng: p.lng,
+          date: p.entry_date,
+          city: e.place_name
+        })
+        |> Repo.all()
+        |> Enum.map(&%{&1 | date: Date.to_iso8601(&1.date)})
+
+      %{poet: %{slug: poet.slug, name: poet.name}, kind: kind, stops: stops}
+    else
+      _ -> nil
+    end
+  end
+
+  def journey(_slug, _kind), do: nil
+
+  # A row's kind is its item's, or, before it has one, its category: "event"
+  # for an event and any other category for a place.
+  defp kind_rows("event"), do: ["event"]
+  defp kind_rows("place"), do: ["place" | Place.categories() -- ["event"]]
+
+  # How many things of each kind a poet has published: places and events by
+  # their item (or category), finds by their item (or kind).
+  defp kind_counts(poet_id) do
+    places =
+      Place
+      |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
+      |> join(:left, [p, _e], i in Item, on: i.id == p.item_id)
+      |> where([p, e], p.poet_id == ^poet_id and e.status == "published")
+      |> select([p, _e, i], {i.kind, p.category})
+      |> Repo.all()
+      |> Enum.map(fn {item_kind, category} ->
+        item_kind || place_kind(%Place{category: category})
+      end)
+
+    finds =
+      Find
+      |> join(:inner, [f], e in Entry, on: e.id == f.journal_entry_id)
+      |> join(:left, [f, _e], i in Item, on: i.id == f.item_id)
+      |> where([f, e], f.poet_id == ^poet_id and e.status == "published")
+      |> select([f, _e, i], {i.kind, f.kind})
+      |> Repo.all()
+      |> Enum.map(fn {item_kind, kind} -> item_kind || Ingest.find_kind(kind) end)
+
+    Enum.frequencies(places ++ finds)
   end
 
   @doc """
@@ -392,7 +480,8 @@ defmodule TravelingPoet.Discover do
         stats: %{
           days: days,
           entries: length(entries),
-          places: length(published_places([poet.id]))
+          places: length(published_places([poet.id])),
+          kinds: kind_counts(poet.id)
         }
       }
     else
