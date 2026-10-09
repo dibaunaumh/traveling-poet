@@ -111,6 +111,16 @@ defmodule TravelingPoet.DiscoverTest do
       refute inspect(village) =~ "Secret"
     end
 
+    test "tiles say what kind of thing they are, so the kind filter can tell them apart" do
+      nam = on_the_road("Nam")
+      kyoto = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+      place_fixture(nam, kyoto, %{name: "Nishiki Market", category: "shop"}) |> tag(@weaving)
+      place_fixture(nam, kyoto, %{name: "Gion Matsuri", category: "event"}) |> tag(@weaving)
+
+      kinds = Discover.village().places |> Map.new(&{&1.name, &1.ikind})
+      assert kinds == %{"Nishiki Market" => "place", "Gion Matsuri" => "event"}
+    end
+
     test "a place's overview names the other poets and borrows the page's drawing" do
       nam = on_the_road("Nam")
       wren = on_the_road("Wren")
@@ -329,6 +339,45 @@ defmodule TravelingPoet.DiscoverTest do
       assert Discover.poet(private.slug) == nil
       assert Discover.entry("1 OR 1=1") == nil
       assert Discover.entry(%{}) == nil
+    end
+
+    test "a poet's route of one kind: mapped places in the order they were found, public only" do
+      nam = on_the_road("Nam")
+      day1 = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+      day2 = page(nam, ~D[2026-09-02], %{place_name: "Kyoto"})
+      second = place_fixture(nam, day1, %{name: "Nishiki", lat: 35.0, lng: 135.7, position: 1})
+
+      first =
+        place_fixture(nam, day1, %{name: "Kinkaku-ji", lat: 35.03, lng: 135.72, position: 0})
+
+      third = place_fixture(nam, day2, %{name: "Fushimi Inari", lat: 34.96, lng: 135.77})
+      _unmapped = place_fixture(nam, day2, %{name: "Somewhere"})
+
+      _event =
+        place_fixture(nam, day2, %{
+          name: "Gion Matsuri",
+          category: "event",
+          lat: 35.0,
+          lng: 135.77
+        })
+
+      {:ok, draft} = Journal.upsert_entry(nam.id, ~D[2026-09-05], %{title: "Draft"})
+      place_fixture(nam, draft, %{name: "Not yet", lat: 35.0, lng: 135.7})
+
+      route = Discover.journey(nam.slug, "place")
+      assert route.poet.name == "Nam"
+      assert Enum.map(route.stops, & &1.id) == [first.id, second.id, third.id]
+      assert hd(route.stops).date == "2026-09-01"
+      assert hd(route.stops).city == "Kyoto"
+
+      assert [%{name: "Gion Matsuri"}] = Discover.journey(nam.slug, "event").stops
+      assert Discover.journey(nam.slug, "work") == nil
+
+      hidden = on_the_road("Hilda", %{is_public: false})
+      place_fixture(hidden, page(hidden, ~D[2026-09-01]), %{name: "Secret", lat: 1.0, lng: 1.0})
+      assert Discover.journey(hidden.slug, "place") == nil
+
+      assert %{stats: %{kinds: %{"place" => 4, "event" => 1}}} = Discover.poet(nam.slug)
     end
 
     test "a poet's page count includes pages that are not on the map" do

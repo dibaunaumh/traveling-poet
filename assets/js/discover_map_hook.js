@@ -14,15 +14,19 @@
 // red dot with its name, and where the map looks while nothing else is.
 // data-panel names the overview beside the stage (its [data-discover-prev]
 // and [data-discover-next] buttons turn the tour), data-layers the row of
-// [data-layer] toggles, data-views the World | Village switch. data-url
-// (the full /discover page only) keeps ?view= and ?topic= in the address
-// bar, so a subject can be shared.
+// [data-layer] toggles, data-views the World | Village switch, data-kinds
+// the row of [data-kind] chips (the kind filter: places, events, works...,
+// for both views). data-url (the full /discover page only) keeps ?view=,
+// ?topic=, ?kind= and ?mode= in the address bar, so a subject, a kind and
+// the shelf can be shared.
 //
 // The LiveView renders the overview. This hook only says what is shown:
 // pushEvent("select", {kind, id, from: "map"}). It listens for
 // "discover:update" (a poet published; same shape as data-discover),
-// "discover:focus" ({kind, id}: a link in the overview picked something) and
-// "discover:village" ({topic}: open the village at a subject).
+// "discover:focus" ({kind, id}: a link in the overview picked something),
+// "discover:village" ({topic}: open the village at a subject) and
+// "discover:journey" (Discover.journey/2: one poet's places of a kind in
+// the order they were found, drawn as a numbered route; the tour walks it).
 //
 // The tour. World view: the newest pages; if the village left a subject in
 // focus, that subject's places instead, and the map shows only them. Village
@@ -55,6 +59,16 @@ const RED = "#c0392b"
 const GREY = "#9ca3af"
 // Keep in step with .discover-swatch-* in app.css.
 const PLACE_COLOURS = { food: "#d97706", sights: "#3f7d4f", events: "#7c3aed" }
+// The kind chips' words, in step with DiscoverLive's kinds/0.
+const KIND_LABELS = {
+  "": "Everything",
+  place: "Places",
+  event: "Events",
+  artwork: "Artworks",
+  work: "Works",
+  idea: "Ideas",
+  product: "Products",
+}
 
 const DiscoverMap = {
   mounted() {
@@ -96,6 +110,7 @@ const DiscoverMap = {
       poets: L.layerGroup().addTo(this.map),
     }
     this.anonymousLayer = L.layerGroup().addTo(this.map)
+    this.journeyLayer = L.layerGroup().addTo(this.map)
     this.ringLayer = L.layerGroup().addTo(this.map)
 
     this.village = new Village(this.villageEl, {
@@ -104,21 +119,31 @@ const DiscoverMap = {
       onFocus: (path, { user }) => {
         this.subject = path
         this.syncUrl()
+        this.sizeKinds()
         if (user) {
           this.hold()
           this.restartTour({ show: false })
         }
+      },
+      // The shelf switch; the kind chips live outside the village and reach
+      // it through setKind, so only the mode arrives this way.
+      onState: () => {
+        this.syncUrl()
+        this.queue = this.tourQueue()
       },
     })
 
     this.panel = this.el.dataset.panel ? document.getElementById(this.el.dataset.panel) : null
     this.layerToggles = this.el.dataset.layers ? document.getElementById(this.el.dataset.layers) : null
     this.viewToggles = this.el.dataset.views ? document.getElementById(this.el.dataset.views) : null
+    this.kindToggles = this.el.dataset.kinds ? document.getElementById(this.el.dataset.kinds) : null
     this.reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
     this.timers = []
     this.index = 0
     this.view = "world"
     this.subject = ""
+    this.kind = ""
+    this.journey = null
     this.subjectIds = new Set()
     this.villageLoaded = false
 
@@ -136,6 +161,7 @@ const DiscoverMap = {
       this.hold()
       this.setView("village", { subject: topic || "" })
     })
+    this.handleEvent("discover:journey", (route) => this.showJourney(route))
 
     this.pushEvent("load", {}, (data) => {
       this.load(data)
@@ -146,8 +172,10 @@ const DiscoverMap = {
   start() {
     // A shared link can open the village, or the map filtered, at a subject.
     const params = this.el.dataset.url ? new URLSearchParams(window.location.search) : null
-    if (params && (params.get("view") === "village" || params.get("topic"))) {
+    if (params && (params.get("view") === "village" || params.get("topic") || params.get("kind"))) {
       const view = params.get("view") === "village" ? "village" : "world"
+      this.village.setMode(params.get("mode") || "tiles")
+      this.setKind(params.get("kind") || "", { quiet: true })
       this.setView(view, { subject: params.get("topic") || "", first: true })
       return
     }
@@ -186,7 +214,7 @@ const DiscoverMap = {
     Object.values(this.layers).forEach((l) => l.clearLayers())
     this.anonymousLayer.clearLayers()
     this.placeMarkers = []
-    const filtering = this.view === "world" && this.subject !== ""
+    const filtering = this.view === "world" && (this.subject !== "" || this.kind !== "" || !!this.journey)
 
     if (this.data.me) {
       const me = this.data.me
@@ -259,7 +287,9 @@ const DiscoverMap = {
       const n = this.layers.places.getLayers().length
       this.filterEl.innerHTML = ""
       const label = document.createElement("span")
-      label.textContent = `${this.village.name(this.subject)}: ${n} on the map`
+      label.textContent = this.journey
+        ? `${this.journey.poet.name}'s ${n} ${KIND_LABELS[this.journey.kind].toLowerCase()}, in order`
+        : `${this.filterName()}: ${n} on the map`
       const clear = document.createElement("button")
       clear.type = "button"
       clear.textContent = "Show everything"
@@ -268,7 +298,17 @@ const DiscoverMap = {
     }
   },
 
+  // What the map is narrowed to, in words: "Textiles", "Events",
+  // "Textiles, events".
+  filterName() {
+    const subject = this.subject ? this.village.name(this.subject) : ""
+    const kind = this.kind ? KIND_LABELS[this.kind] : ""
+    if (subject && kind) return `${subject}, ${kind.toLowerCase()}`
+    return subject || kind
+  },
+
   placeInSubject(p) {
+    if (this.journey) return this.journeyIds.has(p.id)
     return this.subjectIds.has(p.id)
   },
 
@@ -290,10 +330,95 @@ const DiscoverMap = {
     this.queue = this.tourQueue()
   },
 
-  // Every place row (world map ids) under a subject, from the village list.
+  // Every place row (world map ids) under a subject and of the kind in the
+  // filter, from the village list.
   idsUnder(subject) {
-    if (!subject || !this.villageLoaded) return new Set()
+    if ((!subject && !this.kind) || !this.villageLoaded) return new Set()
     return new Set(this.village.placesUnder(subject).flatMap((p) => p.ids || [p.id]))
+  },
+
+  // -- the kind filter ---------------------------------------------------
+
+  setKind(kind, { quiet = false } = {}) {
+    kind = kind in KIND_LABELS ? kind : ""
+    this.kind = kind
+    if (this.kindToggles) {
+      this.kindToggles.querySelectorAll("[data-kind]").forEach((b) => {
+        b.setAttribute("aria-selected", String(b.dataset.kind === kind))
+      })
+    }
+    if (quiet) return
+    // Narrowing the map by kind needs the village list, as a subject does.
+    if (!this.villageLoaded) return this.ensureVillage(() => this.setKind(kind))
+    this.village.setKind(kind)
+    this.journey = null
+    this.journeyLayer.clearLayers()
+    this.sizeKinds()
+    this.syncUrl()
+    if (this.view === "world") {
+      this.subjectIds = this.idsUnder(this.subject)
+      this.render()
+    }
+    this.restartTour({ show: false })
+  },
+
+  // The count beside each kind chip: how many of that kind sit under the
+  // subject in focus. Blank until the village list is here.
+  sizeKinds() {
+    if (!this.kindToggles || !this.villageLoaded) return
+    const counts = this.village.kindCounts(this.subject)
+    this.kindToggles.querySelectorAll("[data-kind-count]").forEach((el) => {
+      const n = counts[el.closest("[data-kind]").dataset.kind]
+      el.textContent = n > 0 ? String(n) : ""
+    })
+  },
+
+  // -- a poet's route -----------------------------------------------------
+
+  // Discover.journey/2: {poet: {slug, name}, kind, stops: [{id, name, lat,
+  // lng, date, city}]} in the order the poet found them. The map shows
+  // only the route, numbered, and the tour walks it.
+  showJourney(route) {
+    if (!route || !route.stops) return
+    this.hold()
+    this.journey = route
+    this.journeyIds = new Set(route.stops.map((s) => s.id))
+    this.subject = ""
+    this.view = "world"
+    this.mapEl.hidden = false
+    this.villageEl.hidden = true
+    if (this.layerToggles) this.layerToggles.hidden = false
+    if (this.viewToggles) {
+      this.viewToggles.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === "world")))
+    }
+    this.map.invalidateSize()
+    this.render()
+
+    this.journeyLayer.clearLayers()
+    const points = route.stops.map((s) => [s.lat, s.lng])
+    if (points.length > 1) {
+      L.polyline(points, { color: TEAL, weight: 2, opacity: 0.8, dashArray: "4 6", interactive: false }).addTo(
+        this.journeyLayer
+      )
+    }
+    route.stops.forEach((s, i) => {
+      L.marker([s.lat, s.lng], {
+        icon: L.divIcon({ className: "discover-stop", html: `<span>${i + 1}</span>`, iconSize: [22, 22] }),
+        title: `${i + 1}. ${s.name}`,
+      })
+        .bindTooltip(`${i + 1}. ${s.name}${s.date ? ` (${s.date})` : ""}`, { direction: "top", offset: [0, -10] })
+        .on("click", () => this.pick("place", s.id))
+        .addTo(this.journeyLayer)
+    })
+    if (points.length) this.map.fitBounds(points, { padding: [30, 30], maxZoom: 8 })
+    this.syncUrl()
+    this.restartTour({ show: false })
+  },
+
+  clearJourney() {
+    this.journey = null
+    this.journeyIds = new Set()
+    this.journeyLayer.clearLayers()
   },
 
   // Small dots across the world, bigger ones once the map is on a region.
@@ -311,10 +436,11 @@ const DiscoverMap = {
 
   setView(view, { subject = this.subject, first = false } = {}) {
     view = view === "village" ? "village" : "world"
-    // The village, and a map filtered by subject, need the village list.
-    if ((view === "village" || subject) && !this.villageLoaded) {
+    // The village, and a map filtered by subject or kind, need the village list.
+    if ((view === "village" || subject || this.kind) && !this.villageLoaded) {
       return this.ensureVillage(() => this.setView(view, { subject, first }))
     }
+    this.clearJourney()
     this.view = view
     this.mapEl.hidden = this.view !== "world"
     this.villageEl.hidden = this.view !== "village"
@@ -326,6 +452,7 @@ const DiscoverMap = {
     }
 
     if (this.view === "village") {
+      this.village.setKind(this.kind)
       this.village.setFocus(subject)
     } else {
       this.subject = subject
@@ -335,6 +462,7 @@ const DiscoverMap = {
       const bounds = this.layers.places.getLayers().map((m) => m.getLatLng())
       if (this.subject && bounds.length) this.map.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 })
     }
+    this.sizeKinds()
     this.syncUrl()
     // On a filtered map, let the reader see where the subject's places are
     // before the tour flies to the first of them.
@@ -349,6 +477,10 @@ const DiscoverMap = {
     else params.delete("view")
     if (this.subject) params.set("topic", this.subject)
     else params.delete("topic")
+    if (this.kind) params.set("kind", this.kind)
+    else params.delete("kind")
+    if (this.village.mode === "shelf") params.set("mode", "shelf")
+    else params.delete("mode")
     const q = params.toString()
     window.history.replaceState(window.history.state, "", window.location.pathname + (q ? `?${q}` : ""))
   },
@@ -357,12 +489,15 @@ const DiscoverMap = {
 
   // What the tour turns through, as [{kind, id}], for the view and subject.
   tourQueue() {
+    if (this.journey) {
+      return this.journey.stops.filter((s) => this.places.has(String(s.id))).map((s) => ({ kind: "place", id: s.id }))
+    }
     if (this.view === "village") {
       return this.village
         .rotation(this.subject)
         .map((key) => ({ kind: key[0] === "f" ? "vfind" : "vplace", id: key }))
     }
-    if (this.subject) {
+    if (this.subject || this.kind) {
       // A village place stands for every row merged into it; the map shows
       // whichever of them it has.
       // The world map has places only; the village's finds stay in the village.
@@ -518,9 +653,20 @@ const DiscoverMap = {
     this.filterEl.addEventListener("click", (e) => {
       if (e.target.closest("[data-discover-clear]")) {
         this.hold()
+        this.setKind("", { quiet: true })
+        this.village.setKind("")
         this.setView("world", { subject: "" })
       }
     })
+
+    if (this.kindToggles) {
+      this.kindToggles.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-kind]")
+        if (!btn || btn.dataset.kind === this.kind) return
+        this.hold()
+        this.setKind(btn.dataset.kind)
+      })
+    }
 
     if (this.panel) {
       this.panel.addEventListener("click", (e) => {

@@ -105,6 +105,15 @@ defmodule TravelingPoetWeb.DiscoverLive do
   def handle_event("load_village", _params, socket),
     do: {:reply, Discover.village(), socket}
 
+  # A poet's route of one kind of thing, in the order they were found: the
+  # map draws it.
+  def handle_event("journey", %{"poet" => slug, "kind" => kind}, socket) do
+    case Discover.journey(slug, kind) do
+      nil -> {:noreply, socket}
+      route -> {:noreply, push_event(socket, "discover:journey", route)}
+    end
+  end
+
   # A subject under a place: open the village there.
   def handle_event("village", %{"topic" => topic}, socket) do
     if PlaceTopics.valid?(topic),
@@ -169,6 +178,52 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   defp tag(_kind, nil), do: nil
   defp tag(kind, overview), do: Map.put(overview, :kind, kind)
+
+  # The kinds of thing on the item side (Spaces), as the kind filter offers
+  # them. Keep in step with KINDS in village.js.
+  @kinds [
+    {"", "Everything"},
+    {"place", "Places"},
+    {"event", "Events"},
+    {"artwork", "Artworks"},
+    {"work", "Works"},
+    {"idea", "Ideas"},
+    {"product", "Products"}
+  ]
+
+  defp kinds, do: @kinds
+
+  @kind_words %{
+    "place" => {"place", "places"},
+    "event" => {"event", "events"},
+    "artwork" => {"artwork", "artworks"},
+    "work" => {"work", "works"},
+    "idea" => {"idea", "ideas"},
+    "product" => {"product", "products"},
+    "other" => {"find", "finds"}
+  }
+
+  defp kind_word(kind, n) do
+    {one, many} = Map.get(@kind_words, kind, {"find", "finds"})
+    if n == 1, do: one, else: many
+  end
+
+  # The kinds a route can be drawn for: the ones with pins.
+  defp routes(%{kinds: kinds}) do
+    for kind <- ~w(place event), n = Map.get(kinds, kind, 0), n > 0, do: {kind, n}
+  end
+
+  defp routes(_), do: []
+
+  # What else the poet brought back, in a line: "3 works, 2 ideas".
+  defp unmapped(%{kinds: kinds}) do
+    kinds
+    |> Map.drop(~w(place event))
+    |> Enum.sort_by(fn {_k, n} -> -n end)
+    |> Enum.map_join(", ", fn {kind, n} -> "#{n} #{kind_word(kind, n)}" end)
+  end
+
+  defp unmapped(_), do: ""
 
   @impl true
   def render(%{compact: true} = assigns) do
@@ -266,6 +321,25 @@ defmodule TravelingPoetWeb.DiscoverLive do
         <.icon name="hero-squares-2x2" class="size-4" /> Village
       </button>
     </div>
+    <%!-- The kind filter, for both views; the hook owns aria-selected and the counts. --%>
+    <div
+      :if={!@compact}
+      id="discover-kinds"
+      class="discover-kinds"
+      role="group"
+      aria-label="What to show"
+      phx-update="ignore"
+    >
+      <button
+        :for={{kind, label} <- kinds()}
+        type="button"
+        class="spread-chip"
+        data-kind={kind}
+        aria-selected={to_string(kind == "")}
+      >
+        {label} <small data-kind-count></small>
+      </button>
+    </div>
     <div class={["discover-grid", @compact && "mt-3"]}>
       <div
         id="discover-map"
@@ -274,6 +348,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         data-panel="discover-panel"
         data-layers={!@compact && "discover-layers"}
         data-views="discover-views"
+        data-kinds={!@compact && "discover-kinds"}
         data-url={!@compact && "true"}
         class="discover-map rounded-2xl overflow-hidden border border-base-300 z-0"
       >
@@ -457,6 +532,22 @@ defmodule TravelingPoetWeb.DiscoverLive do
           <span>{ngettext("place", "places", @selected.stats.places)}</span>
         </div>
       </div>
+      <div :if={routes(@selected.stats) != []} class="discover-journeys" aria-label="Routes">
+        <button
+          :for={{kind, n} <- routes(@selected.stats)}
+          type="button"
+          class="discover-subject"
+          phx-click="journey"
+          phx-value-poet={@selected.poet.slug}
+          phx-value-kind={kind}
+          title="Draw the route on the map"
+        >
+          {n} {kind_word(kind, n)}, in order
+        </button>
+      </div>
+      <p :if={unmapped(@selected.stats) != ""} class="text-xs opacity-60 mt-2">
+        Also brought back {unmapped(@selected.stats)}.
+      </p>
       <div class="discover-links">
         <a href={~p"/p/#{@selected.poet.slug}"} class="link">Open {@selected.poet.name}&rsquo;s journal</a>
         <a href={~p"/p/#{@selected.poet.slug}/guide"} class="link">
