@@ -43,6 +43,8 @@ defmodule TravelingPoet.Spaces.Item do
     field :source_url, :string
     # `source_url` as a matching key (Resolver.url_key/1); kept by the changeset.
     field :url_key, :string
+    # ISO 3166-1 alpha-2, from the admin hierarchy (Spaces.Hierarchy).
+    field :country_code, :string
 
     belongs_to :merged_into, __MODULE__
     belongs_to :parent, __MODULE__
@@ -74,6 +76,7 @@ defmodule TravelingPoet.Spaces.Item do
       :second_topic,
       :topics_classified_at,
       :source_url,
+      :country_code,
       :merged_into_id,
       :parent_id,
       :first_poet_id

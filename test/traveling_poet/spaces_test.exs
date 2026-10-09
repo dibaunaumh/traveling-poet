@@ -32,7 +32,8 @@ defmodule TravelingPoet.SpacesTest do
       assert Enum.map(Spaces.list_reference_systems(), &{&1.key, &1.type}) == [
                {"geo", "metric"},
                {"subject", "tree"},
-               {"time", "time"}
+               {"time", "time"},
+               {"admin", "hierarchy"}
              ]
     end
   end
@@ -319,6 +320,159 @@ defmodule TravelingPoet.SpacesTest do
     end
   end
 
+  describe "the admin hierarchy" do
+    alias TravelingPoet.Spaces.Hierarchy
+
+    test "parse/1 reads a geocoder-style place name" do
+      assert Hierarchy.parse("Seattle, King County, Washington, United States") ==
+               %{city: "Seattle", region: "Washington", country: "United States"}
+
+      assert Hierarchy.parse("Lisbon, Portugal") == %{
+               city: "Lisbon",
+               region: nil,
+               country: "Portugal"
+             }
+
+      assert Hierarchy.parse("Tainan") == %{city: "Tainan", region: nil, country: nil}
+
+      assert Hierarchy.parse("Yokohama, Kanagawa Prefecture, 231-0017, Japan") ==
+               %{city: "Yokohama", region: "Kanagawa Prefecture", country: "Japan"}
+
+      assert Hierarchy.parse(nil) == %{city: nil, region: nil, country: nil}
+    end
+
+    test "a stay puts its city under a region and a country, and the places take the code" do
+      nam = on_the_road("Nam")
+
+      {:ok, nam} =
+        Poets.move_to(nam, %{
+          lat: 47.6,
+          lng: -122.33,
+          place_name: "Seattle, King County, Washington, United States",
+          country_code: "us"
+        })
+
+      city = Spaces.get_item(Poets.current_path_point(nam.id).item_id)
+      assert city.country_code == "US"
+      region = Spaces.get_item(city.parent_id)
+      assert {region.subkind, region.name, region.country_code} == {"region", "Washington", "US"}
+      country = Spaces.get_item(region.parent_id)
+
+      assert {country.subkind, country.name, country.country_code} ==
+               {"country", "United States", "US"}
+
+      assert [^region] = Spaces.children(country.id, "region")
+
+      [place] =
+        put_places(page(nam, ~D[2026-09-01], %{place_name: "Seattle"}), [
+          %{name: "Fremont Troll", category: "landmark"}
+        ])
+
+      assert Spaces.get_item(place.item_id).country_code == "US"
+
+      # "USA" is the same country, by code; a one-word stay has no country
+      wren = on_the_road("Wren")
+
+      {:ok, wren} =
+        Poets.move_to(wren, %{
+          lat: 45.5,
+          lng: -122.6,
+          place_name: "Portland, Oregon, USA",
+          country_code: "US"
+        })
+
+      portland = Spaces.get_item(Poets.current_path_point(wren.id).item_id)
+      assert Spaces.get_item(portland.parent_id).parent_id == country.id
+
+      assert Enum.map(Spaces.children(country.id, "region"), & &1.name) == [
+               "Oregon",
+               "Washington"
+             ]
+
+      {:ok, wren} = Poets.move_to(wren, %{lat: 23.0, lng: 120.2, place_name: "Tainan"})
+      tainan = Spaces.get_item(Poets.current_path_point(wren.id).item_id)
+      assert tainan.parent_id == nil
+      assert tainan.country_code == nil
+    end
+
+    test "a country is never a candidate for a place of the same name" do
+      nam = on_the_road("Nam")
+
+      {:ok, nam} =
+        Poets.move_to(nam, %{
+          lat: 24.0,
+          lng: 121.0,
+          place_name: "Taipei, Taiwan",
+          country_code: "TW"
+        })
+
+      [place] =
+        put_places(page(nam, ~D[2026-09-01], %{place_name: "Taipei, Taiwan"}), [
+          %{name: "Taiwan", category: "attraction"}
+        ])
+
+      assert Spaces.get_item(place.item_id).subkind != "country"
+    end
+  end
+
+  describe "the time axis" do
+    test "a later edition of an event is a new item in the series; overlapping dates are one event" do
+      nam = on_the_road("Nam")
+      wren = on_the_road("Wren")
+
+      [first] =
+        put_places(page(nam, ~D[2025-07-20], %{place_name: "Kyoto"}), [
+          %{
+            name: "Gion Matsuri",
+            category: "event",
+            starts_on: ~D[2025-07-01],
+            ends_on: ~D[2025-07-31]
+          }
+        ])
+
+      [same] =
+        put_places(page(wren, ~D[2025-07-25], %{place_name: "Kyoto"}), [
+          %{
+            name: "Gion Matsuri",
+            category: "event",
+            starts_on: ~D[2025-07-10],
+            ends_on: ~D[2025-07-24]
+          }
+        ])
+
+      [next_year] =
+        put_places(page(nam, ~D[2026-07-20], %{place_name: "Kyoto"}), [
+          %{
+            name: "Gion Matsuri",
+            category: "event",
+            starts_on: ~D[2026-07-01],
+            ends_on: ~D[2026-07-31]
+          }
+        ])
+
+      assert first.item_id == same.item_id
+      refute next_year.item_id == first.item_id
+      assert [%{id: earlier_id}] = Spaces.earlier_editions(Spaces.get_item(next_year.item_id))
+      assert earlier_id == first.item_id
+      assert Spaces.get_item(next_year.item_id).time_start == ~D[2026-07-01]
+    end
+
+    test "events_around/2 is what is on or coming up" do
+      nam = on_the_road("Nam")
+      entry = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+
+      put_places(entry, [
+        %{name: "Now", category: "event", starts_on: ~D[2026-09-20], ends_on: ~D[2026-10-20]},
+        %{name: "Soon", category: "event", starts_on: ~D[2026-10-15]},
+        %{name: "Later", category: "event", starts_on: ~D[2026-12-01]},
+        %{name: "Gone", category: "event", starts_on: ~D[2026-08-01], ends_on: ~D[2026-08-05]},
+        %{name: "Undated", category: "event"}
+      ])
+
+      assert Enum.map(Spaces.events_around(~D[2026-10-01], 30), & &1.name) == ["Now", "Soon"]
+    end
+  end
+
   describe "finds become visits of shared items" do
     test "the same page or the same name is one item, keyed by kind" do
       nam = on_the_road("Nam")
@@ -432,8 +586,18 @@ defmodule TravelingPoet.SpacesTest do
     setup do
       nam = on_the_road("Nam")
       wren = on_the_road("Wren")
-      {:ok, _} = Poets.move_to(nam, %{lat: 35.01, lng: 135.77, place_name: "Kyoto, Japan"})
-      {:ok, _} = Poets.move_to(wren, %{lat: 35.02, lng: 135.76, place_name: "Kyoto"})
+
+      {:ok, _} =
+        Poets.move_to(nam, %{
+          lat: 35.01,
+          lng: 135.77,
+          place_name: "Kyoto, Kyoto Prefecture, Japan",
+          country_code: "JP"
+        })
+
+      {:ok, _} =
+        Poets.move_to(wren, %{lat: 35.02, lng: 135.76, place_name: "Kyoto", country_code: "JP"})
+
       e1 = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
       e2 = page(wren, ~D[2026-09-05], %{place_name: "Kyoto"})
       # written before Spaces existed: no item on any of them
@@ -449,6 +613,10 @@ defmodule TravelingPoet.SpacesTest do
       report = Backfill.run()
 
       refute report.committed
+      # the stays were resolved in this run, so their cities were placed and
+      # coded on the way in; `cities_placed` counts cities from before the hierarchy existed
+      assert report.hierarchy == %{cities_placed: 0, countries: 1, regions: 1, coded: 0}
+      assert report.series == 0
       assert report.linked.places == 2
       assert report.linked.finds == 1
       assert report.linked.stays == 2

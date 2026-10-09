@@ -23,7 +23,7 @@ defmodule TravelingPoet.Spaces.Backfill do
   alias TravelingPoet.Guide.{Place, StayArea}
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Poets.PathPoint
-  alias TravelingPoet.Spaces.{Ingest, Item, ItemReview}
+  alias TravelingPoet.Spaces.{Hierarchy, Ingest, Item, ItemReview, Link}
   alias TravelingPoet.Topics.Find
 
   @doc """
@@ -31,6 +31,7 @@ defmodule TravelingPoet.Spaces.Backfill do
   that already have an item).
 
   Returns a report: `%{committed, linked: %{stays, places, finds, areas},
+  hierarchy: %{cities_placed, countries, regions, coded}, series,
   items_created, by_kind, shared, reviews, samples}`.
   """
   def run(opts \\ []) do
@@ -50,7 +51,9 @@ defmodule TravelingPoet.Spaces.Backfill do
     items_before = Repo.aggregate(Item, :count)
     reviews_before = Repo.aggregate(ItemReview, :count)
 
+    links_before = Repo.aggregate(Link, :count)
     stays = Enum.count(path_points(opts), &linked?(Ingest.stay_for(&1)))
+    hierarchy = Hierarchy.backfill()
 
     places =
       opts
@@ -87,9 +90,15 @@ defmodule TravelingPoet.Spaces.Backfill do
 
     per_item = Spaces.poets_per_item()
     shared = per_item |> Enum.filter(fn {_id, n} -> n > 1 end) |> Map.new()
+    # Places found before the cities were placed take their codes now.
+    coded_late = Hierarchy.backfill().coded
 
     %{
       linked: %{stays: stays, places: places, finds: finds, areas: areas},
+      hierarchy: %{hierarchy | coded: hierarchy.coded + coded_late},
+      series:
+        Repo.aggregate(from(l in Link, where: l.relation == "series_of"), :count) -
+          links_before_series(links_before),
       items_created: Repo.aggregate(Item, :count) - items_before,
       by_kind: by_kind(),
       shared: map_size(shared),
@@ -100,6 +109,10 @@ defmodule TravelingPoet.Spaces.Backfill do
 
   defp linked?(%{item_id: id}), do: not is_nil(id)
   defp linked?(_), do: false
+
+  # Links are only ever series_of in phase 1, so the total before is the
+  # series count before.
+  defp links_before_series(n), do: n
 
   defp path_points(opts) do
     PathPoint

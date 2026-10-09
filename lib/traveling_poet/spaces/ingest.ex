@@ -21,7 +21,7 @@ defmodule TravelingPoet.Spaces.Ingest do
   alias TravelingPoet.Guide.{Place, StayArea}
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Poets.PathPoint
-  alias TravelingPoet.Spaces.{Item, ItemReview, Resolver}
+  alias TravelingPoet.Spaces.{Hierarchy, Item, ItemReview, Resolver}
   alias TravelingPoet.Topics.Find
 
   # Roughly 1.2 km of latitude; the box only narrows the candidate set,
@@ -66,7 +66,8 @@ defmodule TravelingPoet.Spaces.Ingest do
       topics_classified_at: place.topics_classified_at,
       time_start: place.starts_on,
       time_end: place.ends_on,
-      parent_id: stay_item_id(place.path_point_id)
+      parent_id: stay_item_id(place.path_point_id),
+      country_code: stay_country(place.path_point_id)
     }
   end
 
@@ -152,7 +153,8 @@ defmodule TravelingPoet.Spaces.Ingest do
       topics_classified_at: find.topics_classified_at,
       time_start: nil,
       time_end: nil,
-      parent_id: nil
+      parent_id: nil,
+      country_code: nil
     }
   end
 
@@ -179,7 +181,14 @@ defmodule TravelingPoet.Spaces.Ingest do
         topics_classified_at: nil,
         time_start: nil,
         time_end: nil,
-        parent_id: city_item_id(area.city)
+        parent_id: city_item_id(area.city),
+        country_code: nil
+      }
+
+      probe = %{
+        probe
+        | country_code:
+            Hierarchy.country_code_of(probe.parent_id && Repo.get(Item, probe.parent_id))
       }
 
       item = resolve_or_create(probe, area.poet_id)
@@ -216,11 +225,14 @@ defmodule TravelingPoet.Spaces.Ingest do
             topics_classified_at: nil,
             time_start: nil,
             time_end: nil,
-            parent_id: nil
+            parent_id: nil,
+            country_code: nil
           }
 
           item = resolve_or_create(probe, point.poet_id)
           item = refresh(item, probe)
+          # A city sits in a region and a country (Spaces.Hierarchy).
+          Hierarchy.attach(item, name, point.country_code)
           point |> Ecto.Changeset.change(item_id: item.id) |> Repo.update!()
       end
     end)
@@ -232,6 +244,14 @@ defmodule TravelingPoet.Spaces.Ingest do
     case Repo.get(PathPoint, path_point_id) do
       %PathPoint{item_id: id} -> id
       nil -> nil
+    end
+  end
+
+  # The country of the stay a place was found during, through the city item.
+  defp stay_country(path_point_id) do
+    case stay_item_id(path_point_id) do
+      nil -> nil
+      id -> Hierarchy.country_code_of(Repo.get(Item, id))
     end
   end
 
@@ -256,6 +276,19 @@ defmodule TravelingPoet.Spaces.Ingest do
   defp resolve_or_create(probe, poet_id) do
     case Resolver.decide(probe, candidates(probe)) do
       {:match, item} ->
+        item
+
+      {:series, earlier} ->
+        {:ok, item} =
+          Spaces.create_item(%{
+            kind: probe.kind,
+            subkind: probe.subkind,
+            name: probe.name,
+            city: probe.city,
+            first_poet_id: poet_id
+          })
+
+        {:ok, _} = Spaces.link(item.id, earlier.id, "series_of")
         item
 
       {:new, reviews} ->
@@ -304,10 +337,14 @@ defmodule TravelingPoet.Spaces.Ingest do
   end
 
   # A stay only ever matches another stay: a city is not a cafe of the same
-  # name. Everything else matches across subkinds (a "museum" and an
-  # "attraction" can be one building).
+  # name, and a country or region (Spaces.Hierarchy) is neither. Everything
+  # else matches across subkinds (a "museum" and an "attraction" can be
+  # one building).
+  @admin ~w(city region country)
   defp maybe_subkind(query, "city"), do: where(query, [i], i.subkind == "city")
-  defp maybe_subkind(query, _), do: where(query, [i], i.subkind != "city" or is_nil(i.subkind))
+
+  defp maybe_subkind(query, _),
+    do: where(query, [i], i.subkind not in @admin or is_nil(i.subkind))
 
   defp dynamic_url(nil), do: dynamic([i], false)
   defp dynamic_url(key), do: dynamic([i], i.url_key == ^key)
@@ -345,6 +382,7 @@ defmodule TravelingPoet.Spaces.Ingest do
         {:source_url, probe.source_url, is_nil(item.source_url)},
         {:parent_id, probe.parent_id, is_nil(item.parent_id)},
         {:city, probe.city, is_nil(item.city)},
+        {:country_code, Map.get(probe, :country_code), is_nil(item.country_code)},
         {:time_start, probe.time_start, is_nil(item.time_start)},
         {:time_end, probe.time_end, is_nil(item.time_end)}
       ]
