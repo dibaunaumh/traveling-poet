@@ -131,10 +131,11 @@ defmodule TravelingPoet.Discover do
   The global village: every public poet's published places that carry a
   topic, mapped or not (a place needs no coordinates to sit in a subject),
   one per place. The same place logged again (another day, another poet) is
-  merged by name and city, keeping the newest row's id and every poet who
-  found it.
+  merged by the shared item it was resolved to (Spaces, kb-002), by name
+  and city for a row no item claims yet, keeping the newest row's id and
+  every poet who found it.
 
-      %{tree: PlaceTopics.tree(), places: [%{id, ids, name, city, topics, date, found_by}]}
+      %{tree: PlaceTopics.tree(), places: [%{id, item_id, ids, name, city, topics, date, found_by}]}
 
   `ids` are every row merged into the place, so the world map can show the
   places under a subject; `found_by` is how many poets logged it.
@@ -150,23 +151,27 @@ defmodule TravelingPoet.Discover do
 
     places =
       village_rows(ids)
-      |> Enum.group_by(fn {p, city, _date} -> {normalize(p.name), normalize(city)} end)
+      |> Enum.group_by(fn {p, city, _date, _topics} -> place_key(p, city) end)
       |> Enum.map(fn {_key, rows} ->
         # ISO strings, not %Date{}: tuples of structs compare field by field.
-        {newest, city, date} = Enum.max_by(rows, fn {p, _c, d} -> {Date.to_iso8601(d), p.id} end)
+        {newest, city, date, _} =
+          Enum.max_by(rows, fn {p, _c, d, _t} -> {Date.to_iso8601(d), p.id} end)
 
         %{
           id: newest.id,
+          item_id: newest.item_id,
           name: newest.name,
           city: city,
           topics:
             rows
-            |> Enum.flat_map(fn {p, _, _} -> [p.topic, p.second_topic] end)
+            |> Enum.flat_map(fn {p, _, _, item_topics} ->
+              [p.topic, p.second_topic | item_topics]
+            end)
             |> Enum.reject(&is_nil/1)
             |> Enum.uniq(),
           date: Date.to_iso8601(date),
-          ids: Enum.map(rows, fn {p, _, _} -> p.id end),
-          found_by: rows |> Enum.map(fn {p, _, _} -> p.poet_id end) |> Enum.uniq() |> length()
+          ids: Enum.map(rows, fn {p, _, _, _} -> p.id end),
+          found_by: rows |> Enum.map(fn {p, _, _, _} -> p.poet_id end) |> Enum.uniq() |> length()
         }
       end)
       |> Enum.sort_by(&{&1.date, &1.id}, :desc)
@@ -182,24 +187,27 @@ defmodule TravelingPoet.Discover do
   defp village_finds(ids) do
     Find
     |> join(:inner, [f], e in Entry, on: e.id == f.journal_entry_id)
-    |> where([f, e], f.poet_id in ^ids and e.status == "published" and not is_nil(f.topic))
-    |> select([f, e], {f, e.entry_date})
+    |> join(:left, [f, _e], i in TravelingPoet.Spaces.Item, on: i.id == f.item_id)
+    |> where([f, e], f.poet_id in ^ids and e.status == "published")
+    |> where([f, _e, i], not is_nil(f.topic) or not is_nil(i.topic))
+    |> select([f, e, i], {f, e.entry_date, [i.topic, i.second_topic]})
     |> Repo.all()
-    |> Enum.group_by(fn {f, _date} -> find_key(f.name) end)
+    |> Enum.group_by(fn {f, _date, _} -> f.item_id || find_key(f.name) end)
     |> Enum.map(fn {_key, rows} ->
-      {newest, date} = Enum.max_by(rows, fn {f, d} -> {Date.to_iso8601(d), f.id} end)
+      {newest, date, _} = Enum.max_by(rows, fn {f, d, _} -> {Date.to_iso8601(d), f.id} end)
 
       %{
         id: newest.id,
+        item_id: newest.item_id,
         name: newest.name,
         kind: newest.kind,
         topics:
           rows
-          |> Enum.flat_map(fn {f, _} -> [f.topic, f.second_topic] end)
+          |> Enum.flat_map(fn {f, _, item_topics} -> [f.topic, f.second_topic | item_topics] end)
           |> Enum.reject(&is_nil/1)
           |> Enum.uniq(),
         date: Date.to_iso8601(date),
-        found_by: rows |> Enum.map(fn {f, _} -> f.poet_id end) |> Enum.uniq() |> length()
+        found_by: rows |> Enum.map(fn {f, _, _} -> f.poet_id end) |> Enum.uniq() |> length()
       }
     end)
     |> Enum.sort_by(&{&1.date, &1.id}, :desc)
@@ -227,6 +235,13 @@ defmodule TravelingPoet.Discover do
     end
   end
 
+  # The item a place was resolved to is the merge key: one row per real
+  # place, however it was spelled and whichever poet wrote it. A row no item
+  # claims yet (written before the Spaces backfill ran) merges by name and
+  # city, as before.
+  defp place_key(%Place{item_id: id}, _city) when is_integer(id), do: {:item, id}
+  defp place_key(%Place{name: name}, city), do: {normalize(name), normalize(city)}
+
   # A find's name as a merge key: case, punctuation and spacing aside, so
   # "Atlas Fractured — Theo Eshetu" and "Atlas Fractured – Theo Eshetu" are
   # one find.
@@ -242,11 +257,16 @@ defmodule TravelingPoet.Discover do
 
   defp village_rows([]), do: []
 
+  # A row sits in the village when it, or the item it is a visit of, has a
+  # subject: one poet's row gets classified and every poet's row of the
+  # same place follows.
   defp village_rows(ids) do
     Place
     |> join(:inner, [p], e in Entry, on: e.id == p.journal_entry_id)
-    |> where([p, e], p.poet_id in ^ids and e.status == "published" and not is_nil(p.topic))
-    |> select([p, e], {p, e.place_name, e.entry_date})
+    |> join(:left, [p, _e], i in TravelingPoet.Spaces.Item, on: i.id == p.item_id)
+    |> where([p, e], p.poet_id in ^ids and e.status == "published")
+    |> where([p, _e, i], not is_nil(p.topic) or not is_nil(i.topic))
+    |> select([p, e, i], {p, e.place_name, e.entry_date, [i.topic, i.second_topic]})
     |> Repo.all()
   end
 
@@ -328,7 +348,11 @@ defmodule TravelingPoet.Discover do
     end
   end
 
-  # Other public poets who logged the same place, by name and city.
+  # Other public poets who logged the same place: the ones whose rows point
+  # at the same item, or, for a row no item claims, by name and city.
+  defp also_found_by(%Place{item_id: id}, _entry, poet) when is_integer(id),
+    do: TravelingPoet.Spaces.found_by(id, except: poet.id)
+
   defp also_found_by(place, entry, poet) do
     name = normalize(place.name)
     city = normalize(entry.place_name)

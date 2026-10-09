@@ -214,6 +214,7 @@ defmodule TravelingPoet.Guide.TopicTagging do
     })
     |> adopt_kind(find, verdict.place_type)
     |> Repo.update!()
+    |> tap(&TravelingPoet.Spaces.Ingest.topics_tagged/1)
   end
 
   # A find the poet could only call "other" takes the classifier's kind, so
@@ -297,6 +298,7 @@ defmodule TravelingPoet.Guide.TopicTagging do
           place
           |> Place.topics_changeset(Map.put(verdict, :topics_classified_at, now))
           |> Repo.update!()
+          |> TravelingPoet.Spaces.Ingest.topics_tagged()
 
           true
       end

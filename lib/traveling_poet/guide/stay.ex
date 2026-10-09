@@ -62,7 +62,10 @@ defmodule TravelingPoet.Guide.Stay do
         end)
       end)
 
-    {:ok, locate_within_budget(areas)}
+    # Located first, then resolved: a pin is what tells two poets'
+    # "Old Town"s apart (Spaces, kb-002).
+    {:ok,
+     areas |> locate_within_budget() |> then(&TravelingPoet.Spaces.Ingest.sync_areas(entry, &1))}
   end
 
   defp locate_within_budget(areas) do

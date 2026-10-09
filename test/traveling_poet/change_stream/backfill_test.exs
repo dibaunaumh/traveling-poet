@@ -41,14 +41,15 @@ defmodule TravelingPoet.ChangeStream.BackfillTest do
     assert {:ok, %{entities: entities, totals: %{sent: sent}}} =
              Backfill.run(endpoint.id, batch_size: 2, sleep_ms: 0)
 
-    assert sent == 5 + 1 + 1 + 1
+    # 5 places, a user, a poet, an entry, and the three seeded reference systems
+    assert sent == 5 + 1 + 1 + 1 + 3
     assert Enum.find(entities, &(&1.entity == "places")).sent == 5
 
     batches = collect_batches([])
     assert Enum.all?(batches, &(&1["type"] == "backfill"))
 
     order = batches |> Enum.flat_map(& &1["events"]) |> Enum.map(& &1["entity"]) |> Enum.uniq()
-    assert order == ~w(users poets journal_entries places)
+    assert order == ~w(users poets reference_systems journal_entries places)
 
     place_batches = Enum.filter(batches, fn b -> hd(b["events"])["entity"] == "places" end)
     assert Enum.map(place_batches, &length(&1["events"])) == [2, 2, 1]

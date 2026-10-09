@@ -130,6 +130,10 @@ defmodule TravelingPoet.Guide do
         |> Place.topics_changeset(kept_here)
         |> Repo.insert!()
       end)
+      # Each place is a visit of a shared item (Spaces, kb-002). Resolved
+      # again on every re-put, by name and pin, so the item id is stable
+      # without being carried.
+      |> then(&TravelingPoet.Spaces.Ingest.sync_places(entry, &1))
     end)
   end
 
@@ -427,6 +431,10 @@ defmodule TravelingPoet.Guide do
     place
     |> Place.changeset(%{lat: lat, lng: lng, geocode_status: "ok"})
     |> Repo.update()
+    |> tap(fn
+      {:ok, updated} -> TravelingPoet.Spaces.Ingest.place_geocoded(updated)
+      _ -> :ok
+    end)
   end
 
   def update_geocode(%Place{} = place, _), do: mark_geocode_failed(place)
