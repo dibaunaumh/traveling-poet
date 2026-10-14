@@ -61,7 +61,7 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert poet.settings["mode"] == "wander"
       assert poet.settings["verbosity"] == "balanced"
       assert length(poet.currently_reading["items"]) == 1
-      refute poet.is_public
+      assert poet.is_public
 
       user = Accounts.get_user!(user.id)
       assert user.onboarding_completed
@@ -228,20 +228,22 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert poet.settings["user_interests"] == ["trains", "hidden gardens", "jazz"]
     end
 
-    test "the send-off form can rename the reader and make the journal public", %{conn: conn} do
+    test "the send-off form can rename the reader and keep the journal private", %{conn: conn} do
       {user, view, _html} = mount(conn)
 
       render_click(view, "next", %{})
-      render_click(view, "next", %{})
+      html = render_click(view, "next", %{})
+      assert html =~ ~r/name="is_public"[^>]*checked/
 
-      view
-      |> form("#onboarding-send-off", %{"name" => "Udi", "is_public" => "on"})
-      |> render_change()
+      # An unchecked checkbox is absent from the params while the form still
+      # carries "name". The form helper would fill the checked box back in, so
+      # send the change the way the browser does.
+      render_change(view, "capture", %{"name" => "Udi"})
 
       view |> form("#onboarding-send-off", %{"name" => "Udi"}) |> render_submit()
       assert_redirect(view, ~p"/journal")
 
-      assert Poets.get_poet_by_user(user.id).is_public
+      refute Poets.get_poet_by_user(user.id).is_public
       assert Accounts.get_user!(user.id).name == "Udi"
     end
 
