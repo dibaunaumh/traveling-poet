@@ -84,9 +84,10 @@ defmodule TravelingPoet.ChangeStream.CaptureTest do
 
     {:ok, _} = Guide.replace_places(entry, [attrs.("Tasca do Chico"), attrs.("Time Out Market")])
     totals = Capture.tick()
-    # the old row is gone (new id), both new rows are inserts
+    # the old row is gone (new id), both new rows are inserts, and the new
+    # place resolved to a new item (Spaces), which is streamed too
     assert totals.deletes == 1
-    assert totals.inserts == 2
+    assert totals.inserts == 3
   end
 
   test "updates to a redacted field are invisible" do

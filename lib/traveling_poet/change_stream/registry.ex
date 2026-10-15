@@ -28,6 +28,10 @@ defmodule TravelingPoet.ChangeStream.Registry do
   @streamed [
     Accounts.User,
     Poets.Poet,
+    # Spaces (kb-002): items before everything that points at them.
+    TravelingPoet.Spaces.ReferenceSystem,
+    TravelingPoet.Spaces.Item,
+    TravelingPoet.Spaces.ItemReview,
     Poets.PathPoint,
     Trips.Trip,
     Poets.ItineraryStop,
@@ -35,6 +39,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     Books.Edition,
     Books.Pdf,
     Journal.Entry,
+    TravelingPoet.Spaces.Link,
     Topics.Excursion,
     Topics.Find,
     Journal.Section,

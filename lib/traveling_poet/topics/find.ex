@@ -35,6 +35,9 @@ defmodule TravelingPoet.Topics.Find do
 
     belongs_to :poet, TravelingPoet.Poets.Poet
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
+    # The shared item this find is a visit of (Spaces, kb-002); set by
+    # Spaces.Ingest after the write.
+    belongs_to :item, TravelingPoet.Spaces.Item
 
     timestamps()
   end

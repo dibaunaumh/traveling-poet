@@ -764,6 +764,9 @@ defmodule TravelingPoet.Topics do
           {:error, changeset} -> Repo.rollback(changeset)
         end
       end)
+      # Each find is a visit of a shared item (Spaces, kb-002), matched by
+      # its URL or its name.
+      |> then(&TravelingPoet.Spaces.Ingest.sync_finds(entry, &1))
     end)
   end
 

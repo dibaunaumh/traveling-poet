@@ -72,6 +72,8 @@ defmodule TravelingPoet.Analytics.RollupTest do
   end
 
   test "rewrites a row only when its numbers change, so the change stream stays quiet" do
+    # the seeded reference systems (Spaces) are already in the database
+    Capture.seed()
     event("a", "pageview")
     Rollup.run(1, @today)
     Capture.tick()

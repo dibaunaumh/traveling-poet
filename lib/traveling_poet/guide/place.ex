@@ -44,6 +44,9 @@ defmodule TravelingPoet.Guide.Place do
     belongs_to :poet, TravelingPoet.Poets.Poet
     belongs_to :journal_entry, TravelingPoet.Journal.Entry
     belongs_to :path_point, TravelingPoet.Poets.PathPoint
+    # The shared item this row is a visit of (Spaces, kb-002); set by
+    # Spaces.Ingest after the write, never cast from the poet's attrs.
+    belongs_to :item, TravelingPoet.Spaces.Item
 
     timestamps()
   end
