@@ -30,6 +30,9 @@ defmodule TravelingPoet.Journal.Spreads do
 
   @right_kinds ~w(illustration poem)
 
+  @doc "The section kinds laid on the right page: the drawing and the poem."
+  def right_kinds, do: @right_kinds
+
   @doc """
   The spreads for an entry, in reading order: Today, then Places (or Finds
   for an excursion). An entry with no places still gets the Places tab (an

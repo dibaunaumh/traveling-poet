@@ -26,6 +26,8 @@ defmodule TravelingPoet.Usage do
     "book_pdf_attempt" => 0,
     "chat_turn" => 2,
     "image_gen" => 4,
+    # the entry read aloud: about 7 cents at the 2026-10-15 eval's prices
+    "narration" => 7,
     "exec" => 0,
     "tokens" => 0
   }
@@ -83,6 +85,7 @@ defmodule TravelingPoet.Usage do
   defp cap("daily_run"), do: Application.get_env(:traveling_poet, :daily_runs_cap, 1)
   defp cap("chat_turn"), do: Application.get_env(:traveling_poet, :daily_chat_turns_cap, 50)
   defp cap("image_gen"), do: Application.get_env(:traveling_poet, :daily_image_cap, 6)
+  defp cap("narration"), do: Application.get_env(:traveling_poet, :daily_narration_cap, 3)
 
   defp cap("marker_revision_attempt"),
     do: Application.get_env(:traveling_poet, :daily_marker_revisions_cap, 4)

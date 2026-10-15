@@ -22,7 +22,9 @@ defmodule TravelingPoet.Email.EntryEmail do
   @doc """
   `%{to, subject, html, text, headers}` for one entry. `assigns`: `user`,
   `poet`, `entry`, `day`, `drawing_url` (or nil), `page_url`,
-  `unsubscribe_url`.
+  `unsubscribe_url`, and `listen?` with `listen_minutes` when the page is
+  read aloud too (the narration follows the publish by seconds, so the
+  email only promises it).
   """
   def build(%{user: user, poet: poet, entry: entry, day: day} = a) do
     push = WebPush.entry_payload(poet, entry, day)
@@ -59,7 +61,7 @@ defmodule TravelingPoet.Email.EntryEmail do
     #{if title, do: "<p><b>#{esc(title)}</b></p>", else: ""}
     <p>#{esc(teaser)}</p>
     #{drawing}
-    <p><a href="#{esc(a.page_url)}">Read today's page</a></p>
+    <p><a href="#{esc(a.page_url)}">Read today's page</a>#{if a[:listen?], do: ~s( &middot; <a href="#{esc(a.page_url)}#listen">or listen, about #{a[:listen_minutes] || 5} minutes</a>), else: ""}</p>
     <p style="font-size:13px;color:#777">A new page from #{esc(a.poet.name)} each day. <a href="#{esc(a.unsubscribe_url)}" style="color:#777">Stop these emails</a></p>
     </div>
     </body></html>
@@ -74,6 +76,9 @@ defmodule TravelingPoet.Email.EntryEmail do
       teaser,
       "",
       "Read today's page: #{a.page_url}",
+      if(a[:listen?],
+        do: "Or listen, about #{a[:listen_minutes] || 5} minutes: #{a.page_url}#listen"
+      ),
       "",
       "A new page from #{a.poet.name} each day.",
       "Stop these emails: #{a.unsubscribe_url}"

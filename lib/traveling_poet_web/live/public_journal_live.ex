@@ -125,6 +125,15 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   end
 
   @impl true
+  def handle_info({:narration_ready, entry_id}, socket) do
+    current = socket.assigns.entry
+
+    if current && current.id == entry_id,
+      do: {:noreply, assign(socket, :narration, TravelingPoet.Narration.narration_for(entry_id))},
+      else: {:noreply, socket}
+  end
+
+  @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp assign_journal(socket, poet, date) do
@@ -148,6 +157,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:og, open_graph(poet, entry, journey_start))
     |> assign(:entry_media, bundle.media)
     |> assign(:extra_media, bundle.extra_media)
+    |> assign(:narration, bundle.narration)
     |> assign(:places, bundle.places)
     |> assign(:place_media, bundle.place_media)
     |> assign(:find_media, bundle.find_media)
@@ -364,6 +374,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               place_links(@places, ~p"/p/#{@poet.slug}/#{Date.to_iso8601(@entry.entry_date)}")
             }
             spot_media={@spot_media}
+            narration={@narration}
           >
             <:controls>
               <.link

@@ -51,6 +51,8 @@ defmodule TravelingPoet.Email.Notifier do
           day: Journal.journey_day(entry),
           drawing_url: drawing_url(entry),
           page_url: url("/journal/#{Date.to_iso8601(entry.entry_date)}"),
+          listen?: TravelingPoet.Narration.enabled_for?(poet),
+          listen_minutes: listen_minutes(entry),
           unsubscribe_url: url("/email/unsubscribe/#{unsubscribe_token(user)}")
         })
 
@@ -88,6 +90,13 @@ defmodule TravelingPoet.Email.Notifier do
       {:ok, ^media_id},
       Phoenix.Token.verify(TravelingPoetWeb.Endpoint, @media_salt, sig, max_age: 60 * 86_400)
     )
+  end
+
+  defp listen_minutes(entry) do
+    case TravelingPoet.Narration.narration_for(entry.id) do
+      %{duration_seconds: s} when is_integer(s) -> max(div(s + 30, 60), 1)
+      _ -> nil
+    end
   end
 
   defp drawing_url(entry) do

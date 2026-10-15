@@ -76,6 +76,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
   attr :clamp, :boolean, default: false, doc: "cut prose to a few lines (home page)"
   attr :place_links, :list, default: [], doc: "see place_links/2"
   attr :spot_media, :map, default: %{}, doc: "the entry's spot drawings by id"
+
+  attr :narration, :any,
+    default: nil,
+    doc: "the entry's narration media, when it has been read aloud"
+
   attr :heading_tag, :string, default: "h2"
   attr :show_date, :boolean, default: true
   attr :rest, :global, doc: "id, hooks and data attributes for the article"
@@ -102,6 +107,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             {render_slot(@controls)}
           </div>
         </div>
+        <.narration_player :if={@narration} narration={@narration} />
         <.spread_item
           :for={item <- @spread.left}
           item={item}
@@ -134,6 +140,39 @@ defmodule TravelingPoetWeb.NotebookComponents do
     </article>
     """
   end
+
+  attr :narration, :map, required: true
+
+  @doc """
+  The page read aloud (card-122): a plain audio control under the heading,
+  with how long it runs. `preload="none"` so a page view costs no bytes
+  until the reader presses play; the source is `/media/:id`, which sends
+  the browser on to the bucket.
+  """
+  def narration_player(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :label,
+        case assigns.narration.duration_seconds do
+          nil -> "Listen"
+          seconds -> "Listen, " <> narration_length(seconds)
+        end
+      )
+
+    ~H"""
+    <div id="listen" class="narration" data-narration-id={@narration.id}>
+      <span class="narration-label">{@label}</span>
+      <audio controls preload="none" src={"/media/#{@narration.id}"} title={@narration.alt_text}></audio>
+    </div>
+    """
+  end
+
+  @doc "\"5 min\" or \"40 sec\"."
+  def narration_length(seconds) when is_integer(seconds) and seconds < 60, do: "#{seconds} sec"
+
+  def narration_length(seconds) when is_integer(seconds),
+    do: "#{max(div(seconds + 30, 60), 1)} min"
 
   attr :item, :any, required: true
   attr :entry, :map, required: true
