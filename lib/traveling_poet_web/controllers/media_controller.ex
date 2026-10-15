@@ -27,9 +27,15 @@ defmodule TravelingPoetWeb.MediaController do
   # minute mp3 has no business passing through the app. The URL is private
   # to whoever was authorized above; nothing caches it.
   defp serve(conn, _poet, %{kind: "narration"} = media) do
-    conn
-    |> put_resp_header("cache-control", "private, no-store")
-    |> redirect(external: TravelingPoet.Narration.stream_url(media))
+    case TravelingPoet.Narration.stream_url(media) do
+      {:ok, url} ->
+        conn
+        |> put_resp_header("cache-control", "private, no-store")
+        |> redirect(external: url)
+
+      {:error, _reason} ->
+        send_resp(conn, 502, "narration unavailable")
+    end
   end
 
   defp serve(conn, poet, media) do
