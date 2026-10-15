@@ -25,6 +25,8 @@ defmodule TravelingPoetWeb.ProductTourTest do
     end
 
     assert slides |> Enum.map(& &1.id) |> Enum.uniq() |> length() == length(slides)
+    # Read aloud is in the tour (text only until a clip is recorded).
+    assert Enum.any?(slides, &(&1.id == "listen" and &1.title == "Listen to the page"))
   end
 
   describe "while the first page is on its way" do

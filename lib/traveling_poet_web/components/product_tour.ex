@@ -54,6 +54,13 @@ defmodule TravelingPoetWeb.ProductTour do
       how: "Settings, Notifications."
     },
     %{
+      id: "listen",
+      title: "Listen to the page",
+      why:
+        "Turn on Read aloud and every page comes with a recording of it, about five minutes, for the walk or the commute. The email brings the link too.",
+      how: "Settings, Read aloud. Then press the ring under the page's title."
+    },
+    %{
       id: "guide",
       title: "Your trip guide",
       why:

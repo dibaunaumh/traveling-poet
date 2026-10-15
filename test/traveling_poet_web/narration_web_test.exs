@@ -71,6 +71,67 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert get_resp_header(conn, "cache-control") == ["private, no-store"]
   end
 
+  defp unnarrated(user, attrs \\ %{}) do
+    poet = poet_fixture(user, Map.merge(%{name: "Wren", is_public: true}, attrs))
+    entry = published_entry_fixture(poet, %{title: "Tram 28", entry_date: ~D[2026-10-14]})
+
+    {:ok, _} =
+      Journal.replace_sections(entry, [%{kind: "description", body: "Rails everywhere."}])
+
+    {poet, entry}
+  end
+
+  test "an owner who has not turned the reading on is offered it on the page, once; public readers are not",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {poet, _entry} = unnarrated(user)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, html} = live(conn, ~p"/journal/2026-10-14")
+    assert html =~ ~s(id="listen-invite")
+    assert html =~ "Hear your pages read aloud"
+    refute html =~ ~s(id="listen")
+
+    {:ok, _public, public_html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
+    refute public_html =~ "listen-invite"
+
+    view |> element("#listen-invite button", "Not now") |> render_click()
+    refute render(view) =~ "listen-invite"
+    assert Poets.get_poet_by_user(user.id).settings["narration_invite"] == "dismissed"
+    refute Poets.get_poet_by_user(user.id).settings["narration"]
+
+    {:ok, _view, html} = live(conn, ~p"/journal/2026-10-14")
+    refute html =~ "listen-invite"
+  end
+
+  test "Turn it on is the Settings switch in place, and the offer goes away", %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {_poet, _entry} = unnarrated(user)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, _html} = live(conn, ~p"/journal/2026-10-14")
+
+    view |> element("#listen-invite button", "Turn it on") |> render_click()
+    html = render(view)
+    refute html =~ "listen-invite"
+    assert html =~ "Reading this page now"
+    assert Poets.get_poet_by_user(user.id).settings["narration"] == true
+
+    {:ok, _view, settings} = live(conn, ~p"/settings")
+    assert settings =~ ~r/name="narration"[^>]*checked/
+  end
+
+  test "a reader who turned the reading on, or whose page is already read, gets no offer",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {_poet, _entry, _narration} = narrated(user, %{settings: %{"narration" => true}})
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, _view, html} = live(conn, ~p"/journal/2026-10-14")
+    assert html =~ ~s(id="listen")
+    refute html =~ "listen-invite"
+  end
+
   test "the Settings switch is off until the reader turns the reading on", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet_fixture(user, %{name: "Wren"})

@@ -19,7 +19,7 @@ defmodule TravelingPoet.Narration do
   require Logger
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, Journal, Repo, Usage}
+  alias TravelingPoet.{Accounts, Journal, Repo, Usage, Poets}
   alias TravelingPoet.Journal.{Entry, Media}
   alias TravelingPoet.Narration.{Mp3, Script}
 
@@ -38,6 +38,29 @@ defmodule TravelingPoet.Narration do
   """
   def enabled_for?(poet) do
     configured?() and Map.get(poet.settings || %{}, "narration", false) == true
+  end
+
+  @invite_key "narration_invite"
+
+  @doc """
+  Whether the owner's journal should offer the reading: configured, not yet
+  turned on, and not waved away. Only readers who open their own journal
+  ever see the offer, which is the point of opt-in: the cost lands on the
+  people using the app, and nobody is paged about it.
+  """
+  def invite?(poet) do
+    configured?() and not enabled_for?(poet) and
+      Map.get(poet.settings || %{}, @invite_key) != "dismissed"
+  end
+
+  @doc "Turns the reading on for the poet's pages from now on."
+  def turn_on(poet) do
+    Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, "narration", true)})
+  end
+
+  @doc "Remembers that the owner said not now; the offer does not come back."
+  def dismiss_invite(poet) do
+    Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, @invite_key, "dismissed")})
   end
 
   @doc """

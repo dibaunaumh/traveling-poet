@@ -237,6 +237,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
     |> assign(:narration, bundle.narration)
+    |> assign(:narration_invite, TravelingPoet.Narration.invite?(poet))
     |> assign_stay(poet, bundle.stay_id)
     |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
@@ -395,6 +396,34 @@ defmodule TravelingPoetWeb.JournalLive do
 
   def handle_event("close_tour", _params, socket) do
     {:noreply, socket |> assign(:tour_open, false) |> assign(:tour_ready, false)}
+  end
+
+  # The reading offered on the page: "Turn it on" is the Settings switch in
+  # place, and this page is read right away so the reader hears something
+  # for their tap (the player arrives over {:narration_ready, id}).
+  def handle_event("narration_on", _params, socket) do
+    %{poet: poet, entry: entry} = socket.assigns
+
+    case TravelingPoet.Narration.turn_on(poet) do
+      {:ok, poet} ->
+        if entry, do: TravelingPoet.Narration.Worker.refresh_async(entry.id)
+
+        {:noreply,
+         socket
+         |> assign(:poet, poet)
+         |> assign(:narration_invite, false)
+         |> put_flash(:info, "Reading this page now. Every new page will come with its own.")}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("narration_invite_dismiss", _params, socket) do
+    case TravelingPoet.Narration.dismiss_invite(socket.assigns.poet) do
+      {:ok, poet} -> {:noreply, socket |> assign(:poet, poet) |> assign(:narration_invite, false)}
+      {:error, _} -> {:noreply, assign(socket, :narration_invite, false)}
+    end
   end
 
   def handle_event("toggle_chat", _params, socket) do
@@ -1280,6 +1309,7 @@ defmodule TravelingPoetWeb.JournalLive do
               place_links={place_links(@places, ~p"/journal/#{Date.to_iso8601(@entry.entry_date)}")}
               spot_media={@spot_media}
               narration={@narration}
+              narration_invite={@narration_invite}
               phx-hook="Markers"
               data-active-marker={@active_marker}
               data-markers={@markers_json}

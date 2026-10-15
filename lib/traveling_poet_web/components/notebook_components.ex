@@ -81,6 +81,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
     default: nil,
     doc: "the entry's narration media, when it has been read aloud"
 
+  attr :narration_invite, :boolean,
+    default: false,
+    doc: "offer the owner the reading in the player's place (owner journal only)"
+
   attr :heading_tag, :string, default: "h2"
   attr :show_date, :boolean, default: true
   attr :rest, :global, doc: "id, hooks and data attributes for the article"
@@ -108,6 +112,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           </div>
         </div>
         <.narration_player :if={@narration} narration={@narration} />
+        <.narration_invite :if={!@narration and @narration_invite} />
         <.spread_item
           :for={item <- @spread.left}
           item={item}
@@ -191,6 +196,37 @@ defmodule TravelingPoetWeb.NotebookComponents do
         src={"/media/#{@narration.id}"}
         title={@narration.alt_text}
       ></audio>
+    </div>
+    """
+  end
+
+  @doc """
+  The reading offered where the player would sit, to an owner who has not
+  turned it on: the same ring and ink, so the page shows what it is offering.
+  "Turn it on" is the Settings switch in place and reads this page at once;
+  "Not now" is final. The parent LiveView handles both events.
+  """
+  def narration_invite(assigns) do
+    ~H"""
+    <div id="listen-invite" class="narration narration-invite" role="status">
+      <button
+        type="button"
+        class="narration-play"
+        phx-click="narration_on"
+        aria-label="Turn on Read aloud"
+      >
+        <svg class="narration-icon-play" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.5 2.8v10.4L13 8z" />
+        </svg>
+      </button>
+      <div class="narration-body">
+        <span class="narration-label">Hear your pages read aloud, about 5 minutes each.</span>
+        <span class="narration-invite-actions">
+          <button type="button" phx-click="narration_on">Turn it on</button>
+          <span aria-hidden="true">&middot;</span>
+          <button type="button" phx-click="narration_invite_dismiss">Not now</button>
+        </span>
+      </div>
     </div>
     """
   end
