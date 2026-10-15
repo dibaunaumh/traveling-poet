@@ -204,21 +204,18 @@ defmodule TravelingPoetWeb.NotebookComponents do
   The reading offered where the player would sit, to an owner who has not
   turned it on: the same ring and ink, so the page shows what it is offering.
   "Turn it on" is the Settings switch in place and reads this page at once;
-  "Not now" is final. The parent LiveView handles both events.
+  "Not now" is final. The parent LiveView handles both events. The ring is a
+  mark, not a button: readers pressed it without reading the line and had
+  the feature switched on by what looked like play (Udi, 2026-10-15).
   """
   def narration_invite(assigns) do
     ~H"""
     <div id="listen-invite" class="narration narration-invite" role="status">
-      <button
-        type="button"
-        class="narration-play"
-        phx-click="narration_on"
-        aria-label="Turn on Read aloud"
-      >
-        <svg class="narration-icon-play" viewBox="0 0 16 16" aria-hidden="true">
+      <span class="narration-play narration-play-mark" aria-hidden="true">
+        <svg class="narration-icon-play" viewBox="0 0 16 16">
           <path d="M4.5 2.8v10.4L13 8z" />
         </svg>
-      </button>
+      </span>
       <div class="narration-body">
         <span class="narration-label">Hear your pages read aloud, about 5 minutes each.</span>
         <span class="narration-invite-actions">
