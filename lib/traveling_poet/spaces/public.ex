@@ -132,7 +132,10 @@ defmodule TravelingPoet.Spaces.Public do
       })
       |> Repo.all()
 
-    (places ++ finds ++ areas) |> Enum.sort_by(&{&1.date, &1.id}, {:desc, Date})
+    # Newest first. A `{date, id}` tuple cannot go through `Date.compare/2`
+    # (it raised on every item two public rows point at), so sort on the
+    # erl triple, which orders structurally.
+    (places ++ finds ++ areas) |> Enum.sort_by(&{Date.to_erl(&1.date), &1.id}, :desc)
   end
 
   @doc """
