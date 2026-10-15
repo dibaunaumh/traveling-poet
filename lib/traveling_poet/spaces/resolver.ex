@@ -38,7 +38,8 @@ defmodule TravelingPoet.Spaces.Resolver do
   @same_city_km 10.0
 
   @doc """
-  `{:match, item}` or `{:new, review_candidates}`.
+  `{:match, item}`, `{:new, review_candidates}`, or `{:series, earlier}` for
+  a later edition of an event we already have.
 
   `probe` is a map with `:norm_name` and optionally `:lat`, `:lng`, `:city`,
   `:source_url`, `:subkind`.
@@ -54,7 +55,7 @@ defmodule TravelingPoet.Spaces.Resolver do
         {:match, item}
 
       item = Enum.find(candidates, &same_name?(probe, &1)) ->
-        {:match, item}
+        if another_edition?(probe, item), do: {:series, item}, else: {:match, item}
 
       item = Enum.find(candidates, &near_and_similar?(probe, &1)) ->
         {:match, item}
@@ -80,6 +81,27 @@ defmodule TravelingPoet.Spaces.Resolver do
   end
 
   def name_key(_), do: ""
+
+  # This year's festival is not last year's: an event with the same name
+  # whose dates sit clear of the known edition's is a new item, linked
+  # series_of the earlier one. Unknown dates on either side mean one event.
+  @edition_gap_days 30
+
+  defp another_edition?(%{kind: "event"} = probe, %{time_start: %Date{} = start} = item) do
+    case Map.get(probe, :time_start) do
+      %Date{} = probe_start ->
+        probe_end = Map.get(probe, :time_end) || probe_start
+        item_end = item.time_end || start
+
+        Date.diff(probe_start, item_end) > @edition_gap_days or
+          Date.diff(start, probe_end) > @edition_gap_days
+
+      _ ->
+        false
+    end
+  end
+
+  defp another_edition?(_probe, _item), do: false
 
   @doc "A URL stripped to what identifies the page: no scheme, www, query or trailing slash."
   def url_key(nil), do: nil

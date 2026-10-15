@@ -121,6 +121,21 @@ defmodule TravelingPoet.DiscoverTest do
       assert kinds == %{"Nishiki Market" => "place", "Gion Matsuri" => "event"}
     end
 
+    test "an event tile carries its dates, the time axis" do
+      nam = on_the_road("Nam")
+      kyoto = page(nam, ~D[2026-09-01], %{place_name: "Kyoto"})
+
+      place_fixture(nam, kyoto, %{
+        name: "Gion Matsuri",
+        category: "event",
+        starts_on: ~D[2026-07-01],
+        ends_on: ~D[2026-07-31]
+      })
+      |> tag(@weaving)
+
+      assert [%{starts: "2026-07-01", ends: "2026-07-31"}] = Discover.village().places
+    end
+
     test "a place's overview names the other poets and borrows the page's drawing" do
       nam = on_the_road("Nam")
       wren = on_the_road("Wren")

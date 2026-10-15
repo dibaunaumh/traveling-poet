@@ -114,6 +114,15 @@ const FIND_KINDS = { screen: "Film or series", outing: "Outdoors", other: "Find"
 const findKind = (kind) =>
   FIND_KINDS[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Find")
 
+// An event's dates, short: "Sep 29", "Sep 29 – Oct 3". ISO in, as the
+// server sends them; the year is left out, the tile is small.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const shortDate = (iso) => {
+  const [, m, d] = iso.split("-").map(Number)
+  return `${MONTHS[m - 1]} ${d}`
+}
+const when = (starts, ends) => (ends && ends !== starts ? `${shortDate(starts)} – ${shortDate(ends)}` : shortDate(starts))
+
 export class Village {
   constructor(el, { onItem, onFocus, onState }) {
     this.el = el
@@ -387,6 +396,7 @@ export class Village {
       data-village-item="${p.key}" style="--tile:hsl(${node.hue} 42% 90%)">
       <span class="village-place-name">${esc(p.name)}</span>
       <span class="village-place-where">${esc(p.type === "find" ? findKind(p.kind) : p.city || "")}</span>
+      ${p.starts ? `<span class="village-place-when">${esc(when(p.starts, p.ends))}</span>` : ""}
       ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
     </button>`
   }
