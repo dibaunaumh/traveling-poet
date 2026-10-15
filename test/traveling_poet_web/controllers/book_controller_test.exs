@@ -107,7 +107,9 @@ defmodule TravelingPoetWeb.BookControllerTest do
     conn: conn
   } do
     user = onboarded_user()
-    poet = poet_fixture(user, %{name: "Wren"})
+    # Private on purpose: the "Read online" link of a private journal points at
+    # /journal, a public one at /p/:slug.
+    poet = poet_fixture(user, %{name: "Wren", is_public: false})
     {:ok, _} = Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
     entry = published_entry_fixture(poet, %{title: "Tram 28"})
 

@@ -12,7 +12,7 @@ defmodule TravelingPoet.Poets.Poet do
     field :interests, {:array, :string}, default: []
     # %{"items" => [%{"title" => ..., "author" => ...}]}
     field :currently_reading, :map, default: %{}
-    field :is_public, :boolean, default: false
+    field :is_public, :boolean, default: true
     field :current_lat, :float
     field :current_lng, :float
     field :current_place_name, :string

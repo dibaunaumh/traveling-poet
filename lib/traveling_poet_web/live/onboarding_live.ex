@@ -63,7 +63,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:interest_options, Presets.interests())
         |> assign(:selected_interests, MapSet.new())
         |> assign(:custom_interests, "")
-        |> assign(:is_public, false)
+        |> assign(:is_public, true)
 
       socket = if connected?(socket), do: track_step(socket, :poet), else: socket
 
@@ -1017,7 +1017,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 <b>Public journal</b>
                 <span class="block text-sm opacity-60">
                   Join the world map on our landing page so anyone can read along.
-                  Your chat with the poet stays private either way.
+                  Turn this off to keep the journal to yourself. Your chat with the
+                  poet stays private either way.
                 </span>
               </span>
             </label>
