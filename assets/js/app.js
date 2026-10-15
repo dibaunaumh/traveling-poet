@@ -40,12 +40,13 @@ import ReadingTime from "./reading_time_hook"
 import LocalTime from "./local_time_hook"
 import AutoDismiss from "./auto_dismiss_hook"
 import ProductTour from "./product_tour_hook"
+import NarrationPlayer from "./narration_player_hook"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LocalTime, AutoDismiss, ProductTour},
+  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LocalTime, AutoDismiss, ProductTour, NarrationPlayer},
 })
 
 // Show progress bar on live navigation and form submits
