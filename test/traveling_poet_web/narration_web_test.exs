@@ -91,6 +91,9 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert html =~ ~s(id="listen-invite")
     assert html =~ "Hear your pages read aloud"
     refute html =~ ~s(id="listen")
+    # The ring is a mark, not a button: only "Turn it on" switches the feature on.
+    refute html =~ ~r/<button[^>]*class="narration-play/
+    assert html =~ ~r/<span[^>]*class="narration-play narration-play-mark/
 
     {:ok, _public, public_html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
     refute public_html =~ "listen-invite"

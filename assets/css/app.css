@@ -486,7 +486,16 @@ h1, h2, h3 {
   opacity: 0.8;
 }
 
-/* The offer in the player's place: the label, then two handwritten words. */
+/* The offer in the player's place: the label, then two handwritten words.
+   The ring is only a mark here; nothing happens on it. */
+.narration-play-mark,
+.narration-play-mark:hover {
+  background: transparent;
+  color: var(--narration-ink);
+  opacity: 0.7;
+  cursor: default;
+}
+
 .narration-invite .narration-body {
   max-width: none;
 }
