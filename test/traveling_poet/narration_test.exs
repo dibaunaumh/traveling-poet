@@ -36,7 +36,13 @@ defmodule TravelingPoet.NarrationTest do
     end)
 
     user = user_fixture()
-    poet = poet_fixture(user, %{name: "Wren", personality: "Dry-witted flâneur"})
+
+    poet =
+      poet_fixture(user, %{
+        name: "Wren",
+        personality: "Dry-witted flâneur",
+        settings: %{"narration" => true}
+      })
 
     entry =
       published_entry_fixture(poet, %{title: "The smallest summit", entry_date: ~D[2026-10-14]})
@@ -142,13 +148,15 @@ defmodule TravelingPoet.NarrationTest do
       assert Repo.get(Journal.Media, first.id) == nil
     end
 
-    test "a reader who turned it off, or over the daily cap, gets no reading", %{
+    test "a reader who never turned it on, or over the daily cap, gets no reading", %{
       entry: entry,
       poet: poet,
       user: user
     } do
       stub_speech(mp3(5))
-      {:ok, _} = Poets.update_poet(poet, %{settings: %{"narration" => false}})
+      {:ok, poet} = Poets.update_poet(poet, %{settings: %{}})
+      assert {:skip, :off} = Narration.generate(entry)
+      {:ok, poet} = Poets.update_poet(poet, %{settings: %{"narration" => false}})
       assert {:skip, :off} = Narration.generate(entry)
 
       {:ok, _} = Poets.update_poet(poet, %{settings: %{"narration" => true}})
@@ -171,8 +179,12 @@ defmodule TravelingPoet.NarrationTest do
     test "a dry run counts and prices the pages not yet read; commit narrates them", %{
       entry: entry
     } do
+      # a poet whose reader never opted in is not in the count
+      published_entry_fixture(poet_fixture(user_fixture()), %{title: "Quiet"})
+
       report = Backfill.run()
       assert report.committed == false
+      assert report.poets_opted_in == 1
       assert report.to_narrate == 1
       assert report.already_narrated == 0
       assert report.chars > 50

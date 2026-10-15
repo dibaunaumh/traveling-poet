@@ -68,20 +68,21 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert get_resp_header(conn, "cache-control") == ["private, no-store"]
   end
 
-  test "the Settings switch turns the reading off and on", %{conn: conn} do
+  test "the Settings switch is off until the reader turns the reading on", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet_fixture(user, %{name: "Wren"})
 
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
     {:ok, view, html} = live(conn, ~p"/settings")
     assert html =~ "Read aloud"
-    assert html =~ ~r/name="narration"[^>]*checked/
-
-    render_change(view, "save_poet", %{"poet_name" => "Wren", "telegram_notify" => "on"})
-    assert Poets.get_poet_by_user(user.id).settings["narration"] == false
+    refute html =~ ~r/name="narration"[^>]*checked/
 
     render_change(view, "save_poet", %{"poet_name" => "Wren", "narration" => "on"})
     assert Poets.get_poet_by_user(user.id).settings["narration"] == true
+    assert render(view) =~ ~r/name="narration"[^>]*checked/
+
+    render_change(view, "save_poet", %{"poet_name" => "Wren", "telegram_notify" => "on"})
+    assert Poets.get_poet_by_user(user.id).settings["narration"] == false
   end
 
   test "the page email offers the reading when the poet reads aloud" do

@@ -10,12 +10,13 @@ defmodule TravelingPoet.Narration.Backfill do
   `:poet_id`, `:price_per_char` (USD, for the estimate; default from the
   2026-10-15 eval of Microsoft MAI-Voice-2.1-Flash, 0.000015).
 
-  Each page goes through `Narration.generate/1`, so the reader's own switch
-  and the daily cap apply; a backfill never narrates a page twice.
+  Only poets whose reader turned "Read aloud" on are counted (narration is
+  opt-in); each page then goes through `Narration.generate/1`, so the daily
+  cap applies too, and a backfill never narrates a page twice.
   """
 
   import Ecto.Query
-  alias TravelingPoet.{Narration, Repo}
+  alias TravelingPoet.{Narration, Poets, Repo}
   alias TravelingPoet.Journal.Entry
   alias TravelingPoet.Narration.Script
 
@@ -24,9 +25,15 @@ defmodule TravelingPoet.Narration.Backfill do
     limit = Keyword.get(opts, :limit, 50)
     price = Keyword.get(opts, :price_per_char, 0.000015)
 
+    opted_in =
+      Poets.Poet
+      |> Repo.all()
+      |> Enum.filter(&Narration.enabled_for?/1)
+      |> Enum.map(& &1.id)
+
     entries =
       Entry
-      |> where([e], e.status == "published")
+      |> where([e], e.status == "published" and e.poet_id in ^opted_in)
       |> maybe_poet(Keyword.get(opts, :poet_id))
       |> order_by(desc: :entry_date, desc: :id)
       |> preload(:sections)
@@ -56,6 +63,7 @@ defmodule TravelingPoet.Narration.Backfill do
 
     %{
       committed: commit?,
+      poets_opted_in: length(opted_in),
       published: length(entries),
       already_narrated: map_size(done),
       to_narrate: length(todo),

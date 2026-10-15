@@ -31,9 +31,13 @@ defmodule TravelingPoet.Narration do
   def model, do: Application.get_env(:traveling_poet, :narration_model)
   def voice, do: Application.get_env(:traveling_poet, :narration_voice)
 
-  @doc "Whether this poet's pages get narrated: the feature is on and the reader has not turned it off in Settings."
+  @doc """
+  Whether this poet's pages get narrated: the feature is on and the reader
+  turned "Read aloud" on in Settings. Opt-in for now (Udi, 2026-10-15): some
+  readers are not using the app, and a reading costs about 7 cents a page.
+  """
   def enabled_for?(poet) do
-    configured?() and Map.get(poet.settings || %{}, "narration", true) == true
+    configured?() and Map.get(poet.settings || %{}, "narration", false) == true
   end
 
   @doc """
