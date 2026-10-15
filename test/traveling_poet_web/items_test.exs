@@ -114,6 +114,25 @@ defmodule TravelingPoetWeb.ItemsTest do
     assert html =~ ~s("@type":"Restaurant")
   end
 
+  test "an item two public poets found renders, newest note first", %{
+    conn: conn,
+    okutan: okutan
+  } do
+    wren = on_the_road("Wren")
+
+    put_places(page(wren, ~D[2026-09-05], "Kyoto"), [
+      %{name: "Okutan", category: "restaurant", blurb: "Tofu, steam, maples."}
+    ])
+
+    item = Spaces.get_item(okutan.item_id)
+    %{notes: notes} = Public.facts(item)
+    assert Enum.map(notes, & &1.poet.name) == ["Wren", "Nam"]
+
+    html = conn |> get(~p"/items/#{item.slug}") |> html_response(200)
+    assert html =~ "Tofu, steam, maples."
+    assert html =~ "Yudofu under the maples."
+  end
+
   test "the JSON-LD document alone, typed by kind, with the poet's links as properties", %{
     conn: conn,
     okutan: okutan,
