@@ -41,6 +41,9 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert html =~ "Listen, 5 min"
     assert html =~ ~s(src="/media/#{narration.id}")
     assert html =~ ~s(preload="none")
+    # The notebook's own control, not the browser's dark bar.
+    assert html =~ ~s(phx-hook="NarrationPlayer")
+    refute html =~ ~r/<audio[^>]*\scontrols/
 
     {:ok, _} = Poets.update_poet(poet, %{is_public: true})
     {:ok, _view, html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")

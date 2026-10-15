@@ -389,27 +389,109 @@ h1, h2, h3 {
 }
 
 /* A drawing "taped" onto the page: white photo border, slight tilt, tape */
-/* The page read aloud: a quiet control under the heading, in the notebook's ink. */
+/* The page read aloud: a quiet control under the heading, in the notebook's
+   ink. Fixed inks, not theme tokens: the paper stays cream in both themes.
+   Idle it is one line, a ring with a triangle and the handwritten length;
+   once playing, a hair-thin rule under the label fills with the reading. */
 .narration {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.6rem;
   margin: 0 0 1rem;
+  --narration-ink: #8c7454;
+  --narration-ink-soft: rgba(140, 116, 84, 0.35);
+}
+
+.narration-play {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-top: 0.05rem;
+  border: 1.5px solid var(--narration-ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--narration-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.narration-play:hover,
+.narration-play:focus-visible {
+  background: var(--narration-ink);
+  color: #fdfaf3;
+  outline: none;
+}
+
+.narration-play svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: currentColor;
+}
+
+.narration-icon-pause { display: none; }
+.narration[data-state="playing"] .narration-icon-pause { display: block; }
+.narration[data-state="playing"] .narration-icon-play { display: none; }
+.narration[data-waiting] .narration-play { opacity: 0.6; }
+
+.narration-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 18rem;
+  flex: 1 1 auto;
 }
 
 .narration-label {
   font-family: "Caveat", cursive;
   font-weight: 600;
   font-size: 1.15rem;
-  color: #8c7454;
+  line-height: 1.9rem;
+  color: var(--narration-ink);
   white-space: nowrap;
 }
 
-.narration audio {
-  height: 2rem;
-  max-width: 18rem;
-  flex: 1 1 auto;
-  min-width: 0;
+.narration-track {
+  display: none;
+  position: relative;
+  height: 2px;
+  margin: 0.1rem 0 0.25rem;
+  background: var(--narration-ink-soft);
+  border-radius: 1px;
+  cursor: pointer;
+}
+
+/* A fatter hit area than the hairline itself. */
+.narration-track::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem 0;
+}
+
+.narration-fill {
+  height: 100%;
+  width: 0;
+  background: var(--narration-ink);
+  border-radius: 1px;
+}
+
+.narration-time {
+  display: none;
+  font-family: "Caveat", cursive;
+  font-size: 0.95rem;
+  color: var(--narration-ink);
+  opacity: 0.8;
+}
+
+.narration[data-state="playing"] .narration-track,
+.narration[data-state="paused"] .narration-track,
+.narration[data-state="playing"] .narration-time,
+.narration[data-state="paused"] .narration-time,
+.narration[data-state="failed"] .narration-time {
+  display: block;
 }
 
 .taped-photo {

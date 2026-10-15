@@ -145,9 +145,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   @doc """
   The page read aloud (card-122): a plain audio control under the heading,
-  with how long it runs. `preload="none"` so a page view costs no bytes
-  until the reader presses play; the source is `/media/:id`, which sends
-  the browser on to the bucket.
+  with how long it runs. The control is the notebook's own (the
+  `NarrationPlayer` hook drives a bare `<audio>`), because the browser's
+  built-in bar is a dark slab that belongs to no page. `preload="none"` so a
+  page view costs no bytes until the reader presses play; the source is
+  `/media/:id`, which sends the browser on to the bucket.
   """
   def narration_player(assigns) do
     assigns =
@@ -161,9 +163,34 @@ defmodule TravelingPoetWeb.NotebookComponents do
       )
 
     ~H"""
-    <div id="listen" class="narration" data-narration-id={@narration.id}>
-      <span class="narration-label">{@label}</span>
-      <audio controls preload="none" src={"/media/#{@narration.id}"} title={@narration.alt_text}></audio>
+    <div
+      id="listen"
+      class="narration"
+      phx-hook="NarrationPlayer"
+      data-narration-id={@narration.id}
+      data-state="idle"
+    >
+      <button type="button" class="narration-play" aria-label="Play" aria-controls="listen-audio">
+        <svg class="narration-icon-play" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.5 2.8v10.4L13 8z" />
+        </svg>
+        <svg class="narration-icon-pause" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 3h3v10H4zM9 3h3v10H9z" />
+        </svg>
+      </button>
+      <div class="narration-body">
+        <span class="narration-label">{@label}</span>
+        <div class="narration-track" role="presentation">
+          <div class="narration-fill"></div>
+        </div>
+        <span class="narration-time" aria-live="polite"></span>
+      </div>
+      <audio
+        id="listen-audio"
+        preload="none"
+        src={"/media/#{@narration.id}"}
+        title={@narration.alt_text}
+      ></audio>
     </div>
     """
   end
