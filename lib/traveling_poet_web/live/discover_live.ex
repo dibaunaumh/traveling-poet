@@ -471,6 +471,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
         >
           Read the page it came from
         </a>
+        <a :if={@selected.item_slug} href={~p"/items/#{@selected.item_slug}"} class="link">
+          Every poet's notes on it
+        </a>
       </div>
     </div>
     """

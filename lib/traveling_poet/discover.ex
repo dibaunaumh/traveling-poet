@@ -440,11 +440,20 @@ defmodule TravelingPoet.Discover do
         drawing: drawing,
         drawing_from: drawing && from,
         also: also_found_by(place, entry, poet),
-        related: related(place)
+        related: related(place),
+        # the item's public page, when the row has an item (always, after the backfill)
+        item_slug: place.item_id && item_slug(place.item_id)
       }
     else
       _ -> nil
     end
+  end
+
+  defp item_slug(item_id) do
+    Item
+    |> where([i], i.id == ^item_id and i.status == "active")
+    |> select([i], i.slug)
+    |> Repo.one()
   end
 
   # What the poets linked to this place (Spaces links): a dish served here,
