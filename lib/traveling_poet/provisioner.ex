@@ -908,7 +908,21 @@ defmodule TravelingPoet.Provisioner do
                     starts_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" },
                     ends_on: { type: "string", description: "events only, YYYY-MM-DD, only from dates you actually read" },
                     hours: { type: "string", description: "opening hours exactly as a page you fetched states them, e.g. 'Tue-Sun 12:00-22:00'; omit when you did not read them" },
-                    book_ahead: { type: "boolean", description: "true only when a page you read says to reserve or book (a small dining room, a tasting menu, timed tickets)" }
+                    book_ahead: { type: "boolean", description: "true only when a page you read says to reserve or book (a small dining room, a tasting menu, timed tickets)" },
+                    kind: { type: "string", enum: ["artwork", "dish", "person"], description: "only when the thing is not a place: one artwork (a sculpture, a mural), one dish worth the trip, or a person to seek out (an artist, a maker). Omit for a place or an event" },
+                    era: { type: "string", description: "historic places only: the period the place speaks of, as a page you read states it (e.g. 'Edo period', '1920s'); omit otherwise" },
+                    links: {
+                      type: "array",
+                      description: "how this thing relates to another in THIS list, by that item's exact name: a dish is `at` its restaurant, a sculpture is `made_by` its artist, a memorial `commemorates` an event, an exhibition is `part_of` a festival",
+                      items: {
+                        type: "object",
+                        required: ["relation", "target"],
+                        properties: {
+                          relation: { type: "string", enum: ["at", "part_of", "made_by", "commemorates", "about"] },
+                          target: { type: "string", description: "the other item's name, exactly as in this list" }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -968,9 +982,21 @@ defmodule TravelingPoet.Provisioner do
                   properties: {
                     name: { type: "string" },
                     url: { type: "string", description: "the exact page you read: the talk, the abstract, the product, the session" },
-                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "artwork", "music", "book", "screen", "outing", "other"], description: "artwork: one piece (an installation, an immersive or XR work). On a taste day: music (an album, an artist), book, screen (a film or series), outing (a trail, a walk, an activity), product (a gadget or gift)" },
+                    kind: { type: "string", enum: ["talk", "paper", "product", "session", "event", "venue", "artwork", "music", "book", "screen", "outing", "person", "dish", "other"], description: "artwork: one piece (an installation, an immersive or XR work); person: an artist, maker or speaker to look up (their own page); dish: one dish. On a taste day: music (an album, an artist), book, screen (a film or series), outing (a trail, a walk, an activity), product (a gadget or gift)" },
                     blurb: { type: "string", description: "one or two sentences in your own voice: why THIS one, for THIS person" },
-                    poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" }
+                    poet_rating: { type: "integer", minimum: 1, maximum: 5, description: "your own rating; your companion sees it labelled as your pick" },
+                    links: {
+                      type: "array",
+                      description: "how this find relates to another in THIS list, by its exact name: a work `made_by` a person, a talk `part_of` a session, a paper `about` a product",
+                      items: {
+                        type: "object",
+                        required: ["relation", "target"],
+                        properties: {
+                          relation: { type: "string", enum: ["at", "part_of", "made_by", "commemorates", "about"] },
+                          target: { type: "string", description: "the other find's name, exactly as in this list" }
+                        }
+                      }
+                    }
                   }
                 }
               }

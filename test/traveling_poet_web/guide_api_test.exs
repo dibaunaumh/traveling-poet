@@ -270,4 +270,64 @@ defmodule TravelingPoetWeb.GuideApiTest do
       assert [_one] = Journal.unattached_illustrations(entry, entry.sections)
     end
   end
+
+  describe "what a place is, when it is not a place (Spaces phase 2)" do
+    alias TravelingPoet.Spaces
+
+    test "a dish at a restaurant, an artwork by a maker, an era, and a target nobody knows", %{
+      conn: conn,
+      poet: poet
+    } do
+      with_entry(poet)
+
+      body =
+        conn
+        |> put_places([
+          place("Okutan", %{"lat" => 35.0, "lng" => 135.78, "geocode_status" => "ok"}),
+          place("Yudofu", %{
+            "category" => "restaurant",
+            "kind" => "dish",
+            "links" => [%{"relation" => "at", "target" => "okutan"}]
+          }),
+          place("Miyamoto Teru", %{"category" => "shop", "kind" => "person"}),
+          place("The Cup", %{
+            "category" => "attraction",
+            "kind" => "artwork",
+            "links" => [
+              %{"relation" => "made_by", "target" => "Miyamoto Teru"},
+              %{"relation" => "at", "target" => "Nobody's Gallery"},
+              %{"relation" => "same_as", "target" => "Okutan"}
+            ]
+          }),
+          place("Nanzen-ji", %{"category" => "landmark", "era" => "  Muromachi   period "})
+        ])
+        |> json_response(200)
+
+      assert body["links"] == %{"made" => 2, "unknown" => ["Nobody's Gallery"]}
+
+      places = Guide.list_places_for_entry(TravelingPoet.Journal.get_entry(poet.id, today()).id)
+      by_name = Map.new(places, &{&1.name, &1})
+
+      dish = Spaces.get_item(by_name["Yudofu"].item_id)
+      assert dish.kind == "dish"
+      # the dish sits where its restaurant does
+      assert {dish.lat, dish.lng} == {35.0, 135.78}
+      assert Spaces.get_item(by_name["Miyamoto Teru"].item_id).kind == "person"
+      assert Spaces.get_item(by_name["The Cup"].item_id).kind == "artwork"
+      assert by_name["Nanzen-ji"].era == "Muromachi period"
+      assert Spaces.get_item(by_name["Nanzen-ji"].item_id).era == "Muromachi period"
+
+      restaurant = Spaces.get_item(by_name["Okutan"].item_id)
+
+      assert [%{relation: "at", direction: :in, item: %{name: "Yudofu"}}] =
+               Spaces.related(restaurant.id)
+
+      # a re-put without the links replaces them, as it replaces the rows
+      conn
+      |> put_places([place("Okutan"), place("Yudofu", %{"kind" => "dish"})])
+      |> json_response(200)
+
+      assert Spaces.related(restaurant.id) == []
+    end
+  end
 end

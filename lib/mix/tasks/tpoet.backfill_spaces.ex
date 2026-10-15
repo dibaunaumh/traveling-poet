@@ -39,6 +39,9 @@ defmodule Mix.Tasks.Tpoet.BackfillSpaces do
     Mix.shell().info("""
     linked: #{report.linked.stays} stays, #{report.linked.places} places, \
     #{report.linked.finds} finds, #{report.linked.areas} areas
+    hierarchy: #{report.hierarchy.cities_placed} cities placed in #{report.hierarchy.regions} regions \
+    and #{report.hierarchy.countries} countries, #{report.hierarchy.coded} items coded
+    event series linked: #{report.series}
     items created: #{report.items_created}
     by kind: #{inspect(report.by_kind)}
     shared by more than one poet: #{report.shared}

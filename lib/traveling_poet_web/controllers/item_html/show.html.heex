@@ -1,0 +1,74 @@
+<Layouts.app flash={@flash} current_user={assigns[:current_user]}>
+  <article class="item-page" id={"item-#{@facts.item.id}"}>
+    <p class="item-kind">
+      {@kind_word}<span :if={@facts.item.city}> in {@facts.item.city}</span>
+    </p>
+    <h1 class="text-2xl font-bold">{@facts.item.name}</h1>
+    <p :if={date_range(@facts.item)} class="item-when">{date_range(@facts.item)}</p>
+    <p :if={@facts.item.era} class="item-when">{@facts.item.era}</p>
+
+    <div :if={@facts.topics != []} class="discover-subjects" aria-label="Subjects">
+      <a
+        :for={{path, names} <- @facts.topics}
+        href={~p"/discover?view=village&topic=#{path}"}
+        class="discover-subject"
+      >
+        {Enum.join(names, " › ")}
+      </a>
+    </div>
+
+    <p class="item-found">
+      Found by {Enum.map_join(@facts.poets, ", ", & &1.name)}
+    </p>
+
+    <section :if={@facts.notes != []} class="item-notes" aria-label="What the poets wrote">
+      <blockquote :for={note <- @facts.notes} :if={note.blurb} class="item-note">
+        <p>{note.blurb}</p>
+        <footer>
+          <a href={~p"/p/#{note.poet.slug}/#{Date.to_iso8601(note.date)}"} class="link">
+            {note.poet.name}
+          </a>, {fmt(
+            note.date
+          )}<span :if={note.rating}>, {note.poet.name}'s pick: {note.rating} of 5</span>
+        </footer>
+      </blockquote>
+    </section>
+
+    <ul :if={@facts.related != []} class="discover-related" aria-label="Related">
+      <li :for={r <- @facts.related}>
+        {phrase(r.relation, r.direction)}
+        <a href={~p"/items/#{r.item.slug}"} class="link">{r.item.name}</a>
+      </li>
+    </ul>
+
+    <p :if={@facts.editions != []} class="item-editions">
+      Earlier:
+      <a
+        :for={e <- @facts.editions}
+        href={~p"/items/#{e.slug}"}
+        class="link"
+      >{e.name}<span :if={e.time_start}> ({fmt(e.time_start)})</span></a>
+    </p>
+
+    <p :if={@facts.parent} class="text-sm opacity-70">In {@facts.parent.name}</p>
+
+    <div class="discover-links">
+      <a :if={@maps_url} href={@maps_url} class="link" target="_blank" rel="noopener">
+        Open in Google Maps
+      </a>
+      <a href={~p"/discover"} class="link">Discover</a>
+      <a
+        href={~p"/items/#{@facts.item.slug}/jsonld"}
+        class="link"
+        rel="alternate"
+        type="application/ld+json"
+      >
+        Data
+      </a>
+    </div>
+  </article>
+  <%!-- Embedded data: escaped by Jason's :html_safe, so no </script> can close it early. --%>
+  <script type="application/ld+json">
+    <%= raw(@json_ld) %>
+  </script>
+</Layouts.app>

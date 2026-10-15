@@ -69,4 +69,28 @@ defmodule TravelingPoet.AgentPluginTest do
       _ -> ""
     end
   end
+
+  test "places and finds can carry links, a kind and an era (Spaces phase 2)" do
+    src = Provisioner.tpoet_plugin_source("http://localhost:4000", "1.secret")
+
+    [places, finds] =
+      for tool <- ~w(journal_put_places journal_put_finds), do: tool_block(src, tool)
+
+    assert places =~ ~s(kind: { type: "string", enum: ["artwork", "dish", "person"])
+    assert places =~ "era: { type: \"string\""
+
+    assert places =~
+             ~s(relation: { type: "string", enum: ["at", "part_of", "made_by", "commemorates", "about"])
+
+    assert finds =~ ~s("person", "dish", "other")
+
+    assert finds =~
+             ~s(relation: { type: "string", enum: ["at", "part_of", "made_by", "commemorates", "about"])
+  end
+
+  # The source from one registerTool to the next.
+  defp tool_block(src, name) do
+    [_, rest] = String.split(src, ~s(name: "#{name}"), parts: 2)
+    rest |> String.split("ctx.registerTool", parts: 2) |> hd()
+  end
 end

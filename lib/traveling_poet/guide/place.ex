@@ -11,6 +11,8 @@ defmodule TravelingPoet.Guide.Place do
   import Ecto.Changeset
 
   @categories ~w(restaurant cafe viewpoint attraction event landmark shop)
+  # Kinds a place row may be instead of a plain place (Spaces.Item kinds).
+  @kinds ~w(artwork dish person)
   @geocode_statuses ~w(pending ok failed)
 
   schema "places" do
@@ -32,6 +34,11 @@ defmodule TravelingPoet.Guide.Place do
     field :hours, :string
     # A tasting menu, a tiny room: reserve before going.
     field :book_ahead, :boolean, default: false
+    # Spaces phase 2: what the thing is when it is not a place or an event
+    # (an artwork in a park, a dish at a restaurant, a maker to visit), and
+    # for a historic place the period it speaks of, as a page states it.
+    field :kind, :string
+    field :era, :string
     field :position, :integer, default: 0
     field :source, :string, default: "agent"
     # Guide.PlaceTopics: set by the app's classifier, never by the poet, so
@@ -52,6 +59,7 @@ defmodule TravelingPoet.Guide.Place do
   end
 
   def categories, do: @categories
+  def kinds, do: @kinds
 
   @doc """
   Which filter chip a category falls under. One function so the chips, the map
@@ -124,9 +132,13 @@ defmodule TravelingPoet.Guide.Place do
       :starts_on,
       :ends_on,
       :hours,
-      :book_ahead
+      :book_ahead,
+      :kind,
+      :era
     ])
     |> update_change(:category, &normalize_category/1)
+    |> update_change(:kind, &normalize_kind/1)
+    |> update_change(:era, &short_line/1)
     |> update_change(:name, &String.trim/1)
     |> update_change(:blurb, &TravelingPoet.Journal.Blank.clean/1)
     |> update_change(:hours, &short_hours/1)
@@ -138,6 +150,25 @@ defmodule TravelingPoet.Guide.Place do
     |> validate_number(:lng, greater_than_or_equal_to: -180, less_than_or_equal_to: 180)
     |> unique_constraint([:journal_entry_id, :name])
   end
+
+  # An unknown kind is just a place; the rest of the row is still good.
+  defp normalize_kind(value) when is_binary(value) do
+    normalized = value |> String.trim() |> String.downcase()
+    if normalized in @kinds, do: normalized, else: nil
+  end
+
+  defp normalize_kind(_), do: nil
+
+  defp short_line(nil), do: nil
+
+  defp short_line(text) when is_binary(text) do
+    case text |> String.split() |> Enum.join(" ") |> String.slice(0, 80) do
+      "" -> nil
+      line -> line
+    end
+  end
+
+  defp short_line(_), do: nil
 
   # Hours as the page put them, kept to one line a card can show.
   defp short_hours(nil), do: nil

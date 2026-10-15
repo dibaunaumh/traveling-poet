@@ -55,6 +55,19 @@ defmodule TravelingPoetWeb.Router do
     post "/apple", AppleWebhookController, :handle
   end
 
+  # Open data (kb-002 phase 3): JSON-LD per item and a GeoJSON feed, for
+  # anything that reads the web; no session, cacheable, any Accept header.
+  pipeline :open_data do
+    plug :accepts, ["json", "html"]
+  end
+
+  scope "/", TravelingPoetWeb do
+    pipe_through :open_data
+
+    get "/items.geojson", ItemController, :geojson
+    get "/items/:slug/jsonld", ItemController, :jsonld
+  end
+
   scope "/", TravelingPoetWeb do
     pipe_through :browser
 
@@ -75,6 +88,8 @@ defmodule TravelingPoetWeb.Router do
     get "/api/artifacts", Api.ArtifactController, :show
     # A reader's Saved list shared with friends (card-93); the token is the key.
     get "/shared/:token/places.kml", GuideExportController, :shared_kml
+    # The public face of a Spaces item (kb-002 phase 3): a page per item.
+    get "/items/:slug", ItemController, :show
 
     live_session :public,
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do

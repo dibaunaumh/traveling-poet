@@ -315,6 +315,39 @@ defmodule TravelingPoetWeb.AgentApiTest do
       put(conn, ~p"/api/agent/journal_entries/#{today_str()}/finds", params)
     end
 
+    test "finds can be a person or a dish, and say how they relate (Spaces phase 2)", %{
+      conn: conn,
+      topic: topic,
+      poet: poet
+    } do
+      upsert_excursion(conn, %{"topic_id" => topic.id})
+
+      body =
+        conn
+        |> put_finds(%{
+          "destination_name" => "Loom Fair",
+          "destination_url" => "https://example.com/loom-fair",
+          "finds" => [
+            %{"name" => "Aya Weaver", "url" => "https://example.com/aya", "kind" => "person"},
+            %{
+              "name" => "Indigo Shawl",
+              "url" => "https://example.com/shawl",
+              "kind" => "artwork",
+              "links" => [%{"relation" => "made_by", "target" => "Aya Weaver"}]
+            }
+          ]
+        })
+        |> json_response(200)
+
+      assert body["links"] == %{"made" => 1, "unknown" => []}
+      finds = Topics.list_finds_for_entry(Journal.get_entry(poet.id, Date.utc_today()).id)
+      by_name = Map.new(finds, &{&1.name, &1})
+      assert TravelingPoet.Spaces.get_item(by_name["Aya Weaver"].item_id).kind == "person"
+
+      assert [%{relation: "made_by", direction: :out, item: %{name: "Aya Weaver"}}] =
+               TravelingPoet.Spaces.related(by_name["Indigo Shawl"].item_id)
+    end
+
     test "the context says it is an excursion day and which topic", %{conn: conn, topic: topic} do
       body = conn |> get(~p"/api/agent/context") |> json_response(200)
 

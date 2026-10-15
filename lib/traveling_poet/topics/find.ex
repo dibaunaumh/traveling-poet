@@ -14,7 +14,8 @@ defmodule TravelingPoet.Topics.Find do
   # domain); gadgets and gifts are products.
   # artwork: a piece shown on an art day (an installation, an immersive or
   # XR work), which is neither an event nor a film.
-  @kinds ~w(talk paper product session event venue artwork music book screen outing other)
+  # person: an artist or maker to look up; dish: one dish, at a place (Spaces phase 2).
+  @kinds ~w(talk paper product session event venue artwork music book screen outing person dish other)
 
   schema "entry_finds" do
     field :entry_date, :date

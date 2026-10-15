@@ -198,4 +198,32 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
              "AI & computing"
            )
   end
+
+  test "a poet's route of places reaches the map, numbered and in order", %{conn: conn} do
+    nam = public_poet("Nam")
+
+    day =
+      published_entry_fixture(nam, %{
+        entry_date: ~D[2026-09-01],
+        place_name: "Kyoto",
+        title: "Kyoto",
+        lat: 35.0,
+        lng: 135.7
+      })
+
+    place_fixture(nam, day, %{name: "Kinkaku-ji", lat: 35.03, lng: 135.72})
+    place_fixture(nam, day, %{name: "Nishiki", lat: 35.0, lng: 135.7, position: 1})
+
+    {:ok, view, _html} = live(conn, ~p"/discover")
+    render_hook(view, "select", %{"kind" => "poet", "id" => nam.slug})
+    assert has_element?(view, "#discover-kinds [data-kind=event]")
+
+    html = view |> element("button[phx-click=journey][phx-value-kind=place]") |> render_click()
+    assert html =~ "2 places, in order"
+
+    assert_push_event(view, "discover:journey", %{
+      kind: "place",
+      stops: [%{name: "Kinkaku-ji"}, %{name: "Nishiki"}]
+    })
+  end
 end
