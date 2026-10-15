@@ -5,7 +5,8 @@ defmodule TravelingPoet.Journal.Media do
   # illustration: the day's drawing, taped onto the page
   # spot: a small black-ink vignette embedded inside the prose (Phase 5)
   # poet_avatar: the self-portrait
-  @kinds ~w(illustration spot poet_avatar)
+  # narration: the entry read aloud (card-122), one mp3 per entry
+  @kinds ~w(illustration spot poet_avatar narration)
   @drawn_from_references ~w(illustration spot)
 
   schema "media" do
@@ -16,6 +17,8 @@ defmodule TravelingPoet.Journal.Media do
     field :alt_text, :string
     field :prompt, :string
     field :content_hash, :string
+    # narration only: how long the audio runs
+    field :duration_seconds, :integer
     # %{"items" => [%{"url" => ..., "label" => ...}]} — the original photos
     # the illustration was drawn from; rendered as outbound links only
     field :sources, :map, default: %{"items" => []}
@@ -41,6 +44,7 @@ defmodule TravelingPoet.Journal.Media do
       :alt_text,
       :prompt,
       :content_hash,
+      :duration_seconds,
       :sources
     ])
     |> validate_required([:poet_id, :s3_key, :content_type, :kind])

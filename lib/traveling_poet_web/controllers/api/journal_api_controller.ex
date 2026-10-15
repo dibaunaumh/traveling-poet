@@ -7,6 +7,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   alias TravelingPoet.Spaces.Ingest
   alias TravelingPoet.{Guide, Journal, LinkCheck, Markers, Poets, Preferences, Topics}
   alias TravelingPoet.Markers.Guard
+  alias TravelingPoet.Narration
   alias TravelingPoet.Guide.{Geocoding, Stay, StayArea, TopicTagging}
   alias TravelingPoet.Journal.Marker
 
@@ -170,6 +171,10 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
         case Journal.replace_sections(entry, sections) do
           {:ok, saved} ->
+            # A published page re-put is a revision: read it again. A draft
+            # is narrated once, at publish (Narration.Worker).
+            if entry.status == "published", do: Narration.Worker.refresh_async(entry.id)
+
             json(
               conn,
               saved

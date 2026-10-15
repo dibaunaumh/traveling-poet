@@ -14,19 +14,34 @@ defmodule TravelingPoetWeb.MediaController do
          media when not is_nil(media) <- Journal.get_media(media_id),
          poet when not is_nil(poet) <- Poets.get_poet(media.poet_id),
          :ok <- authorize(conn, poet, media.id) do
-      case S3.download_file(media.s3_key) do
-        {:ok, bytes} ->
-          conn
-          |> put_resp_content_type(media.content_type)
-          |> put_resp_header("cache-control", cache_control(poet))
-          |> send_resp(200, bytes)
-
-        {:error, _} ->
-          send_resp(conn, 502, "media unavailable")
-      end
+      serve(conn, poet, media)
     else
       :forbidden -> send_resp(conn, 403, "forbidden")
       _ -> send_resp(conn, 404, "not found")
+    end
+  end
+
+  # Audio goes straight from the bucket on a short-lived signed URL: Safari
+  # and the iOS app play an <audio> only from a server that answers range
+  # requests, which Tigris does and this controller does not, and a five
+  # minute mp3 has no business passing through the app. The URL is private
+  # to whoever was authorized above; nothing caches it.
+  defp serve(conn, _poet, %{kind: "narration"} = media) do
+    conn
+    |> put_resp_header("cache-control", "private, no-store")
+    |> redirect(external: TravelingPoet.Narration.stream_url(media))
+  end
+
+  defp serve(conn, poet, media) do
+    case S3.download_file(media.s3_key) do
+      {:ok, bytes} ->
+        conn
+        |> put_resp_content_type(media.content_type)
+        |> put_resp_header("cache-control", cache_control(poet))
+        |> send_resp(200, bytes)
+
+      {:error, _} ->
+        send_resp(conn, 502, "media unavailable")
     end
   end
 

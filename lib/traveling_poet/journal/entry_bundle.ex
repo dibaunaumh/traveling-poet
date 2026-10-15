@@ -28,6 +28,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
             place_media: %{},
             find_media: %{},
             stay_id: nil,
+            narration: nil,
             spreads: []
 
   @type t :: %__MODULE__{}
@@ -61,6 +62,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
     places_by_entry = Guide.list_places_for_entries(entry_ids)
     finds_by_entry = Topics.list_finds_for_entries(entry_ids)
     areas_by_entry = Stay.list_for_entries(entry_ids)
+    narration_by_entry = TravelingPoet.Narration.narration_by_entry(entry_ids)
 
     media_ids =
       Enum.flat_map(entries, fn e -> Enum.map(e.sections, & &1.media_id) end) ++
@@ -92,6 +94,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
         place_media: pick(all_media, Enum.map(places, & &1.media_id)),
         find_media: pick(all_media, Enum.map(finds, & &1.media_id)),
         stay_id: Guide.path_point_for(entry, stays),
+        narration: Map.get(narration_by_entry, entry.id),
         spreads:
           Spreads.pack(entry, media, extra, places ++ finds) ++
             stay_spread(entry, Map.get(areas_by_entry, entry.id, []))

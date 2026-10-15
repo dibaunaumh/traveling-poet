@@ -389,6 +389,29 @@ h1, h2, h3 {
 }
 
 /* A drawing "taped" onto the page: white photo border, slight tilt, tape */
+/* The page read aloud: a quiet control under the heading, in the notebook's ink. */
+.narration {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.narration-label {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: #8c7454;
+  white-space: nowrap;
+}
+
+.narration audio {
+  height: 2rem;
+  max-width: 18rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .taped-photo {
   position: relative;
   display: inline-block;

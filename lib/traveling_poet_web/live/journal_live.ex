@@ -236,6 +236,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:place_media, bundle.place_media)
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
+    |> assign(:narration, bundle.narration)
     |> assign_stay(poet, bundle.stay_id)
     |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
@@ -760,6 +761,16 @@ defmodule TravelingPoetWeb.JournalLive do
     end
   end
 
+  # The page's narration landed (it follows the publish by a few seconds).
+  @impl true
+  def handle_info({:narration_ready, entry_id}, socket) do
+    current = socket.assigns.entry
+
+    if current && current.id == entry_id,
+      do: {:noreply, assign(socket, :narration, TravelingPoet.Narration.narration_for(entry_id))},
+      else: {:noreply, socket}
+  end
+
   # The poet re-put an entry after feedback. Stay on the page being read.
   @impl true
   def handle_info({:journal_revised, entry_id}, socket) do
@@ -1268,6 +1279,7 @@ defmodule TravelingPoetWeb.JournalLive do
               media={@entry_media}
               place_links={place_links(@places, ~p"/journal/#{Date.to_iso8601(@entry.entry_date)}")}
               spot_media={@spot_media}
+              narration={@narration}
               phx-hook="Markers"
               data-active-marker={@active_marker}
               data-markers={@markers_json}

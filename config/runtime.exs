@@ -62,6 +62,17 @@ config :traveling_poet,
       do: "test/spot-image-model",
       else: System.get_env("SPOT_IMAGE_MODEL", "microsoft/mai-image-2.6-flash")
     ),
+  # Narration (card-122): the entry read aloud through OpenRouter's speech
+  # endpoint on the same key. Unset model = feature off. Pinned in test so
+  # the module is exercised against the Req.Test stub; the worker is off
+  # there (narration_auto).
+  narration_model:
+    if(config_env() == :test,
+      do: "test/narration-model",
+      else: System.get_env("NARRATION_MODEL")
+    ),
+  narration_voice:
+    if(config_env() == :test, do: "test-voice", else: System.get_env("NARRATION_VOICE")),
   # Used only by the eval Mix tasks (Evals.ImageJudge). Pinned in test like
   # the slugs above.
   eval_judge_model:
@@ -215,6 +226,8 @@ config :traveling_poet,
   daily_runs_cap: String.to_integer(System.get_env("DAILY_RUNS_CAP") || "1"),
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),
+  # the publish, plus a revision or two
+  daily_narration_cap: String.to_integer(System.get_env("DAILY_NARRATION_CAP") || "3"),
   # false in test: Nominatim needs no API key, so unlike every other service
   # here there is nothing to nil out. Without this switch the suite would make
   # live OSM requests -- slow, flaky, and a good way to get the app's
