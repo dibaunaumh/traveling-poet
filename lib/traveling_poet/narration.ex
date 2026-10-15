@@ -132,7 +132,11 @@ defmodule TravelingPoet.Narration do
     Repo.delete(media)
   end
 
-  @doc "A short-lived URL to stream the audio from the bucket, which answers range requests the way Safari needs."
+  @doc """
+  `{:ok, url}`: a short-lived URL to stream the audio from the bucket, which
+  answers range requests the way Safari needs. `{:error, reason}` when the
+  signer cannot produce one.
+  """
   def stream_url(%Media{kind: "narration"} = media) do
     storage().presigned_get_url(media.s3_key, 3600, "narration.mp3", :inline)
   end
