@@ -53,6 +53,48 @@ defmodule TravelingPoet.Narration.Worker do
     :ok
   end
 
+  @doc """
+  Reads the entry now because a reader asked, and tells the poet's topic
+  how it went: `{:narration_ready, id}` from `Narration.generate/2`, or
+  `{:narration_failed, id}` so the page can put its button back. Runs
+  inline when `narration_inline` is set (tests), in a task otherwise.
+  """
+  def request(entry_id) when is_integer(entry_id) do
+    run = fn ->
+      entry = Journal.get_entry!(entry_id)
+
+      failed = fn reason ->
+        Logger.warning("narration: on-demand entry #{entry_id}: #{inspect(reason)}")
+
+        Phoenix.PubSub.broadcast(
+          TravelingPoet.PubSub,
+          "poet:#{entry.poet_id}",
+          {:narration_failed, entry_id}
+        )
+      end
+
+      # A raise or exit inside (the bucket client raises on missing
+      # credentials, for one) must reach the page too, or the ring breathes
+      # forever; the page also gives up on its own after a while.
+      try do
+        case Narration.generate(entry, on_demand: true) do
+          {:ok, _} -> :ok
+          other -> failed.(other)
+        end
+      rescue
+        e -> failed.({:raised, Exception.message(e)})
+      catch
+        :exit, reason -> failed.({:exit, reason})
+      end
+    end
+
+    if Application.get_env(:traveling_poet, :narration_inline, false),
+      do: run.(),
+      else: Task.start(run)
+
+    :ok
+  end
+
   defp auto? do
     Narration.configured?() and Application.get_env(:traveling_poet, :narration_auto, true)
   end

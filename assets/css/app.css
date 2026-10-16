@@ -437,6 +437,17 @@ h1, h2, h3 {
 .narration[data-state="playing"] .narration-icon-play { display: none; }
 .narration[data-waiting] .narration-play { opacity: 0.6; }
 
+/* The page being read on request: the ring breathes until the recording lands. */
+.narration[data-state="generating"] .narration-play {
+  animation: narration-breathe 1.4s ease-in-out infinite;
+  cursor: progress;
+}
+
+@keyframes narration-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
 .narration-body {
   display: flex;
   flex-direction: column;

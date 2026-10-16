@@ -227,7 +227,7 @@ config :traveling_poet,
   daily_chat_turns_cap: String.to_integer(System.get_env("DAILY_CHAT_TURNS_CAP") || "50"),
   daily_image_cap: String.to_integer(System.get_env("DAILY_IMAGE_CAP") || "6"),
   # the publish, plus a revision or two
-  daily_narration_cap: String.to_integer(System.get_env("DAILY_NARRATION_CAP") || "3"),
+  daily_narration_cap: String.to_integer(System.get_env("DAILY_NARRATION_CAP") || "10"),
   # false in test: Nominatim needs no API key, so unlike every other service
   # here there is nothing to nil out. Without this switch the suite would make
   # live OSM requests -- slow, flaky, and a good way to get the app's

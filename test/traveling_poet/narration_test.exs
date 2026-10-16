@@ -160,8 +160,14 @@ defmodule TravelingPoet.NarrationTest do
       assert {:skip, :off} = Narration.generate(entry)
 
       {:ok, _} = Poets.update_poet(poet, %{settings: %{"narration" => true}})
+      # The cap is 10 a day by default (raised for on-demand readings of
+      # old pages, 2026-10-15); pin it here so the test is about the gate.
+      Application.put_env(:traveling_poet, :daily_narration_cap, 3)
+      on_exit(fn -> Application.delete_env(:traveling_poet, :daily_narration_cap) end)
       for _ <- 1..3, do: Usage.record(user.id, "narration")
       assert {:skip, :cap} = Narration.generate(entry)
+      # On request the opt-in does not apply, the cap still does.
+      assert {:skip, :cap} = Narration.generate(entry, on_demand: true)
     end
 
     test "a speech error is returned, nothing is stored", %{entry: entry} do

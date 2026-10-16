@@ -85,6 +85,18 @@ defmodule TravelingPoetWeb.NotebookComponents do
     default: false,
     doc: "offer the owner the reading in the player's place (owner journal only)"
 
+  attr :narration_on_demand, :boolean,
+    default: false,
+    doc: "show the player on a page without a recording; a tap reads it then plays"
+
+  attr :narration_pending, :boolean,
+    default: false,
+    doc: "an on-demand reading of this page is being made"
+
+  attr :narration_estimate, :any,
+    default: nil,
+    doc: "seconds the page would take to read, for the label before it is read"
+
   attr :heading_tag, :string, default: "h2"
   attr :show_date, :boolean, default: true
   attr :rest, :global, doc: "id, hooks and data attributes for the article"
@@ -111,8 +123,13 @@ defmodule TravelingPoetWeb.NotebookComponents do
             {render_slot(@controls)}
           </div>
         </div>
-        <.narration_player :if={@narration} narration={@narration} />
-        <.narration_invite :if={!@narration and @narration_invite} />
+        <.narration_player
+          :if={@narration || @narration_on_demand}
+          narration={@narration}
+          pending={@narration_pending}
+          estimate={@narration_estimate}
+        />
+        <.narration_invite :if={!@narration and !@narration_on_demand and @narration_invite} />
         <.spread_item
           :for={item <- @spread.left}
           item={item}
@@ -146,14 +163,23 @@ defmodule TravelingPoetWeb.NotebookComponents do
     """
   end
 
-  attr :narration, :map, required: true
+  attr :narration, :any, required: true, doc: "the recording, or nil before the page is read"
+  attr :pending, :boolean, default: false, doc: "the page is being read right now"
+
+  attr :estimate, :any,
+    default: nil,
+    doc: "seconds the reading would take, when there is none yet"
 
   @doc """
-  The page read aloud (card-122): a plain audio control under the heading,
-  with how long it runs. The control is the notebook's own (the
-  `NarrationPlayer` hook drives a bare `<audio>`), because the browser's
-  built-in bar is a dark slab that belongs to no page. `preload="none"` so a
-  page view costs no bytes until the reader presses play; the source is
+  "Listen, 5 min" under the heading: the page read aloud, with how long it
+  runs. The control is the notebook's own (the `NarrationPlayer` hook drives
+  a bare `<audio>` it owns; the recording's URL travels on `data-src` so a
+  LiveView patch never fights the hook over the element), because the
+  browser's built-in bar is a dark slab that belongs to no page. Without a
+  recording the same ring reads the page on request: the hook pushes
+  `narration_request`, the page is read in a task, and `{:narration_ready,
+  id}` brings the URL, which the hook then plays. `preload="none"` so a page
+  view costs no bytes until the reader presses play; the source is
   `/media/:id`, which sends the browser on to the bucket.
   """
   def narration_player(assigns) do
@@ -161,10 +187,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
       assign(
         assigns,
         :label,
-        case assigns.narration.duration_seconds do
-          nil -> "Listen"
-          seconds -> "Listen, " <> narration_length(seconds)
-        end
+        narration_label(assigns.narration, assigns.pending, assigns.estimate)
       )
 
     ~H"""
@@ -172,8 +195,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
       id="listen"
       class="narration"
       phx-hook="NarrationPlayer"
-      data-narration-id={@narration.id}
-      data-state="idle"
+      data-narration-id={@narration && @narration.id}
+      data-src={@narration && "/media/#{@narration.id}"}
+      data-state={if(@pending, do: "generating", else: "idle")}
+      data-label={@label}
     >
       <button type="button" class="narration-play" aria-label="Play" aria-controls="listen-audio">
         <svg class="narration-icon-play" viewBox="0 0 16 16" aria-hidden="true">
@@ -193,12 +218,20 @@ defmodule TravelingPoetWeb.NotebookComponents do
       <audio
         id="listen-audio"
         preload="none"
-        src={"/media/#{@narration.id}"}
-        title={@narration.alt_text}
+        phx-update="ignore"
+        title={@narration && @narration.alt_text}
       ></audio>
     </div>
     """
   end
+
+  defp narration_label(_narration, true, _estimate), do: "Reading this page, a few seconds"
+  defp narration_label(nil, _pending, nil), do: "Listen"
+  defp narration_label(nil, _pending, seconds), do: "Listen, about " <> narration_length(seconds)
+  defp narration_label(%{duration_seconds: nil}, _pending, _estimate), do: "Listen"
+
+  defp narration_label(%{duration_seconds: s}, _pending, _estimate),
+    do: "Listen, " <> narration_length(s)
 
   @doc """
   The reading offered where the player would sit, to an owner who has not
