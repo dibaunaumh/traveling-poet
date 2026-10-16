@@ -2301,6 +2301,10 @@ body::before {
   padding: 0.5rem 0.8rem;
 }
 
+.chat-line-reader .chat-pad-who {
+  text-align: right;
+}
+
 /* Markdown inside a poet's line: the journal's rhythm, tighter. */
 .chat-markdown p { margin: 0 0 0.6rem; }
 .chat-markdown p:last-child { margin-bottom: 0; }
