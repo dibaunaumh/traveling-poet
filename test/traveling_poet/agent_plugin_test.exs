@@ -48,6 +48,20 @@ defmodule TravelingPoet.AgentPluginTest do
     end
   end
 
+  # OpenClaw 2026.10 resolves the entry by its `register` export and expects
+  # an AgentToolResult (`content` for the model, `details` for tool search)
+  # from every tool; older gateways called `activate`. One wrapper serves both.
+  test "the entry exports register and activate, and tools answer as AgentToolResult" do
+    assert @source =~ "register: register"
+    assert @source =~ "activate: register"
+    assert @source =~ "module.exports.default = entry"
+
+    assert @source =~
+             ~S|content: [{ type: "text", text: JSON.stringify(details) }], details: details|
+
+    assert Provisioner.tpoet_plugin_tools() == tool_names()
+  end
+
   test "the bearer token is baked in rather than read from the environment" do
     # OpenClaw's plugin scanner blocks env access combined with network send,
     # so this is deliberate -- and a regression to process.env would fail the

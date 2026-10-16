@@ -96,6 +96,11 @@ defmodule TravelingPoet.GatewaySocket do
     WebSockex.cast(pid, {:unsubscribe, self()})
   end
 
+  @doc "Asks the socket for its status; the caller receives `{:gateway_status, status}`."
+  def request_status(pid) do
+    WebSockex.cast(pid, {:status, self()})
+  end
+
   def via_tuple(user_id) do
     {:via, Registry, {TravelingPoet.GatewayRegistry, user_id}}
   end
@@ -176,6 +181,11 @@ defmodule TravelingPoet.GatewaySocket do
     Process.monitor(pid)
     state = %{state | subscribers: MapSet.put(state.subscribers, pid)}
     state = reset_idle_timer(state)
+    {:ok, state}
+  end
+
+  def handle_cast({:status, pid}, state) do
+    send(pid, {:gateway_status, state.status})
     {:ok, state}
   end
 
@@ -322,8 +332,12 @@ defmodule TravelingPoet.GatewaySocket do
         id: req_id,
         method: "connect",
         params: %{
+          # OpenClaw 2026.5.12 raised the gateway's minimum client protocol to
+          # 4 (an additive revision: v3 frames still parse, assistant deltas
+          # gain `replace`). Offering 3..4 keeps a not-yet-upgraded sprite
+          # reachable during a fleet rollout; hello-ok says which was picked.
           minProtocol: 3,
-          maxProtocol: 3,
+          maxProtocol: 4,
           client: %{id: "gateway-client", version: "0.1.0", platform: "server", mode: "webchat"},
           auth: %{token: state.gateway_token, deviceToken: state.gateway_token},
           role: "operator",
@@ -348,7 +362,10 @@ defmodule TravelingPoet.GatewaySocket do
          %{"type" => "res", "ok" => true, "payload" => %{"type" => "hello-ok"} = payload},
          state
        ) do
-    Logger.info("GatewaySocket: authenticated for user #{state.user_id}")
+    Logger.info(
+      "GatewaySocket: authenticated for user #{state.user_id} " <>
+        "(protocol #{payload["protocol"] || "?"}, gateway #{get_in(payload, ["server", "version"]) || "?"})"
+    )
 
     # Extract session key from snapshot if available
     session_key =
@@ -441,16 +458,23 @@ defmodule TravelingPoet.GatewaySocket do
     {:ok, %{state | pending_requests: pending}}
   end
 
-  # Agent assistant stream — text deltas (use only agent events, not chat events, to avoid duplication)
+  # Agent assistant stream — text deltas (use only agent events, not chat events, to avoid duplication).
+  # Protocol 4 may mark a frame `replace: true`: its text (the `text` snapshot,
+  # else the delta) is the whole assistant item again, not an append.
   defp handle_gateway_frame(
          %{
            "type" => "event",
            "event" => "agent",
-           "payload" => %{"stream" => "assistant", "data" => %{"delta" => delta}}
+           "payload" => %{"stream" => "assistant", "data" => %{"delta" => delta} = data}
          },
          state
        ) do
-    notify_subscribers(state, {:gateway_event, {:text_delta, delta}})
+    if data["replace"] == true do
+      notify_subscribers(state, {:gateway_event, {:text_replace, data["text"] || delta}})
+    else
+      notify_subscribers(state, {:gateway_event, {:text_delta, delta}})
+    end
+
     {:ok, state}
   end
 
