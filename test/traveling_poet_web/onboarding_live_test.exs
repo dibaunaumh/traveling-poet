@@ -313,4 +313,94 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       refute html =~ "Couldn’t find"
     end
   end
+
+  # The home page's box suggests "Lisbon, Kyoto, Oaxaca…", so people type a
+  # list (card-97). Nominatim answers a list with noise, so the wizard reads
+  # it itself: a city after the comma is a route, a country or state is a
+  # qualifier. The geocoder is faked here, query by query.
+  describe "a list of places" do
+    defp hit(name, kind, city),
+      do: %{place_name: name, kind: kind, city: city, lat: 1.0, lng: 2.0, country_code: "PT"}
+
+    setup do
+      answers = %{
+        "Lisbon" => [hit("Lisboa, Portugal", "city", "Lisboa")],
+        "Porto" => [hit("Porto, Portugal", "city", "Porto")],
+        "Texas" => [hit("Texas, United States", "state", nil)],
+        "Paris, Texas" => [hit("Paris, Lamar County, Texas, United States", "city", "Paris")]
+      }
+
+      Application.put_env(:traveling_poet, :destination_search, fn q ->
+        {:ok, Map.get(answers, q, [])}
+      end)
+
+      on_exit(fn -> Application.delete_env(:traveling_poet, :destination_search) end)
+      :ok
+    end
+
+    test "from the home page, a route makes a Trip Scout with the stops in order", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=Lisbon,+Porto")
+      render_async(view)
+
+      html = view |> element("#onboarding-poet") |> render_submit()
+      assert html =~ ~r/id="mode-scout"[^>]*class="[^"]*border-primary/s
+      assert html =~ "scout them in this order: Lisboa, Porto"
+      assert html =~ ~r/1\.<\/span>\s*<span class="flex-1">Lisboa, Portugal/
+      assert html =~ ~r/2\.<\/span>\s*<span class="flex-1">Porto, Portugal/
+      refute html =~ "Couldn’t find"
+      refute html =~ ~r/id="journey-continue"[^>]*disabled/s
+    end
+
+    test "a place qualified by its state stays one place", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=Paris,+Texas")
+      render_async(view)
+
+      html = view |> element("#onboarding-poet") |> render_submit()
+      assert html =~ "Setting out from <b>Paris, Lamar County, Texas"
+      refute html =~ "scout them in this order"
+    end
+
+    test "in the wizard's own box, a route turns a wanderer into a scout and names what it could not find",
+         %{conn: conn} do
+      {_user, view, _html} = mount(conn)
+      render_click(view, "next", %{})
+      render_click(view, "toggle_location_search", %{})
+
+      html = render_submit(view, "search_location", %{"query" => "Lisbon, Atlantis, Porto"})
+      assert html =~ "Looking up “Lisbon, Atlantis, Porto”…"
+      html = render_async(view)
+
+      assert html =~ "scout them in this order: Lisboa, Porto"
+      assert html =~ "Couldn’t find “Atlantis” — search below to add it."
+      assert html =~ ~r/2\.<\/span>\s*<span class="flex-1">Porto, Portugal/
+
+      # The scout's box still lists one place for a tap, and a list appends.
+      render_submit(view, "search_location", %{"query" => "Lisbon"})
+      html = render_async(view)
+      assert html =~ "+ Lisboa, Portugal"
+      refute html =~ "Couldn’t find"
+      html = render_click(view, "add_stop", %{"idx" => "0"})
+      assert html =~ ~r/3\.<\/span>\s*<span class="flex-1">Lisboa, Portugal/
+
+      render_submit(view, "search_location", %{"query" => "Porto, Lisbon"})
+      html = render_async(view)
+      assert html =~ ~r/5\.<\/span>\s*<span class="flex-1">Lisboa, Portugal/
+
+      # Back to Wanderer with one tap; the notice goes with it.
+      html = render_click(view, "choose_mode", %{"mode" => "wander"})
+      refute html =~ "scout them in this order"
+    end
+
+    test "one place in the wizard's box is picked for a wanderer as before", %{conn: conn} do
+      {_user, view, _html} = mount(conn)
+      render_click(view, "next", %{})
+      render_click(view, "toggle_location_search", %{})
+      render_submit(view, "search_location", %{"query" => "Porto"})
+      html = render_async(view)
+      assert html =~ "Setting out from <b>Porto, Portugal"
+      refute html =~ "scout them in this order"
+    end
+  end
 end
