@@ -372,6 +372,27 @@ defmodule TravelingPoetWeb.JournalLiveTest do
       refute html =~ ~s(id="setup-card")
     end
 
+    # Udi, card-69: readers found the stock white chatbot panel with blue
+    # bubbles and an "AI Agent / Ready" badge unrelated to the app. The chat
+    # is the notebook's notepad now: the poet's name in its hand, no badge.
+    test "the chat is the notebook's notepad, headed by the poet's name", %{conn: conn} do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+      poet = poet_fixture(user, %{name: "Wren Alder"})
+
+      conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+      {:ok, _view, html} = live(conn, ~p"/journal")
+
+      assert html =~ ~s(class="chat-pad )
+      assert html =~ ~s(<h3 class="chat-pad-name truncate">Wren Alder</h3>)
+      assert html =~ "Write to Wren Alder."
+      assert html =~ ~s(placeholder="Write to Wren Alder…")
+      refute html =~ "AI Agent"
+      refute html =~ "Send a message to start chatting"
+      refute html =~ "bg-blue-100"
+      refute html =~ "bg-green-100"
+      assert poet.name == "Wren Alder"
+    end
+
     test "an attempt in flight says so on the page and above the composer", %{conn: conn} do
       user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
       poet = poet_fixture(user)

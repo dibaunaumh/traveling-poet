@@ -2186,6 +2186,258 @@ body::before {
     env(safe-area-inset-left);
 }
 
+/* The chat as the notebook's notepad (card-69): the same paper and inks as
+   the page, so it reads as part of the desk in both themes (the notebook
+   stays cream in the dark theme too). The poet writes in the journal's hand
+   (Patrick Hand), the reader in the app's type on a tint of the paper. */
+.chat-pad {
+  --pad-paper: #fdf8ec;
+  --pad-ink: #3a3226;
+  --pad-ink-soft: #8c7454;
+  --pad-rule: rgba(140, 116, 84, 0.35);
+  --pad-rule-faint: rgba(140, 116, 84, 0.18);
+  --pad-tint: rgba(140, 116, 84, 0.1);
+  background: var(--pad-paper);
+  color: var(--pad-ink);
+  border-left: 1px solid var(--pad-rule);
+}
+
+.chat-pad-head {
+  border-bottom: 1px solid var(--pad-rule-faint);
+}
+
+.chat-pad-name {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.6rem;
+  color: var(--pad-ink);
+}
+
+.chat-pad-status {
+  display: block;
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.95rem;
+  line-height: 1.1rem;
+  color: var(--pad-ink-soft);
+}
+
+.chat-pad-status[data-status="waking"]::before,
+.chat-pad-status[data-status="reconnecting"]::before,
+.chat-pad-status[data-status="unknown"]::before {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  background: var(--pad-ink-soft);
+  animation: narration-breathe 1.4s ease-in-out infinite;
+  vertical-align: 0.05rem;
+}
+
+.chat-pad-close {
+  color: var(--pad-ink-soft);
+  padding: 0.4rem;
+  border-radius: 999px;
+}
+
+.chat-pad-close:hover {
+  background: var(--pad-tint);
+  color: var(--pad-ink);
+}
+
+.chat-pad-empty {
+  font-family: "Patrick Hand", cursive;
+  font-size: 1.05rem;
+  line-height: 1.5rem;
+  color: var(--pad-ink-soft);
+}
+
+.chat-pad-empty-title {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1.8rem;
+  color: var(--pad-ink);
+  margin-bottom: 0.25rem;
+}
+
+.chat-line {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 92%;
+}
+
+.chat-line-reader {
+  align-items: flex-end;
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+.chat-pad-who {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.1rem;
+  color: var(--pad-ink-soft);
+  margin-bottom: 0.15rem;
+}
+
+.chat-poet {
+  font-family: "Patrick Hand", "Comic Sans MS", cursive;
+  font-size: 1.1rem;
+  line-height: 1.65rem;
+  color: var(--pad-ink);
+}
+
+.chat-reader {
+  font-size: 0.95rem;
+  line-height: 1.4rem;
+  color: var(--pad-ink);
+  background: var(--pad-tint);
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  padding: 0.5rem 0.8rem;
+}
+
+/* Markdown inside a poet's line: the journal's rhythm, tighter. */
+.chat-markdown p { margin: 0 0 0.6rem; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+.chat-markdown ul, .chat-markdown ol { margin: 0.2rem 0 0.6rem 1.1rem; }
+.chat-markdown ul { list-style: disc; }
+.chat-markdown ol { list-style: decimal; }
+.chat-markdown li { margin: 0.1rem 0; }
+.chat-markdown strong { font-weight: 700; color: var(--pad-ink); }
+.chat-markdown a { color: #4a5f8c; text-decoration: underline; text-decoration-style: wavy; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3 { font-family: "Caveat", cursive; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem; margin: 0.4rem 0 0.2rem; }
+.chat-markdown code { font-family: ui-monospace, monospace; font-size: 0.85em; background: var(--pad-tint); padding: 0 0.25rem; border-radius: 0.2rem; }
+.chat-markdown blockquote { border-left: 2px solid var(--pad-rule); padding-left: 0.6rem; color: var(--pad-ink-soft); margin: 0.3rem 0 0.6rem; }
+.chat-markdown table { font-size: 0.9em; border-collapse: collapse; margin: 0.3rem 0 0.6rem; }
+.chat-markdown td, .chat-markdown th { border-bottom: 1px solid var(--pad-rule-faint); padding: 0.15rem 0.5rem 0.15rem 0; text-align: left; }
+
+.chat-pad-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.1em;
+  vertical-align: -0.15em;
+  border-bottom: 2px solid var(--pad-ink-soft);
+  animation: narration-breathe 1s ease-in-out infinite;
+}
+
+/* App notes on the pad (held, first entry, an error): a line in ink, not a box. */
+.chat-pad-note {
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.98rem;
+  line-height: 1.35rem;
+  color: #a2692c;
+  border-left: 2px solid rgba(162, 105, 44, 0.45);
+  padding-left: 0.6rem;
+}
+
+.chat-pad-note-error {
+  color: #9b3b2e;
+  border-left-color: rgba(155, 59, 46, 0.45);
+}
+
+.chat-pad-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--pad-rule);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--pad-ink);
+  background: color-mix(in oklab, var(--pad-paper) 70%, white);
+}
+
+.chat-pad-chip-pending {
+  display: flex;
+  margin-top: 0;
+}
+
+.chat-pad-chip-remove {
+  color: var(--pad-ink-soft);
+  padding: 0.1rem;
+}
+
+.chat-pad-chip-remove:hover { color: var(--pad-ink); }
+
+.chat-pad-composer {
+  border-top: 1px solid var(--pad-rule-faint);
+}
+
+.chat-pad-attach {
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.45rem;
+  border-radius: 999px;
+  color: var(--pad-ink-soft);
+}
+
+.chat-pad-attach:hover {
+  background: var(--pad-tint);
+  color: var(--pad-ink);
+}
+
+/* The line the reader writes on: no box, a ruled line that darkens on focus. */
+.chat-pad-input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--pad-rule);
+  border-radius: 0;
+  padding: 0.45rem 0.1rem;
+  font-size: 0.95rem;
+  line-height: 1.4rem;
+  color: var(--pad-ink);
+  outline: none;
+}
+
+.chat-pad-input::placeholder {
+  font-family: "Patrick Hand", cursive;
+  font-size: 1.05rem;
+  color: var(--pad-ink-soft);
+  opacity: 0.8;
+}
+
+.chat-pad-input:focus {
+  border-bottom-color: var(--pad-ink);
+  box-shadow: none;
+}
+
+.chat-pad-input:disabled {
+  opacity: 0.5;
+}
+
+/* Send: the same ink ring as the page's play control. */
+.chat-pad-send {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--pad-ink-soft);
+  color: var(--pad-ink-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chat-pad-send:hover:not(:disabled),
+.chat-pad-send:focus-visible {
+  background: var(--pad-ink-soft);
+  color: var(--pad-paper);
+}
+
+.chat-pad-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* The keyboard covers the home indicator; see mobile_viewport_hook.js */
 .chat-overlay.keyboard-open {
   padding-bottom: 0;
