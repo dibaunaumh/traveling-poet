@@ -79,8 +79,8 @@ defmodule TravelingPoet.Provisioner do
   # into the four things a reader can picture; keep the order in sync with the
   # `with` in do_provision_user/2.
   @steps ~w(create_sprite make_public install_openclaw write_config write_env
-            write_workspace write_tpoet_plugin ensure_gateway_service pair_device
-            get_sprite_url)a
+            write_workspace write_tpoet_plugin pair_device import_pairing
+            ensure_gateway_service get_sprite_url)a
 
   @doc "The provisioning steps in the order they run."
   def steps, do: @steps
@@ -164,9 +164,10 @@ defmodule TravelingPoet.Provisioner do
            step(user_id, :write_tpoet_plugin, fn ->
              write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token)
            end),
+         {:ok, _} <- step(user_id, :pair_device, fn -> pair_device(sprite_name, device_pub) end),
+         {:ok, _} <- step(user_id, :import_pairing, fn -> import_pairing(sprite_name) end),
          {:ok, _} <-
            step(user_id, :ensure_gateway_service, fn -> ensure_gateway_service(sprite_name) end),
-         {:ok, _} <- step(user_id, :pair_device, fn -> pair_device(sprite_name, device_pub) end),
          {:ok, sprite_url} <-
            step(user_id, :get_sprite_url, fn -> SpritesClient.get_sprite_url(sprite_name) end) do
       {:ok, _updated_user} =
@@ -260,9 +261,16 @@ defmodule TravelingPoet.Provisioner do
     end
   end
 
+  # Two layouts: OpenClaw up to 2026.4 kept one JSONL file per session under
+  # `agents/main/sessions/`; since 2026.10 the whole conversation store is
+  # the agent database `agents/main/agent/openclaw-agent.sqlite` (with its
+  # -wal and -shm), recreated empty by the next gateway start. Both are set
+  # aside, never deleted; `instructions.md` and `workshop-skills/` beside the
+  # database stay, they are not conversation.
   defp do_fresh_conversation(user) do
     name = user.sprite_name || default_sprite_name(user.id)
     sessions = "~/.openclaw/agents/main/sessions"
+    agent_db = "~/.openclaw/agents/main/agent/openclaw-agent.sqlite"
     client = Application.get_env(:traveling_poet, :sprites_client, SpritesClient)
 
     with {:ok, _} <- client.stop_service(name, "openclaw-gateway"),
@@ -270,7 +278,8 @@ defmodule TravelingPoet.Provisioner do
            client.exec(
              name,
              "ts=$(date +%s); mkdir -p #{sessions}-reset-$ts && " <>
-               "mv #{sessions}/* #{sessions}-reset-$ts/ 2>/dev/null; true"
+               "mv #{sessions}/* #{sessions}-reset-$ts/ 2>/dev/null; " <>
+               "mv #{agent_db} #{agent_db}-wal #{agent_db}-shm #{sessions}-reset-$ts/ 2>/dev/null; true"
            ),
          {:ok, _} <- client.start_service(name, "openclaw-gateway") do
       :ok
@@ -299,7 +308,8 @@ defmodule TravelingPoet.Provisioner do
     with {:ok, _} <- refresh_config(sprite_name, user, phoenix_url, poet),
          {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
          {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, user.agent_api_token),
-         {:ok, _} <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
+         # a gateway already stopped (an upgrade stops it first) answers 409
+         _ <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
          {:ok, _} <- ensure_gateway_service(sprite_name) do
       {:ok, sprite_name}
     end
@@ -318,6 +328,363 @@ defmodule TravelingPoet.Provisioner do
       result = upgrade_workspace(user)
       Process.sleep(stagger_ms)
       {user.email, elem_or_error(result)}
+    end)
+  end
+
+  @doc """
+  Moves one provisioned poet to another OpenClaw release, in place.
+
+  The fleet was pinned to 2026.4.9 from the first build while OpenClaw moved
+  on (protocol v4 gateways, Node 24.16+, SQLite-backed state), so this is the
+  path that carries a live sprite across, and it is written to leave the poet
+  on a working release whatever happens:
+
+    1. a poet in the middle of a run is skipped (`Markers.Delivery.busy?/3`:
+       a daily page, first page, revision or book in the last 15 minutes, a
+       chat turn in the last 5) unless `force: true`;
+    2. the gateway is stopped and the sprite held awake;
+    3. optionally a bridge release first (`bridge: :auto` applies OpenClaw's
+       rule for installs older than July 2026, `bridge: "2026.9.5"` forces
+       one; off by default, see `bridge_release/3`), with its own doctor run;
+    4. the target release is installed and must report itself as
+       `openclaw --version`;
+    5. the config is rewritten, `openclaw doctor --fix --non-interactive`
+       migrates the stored state (pairing, sessions), `upgrade_workspace/1`
+       rewrites workspace and plugin and starts the gateway;
+    6. the app's own socket must authenticate (`verify_gateway/1`) before the
+       release is recorded on the user.
+
+  A failed install puts the previous release back and restarts its gateway.
+  A failed handshake after the install leaves the sprite on the new release
+  (doctor has migrated its state by then; going back is not an option) and
+  the release unrecorded, so the next pass only redoes the last phase.
+  Options: `:version` (an npm version or "stable", default "stable"),
+  `:force`, `:bridge`, `:install_timeout_ms`.
+
+  Returns `{:ok, version}`, `{:ok, :already_current}`, `{:skipped, :busy}` or
+  `{:error, reason}`.
+  """
+  def upgrade_openclaw(user, opts \\ []) do
+    target = resolve_openclaw_npm_version(Keyword.get(opts, :version, "stable"))
+    force? = Keyword.get(opts, :force, false)
+    sprite_name = user.sprite_name || default_sprite_name(user.id)
+
+    cond do
+      parse_openclaw_version(target) != target ->
+        {:error, {:pin_an_exact_version, target}}
+
+      not force? and TravelingPoet.Markers.Delivery.busy?(user.id) ->
+        {:skipped, :busy}
+
+      true ->
+        installed = installed_openclaw_version(sprite_name)
+
+        cond do
+          installed == target and user.openclaw_version == target and not force? ->
+            {:ok, :already_current}
+
+          installed == target and not force? ->
+            # The package is there but the pass that put it never got to
+            # record it (a handshake that failed, an interrupted rpc): only
+            # the last phase is owed.
+            TravelingPoet.SpriteHold.with_hold(sprite_name, "upgrade", fn ->
+              client().stop_service(sprite_name, "openclaw-gateway")
+              finish_upgrade(user, sprite_name, target, opts)
+            end)
+
+          true ->
+            TravelingPoet.SpriteHold.with_hold(sprite_name, "upgrade", fn ->
+              do_upgrade_openclaw(user, sprite_name, installed, target, opts)
+            end)
+        end
+    end
+  end
+
+  @bridge_release "2026.9.5"
+  # Releases before this one keep state the current line no longer imports
+  # directly (see "Upgrading very old versions" in OpenClaw's updating guide).
+  @bridge_needed_before "2026.7.1"
+
+  # Phases, because what a failure may undo depends on where it happens.
+  # Until doctor has migrated state at a newer release, npm leaves the old
+  # package tree intact on a failed install and the poet can simply be put
+  # back on it. Once doctor has run at a release, that release is the floor:
+  # OpenClaw's updating guide is explicit that a package rollback cannot
+  # undo migrated state (a 2026.4.9 gateway restarted on a store its
+  # successor had migrated answered "pairing required" to everything,
+  # probe sprite, 2026-10-16). So after the target's doctor the sprite stays
+  # on the target whatever the handshake says, the release is left
+  # unrecorded, and the next pass picks it up from there.
+  defp do_upgrade_openclaw(user, sprite_name, installed, target, opts) do
+    bridge = bridge_release(installed, target, Keyword.get(opts, :bridge, false))
+
+    Logger.info(
+      "Provisioner: upgrading OpenClaw on #{sprite_name} #{installed || "none"} -> #{target}" <>
+        if(bridge, do: " via #{bridge}", else: "")
+    )
+
+    with {:ok, _} <- client().stop_service(sprite_name, "openclaw-gateway"),
+         {:ok, floor} <- bridge_step(user, sprite_name, bridge, opts),
+         :ok <- install_or_restore(user, sprite_name, target, floor || installed, opts) do
+      finish_upgrade(user, sprite_name, target, opts)
+    end
+  end
+
+  defp bridge_step(_user, _sprite_name, nil, _opts), do: {:ok, nil}
+
+  defp bridge_step(user, sprite_name, bridge, opts) do
+    case install_openclaw_release(sprite_name, bridge, opts) do
+      :ok ->
+        refresh_config_for(user)
+        doctor_fix(sprite_name)
+        {:ok, bridge}
+
+      {:error, reason} ->
+        restore_release(user, sprite_name, installed_openclaw_version(sprite_name), reason, opts)
+    end
+  end
+
+  defp install_or_restore(user, sprite_name, target, previous, opts) do
+    case install_openclaw_release(sprite_name, target, opts) do
+      :ok -> :ok
+      {:error, reason} -> restore_release(user, sprite_name, previous, reason, opts)
+    end
+  end
+
+  # Config first so doctor migrates against the current release's shape of
+  # it, then doctor for the stored state, then the workspace and plugin and
+  # the gateway start, then the app's own handshake as the verdict.
+  defp finish_upgrade(user, sprite_name, target, opts) do
+    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
+    verify = Keyword.get(opts, :verify, &verify_gateway/1)
+
+    refresh_config_for(user)
+    doctor_fix(sprite_name)
+
+    with {:ok, _} <- workspace.(user),
+         :ok <- verify.(user) do
+      record_openclaw_version(user, target)
+      {:ok, target}
+    else
+      error ->
+        reason = unwrap_error(error)
+
+        Logger.error(
+          "Provisioner: #{sprite_name} is on OpenClaw #{target} but the app could not confirm it (#{inspect(reason)}); left there, unrecorded"
+        )
+
+        {:error, {reason, installed: target}}
+    end
+  end
+
+  defp refresh_config_for(user) do
+    sprite_name = user.sprite_name || default_sprite_name(user.id)
+    poet = TravelingPoet.Poets.get_poet_by_user(user.id)
+    phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
+    refresh_config(sprite_name, user, phoenix_url, poet)
+  end
+
+  defp unwrap_error({:error, reason}), do: reason
+  defp unwrap_error(other), do: other
+
+  # Nothing was migrated at a newer release yet: the previous package goes
+  # back (npm keeps it when an install fails, so usually it is still there)
+  # and the gateway restarts on it.
+  defp restore_release(user, sprite_name, previous, reason, opts) do
+    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
+    verify = Keyword.get(opts, :verify, &verify_gateway/1)
+
+    Logger.error(
+      "Provisioner: OpenClaw upgrade on #{sprite_name} failed (#{inspect(reason)}), back to #{previous || "nothing"}"
+    )
+
+    restored =
+      with true <- is_binary(previous),
+           :ok <- ensure_release(sprite_name, previous, opts),
+           {:ok, _} <- workspace.(user),
+           :ok <- verify.(user) do
+        record_openclaw_version(user, previous)
+        :ok
+      else
+        false -> {:error, :no_previous_release}
+        error -> error
+      end
+
+    Logger.error(
+      "Provisioner: #{sprite_name} back on #{previous || "nothing"}: #{inspect(restored)}"
+    )
+
+    {:error, {reason, rolled_back: restored}}
+  end
+
+  defp ensure_release(sprite_name, version, opts) do
+    if installed_openclaw_version(sprite_name) == version,
+      do: :ok,
+      else: install_openclaw_release(sprite_name, version, opts)
+  end
+
+  @bridge_release "2026.9.5"
+  # Releases before this one keep state the current line no longer imports
+  # directly (see "Upgrading very old versions" in OpenClaw's updating guide).
+  # Off by default: the direct move from 2026.4.9 to 2026.10.4 imports the
+  # pairing and sessions a poet's sprite holds (probe sprites, 2026-10-16),
+  # and the bridge's second install failed once for reasons npm's rotated
+  # log no longer held. `bridge: :auto` applies the guide's rule.
+  @bridge_needed_before "2026.7.1"
+
+  defp bridge_release(_installed, _target, false), do: nil
+  defp bridge_release(_installed, _target, version) when is_binary(version), do: version
+
+  defp bridge_release(installed, target, :auto) do
+    if is_binary(installed) and older_release?(installed, @bridge_needed_before) and
+         older_release?(@bridge_release, target),
+       do: @bridge_release,
+       else: nil
+  end
+
+  @doc "True when release `a` (\"2026.4.9\") is older than release `b`."
+  def older_release?(a, b) when is_binary(a) and is_binary(b) do
+    release_tuple(a) < release_tuple(b)
+  end
+
+  defp release_tuple(version) do
+    version
+    |> String.split("-", parts: 2)
+    |> hd()
+    |> String.split(".")
+    |> Enum.map(fn part ->
+      case Integer.parse(part) do
+        {n, _} -> n
+        :error -> 0
+      end
+    end)
+    |> List.to_tuple()
+  end
+
+  # Doctor's job here is the stored state (sessions, pairing, plugin state,
+  # retired config keys); its verdict on openclaw.json and the plugin does
+  # not matter because both are rewritten right after. It never fails the
+  # upgrade, but what it said is kept in the log for the operator.
+  defp doctor_fix(sprite_name) do
+    cmd =
+      "timeout 300 $(npm prefix -g)/bin/openclaw doctor --fix --non-interactive 2>&1 | tail -c 2500"
+
+    case client().exec(sprite_name, cmd) do
+      {:ok, out} ->
+        Logger.info("Provisioner: doctor --fix on #{sprite_name}:\n#{extract_text(out)}")
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Provisioner: doctor --fix on #{sprite_name} failed: #{inspect(reason)}")
+        :ok
+    end
+  end
+
+  defp record_openclaw_version(user, version) do
+    case Accounts.update_user(user, %{openclaw_version: version}) do
+      {:ok, _} ->
+        :ok
+
+      {:error, changeset} ->
+        Logger.warning(
+          "Provisioner: could not record OpenClaw #{version} on user #{user.id}: #{inspect(changeset.errors)}"
+        )
+    end
+  end
+
+  @doc """
+  Proof that the app can still talk to the poet: a fresh socket must reach
+  `hello-ok` on the new gateway. The socket is closed again afterwards so the
+  sprite can go back to sleep.
+  """
+  def verify_gateway(user, timeout_ms \\ 90_000) do
+    deadline = System.monotonic_time(:millisecond) + timeout_ms
+    user = Accounts.get_user(user.id) || user
+    do_verify_gateway(user, deadline)
+  end
+
+  # A gateway answers "gateway starting; retry shortly" (close 1013) for a
+  # few seconds after its service starts; that is a wait, not a verdict.
+  defp do_verify_gateway(user, deadline) do
+    TravelingPoet.GatewaySocketSupervisor.disconnect(user.id)
+    remaining = max(deadline - System.monotonic_time(:millisecond), 1_000)
+
+    result =
+      with {:ok, pid} <- TravelingPoet.GatewaySocketSupervisor.ensure_connected(user, attempts: 8) do
+        GatewaySocket.subscribe(pid)
+        GatewaySocket.request_status(pid)
+
+        outcome =
+          receive do
+            {:gateway_status, :authenticated} -> :ok
+            {:gateway_event, :connected} -> :ok
+            {:gateway_event, {:error, reason}} -> {:error, {:gateway, reason}}
+          after
+            remaining -> {:error, :gateway_handshake_timeout}
+          end
+
+        GatewaySocket.unsubscribe(pid)
+        outcome
+      end
+
+    TravelingPoet.GatewaySocketSupervisor.disconnect(user.id)
+
+    case result do
+      {:error, {:gateway, reason}} when is_binary(reason) ->
+        if reason =~ "starting" and System.monotonic_time(:millisecond) < deadline do
+          Process.sleep(3_000)
+          do_verify_gateway(user, deadline)
+        else
+          result
+        end
+
+      other ->
+        other
+    end
+  end
+
+  @doc """
+  Rolls `upgrade_openclaw/2` across the fleet, one poet after another: each
+  install is minutes of CPU and network on its sprite, and the sprites API is
+  shared, so there is no parallelism on purpose. Busy poets are skipped and
+  come back in the result so a second pass can take them. `only: [emails]`
+  restricts a pass (the way to try one poet first), `exclude: [emails]`
+  keeps named poets out; other options pass through to `upgrade_openclaw/2`.
+  Returns `{email, result}` per poet.
+  """
+  def upgrade_openclaw_fleet(opts \\ []) do
+    stagger_ms = Keyword.get(opts, :stagger_ms, 10_000)
+    only = Keyword.get(opts, :only)
+    exclude = Keyword.get(opts, :exclude, [])
+
+    Accounts.list_provisioned_users()
+    |> Enum.filter(fn user ->
+      (only == nil or user.email in only) and user.email not in exclude
+    end)
+    |> Enum.map(fn user ->
+      result = upgrade_openclaw(user, opts)
+      Logger.info("Provisioner: OpenClaw upgrade for #{user.email}: #{inspect(result)}")
+      Process.sleep(stagger_ms)
+      {user.email, result}
+    end)
+  end
+
+  @doc """
+  `upgrade_openclaw_fleet/1` in a task of its own, for an `rpc` call that
+  must return at once: hours of installs do not fit an SSH session. Progress
+  shows in the logs and in `users.openclaw_version`; the admins are paged
+  with the tally when the pass ends.
+  """
+  def start_openclaw_fleet_upgrade(opts \\ []) do
+    Task.start(fn ->
+      results = upgrade_openclaw_fleet(opts)
+
+      summary =
+        results
+        |> Enum.map(fn {email, result} -> "#{email}: #{inspect(result, limit: 6)}" end)
+        |> Enum.join("\n")
+
+      TravelingPoet.Alerts.notify_admins("OpenClaw fleet upgrade finished:\n#{summary}")
     end)
   end
 
@@ -357,36 +724,151 @@ defmodule TravelingPoet.Provisioner do
     SpritesClient.update_sprite(name, %{auth: "public"})
   end
 
+  # A provisioned sprite always ends on the release asked for: a re-provision
+  # (mode switch, token rotation) of a poet still on an older release moves
+  # it, since the config, plugin manifest and pairing import written next
+  # are the current release's shape. `import_pairing` runs doctor for its
+  # state migrations right after.
   defp install_openclaw(name, openclaw_version) do
     npm_version = resolve_openclaw_npm_version(openclaw_version)
 
-    case SpritesClient.exec(name, "command -v openclaw") do
-      {:ok, output} ->
-        if extract_text(output) |> String.contains?("openclaw") do
-          Logger.info("OpenClaw already installed in #{name}, skipping")
-          {:ok, :already_installed}
-        else
-          do_install_openclaw(name, npm_version)
-        end
+    case installed_openclaw_version(name) do
+      ^npm_version ->
+        Logger.info("OpenClaw #{npm_version} already installed in #{name}, skipping")
+        {:ok, :already_installed}
 
-      _ ->
+      nil ->
+        do_install_openclaw(name, npm_version)
+
+      installed ->
+        Logger.info("OpenClaw #{installed} installed in #{name}, moving to #{npm_version}")
+        client().stop_service(name, "openclaw-gateway")
         do_install_openclaw(name, npm_version)
     end
   end
 
-  defp resolve_openclaw_npm_version("stable") do
-    Application.get_env(:traveling_poet, :openclaw_stable_version, "2026.4.9")
+  @doc """
+  The npm version a release name stands for: `"stable"` is the fleet pin
+  (`OPENCLAW_STABLE_VERSION`), `"latest"` the npm tag, anything else an
+  exact version such as `"2026.10.4"`.
+  """
+  def resolve_openclaw_npm_version("stable") do
+    Application.get_env(:traveling_poet, :openclaw_stable_version, "2026.10.4")
   end
 
-  defp resolve_openclaw_npm_version(_), do: "latest"
+  def resolve_openclaw_npm_version(version) when is_binary(version), do: version
 
   defp do_install_openclaw(name, npm_version) do
-    Logger.info("Installing OpenClaw #{npm_version} in #{name}")
+    with :ok <- install_openclaw_release(name, npm_version, []) do
+      client().exec(name, "mkdir -p #{@workspace}/memory")
+    end
+  end
 
-    SpritesClient.exec(
-      name,
-      "npm install -g openclaw@#{npm_version} && mkdir -p #{@workspace}/memory"
-    )
+  @install_log "/tmp/tpoet-openclaw-install.log"
+  @install_timeout_ms 20 * 60 * 1000
+  @install_poll_ms 10_000
+
+  # `npm install -g openclaw@<version>` on a sprite: a release is ~600 MB
+  # and 300+ packages, eight minutes on a cold npm cache (2026-10-16), far
+  # past the two minutes one exec call may take. So the install is started
+  # detached from the exec session (`setsid nohup`, which the sprite keeps
+  # running after the call returns) and polled until npm exits, then the
+  # binary itself is asked which release it is. The caller holds the sprite
+  # awake meanwhile. npm 12 (and 11.16+) refuse lifecycle scripts unless
+  # named, and OpenClaw's postinstall is what wires its bundled plugins, so
+  # the documented `--allow-scripts=openclaw` is added where npm knows it.
+  defp install_openclaw_release(name, version, opts) do
+    timeout_ms = Keyword.get(opts, :install_timeout_ms, @install_timeout_ms)
+    poll_ms = Keyword.get(opts, :install_poll_ms, @install_poll_ms)
+    Logger.info("Installing OpenClaw #{version} in #{name}")
+
+    cmd =
+      "rm -f #{@install_log}; setsid nohup npm install -g openclaw@#{version}" <>
+        "#{npm_allow_scripts_flag(name)} --no-progress > #{@install_log} 2>&1 < /dev/null & " <>
+        "echo started"
+
+    with {:ok, _} <- client().exec(name, cmd) do
+      deadline = System.monotonic_time(:millisecond) + timeout_ms
+      await_openclaw_install(name, version, deadline, poll_ms)
+    end
+  end
+
+  defp await_openclaw_install(name, version, deadline, poll_ms) do
+    Process.sleep(poll_ms)
+
+    case client().exec(
+           name,
+           "pgrep -f 'npm install.*openclaw' > /dev/null && echo running || echo finished"
+         ) do
+      {:ok, out} ->
+        running? = extract_text(out) =~ "running"
+
+        cond do
+          running? and System.monotonic_time(:millisecond) < deadline ->
+            await_openclaw_install(name, version, deadline, poll_ms)
+
+          running? ->
+            {:error, {:install_timeout, version}}
+
+          true ->
+            case installed_openclaw_version(name) do
+              ^version ->
+                Logger.info("OpenClaw #{version} installed in #{name}")
+                :ok
+
+              other ->
+                {:error, {:install_failed, version, other, install_log_tail(name)}}
+            end
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp install_log_tail(name) do
+    case client().exec(name, "tail -c 1500 #{@install_log} 2>/dev/null") do
+      {:ok, out} -> extract_text(out)
+      _ -> ""
+    end
+  end
+
+  defp npm_allow_scripts_flag(name) do
+    with {:ok, out} <- client().exec(name, "npm --version"),
+         [major, minor | _] <- extract_text(out) |> String.trim() |> String.split("."),
+         {major, ""} <- Integer.parse(major),
+         {minor, ""} <- Integer.parse(minor),
+         true <- major > 11 or (major == 11 and minor >= 16) do
+      " --allow-scripts=openclaw"
+    else
+      _ -> ""
+    end
+  end
+
+  @doc """
+  The OpenClaw release installed on a sprite (`openclaw --version`, e.g.
+  "2026.10.4"), or nil when there is none. The binary is not on the exec
+  shell's PATH, so it is found through npm's global prefix.
+  """
+  def installed_openclaw_version(sprite_name) do
+    case client().exec(sprite_name, "$(npm prefix -g)/bin/openclaw --version 2>/dev/null") do
+      {:ok, out} -> parse_openclaw_version(extract_text(out))
+      _ -> nil
+    end
+  end
+
+  @doc "The release in an `openclaw --version` line (\"OpenClaw 2026.10.4 (383c124)\")."
+  def parse_openclaw_version(text) when is_binary(text) do
+    case Regex.run(~r/\b(\d{4}\.\d{1,2}\.\d{1,3}(?:-[0-9A-Za-z.]+)?)\b/, text) do
+      [_, version] -> version
+      _ -> nil
+    end
+  end
+
+  def parse_openclaw_version(_), do: nil
+
+  defp client do
+    Application.get_env(:traveling_poet, :sprites_client, SpritesClient)
   end
 
   # OpenClaw's built-in provider catalog doesn't include OpenRouter; register
@@ -434,9 +916,20 @@ defmodule TravelingPoet.Provisioner do
   def openclaw_config(gateway_token, phoenix_url, model) do
     %{
       gateway: %{
+        # The service passes --port/--bind too; the config copy is what
+        # OpenClaw's own CLI (doctor, plugins, devices) reads to find it.
+        port: @gateway_port,
+        bind: "lan",
         controlUi: %{allowedOrigins: ["*", phoenix_url]},
         http: %{endpoints: %{responses: %{enabled: true}}},
-        auth: %{token: gateway_token}
+        auth: %{token: gateway_token},
+        # The app reaches the gateway through the sprite's public URL, so
+        # every connection arrives from the sprites.app proxy (10.0.0.2 on
+        # the sprite's private link) carrying X-Forwarded-For. OpenClaw
+        # 2026.10 refuses such proxy-shaped traffic with 403
+        # `proxy_attribution_required` unless the proxy is trusted; the
+        # sprite's only peer on that network is the platform itself.
+        trustedProxies: ["10.0.0.0/8"]
       },
       agents: %{defaults: %{model: "openrouter/#{model}", heartbeat: %{every: "0m"}}},
       plugins: %{
@@ -482,14 +975,56 @@ defmodule TravelingPoet.Provisioner do
     }
   end
 
+  # Our settings go over whatever the file holds, never in place of it:
+  # since 2026.4.22 a gateway treats a config that lost its `meta` block or
+  # shrank sharply as clobbered and restores its last-known-good copy, and
+  # doctor keeps its own keys there (meta, skills entries, migration marks).
+  # Writing only our keys would have the gateway quietly undo a model or
+  # token change. An unreadable file is replaced outright.
   defp write_config(name, gateway_token, phoenix_url, model) do
-    config_json = Jason.encode!(openclaw_config(gateway_token, phoenix_url, model), pretty: true)
+    ours = openclaw_config(gateway_token, phoenix_url, model)
+
+    current =
+      case client().exec(name, "cat ~/.openclaw/openclaw.json 2>/dev/null") do
+        {:ok, out} ->
+          case Jason.decode(extract_text(out)) do
+            {:ok, map} when is_map(map) -> map
+            _ -> %{}
+          end
+
+        _ ->
+          %{}
+      end
+
+    config_json = Jason.encode!(deep_merge(current, ours), pretty: true)
 
     cmd =
       "mkdir -p ~/.openclaw && cat > ~/.openclaw/openclaw.json << 'CONFIGEOF'\n#{config_json}\nCONFIGEOF"
 
     Logger.info("Writing config to #{name}")
     SpritesClient.exec(name, cmd)
+  end
+
+  @doc false
+  # Right wins; maps merge, everything else (lists included) is replaced.
+  # Keys are compared as strings since the file comes back decoded.
+  def deep_merge(left, right) when is_map(left) and is_map(right) do
+    right
+    |> Enum.reduce(stringify_keys(left), fn {k, v}, acc ->
+      k = to_string(k)
+
+      case {Map.get(acc, k), v} do
+        {l, r} when is_map(l) and is_map(r) and not is_struct(l) and not is_struct(r) ->
+          Map.put(acc, k, deep_merge(l, r))
+
+        _ ->
+          Map.put(acc, k, v)
+      end
+    end)
+  end
+
+  defp stringify_keys(map) when is_map(map) and not is_struct(map) do
+    Map.new(map, fn {k, v} -> {to_string(k), v} end)
   end
 
   # SECURITY: the sprite is user-driven territory — a user can talk their
@@ -674,6 +1209,28 @@ defmodule TravelingPoet.Provisioner do
   #   * OpenClaw calls execute(toolCallId, params) — the FIRST argument is
   #     the tool_use id string, params come second and may arrive as a JSON
   #     string, so every handler goes through asParams/2.
+  @doc "The plugin's `openclaw.plugin.json`."
+  def tpoet_plugin_manifest do
+    %{
+      id: "tpoet-plugin",
+      name: "tpoet-plugin",
+      description: "The Traveling Poet app's tools: context, journal, places, drawings.",
+      version: "1.0.0",
+      main: "index.js",
+      categories: ["other"],
+      contracts: %{tools: tpoet_plugin_tools()},
+      activation: %{onStartup: true},
+      configSchema: %{type: "object", additionalProperties: false}
+    }
+  end
+
+  @doc "The names of every tool the plugin registers, in source order."
+  def tpoet_plugin_tools do
+    ~r/registerTool\(\{\s*name:\s*"(\w+)"/
+    |> Regex.scan(tpoet_plugin_source("", ""))
+    |> Enum.map(fn [_, name] -> name end)
+  end
+
   @doc """
   The generated plugin source.
 
@@ -713,8 +1270,31 @@ defmodule TravelingPoet.Provisioner do
       }
     }
 
-    module.exports = {
-      activate: function(ctx) {
+    // OpenClaw 2026.10 resolves a plugin entry by its `register(api)` export
+    // (older gateways called `activate(ctx)`; both point at the same
+    // function). A tool's result is an AgentToolResult now: the model reads
+    // `content`, Code Mode and tool search read `details`, so every handler's
+    // plain object is wrapped once here.
+    function toolResult(value) {
+      var details = (value && typeof value === "object") ? value : { result: value };
+      return { content: [{ type: "text", text: JSON.stringify(details) }], details: details };
+    }
+
+    function adapt(api) {
+      return {
+        registerTool: function(def) {
+          var run = def.execute;
+          if (!def.parameters || Object.keys(def.parameters).length === 0) {
+            def.parameters = { type: "object", properties: {} };
+          }
+          def.execute = async function(id, raw) { return toolResult(await run(id, raw)); };
+          return api.registerTool(def);
+        }
+      };
+    }
+
+    function register(realApi) {
+      var ctx = adapt(realApi);
         ctx.registerTool({
           name: "get_conversation_memory",
           description: "Retrieves prior conversation summaries with your companion.",
@@ -1164,25 +1744,29 @@ defmodule TravelingPoet.Provisioner do
             return call("PUT", "/api/agent/book/matter", body);
           }
         });
-      }
+    }
+
+    var entry = {
+      id: "tpoet-plugin",
+      name: "tpoet-plugin",
+      description: "The Traveling Poet app's tools: context, journal, places, drawings.",
+      register: register,
+      activate: register
     };
+    module.exports = entry;
+    module.exports.default = entry;
     """
   end
 
   defp write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token) do
     plugin_js = tpoet_plugin_source(phoenix_url, agent_api_token)
 
-    plugin_manifest =
-      Jason.encode!(
-        %{
-          id: "tpoet-plugin",
-          name: "tpoet-plugin",
-          version: "1.0.0",
-          main: "index.js",
-          configSchema: %{}
-        },
-        pretty: true
-      )
+    # OpenClaw 2026.10 loads a plugin's runtime only when the manifest says
+    # what it owns: tools must be declared under `contracts.tools` and the
+    # plugin asked for at startup, or the gateway comes up with "1 plugin:
+    # memory-core" and the poet has no app tools at all (probe sprite,
+    # 2026-10-16). The legacy `activate` export is still accepted.
+    plugin_manifest = Jason.encode!(tpoet_plugin_manifest(), pretty: true)
 
     package_json =
       Jason.encode!(
@@ -1204,14 +1788,47 @@ defmodule TravelingPoet.Provisioner do
          {:ok, _} <-
            write_file(sprite_name, "#{plugin_dir}/openclaw.plugin.json", plugin_manifest),
          {:ok, _} <- write_file(sprite_name, "#{plugin_dir}/package.json", package_json),
-         {:ok, _} <-
+         {:ok, output} <-
            SpritesClient.exec(
              sprite_name,
-             "#{openclaw_path(sprite_name)} plugins install #{plugin_dir} 2>&1"
-           ) do
+             "#{openclaw_path(sprite_name)} plugins install --force --accept-capabilities #{plugin_dir} 2>&1"
+           ),
+         :ok <- plugin_installed(output) do
       {:ok, :written}
     end
   end
+
+  # `plugins install` from a local path answers "Install cancelled; rerun with
+  # --force after reviewing the source" since OpenClaw 2026.10 (ClawHub trust
+  # metadata), a plugin declaring tools "requires capability consent"
+  # (--accept-capabilities), and exec reports a non-zero exit only in its
+  # framing. Without this check a poet came up with no tools and the app none
+  # the wiser.
+  defp plugin_installed(output) do
+    text = extract_text(output)
+
+    cond do
+      text =~ ~r/Install cancelled|was not updated|not installed|requires capability consent/i ->
+        {:error, {:plugin_install_failed, String.slice(text, -800..-1//1)}}
+
+      exit_code(output) not in [0, nil] ->
+        {:error, {:plugin_install_failed, String.slice(text, -800..-1//1)}}
+
+      true ->
+        :ok
+    end
+  end
+
+  # The exec stream ends with <<3, status>>; nil when the framing is absent
+  # (a test stub answering a bare string).
+  defp exit_code(output) when is_binary(output) and byte_size(output) >= 2 do
+    case :binary.part(output, byte_size(output) - 2, 2) do
+      <<3, code>> -> code
+      _ -> nil
+    end
+  end
+
+  defp exit_code(_), do: nil
 
   defp ensure_gateway_service(name) do
     case SpritesClient.get_service(name, "openclaw-gateway") do
@@ -1295,6 +1912,19 @@ defmodule TravelingPoet.Provisioner do
 
     Logger.info("Pairing device #{String.slice(device_id, 0..15)}... for #{sprite_name}")
     SpritesClient.exec(sprite_name, cmd)
+  end
+
+  # Since OpenClaw 2026.10 paired devices live in the gateway's SQLite state;
+  # `devices/paired.json` is a legacy store the gateway no longer reads, it
+  # only logs "Legacy pairing stores require repair" until `doctor --fix`
+  # imports it with the gateway stopped (then archives the file as
+  # `paired.json.migrated`). So the file is written first, the gateway
+  # stopped, doctor run, and only then the gateway started. Idempotent: a
+  # record already in SQLite wins over the file.
+  defp import_pairing(sprite_name) do
+    client().stop_service(sprite_name, "openclaw-gateway")
+    doctor_fix(sprite_name)
+    {:ok, :imported}
   end
 
   # -- file primitives --

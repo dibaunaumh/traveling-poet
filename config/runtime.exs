@@ -25,7 +25,7 @@ config :traveling_poet,
   sprites_api_url: System.get_env("SPRITES_API_URL", "https://api.sprites.dev/v1"),
   sprites_token: System.get_env("SPRITES_TOKEN"),
   sprite_namespace: System.get_env("SPRITE_NAMESPACE"),
-  openclaw_stable_version: System.get_env("OPENCLAW_STABLE_VERSION", "2026.4.9"),
+  openclaw_stable_version: System.get_env("OPENCLAW_STABLE_VERSION", "2026.10.4"),
   # nil in test: .env loads in every env, and a live key would let tests hit
   # the real OpenRouter API (text or image) and spend money
   openrouter_api_key:
