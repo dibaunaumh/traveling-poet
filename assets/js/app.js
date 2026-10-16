@@ -41,6 +41,7 @@ import LocalTime from "./local_time_hook"
 import AutoDismiss from "./auto_dismiss_hook"
 import ProductTour from "./product_tour_hook"
 import NarrationPlayer from "./narration_player_hook"
+import {initReconnectNotice} from "./reconnect_notice"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
@@ -56,6 +57,9 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
+
+// A dropped connection is said late and quietly (card-99).
+initReconnectNotice()
 
 initBeacon()
 

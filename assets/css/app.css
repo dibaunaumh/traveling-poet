@@ -497,6 +497,48 @@ h1, h2, h3 {
   opacity: 0.8;
 }
 
+/* "Reconnecting…": a small ink line at the foot of the page, shown by
+   reconnect_notice.js only once a drop has lasted a few seconds, in the
+   notebook's own colours rather than an alarm. data-state "long" swaps the
+   line for the reassurance. Sits above the app's tab bar. */
+.reconnecting {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 116, 84, 0.35);
+  background: color-mix(in oklab, var(--color-base-100) 94%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #8c7454;
+  font-family: "Caveat", cursive;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  box-shadow: 0 1px 6px rgba(60, 40, 20, 0.08);
+  animation: reconnecting-in 0.4s ease both;
+}
+
+.reconnecting[hidden] { display: none; }
+.reconnecting .reconnecting-long { display: none; }
+.reconnecting[data-state="long"] .reconnecting-short { display: none; }
+.reconnecting[data-state="long"] .reconnecting-long { display: inline; }
+
+:root[data-shell] body:has(.shell-tabbar) .reconnecting {
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+
+@keyframes reconnecting-in {
+  from { opacity: 0; transform: translate(-50%, 0.5rem); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 .narration[data-state="playing"] .narration-track,
 .narration[data-state="paused"] .narration-track,
 .narration[data-state="playing"] .narration-time,

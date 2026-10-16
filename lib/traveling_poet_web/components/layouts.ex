@@ -223,37 +223,25 @@ defmodule TravelingPoetWeb.Layouts do
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
-      <.flash
-        id="client-error"
-        kind={:error}
-        autohide={false}
-        title={gettext("We can't find the internet")}
-        phx-disconnected={
-          show(".phx-client-error #client-error")
-          |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
-        }
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+      <%!-- A dropped connection (a deploy restarting the one server, a phone
+      waking) is said quietly and late, never in red: reconnect_notice.js
+      waits five seconds before showing this, and most drops end before
+      that (card-99). Both bindings fire for a socket drop and for a view
+      that crashed and is rejoining. --%>
+      <div
+        id="reconnecting"
+        class="reconnecting"
+        role="status"
+        phx-disconnected={JS.dispatch("tpoet:disconnected")}
+        phx-connected={JS.dispatch("tpoet:connected")}
         hidden
       >
-        {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-
-      <.flash
-        id="server-error"
-        kind={:error}
-        autohide={false}
-        title={gettext("Something went wrong!")}
-        phx-disconnected={
-          show(".phx-server-error #server-error")
-          |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
-        }
-        phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
+        <.icon name="hero-arrow-path" class="size-3 shrink-0 motion-safe:animate-spin" />
+        <span class="reconnecting-short">{gettext("Reconnecting…")}</span>
+        <span class="reconnecting-long">
+          {gettext("Still reconnecting. Nothing is lost; the page picks up where it was.")}
+        </span>
+      </div>
     </div>
     """
   end
