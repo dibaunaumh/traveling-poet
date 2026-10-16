@@ -11,6 +11,18 @@ defmodule TravelingPoet.ProvisionerConfigTest do
     assert config.gateway.auth.token == "gw-token"
   end
 
+  # The fleet model has no image endpoint on OpenRouter. Declared with image
+  # input, OpenClaw 2026.10 sends image parts and OpenRouter answers 404
+  # "No endpoints found that support image input" for every turn after,
+  # which took one poet's chat down for a day.
+  test "the fleet model is declared text only so image parts are dropped, not sent" do
+    config = Provisioner.openclaw_config("gw-token", "https://poet.travel", "vendor/model-x")
+    [model] = config.models.providers.openrouter.models
+
+    assert model.id == "vendor/model-x"
+    assert model.input == ["text"]
+  end
+
   # Every connection reaches the gateway through the sprites.app proxy with
   # X-Forwarded-For; OpenClaw 2026.10 answers 403 proxy_attribution_required
   # unless that proxy is trusted. The port in the config is what OpenClaw's
