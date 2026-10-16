@@ -175,7 +175,11 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
     assert installs(agent) == ["2026.10.4"]
   end
 
-  test "the previous release comes back when the new gateway does not answer", %{
+  # Once doctor has migrated the state at the new release there is no way
+  # back (OpenClaw's own guide; a 2026.4.9 gateway restarted on a migrated
+  # store answered "pairing required" to everything). The sprite stays on the
+  # release, unrecorded, and the next pass redoes only the last phase.
+  test "a failed handshake after the install leaves the release in place, unrecorded", %{
     user: user,
     agent: agent
   } do
@@ -188,14 +192,19 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
       end
     end
 
-    assert {:error, {:handshake_timeout, rolled_back: :ok}} =
+    assert {:error, {:handshake_timeout, installed: "2026.10.4"}} =
              Provisioner.upgrade_openclaw(user, opts(verify: verify))
 
-    assert installs(agent) == ["2026.10.4", "2026.4.9"]
+    assert installs(agent) == ["2026.10.4"]
     assert Accounts.get_user!(user.id).openclaw_version == "2026.4.9"
+
+    # the next pass: no install, only config, doctor, workspace and handshake
+    assert {:ok, "2026.10.4"} = Provisioner.upgrade_openclaw(user, opts(verify: verify))
+    assert installs(agent) == ["2026.10.4"]
+    assert Accounts.get_user!(user.id).openclaw_version == "2026.10.4"
   end
 
-  test "an install that never lands fails with npm's last words and restores", %{
+  test "an install that never lands fails with npm's last words, the old release restarts", %{
     user: user,
     agent: agent
   } do
@@ -205,7 +214,23 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
              Provisioner.upgrade_openclaw(user, opts())
 
     assert log =~ "E404"
-    assert installs(agent) == ["2026.10.4", "2026.4.9"]
+    # npm left 2026.4.9 in place, so nothing is reinstalled; the gateway just restarts on it
+    assert installs(agent) == ["2026.10.4"]
+    assert Accounts.get_user!(user.id).openclaw_version == "2026.4.9"
+    assert_received {:workspace, _}
+  end
+
+  test "a bridge whose target install fails restarts on the bridge, never before it", %{
+    user: user,
+    agent: agent
+  } do
+    Agent.update(agent, &%{&1 | fail: ["2026.10.4"]})
+
+    assert {:error, {{:install_failed, "2026.10.4", "2026.9.5", _}, rolled_back: :ok}} =
+             Provisioner.upgrade_openclaw(user, opts(bridge: :auto))
+
+    assert installs(agent) == ["2026.9.5", "2026.10.4"]
+    assert Accounts.get_user!(user.id).openclaw_version == "2026.9.5"
   end
 
   test "a poet mid-run is skipped, nothing touched", %{user: user, agent: agent} do
@@ -215,10 +240,22 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
     refute Enum.any?(calls(agent), &match?({:stop, _, _}, &1))
   end
 
-  test "a sprite already on the release is left alone and recorded", %{user: user, agent: agent} do
+  test "a sprite on the release and recorded as such is left alone", %{user: user, agent: agent} do
     Agent.update(agent, &%{&1 | installed: "2026.10.4"})
+    {:ok, user} = Accounts.update_user(user, %{openclaw_version: "2026.10.4"})
     assert {:ok, :already_current} = Provisioner.upgrade_openclaw(user, opts())
     assert installs(agent) == []
+    refute_received {:workspace, _}
+  end
+
+  test "a sprite on the release but unrecorded gets the last phase only", %{
+    user: user,
+    agent: agent
+  } do
+    Agent.update(agent, &%{&1 | installed: "2026.10.4"})
+    assert {:ok, "2026.10.4"} = Provisioner.upgrade_openclaw(user, opts())
+    assert installs(agent) == []
+    assert_received {:workspace, _}
     assert Accounts.get_user!(user.id).openclaw_version == "2026.10.4"
   end
 

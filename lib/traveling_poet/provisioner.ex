@@ -308,7 +308,8 @@ defmodule TravelingPoet.Provisioner do
     with {:ok, _} <- refresh_config(sprite_name, user, phoenix_url, poet),
          {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
          {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, user.agent_api_token),
-         {:ok, _} <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
+         # a gateway already stopped (an upgrade stops it first) answers 409
+         _ <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
          {:ok, _} <- ensure_gateway_service(sprite_name) do
       {:ok, sprite_name}
     end
@@ -342,20 +343,23 @@ defmodule TravelingPoet.Provisioner do
        a daily page, first page, revision or book in the last 15 minutes, a
        chat turn in the last 5) unless `force: true`;
     2. the gateway is stopped and the sprite held awake;
-    3. a bridge release goes on first when the installed one predates July
-       2026, as OpenClaw's own updating guide asks (`bridge:` option, default
-       2026.9.5 when needed, `false` to skip), each install followed by
-       `openclaw doctor --fix --non-interactive` for its state migrations;
+    3. optionally a bridge release first (`bridge: :auto` applies OpenClaw's
+       rule for installs older than July 2026, `bridge: "2026.9.5"` forces
+       one; off by default, see `bridge_release/3`), with its own doctor run;
     4. the target release is installed and must report itself as
        `openclaw --version`;
-    5. `upgrade_workspace/1` rewrites the config, workspace and plugin for the
-       new release and starts the gateway;
+    5. the config is rewritten, `openclaw doctor --fix --non-interactive`
+       migrates the stored state (pairing, sessions), `upgrade_workspace/1`
+       rewrites workspace and plugin and starts the gateway;
     6. the app's own socket must authenticate (`verify_gateway/1`) before the
        release is recorded on the user.
 
-  An install or handshake failure reinstalls the previous release, restarts
-  the gateway and reports both outcomes. Options: `:version` (an npm version
-  or "stable", default "stable"), `:force`, `:bridge`, `:install_timeout_ms`.
+  A failed install puts the previous release back and restarts its gateway.
+  A failed handshake after the install leaves the sprite on the new release
+  (doctor has migrated its state by then; going back is not an option) and
+  the release unrecorded, so the next pass only redoes the last phase.
+  Options: `:version` (an npm version or "stable", default "stable"),
+  `:force`, `:bridge`, `:install_timeout_ms`.
 
   Returns `{:ok, version}`, `{:ok, :already_current}`, `{:skipped, :busy}` or
   `{:error, reason}`.
@@ -375,13 +379,23 @@ defmodule TravelingPoet.Provisioner do
       true ->
         installed = installed_openclaw_version(sprite_name)
 
-        if installed == target and not force? do
-          record_openclaw_version(user, target)
-          {:ok, :already_current}
-        else
-          TravelingPoet.SpriteHold.with_hold(sprite_name, "upgrade", fn ->
-            do_upgrade_openclaw(user, sprite_name, installed, target, opts)
-          end)
+        cond do
+          installed == target and user.openclaw_version == target and not force? ->
+            {:ok, :already_current}
+
+          installed == target and not force? ->
+            # The package is there but the pass that put it never got to
+            # record it (a handshake that failed, an interrupted rpc): only
+            # the last phase is owed.
+            TravelingPoet.SpriteHold.with_hold(sprite_name, "upgrade", fn ->
+              client().stop_service(sprite_name, "openclaw-gateway")
+              finish_upgrade(user, sprite_name, target, opts)
+            end)
+
+          true ->
+            TravelingPoet.SpriteHold.with_hold(sprite_name, "upgrade", fn ->
+              do_upgrade_openclaw(user, sprite_name, installed, target, opts)
+            end)
         end
     end
   end
@@ -391,33 +405,132 @@ defmodule TravelingPoet.Provisioner do
   # directly (see "Upgrading very old versions" in OpenClaw's updating guide).
   @bridge_needed_before "2026.7.1"
 
+  # Phases, because what a failure may undo depends on where it happens.
+  # Until doctor has migrated state at a newer release, npm leaves the old
+  # package tree intact on a failed install and the poet can simply be put
+  # back on it. Once doctor has run at a release, that release is the floor:
+  # OpenClaw's updating guide is explicit that a package rollback cannot
+  # undo migrated state (a 2026.4.9 gateway restarted on a store its
+  # successor had migrated answered "pairing required" to everything,
+  # probe sprite, 2026-10-16). So after the target's doctor the sprite stays
+  # on the target whatever the handshake says, the release is left
+  # unrecorded, and the next pass picks it up from there.
   defp do_upgrade_openclaw(user, sprite_name, installed, target, opts) do
-    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
-    verify = Keyword.get(opts, :verify, &verify_gateway/1)
-    bridge = bridge_release(installed, target, Keyword.get(opts, :bridge, :auto))
+    bridge = bridge_release(installed, target, Keyword.get(opts, :bridge, false))
 
     Logger.info(
       "Provisioner: upgrading OpenClaw on #{sprite_name} #{installed || "none"} -> #{target}" <>
         if(bridge, do: " via #{bridge}", else: "")
     )
 
-    result =
-      with {:ok, _} <- client().stop_service(sprite_name, "openclaw-gateway"),
-           :ok <- install_bridge(sprite_name, bridge, opts),
-           :ok <- install_openclaw_release(sprite_name, target, opts),
-           :ok <- doctor_fix(sprite_name),
-           {:ok, _} <- workspace.(user),
-           :ok <- verify.(user) do
-        record_openclaw_version(user, target)
-        {:ok, target}
-      end
-
-    case result do
-      {:ok, _} = ok -> ok
-      {:error, reason} -> roll_back_openclaw(user, sprite_name, installed, reason, opts)
-      other -> roll_back_openclaw(user, sprite_name, installed, other, opts)
+    with {:ok, _} <- client().stop_service(sprite_name, "openclaw-gateway"),
+         {:ok, floor} <- bridge_step(user, sprite_name, bridge, opts),
+         :ok <- install_or_restore(user, sprite_name, target, floor || installed, opts) do
+      finish_upgrade(user, sprite_name, target, opts)
     end
   end
+
+  defp bridge_step(_user, _sprite_name, nil, _opts), do: {:ok, nil}
+
+  defp bridge_step(user, sprite_name, bridge, opts) do
+    case install_openclaw_release(sprite_name, bridge, opts) do
+      :ok ->
+        refresh_config_for(user)
+        doctor_fix(sprite_name)
+        {:ok, bridge}
+
+      {:error, reason} ->
+        restore_release(user, sprite_name, installed_openclaw_version(sprite_name), reason, opts)
+    end
+  end
+
+  defp install_or_restore(user, sprite_name, target, previous, opts) do
+    case install_openclaw_release(sprite_name, target, opts) do
+      :ok -> :ok
+      {:error, reason} -> restore_release(user, sprite_name, previous, reason, opts)
+    end
+  end
+
+  # Config first so doctor migrates against the current release's shape of
+  # it, then doctor for the stored state, then the workspace and plugin and
+  # the gateway start, then the app's own handshake as the verdict.
+  defp finish_upgrade(user, sprite_name, target, opts) do
+    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
+    verify = Keyword.get(opts, :verify, &verify_gateway/1)
+
+    refresh_config_for(user)
+    doctor_fix(sprite_name)
+
+    with {:ok, _} <- workspace.(user),
+         :ok <- verify.(user) do
+      record_openclaw_version(user, target)
+      {:ok, target}
+    else
+      error ->
+        reason = unwrap_error(error)
+
+        Logger.error(
+          "Provisioner: #{sprite_name} is on OpenClaw #{target} but the app could not confirm it (#{inspect(reason)}); left there, unrecorded"
+        )
+
+        {:error, {reason, installed: target}}
+    end
+  end
+
+  defp refresh_config_for(user) do
+    sprite_name = user.sprite_name || default_sprite_name(user.id)
+    poet = TravelingPoet.Poets.get_poet_by_user(user.id)
+    phoenix_url = Application.get_env(:traveling_poet, :phoenix_url, "http://localhost:4000")
+    refresh_config(sprite_name, user, phoenix_url, poet)
+  end
+
+  defp unwrap_error({:error, reason}), do: reason
+  defp unwrap_error(other), do: other
+
+  # Nothing was migrated at a newer release yet: the previous package goes
+  # back (npm keeps it when an install fails, so usually it is still there)
+  # and the gateway restarts on it.
+  defp restore_release(user, sprite_name, previous, reason, opts) do
+    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
+    verify = Keyword.get(opts, :verify, &verify_gateway/1)
+
+    Logger.error(
+      "Provisioner: OpenClaw upgrade on #{sprite_name} failed (#{inspect(reason)}), back to #{previous || "nothing"}"
+    )
+
+    restored =
+      with true <- is_binary(previous),
+           :ok <- ensure_release(sprite_name, previous, opts),
+           {:ok, _} <- workspace.(user),
+           :ok <- verify.(user) do
+        record_openclaw_version(user, previous)
+        :ok
+      else
+        false -> {:error, :no_previous_release}
+        error -> error
+      end
+
+    Logger.error(
+      "Provisioner: #{sprite_name} back on #{previous || "nothing"}: #{inspect(restored)}"
+    )
+
+    {:error, {reason, rolled_back: restored}}
+  end
+
+  defp ensure_release(sprite_name, version, opts) do
+    if installed_openclaw_version(sprite_name) == version,
+      do: :ok,
+      else: install_openclaw_release(sprite_name, version, opts)
+  end
+
+  @bridge_release "2026.9.5"
+  # Releases before this one keep state the current line no longer imports
+  # directly (see "Upgrading very old versions" in OpenClaw's updating guide).
+  # Off by default: the direct move from 2026.4.9 to 2026.10.4 imports the
+  # pairing and sessions a poet's sprite holds (probe sprites, 2026-10-16),
+  # and the bridge's second install failed once for reasons npm's rotated
+  # log no longer held. `bridge: :auto` applies the guide's rule.
+  @bridge_needed_before "2026.7.1"
 
   defp bridge_release(_installed, _target, false), do: nil
   defp bridge_release(_installed, _target, version) when is_binary(version), do: version
@@ -427,14 +540,6 @@ defmodule TravelingPoet.Provisioner do
          older_release?(@bridge_release, target),
        do: @bridge_release,
        else: nil
-  end
-
-  defp install_bridge(_sprite_name, nil, _opts), do: :ok
-
-  defp install_bridge(sprite_name, bridge, opts) do
-    with :ok <- install_openclaw_release(sprite_name, bridge, opts) do
-      doctor_fix(sprite_name)
-    end
   end
 
   @doc "True when release `a` (\"2026.4.9\") is older than release `b`."
@@ -456,10 +561,10 @@ defmodule TravelingPoet.Provisioner do
     |> List.to_tuple()
   end
 
-  # Doctor's job here is the stored state (sessions, plugin state, retired
-  # config keys); its verdict on openclaw.json and the plugin does not matter
-  # because both are rewritten right after. It never fails the upgrade, but
-  # what it said is kept in the log for the operator.
+  # Doctor's job here is the stored state (sessions, pairing, plugin state,
+  # retired config keys); its verdict on openclaw.json and the plugin does
+  # not matter because both are rewritten right after. It never fails the
+  # upgrade, but what it said is kept in the log for the operator.
   defp doctor_fix(sprite_name) do
     cmd =
       "timeout 300 $(npm prefix -g)/bin/openclaw doctor --fix --non-interactive 2>&1 | tail -c 2500"
@@ -473,34 +578,6 @@ defmodule TravelingPoet.Provisioner do
         Logger.warning("Provisioner: doctor --fix on #{sprite_name} failed: #{inspect(reason)}")
         :ok
     end
-  end
-
-  defp roll_back_openclaw(_user, sprite_name, nil, reason, _opts) do
-    Logger.error(
-      "Provisioner: OpenClaw upgrade on #{sprite_name} failed with no previous release to restore: #{inspect(reason)}"
-    )
-
-    {:error, reason}
-  end
-
-  defp roll_back_openclaw(user, sprite_name, previous, reason, opts) do
-    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
-    verify = Keyword.get(opts, :verify, &verify_gateway/1)
-
-    Logger.error(
-      "Provisioner: OpenClaw upgrade on #{sprite_name} failed (#{inspect(reason)}), reinstalling #{previous}"
-    )
-
-    restored =
-      with :ok <- install_openclaw_release(sprite_name, previous, opts),
-           {:ok, _} <- workspace.(user),
-           :ok <- verify.(user) do
-        record_openclaw_version(user, previous)
-        :ok
-      end
-
-    Logger.error("Provisioner: #{sprite_name} back on #{previous}: #{inspect(restored)}")
-    {:error, {reason, rolled_back: restored}}
   end
 
   defp record_openclaw_version(user, version) do
@@ -898,14 +975,56 @@ defmodule TravelingPoet.Provisioner do
     }
   end
 
+  # Our settings go over whatever the file holds, never in place of it:
+  # since 2026.4.22 a gateway treats a config that lost its `meta` block or
+  # shrank sharply as clobbered and restores its last-known-good copy, and
+  # doctor keeps its own keys there (meta, skills entries, migration marks).
+  # Writing only our keys would have the gateway quietly undo a model or
+  # token change. An unreadable file is replaced outright.
   defp write_config(name, gateway_token, phoenix_url, model) do
-    config_json = Jason.encode!(openclaw_config(gateway_token, phoenix_url, model), pretty: true)
+    ours = openclaw_config(gateway_token, phoenix_url, model)
+
+    current =
+      case client().exec(name, "cat ~/.openclaw/openclaw.json 2>/dev/null") do
+        {:ok, out} ->
+          case Jason.decode(extract_text(out)) do
+            {:ok, map} when is_map(map) -> map
+            _ -> %{}
+          end
+
+        _ ->
+          %{}
+      end
+
+    config_json = Jason.encode!(deep_merge(current, ours), pretty: true)
 
     cmd =
       "mkdir -p ~/.openclaw && cat > ~/.openclaw/openclaw.json << 'CONFIGEOF'\n#{config_json}\nCONFIGEOF"
 
     Logger.info("Writing config to #{name}")
     SpritesClient.exec(name, cmd)
+  end
+
+  @doc false
+  # Right wins; maps merge, everything else (lists included) is replaced.
+  # Keys are compared as strings since the file comes back decoded.
+  def deep_merge(left, right) when is_map(left) and is_map(right) do
+    right
+    |> Enum.reduce(stringify_keys(left), fn {k, v}, acc ->
+      k = to_string(k)
+
+      case {Map.get(acc, k), v} do
+        {l, r} when is_map(l) and is_map(r) and not is_struct(l) and not is_struct(r) ->
+          Map.put(acc, k, deep_merge(l, r))
+
+        _ ->
+          Map.put(acc, k, v)
+      end
+    end)
+  end
+
+  defp stringify_keys(map) when is_map(map) and not is_struct(map) do
+    Map.new(map, fn {k, v} -> {to_string(k), v} end)
   end
 
   # SECURITY: the sprite is user-driven territory — a user can talk their
@@ -1672,7 +1791,7 @@ defmodule TravelingPoet.Provisioner do
          {:ok, output} <-
            SpritesClient.exec(
              sprite_name,
-             "#{openclaw_path(sprite_name)} plugins install --force #{plugin_dir} 2>&1"
+             "#{openclaw_path(sprite_name)} plugins install --force --accept-capabilities #{plugin_dir} 2>&1"
            ),
          :ok <- plugin_installed(output) do
       {:ok, :written}
@@ -1681,13 +1800,15 @@ defmodule TravelingPoet.Provisioner do
 
   # `plugins install` from a local path answers "Install cancelled; rerun with
   # --force after reviewing the source" since OpenClaw 2026.10 (ClawHub trust
-  # metadata), and exec reports a non-zero exit only in its framing. Without
-  # this check a poet came up with no tools and the app none the wiser.
+  # metadata), a plugin declaring tools "requires capability consent"
+  # (--accept-capabilities), and exec reports a non-zero exit only in its
+  # framing. Without this check a poet came up with no tools and the app none
+  # the wiser.
   defp plugin_installed(output) do
     text = extract_text(output)
 
     cond do
-      text =~ ~r/Install cancelled|not installed|error/i and exit_code(output) != 0 ->
+      text =~ ~r/Install cancelled|was not updated|not installed|requires capability consent/i ->
         {:error, {:plugin_install_failed, String.slice(text, -800..-1//1)}}
 
       exit_code(output) not in [0, nil] ->
