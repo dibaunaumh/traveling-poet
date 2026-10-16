@@ -351,7 +351,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
             <%= for msg <- @messages do %>
               <div class={["chat-line", msg.role == "user" && "chat-line-reader"]}>
                 <%= if msg.role == "user" do %>
-                  <span class="sr-only">You:</span>
+                  <span class="chat-pad-who chat-pad-who-reader">{reader_name(assigns)}</span>
                   <div class="chat-reader whitespace-pre-wrap">{display_content(msg)}</div>
                 <% else %>
                   <span class="chat-pad-who">{poet_name(assigns)}</span>
@@ -495,6 +495,18 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp poet_name(%{poet_name: name}) when is_binary(name) and name != "", do: name
   defp poet_name(%{user: %{agent_name: name}}) when is_binary(name) and name != "", do: name
   defp poet_name(_assigns), do: "Your poet"
+
+  # The reader's own lines carry their first name, in the same hand as the
+  # poet's, so a lone highlighted line still says whose it is (Udi, 2026-10-16:
+  # the tint alone did not).
+  defp reader_name(%{user: %{name: name}}) when is_binary(name) do
+    case name |> String.trim() |> String.split(~r/\s+/, parts: 2) do
+      [first | _] when first != "" -> first
+      _ -> "You"
+    end
+  end
+
+  defp reader_name(_assigns), do: "You"
 
   # Plain words in the paper's ink, never a coloured badge.
   defp status_label(:running), do: "awake"

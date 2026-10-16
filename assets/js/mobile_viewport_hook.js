@@ -58,8 +58,14 @@ const MobileViewport = {
         }
       }
 
+      // With the keyboard up the paper runs on under the keys and only the
+      // content stops above them. Ending the sheet at the keyboard let the
+      // page behind show through iOS's accessory bar, so the composer looked
+      // like it floated in the middle of the chat (Udi, 2026-10-16).
+      const under = keyboard ? Math.max(0, window.innerHeight - bottom) : 0
       this.el.style.top = fixed ? `${top}px` : ""
-      this.el.style.height = fixed ? `${bottom - top}px` : ""
+      this.el.style.height = fixed ? `${bottom - top + under}px` : ""
+      this.el.style.paddingBottom = under ? `${under}px` : ""
       this.el.style.left = left != null ? `${left}px` : ""
       this.el.classList.toggle("chat-under-header", underHeader)
       this.el.classList.toggle("chat-by-bar", byBar)
