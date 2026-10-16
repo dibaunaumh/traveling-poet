@@ -85,7 +85,7 @@ defmodule TravelingPoet.Usage do
   defp cap("daily_run"), do: Application.get_env(:traveling_poet, :daily_runs_cap, 1)
   defp cap("chat_turn"), do: Application.get_env(:traveling_poet, :daily_chat_turns_cap, 50)
   defp cap("image_gen"), do: Application.get_env(:traveling_poet, :daily_image_cap, 6)
-  defp cap("narration"), do: Application.get_env(:traveling_poet, :daily_narration_cap, 3)
+  defp cap("narration"), do: Application.get_env(:traveling_poet, :daily_narration_cap, 10)
 
   defp cap("marker_revision_attempt"),
     do: Application.get_env(:traveling_poet, :daily_marker_revisions_cap, 4)

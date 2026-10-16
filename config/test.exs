@@ -59,7 +59,8 @@ config :traveling_poet, hotels_req_options: [plug: {Req.Test, TravelingPoet.Hote
 config :traveling_poet,
   narration_req_options: [plug: {Req.Test, TravelingPoet.Narration}],
   narration_storage: TravelingPoet.FakeNarrationStorage,
-  narration_auto: false
+  narration_auto: false,
+  narration_inline: true
 
 # Onboarding and mode switches provision the sprite in a background task.
 # Never do that from the test suite: with SPRITES_TOKEN/OPENROUTER_API_KEY in

@@ -64,10 +64,26 @@ defmodule TravelingPoet.Narration do
   end
 
   @doc """
+  Whether a page without a recording can be read on request: the owner's
+  journal shows the player anyway and a tap narrates the page then plays it
+  (Udi, 2026-10-15: testing on-demand as the way to drop the opt-in).
+  """
+  def on_demand?(poet), do: enabled_for?(poet)
+
+  @doc "A page's reading time before it is read, from the script."
+  def estimated_seconds(%Entry{} = entry) do
+    case Script.for_entry(preload(entry)) do
+      nil -> nil
+      text -> Script.estimated_seconds(text)
+    end
+  end
+
+  @doc """
   Narrates one entry. Returns `{:ok, media}`, `{:skip, reason}` (already
   narrated, nothing to read, feature off, reader opted out, over the daily
   cap) or `{:error, reason}`. Options: `:force` regenerates even when the
-  prose has not changed.
+  prose has not changed; `:on_demand` reads for a reader who asked, so the
+  poet's opt-in switch does not apply (the daily cap still does).
   """
   def generate(%Entry{} = entry, opts \\ []) do
     entry = preload(entry)
@@ -78,7 +94,8 @@ defmodule TravelingPoet.Narration do
 
     cond do
       is_nil(poet) or is_nil(user) -> {:skip, :no_poet}
-      not enabled_for?(poet) -> {:skip, :off}
+      not configured?() -> {:skip, :off}
+      not enabled_for?(poet) and !opts[:on_demand] -> {:skip, :off}
       is_nil(text) -> {:skip, :nothing_to_read}
       current && current.content_hash == Script.hash(text) && !opts[:force] -> {:skip, :unchanged}
       not Usage.within_budget?(user, @usage_kind) -> {:skip, :cap}

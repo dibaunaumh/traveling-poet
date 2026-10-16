@@ -39,7 +39,7 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     {:ok, _view, html} = live(conn, ~p"/journal/2026-10-14")
     assert html =~ ~s(id="listen")
     assert html =~ "Listen, 5 min"
-    assert html =~ ~s(src="/media/#{narration.id}")
+    assert html =~ ~s(data-src="/media/#{narration.id}")
     assert html =~ ~s(preload="none")
     # The notebook's own control, not the browser's dark bar.
     assert html =~ ~s(phx-hook="NarrationPlayer")
@@ -47,7 +47,7 @@ defmodule TravelingPoetWeb.NarrationWebTest do
 
     {:ok, _} = Poets.update_poet(poet, %{is_public: true})
     {:ok, _view, html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
-    assert html =~ ~s(src="/media/#{narration.id}")
+    assert html =~ ~s(data-src="/media/#{narration.id}")
 
     other = poet_fixture(user_fixture(), %{is_public: true})
     published_entry_fixture(other, %{title: "Quiet", entry_date: ~D[2026-10-14]})
@@ -79,6 +79,59 @@ defmodule TravelingPoetWeb.NarrationWebTest do
       Journal.replace_sections(entry, [%{kind: "description", body: "Rails everywhere."}])
 
     {poet, entry}
+  end
+
+  @frame_header <<0xFF, 0xFB, 0x90, 0x00>>
+
+  defp mp3(seconds) do
+    size = div(128_000 * seconds, 8)
+    @frame_header <> :binary.copy(<<0>>, size - 4)
+  end
+
+  test "a page without a recording shows the player with an estimate when the reading is on, and a press reads it",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {_poet, entry} = unnarrated(user, %{settings: %{"narration" => true}})
+    Application.put_env(:traveling_poet, :openrouter_api_key, "test-key")
+    on_exit(fn -> Application.put_env(:traveling_poet, :openrouter_api_key, nil) end)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, html} = live(conn, ~p"/journal/2026-10-14")
+    assert html =~ ~s(id="listen")
+    assert html =~ "Listen, about"
+    refute html =~ "data-src="
+    refute html =~ "listen-invite"
+
+    Req.Test.stub(TravelingPoet.Narration, fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("audio/mpeg")
+      |> Plug.Conn.send_resp(200, mp3(300))
+    end)
+
+    Req.Test.allow(TravelingPoet.Narration, self(), view.pid)
+
+    render_hook(view, "narration_request", %{})
+    html = render(view)
+    narration = TravelingPoet.Narration.narration_for(entry.id)
+    assert narration
+    assert html =~ ~s(data-src="/media/#{narration.id}")
+    assert html =~ "Listen, 5 min"
+    assert html =~ ~s(data-state="idle")
+  end
+
+  test "a page without a recording shows no player when the reading is off (the offer instead)",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {_poet, _entry} = unnarrated(user)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, html} = live(conn, ~p"/journal/2026-10-14")
+    refute html =~ ~s(id="listen")
+    assert html =~ "listen-invite"
+
+    # The event is ignored when the page cannot be read on request.
+    render_hook(view, "narration_request", %{})
+    refute render(view) =~ ~s(id="listen")
   end
 
   test "an owner who has not turned the reading on is offered it on the page, once; public readers are not",
