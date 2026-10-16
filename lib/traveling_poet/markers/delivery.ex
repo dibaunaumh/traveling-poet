@@ -186,18 +186,21 @@ defmodule TravelingPoet.Markers.Delivery do
   @doc """
   Whether a long turn (a daily run, a first entry, a revision, a book
   composition) or a live chat turn is recent enough that another turn would
-  interleave with it. There is no lock on a sprite.
+  interleave with it. There is no lock on a sprite. `chat: false` leaves
+  chat turns out: a reader-started turn (the guide's "More places") follows
+  a chat turn the way a chat message does, one after the other.
   """
-  def busy?(user_id, now \\ DateTime.utc_now()) do
+  def busy?(user_id, now \\ DateTime.utc_now(), opts \\ []) do
     long_cutoff = DateTime.add(now, -@busy_window_minutes, :minute)
     chat_cutoff = DateTime.add(now, -@chat_window_minutes, :minute)
+    chat? = Keyword.get(opts, :chat, true)
 
     UsageEvent
     |> where(user_id: ^user_id)
     |> where(
       [e],
       (e.kind in ^@busy_kinds and e.occurred_at >= ^long_cutoff) or
-        (e.kind == "chat_turn" and e.occurred_at >= ^chat_cutoff)
+        (^chat? and e.kind == "chat_turn" and e.occurred_at >= ^chat_cutoff)
     )
     |> Repo.exists?()
   end

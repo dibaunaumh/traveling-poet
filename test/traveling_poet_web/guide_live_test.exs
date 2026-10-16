@@ -498,4 +498,101 @@ defmodule TravelingPoetWeb.GuideLiveTest do
     assert {:error, {:live_redirect, %{to: "/onboarding"}}} =
              live(signed_in(conn, user), ~p"/guide")
   end
+
+  # card-121: "would love to be able to say or click, show me more - I only
+  # got 2 recommendations". The press runs one poet turn off the page.
+  describe "more places" do
+    # Reports the call, then waits for the test to let the poet "answer", so
+    # the page's pending state can be seen with the turn still out.
+    defmodule FakeSession do
+      def run(user, note, opts) do
+        send(:more_places_test, {:session_run, self(), user.id, note, opts})
+
+        receive do
+          :answer -> {:ok, "Three more, all within a walk of the bridge.\nMore tomorrow."}
+        after
+          5000 -> {:error, :no_answer}
+        end
+      end
+    end
+
+    setup do
+      Process.register(self(), :more_places_test)
+      Application.put_env(:traveling_poet, :agent_session, FakeSession)
+      on_exit(fn -> Application.delete_env(:traveling_poet, :agent_session) end)
+      :ok
+    end
+
+    # Gated like a chat turn, so the poet needs credits to be asked.
+    defp funded_guide_poet do
+      user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil, credits: 10})
+      poet = poet_fixture(user)
+      {:ok, _} = Poets.move_to(poet, %{lat: 38.72, lng: -9.13, place_name: "Lisbon, Portugal"})
+      {user, poet}
+    end
+
+    test "the owner asks, the poet is briefed on the stop and the page, and the reply lands",
+         %{conn: conn} do
+      {user, poet} = funded_guide_poet()
+      seed_places(poet, [place("Tasca do Chico"), place("Miradouro")], entry_date: ~D[2026-10-14])
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide")
+      assert html =~ ~s(id="guide-more-places")
+      assert html =~ "More places"
+
+      html = view |> element("#guide-more-places") |> render_click()
+      assert html =~ "Asking #{poet.name}"
+      assert html =~ ~r/id="guide-more-places"[^>]*disabled/
+
+      assert_receive {:session_run, turn, user_id, note, opts}, 2000
+      assert user_id == user.id
+      assert opts[:channel] == "system"
+      assert note =~ "Lisbon, Portugal"
+      assert note =~ "page of 2026-10-14"
+      assert note =~ "more than the 2 you have logged"
+      assert note =~ "journal_put_places"
+      assert TravelingPoet.Usage.today_count(user.id, "chat_turn") == 1
+
+      # A second press while the turn is out does nothing: the button is
+      # disabled, and the event itself is ignored too.
+      render_click(view, "more_places", %{})
+      refute_receive {:session_run, _, _, _, _}, 200
+
+      # The poet answers: the page gets its first line, and the button is back.
+      send(turn, :answer)
+      Process.sleep(150)
+      html = render(view)
+      assert html =~ "#{poet.name}: Three more, all within a walk of the bridge."
+      refute html =~ "More tomorrow"
+      refute html =~ "Asking #{poet.name}"
+
+      # And it can be asked again.
+      view |> element("#guide-more-places") |> render_click()
+      assert_receive {:session_run, turn, _, _, _}, 2000
+      send(turn, :answer)
+    end
+
+    test "a busy poet, or a stop without a page, is said instead of asked", %{conn: conn} do
+      {user, poet} = funded_guide_poet()
+      seed_places(poet, [place("Tasca do Chico")])
+      TravelingPoet.Usage.record(user.id, "daily_run_attempt")
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide")
+      html = view |> element("#guide-more-places") |> render_click()
+      assert html =~ "#{poet.name} is in the middle of something"
+      refute_receive {:session_run, _, _, _, _}, 200
+    end
+
+    test "there is no button on the Saved view or on a public guide", %{conn: conn} do
+      {user, poet} = funded_guide_poet()
+      seed_places(poet, [place("Tasca do Chico")])
+      {:ok, _} = Poets.update_poet(poet, %{is_public: true})
+
+      {:ok, _view, html} = live(signed_in(conn, user), ~p"/guide?saved=1")
+      refute html =~ ~s(id="guide-more-places")
+
+      {:ok, _view, html} = live(build_conn(), ~p"/p/#{poet.slug}/guide")
+      refute html =~ ~s(id="guide-more-places")
+    end
+  end
 end

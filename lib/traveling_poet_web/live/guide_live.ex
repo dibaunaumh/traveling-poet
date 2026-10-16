@@ -31,6 +31,7 @@ defmodule TravelingPoetWeb.GuideLive do
       {:ok,
        socket
        |> assign(poet: poet, selected: nil, show_topics: true, page_title: "Trip guide")
+       |> assign(:more_places, :idle)
        |> assign(saved_finds: [], saved_poets: %{}, saved_sources: %{})
        |> Bookmarking.assign_bookmarks()}
     else
@@ -97,13 +98,69 @@ defmodule TravelingPoetWeb.GuideLive do
     do: {:noreply, push_patch(socket, to: guide_path(socket, excursion: excursion))}
 
   # The map pushes a selection back up so the detail card renders server-side.
+  # "More places" (card-121): the poet goes back out for a few more at this
+  # stop, in a turn of its own; the places land through the usual geocoding
+  # broadcast, the reply through {:more_places, ...} below.
+  def handle_event("more_places", _params, socket) do
+    %{current_user: user, poet: poet, stay: stay, more_places: state} = socket.assigns
+
+    if state == :pending or is_nil(stay) do
+      {:noreply, socket}
+    else
+      case TravelingPoet.Guide.MorePlaces.request(user, poet, stay) do
+        {:ok, _entry} ->
+          {:noreply, assign(socket, :more_places, :pending)}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, more_places_refusal(reason, poet))}
+      end
+    end
+  end
+
   def handle_event("select_place", %{"id" => id}, socket),
     do: {:noreply, GuideState.select_place(socket, id)}
 
   @impl true
   def handle_info({:guide_geocoded, _poet_id}, socket), do: {:noreply, reload(socket)}
   def handle_info({:journal_published, _id}, socket), do: {:noreply, reload(socket)}
+
+  def handle_info({:more_places, _entry_id, result}, socket) do
+    poet = socket.assigns.poet
+    socket = socket |> assign(:more_places, :idle) |> reload()
+
+    case result do
+      {:ok, reply} when is_binary(reply) and reply != "" ->
+        {:noreply, put_flash(socket, :info, "#{poet.name}: #{first_line(reply)}")}
+
+      {:ok, _} ->
+        {:noreply, put_flash(socket, :info, "#{poet.name} is done looking around.")}
+
+      _ ->
+        {:noreply,
+         put_flash(socket, :error, "#{poet.name} did not get back. Try again in a while.")}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp more_places_refusal(:no_page, poet),
+    do: "#{poet.name} has not written about this stop yet."
+
+  defp more_places_refusal(:credits, poet),
+    do: "#{poet.name} is out of credits. Top up in Settings."
+
+  defp more_places_refusal(:cap, poet),
+    do: "#{poet.name} is resting until tomorrow (daily limit reached)."
+
+  defp more_places_refusal(:busy, poet),
+    do: "#{poet.name} is in the middle of something. Try again in a few minutes."
+
+  defp first_line(reply) do
+    reply
+    |> String.split(~r/\r?\n/, trim: true)
+    |> List.first("")
+    |> String.slice(0, 240)
+  end
 
   defp reload(socket), do: socket |> GuideState.assign_places() |> GuideState.push_map()
 
@@ -244,6 +301,36 @@ defmodule TravelingPoetWeb.GuideLive do
           poet={@poet}
           stay={@stay}
         />
+      </div>
+
+      <%!-- "More places" (card-121): only where the poet can act, this stop's
+            own pages; a topic's finds and the Saved view have no poet to send. --%>
+      <div
+        :if={is_nil(@topic) and not @saved_view and @stay}
+        id="guide-more"
+        class="mt-8 flex flex-wrap items-center gap-3 border-t border-base-200 pt-5"
+      >
+        <button
+          id="guide-more-places"
+          type="button"
+          phx-click="more_places"
+          disabled={@more_places == :pending}
+          class="btn btn-outline btn-sm gap-1"
+        >
+          <.icon
+            name={if @more_places == :pending, do: "hero-arrow-path", else: "hero-sparkles"}
+            class={["size-4", @more_places == :pending && "motion-safe:animate-spin"]}
+          />
+          {if @more_places == :pending, do: "Asking #{@poet.name}…", else: "More places"}
+        </button>
+        <span class="text-sm opacity-60">
+          <span :if={@more_places == :pending}>
+            {@poet.name} is looking around {@stay.place_name}. New places land here in a minute or two.
+          </span>
+          <span :if={@more_places != :pending}>
+            {@poet.name} goes back out for a few more around {@stay.place_name}.
+          </span>
+        </span>
       </div>
     </Layouts.app>
     """
