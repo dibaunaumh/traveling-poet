@@ -11,15 +11,19 @@ defmodule TravelingPoet.Narration do
   config (`NARRATION_MODEL`, `NARRATION_VOICE`), nil model = feature off.
 
   `generate/1` is the whole unit of work: script, hash check, speech call,
-  upload, media row, old row gone, usage recorded. `Narration.Worker` runs
-  it on publish; the journal API runs it again after a revision of a
-  published entry; `Narration.Backfill` runs it over rpc for old pages.
+  upload, media row, old row gone, usage recorded. On demand only (dec-004,
+  2026-10-16): nothing is read at publish, a page is read the first time
+  someone presses the ring on it (`Narration.Worker.request/1`) and the
+  recording stays for the next listener. A revision of a published page
+  drops a recording whose words changed (`drop_stale/1`), so the next press
+  reads it again. The opt-in switch and the publish-time worker of dec-003
+  are gone with it.
   """
 
   require Logger
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, Journal, Repo, Usage, Poets}
+  alias TravelingPoet.{Accounts, Journal, Repo, Usage}
   alias TravelingPoet.Journal.{Entry, Media}
   alias TravelingPoet.Narration.{Mp3, Script}
 
@@ -31,45 +35,6 @@ defmodule TravelingPoet.Narration do
   def model, do: Application.get_env(:traveling_poet, :narration_model)
   def voice, do: Application.get_env(:traveling_poet, :narration_voice)
 
-  @doc """
-  Whether this poet's pages get narrated: the feature is on and the reader
-  turned "Read aloud" on in Settings. Opt-in for now (Udi, 2026-10-15): some
-  readers are not using the app, and a reading costs about 7 cents a page.
-  """
-  def enabled_for?(poet) do
-    configured?() and Map.get(poet.settings || %{}, "narration", false) == true
-  end
-
-  @invite_key "narration_invite"
-
-  @doc """
-  Whether the owner's journal should offer the reading: configured, not yet
-  turned on, and not waved away. Only readers who open their own journal
-  ever see the offer, which is the point of opt-in: the cost lands on the
-  people using the app, and nobody is paged about it.
-  """
-  def invite?(poet) do
-    configured?() and not enabled_for?(poet) and
-      Map.get(poet.settings || %{}, @invite_key) != "dismissed"
-  end
-
-  @doc "Turns the reading on for the poet's pages from now on."
-  def turn_on(poet) do
-    Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, "narration", true)})
-  end
-
-  @doc "Remembers that the owner said not now; the offer does not come back."
-  def dismiss_invite(poet) do
-    Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, @invite_key, "dismissed")})
-  end
-
-  @doc """
-  Whether a page without a recording can be read on request: the owner's
-  journal shows the player anyway and a tap narrates the page then plays it
-  (Udi, 2026-10-15: testing on-demand as the way to drop the opt-in).
-  """
-  def on_demand?(poet), do: enabled_for?(poet)
-
   @doc "A page's reading time before it is read, from the script."
   def estimated_seconds(%Entry{} = entry) do
     case Script.for_entry(preload(entry)) do
@@ -80,10 +45,11 @@ defmodule TravelingPoet.Narration do
 
   @doc """
   Narrates one entry. Returns `{:ok, media}`, `{:skip, reason}` (already
-  narrated, nothing to read, feature off, reader opted out, over the daily
-  cap) or `{:error, reason}`. Options: `:force` regenerates even when the
-  prose has not changed; `:on_demand` reads for a reader who asked, so the
-  poet's opt-in switch does not apply (the daily cap still does).
+  narrated, nothing to read, feature off, over the poet's daily cap) or
+  `{:error, reason}`. The cap (`DAILY_NARRATION_CAP`, per poet, counted on
+  the owner's usage) is the whole cost guard now that any reader of a
+  public page can ask for a reading. Option `:force` regenerates even when
+  the prose has not changed.
   """
   def generate(%Entry{} = entry, opts \\ []) do
     entry = preload(entry)
@@ -95,7 +61,6 @@ defmodule TravelingPoet.Narration do
     cond do
       is_nil(poet) or is_nil(user) -> {:skip, :no_poet}
       not configured?() -> {:skip, :off}
-      not enabled_for?(poet) and !opts[:on_demand] -> {:skip, :off}
       is_nil(text) -> {:skip, :nothing_to_read}
       current && current.content_hash == Script.hash(text) && !opts[:force] -> {:skip, :unchanged}
       not Usage.within_budget?(user, @usage_kind) -> {:skip, :cap}
@@ -164,6 +129,29 @@ defmodule TravelingPoet.Narration do
     |> order_by(asc: :id)
     |> Repo.all()
     |> Map.new(&{&1.journal_entry_id, &1})
+  end
+
+  @doc """
+  After a revision of a published page: a recording of words that are no
+  longer on the page goes, so the ring shows an estimate again and the next
+  press reads the new words. Costs nothing; a recording of the same words
+  stays. Returns `:dropped`, `:kept` or `:none`.
+  """
+  def drop_stale(entry_id) when is_integer(entry_id) do
+    case narration_for(entry_id) do
+      nil ->
+        :none
+
+      current ->
+        text = Script.for_entry(preload(Journal.get_entry!(entry_id)))
+
+        if is_nil(text) or current.content_hash != Script.hash(text) do
+          delete(current)
+          :dropped
+        else
+          :kept
+        end
+    end
   end
 
   @doc "Removes a narration: the object and the row."

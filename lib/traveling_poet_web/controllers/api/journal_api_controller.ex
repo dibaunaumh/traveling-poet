@@ -171,9 +171,9 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
         case Journal.replace_sections(entry, sections) do
           {:ok, saved} ->
-            # A published page re-put is a revision: read it again. A draft
-            # is narrated once, at publish (Narration.Worker).
-            if entry.status == "published", do: Narration.Worker.refresh_async(entry.id)
+            # A published page re-put is a revision: a recording of the old
+            # words goes, and the next press on the ring reads the new ones.
+            if entry.status == "published", do: Narration.Worker.revised(entry.id)
 
             json(
               conn,

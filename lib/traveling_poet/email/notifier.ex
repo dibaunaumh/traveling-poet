@@ -51,7 +51,7 @@ defmodule TravelingPoet.Email.Notifier do
           day: Journal.journey_day(entry),
           drawing_url: drawing_url(entry),
           page_url: url("/journal/#{Date.to_iso8601(entry.entry_date)}"),
-          listen?: TravelingPoet.Narration.enabled_for?(poet),
+          listen?: TravelingPoet.Narration.configured?(),
           listen_minutes: listen_minutes(entry),
           unsubscribe_url: url("/email/unsubscribe/#{unsubscribe_token(user)}")
         })
@@ -92,11 +92,16 @@ defmodule TravelingPoet.Email.Notifier do
     )
   end
 
+  # The page is read when someone presses play, so at send time this is an
+  # estimate from the words unless a reading already exists.
   defp listen_minutes(entry) do
-    case TravelingPoet.Narration.narration_for(entry.id) do
-      %{duration_seconds: s} when is_integer(s) -> max(div(s + 30, 60), 1)
-      _ -> nil
-    end
+    seconds =
+      case TravelingPoet.Narration.narration_for(entry.id) do
+        %{duration_seconds: s} when is_integer(s) -> s
+        _ -> TravelingPoet.Narration.estimated_seconds(entry)
+      end
+
+    if is_integer(seconds), do: max(div(seconds + 30, 60), 1)
   end
 
   defp drawing_url(entry) do

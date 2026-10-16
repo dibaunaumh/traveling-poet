@@ -4,7 +4,7 @@ defmodule TravelingPoet.NarrationTest do
   import TravelingPoet.Fixtures
 
   alias TravelingPoet.{Journal, Narration, Poets, Usage}
-  alias TravelingPoet.Narration.{Backfill, Mp3, Script}
+  alias TravelingPoet.Narration.{Mp3, Script}
 
   # MPEG-1 Layer III, 128 kbps, 44.1 kHz, stereo: 417-byte frames
   @frame_header <<0xFF, 0xFB, 0x90, 0x00>>
@@ -38,11 +38,7 @@ defmodule TravelingPoet.NarrationTest do
     user = user_fixture()
 
     poet =
-      poet_fixture(user, %{
-        name: "Wren",
-        personality: "Dry-witted flâneur",
-        settings: %{"narration" => true}
-      })
+      poet_fixture(user, %{name: "Wren", personality: "Dry-witted flâneur"})
 
     entry =
       published_entry_fixture(poet, %{title: "The smallest summit", entry_date: ~D[2026-10-14]})
@@ -148,26 +144,50 @@ defmodule TravelingPoet.NarrationTest do
       assert Repo.get(Journal.Media, first.id) == nil
     end
 
-    test "a reader who never turned it on, or over the daily cap, gets no reading", %{
+    test "no setting gates a reading; the poet's daily cap does", %{
       entry: entry,
       poet: poet,
       user: user
     } do
       stub_speech(mp3(5))
-      {:ok, poet} = Poets.update_poet(poet, %{settings: %{}})
-      assert {:skip, :off} = Narration.generate(entry)
-      {:ok, poet} = Poets.update_poet(poet, %{settings: %{"narration" => false}})
-      assert {:skip, :off} = Narration.generate(entry)
+      # The opt-in switch of dec-003 is gone: whatever the settings say, the
+      # page is read when asked.
+      {:ok, _} = Poets.update_poet(poet, %{settings: %{"narration" => false}})
+      assert {:ok, _} = Narration.generate(entry)
 
-      {:ok, _} = Poets.update_poet(poet, %{settings: %{"narration" => true}})
-      # The cap is 10 a day by default (raised for on-demand readings of
-      # old pages, 2026-10-15); pin it here so the test is about the gate.
+      # The cap is 10 a day by default; pin it here so the test is about the gate.
       Application.put_env(:traveling_poet, :daily_narration_cap, 3)
       on_exit(fn -> Application.delete_env(:traveling_poet, :daily_narration_cap) end)
       for _ <- 1..3, do: Usage.record(user.id, "narration")
-      assert {:skip, :cap} = Narration.generate(entry)
-      # On request the opt-in does not apply, the cap still does.
-      assert {:skip, :cap} = Narration.generate(entry, on_demand: true)
+      assert {:skip, :cap} = Narration.generate(entry, force: true)
+    end
+
+    test "nothing reads a page at publish; a revision drops a recording of the old words", %{
+      entry: entry,
+      poet: poet
+    } do
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "poet:#{poet.id}")
+
+      Phoenix.PubSub.broadcast(
+        TravelingPoet.PubSub,
+        "journal:published",
+        {:journal_published, poet.id, entry.id}
+      )
+
+      refute Narration.narration_for(entry.id)
+      refute_received {:speech_request, _}
+
+      stub_speech(mp3(60))
+      {:ok, media} = Narration.generate(entry)
+      assert Narration.drop_stale(entry.id) == :kept
+      assert Narration.narration_for(entry.id).id == media.id
+
+      {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: "Rewritten."}])
+      assert Narration.drop_stale(entry.id) == :dropped
+      assert_received {:narration_delete, key}
+      assert key == media.s3_key
+      refute Narration.narration_for(entry.id)
+      assert Narration.drop_stale(entry.id) == :none
     end
 
     test "a speech error is returned, nothing is stored", %{entry: entry} do
@@ -178,29 +198,6 @@ defmodule TravelingPoet.NarrationTest do
       assert {:error, "speech API returned 502"} = Narration.generate(entry)
       refute_received {:narration_upload, _, _}
       assert Narration.narration_for(entry.id) == nil
-    end
-  end
-
-  describe "Backfill.run/1" do
-    test "a dry run counts and prices the pages not yet read; commit narrates them", %{
-      entry: entry
-    } do
-      # a poet whose reader never opted in is not in the count
-      published_entry_fixture(poet_fixture(user_fixture()), %{title: "Quiet"})
-
-      report = Backfill.run()
-      assert report.committed == false
-      assert report.poets_opted_in == 1
-      assert report.to_narrate == 1
-      assert report.already_narrated == 0
-      assert report.chars > 50
-      assert report.estimated_usd > 0
-      assert Narration.narration_for(entry.id) == nil
-
-      stub_speech(mp3(30))
-      report = Backfill.run(commit: true)
-      assert [{_id, {:ok, 30}}] = report.results
-      assert Backfill.run().already_narrated == 1
     end
   end
 end

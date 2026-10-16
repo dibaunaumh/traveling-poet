@@ -98,6 +98,11 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
+  # Any reader of a public page can have it read (TravelingPoetWeb.Listening);
+  # the poet's daily cap is the guard.
+  def handle_event("narration_request", _params, socket),
+    do: TravelingPoetWeb.Listening.request(socket)
+
   def handle_event("react", %{"kind" => kind}, socket) do
     user = socket.assigns[:current_user]
     entry = socket.assigns.entry
@@ -125,13 +130,14 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   end
 
   @impl true
-  def handle_info({:narration_ready, entry_id}, socket) do
-    current = socket.assigns.entry
+  def handle_info({:narration_timeout, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
 
-    if current && current.id == entry_id,
-      do: {:noreply, assign(socket, :narration, TravelingPoet.Narration.narration_for(entry_id))},
-      else: {:noreply, socket}
-  end
+  def handle_info({:narration_failed, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
+
+  def handle_info({:narration_ready, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
 
   @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -157,7 +163,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:og, open_graph(poet, entry, journey_start))
     |> assign(:entry_media, bundle.media)
     |> assign(:extra_media, bundle.extra_media)
-    |> assign(:narration, bundle.narration)
+    |> TravelingPoetWeb.Listening.assign_narration(entry, bundle.narration)
     |> assign(:places, bundle.places)
     |> assign(:place_media, bundle.place_media)
     |> assign(:find_media, bundle.find_media)
@@ -375,6 +381,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             }
             spot_media={@spot_media}
             narration={@narration}
+            narration_on_demand={@narration_on_demand}
+            narration_pending={@narration_pending}
+            narration_estimate={@narration_estimate}
           >
             <:controls>
               <.link

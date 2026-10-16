@@ -497,53 +497,6 @@ h1, h2, h3 {
   opacity: 0.8;
 }
 
-/* The offer in the player's place: the label, then two handwritten words.
-   The ring is only a mark here; nothing happens on it. */
-.narration-play-mark,
-.narration-play-mark:hover {
-  background: transparent;
-  color: var(--narration-ink);
-  opacity: 0.7;
-  cursor: default;
-}
-
-.narration-invite .narration-body {
-  max-width: none;
-}
-
-.narration-invite .narration-label {
-  white-space: normal;
-  line-height: 1.4rem;
-  padding-top: 0.25rem;
-}
-
-.narration-invite-actions {
-  font-family: "Caveat", cursive;
-  font-size: 1.05rem;
-  color: var(--narration-ink);
-  display: flex;
-  gap: 0.4rem;
-  align-items: baseline;
-}
-
-.narration-invite-actions button {
-  background: none;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: #4a5f8c;
-  text-decoration: underline;
-  text-decoration-style: wavy;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-  cursor: pointer;
-}
-
-.narration-invite-actions button:last-child {
-  color: var(--narration-ink);
-  opacity: 0.75;
-}
-
 .narration[data-state="playing"] .narration-track,
 .narration[data-state="paused"] .narration-track,
 .narration[data-state="playing"] .narration-time,

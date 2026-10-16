@@ -43,7 +43,6 @@ defmodule TravelingPoetWeb.JournalLive do
   @setup_refresh_ms 10_000
 
   # How long a page waits for an on-demand reading before giving up.
-  @narration_patience_ms 45_000
 
   @impl true
   def mount(_params, _session, socket) do
@@ -239,14 +238,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:place_media, bundle.place_media)
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
-    |> assign(:narration, bundle.narration)
-    |> assign(:narration_invite, TravelingPoet.Narration.invite?(poet))
-    |> assign(:narration_on_demand, TravelingPoet.Narration.on_demand?(poet))
-    |> assign(:narration_pending, false)
-    |> assign(
-      :narration_estimate,
-      if(entry && is_nil(bundle.narration), do: TravelingPoet.Narration.estimated_seconds(entry))
-    )
+    |> TravelingPoetWeb.Listening.assign_narration(entry, bundle.narration)
     |> assign_stay(poet, bundle.stay_id)
     |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
@@ -407,48 +399,10 @@ defmodule TravelingPoetWeb.JournalLive do
     {:noreply, socket |> assign(:tour_open, false) |> assign(:tour_ready, false)}
   end
 
-  # The reading offered on the page: "Turn it on" is the Settings switch in
-  # place, and this page is read right away so the reader hears something
-  # for their tap (the player arrives over {:narration_ready, id}).
-  def handle_event("narration_on", _params, socket) do
-    %{poet: poet, entry: entry} = socket.assigns
-
-    case TravelingPoet.Narration.turn_on(poet) do
-      {:ok, poet} ->
-        if entry, do: TravelingPoet.Narration.Worker.refresh_async(entry.id)
-
-        {:noreply,
-         socket
-         |> assign(:poet, poet)
-         |> assign(:narration_invite, false)
-         |> put_flash(:info, "Reading this page now. Every new page will come with its own.")}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  # A page without a recording, read because the reader pressed play: the
-  # hook pushes this, the page is read in a task, and {:narration_ready, id}
-  # (or {:narration_failed, id}) comes back on the poet's topic.
-  def handle_event("narration_request", _params, socket) do
-    %{entry: entry, narration: narration, narration_on_demand: on_demand} = socket.assigns
-
-    if entry && is_nil(narration) && on_demand && !socket.assigns.narration_pending do
-      TravelingPoet.Narration.Worker.request(entry.id)
-      Process.send_after(self(), {:narration_timeout, entry.id}, @narration_patience_ms)
-      {:noreply, assign(socket, :narration_pending, true)}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("narration_invite_dismiss", _params, socket) do
-    case TravelingPoet.Narration.dismiss_invite(socket.assigns.poet) do
-      {:ok, poet} -> {:noreply, socket |> assign(:poet, poet) |> assign(:narration_invite, false)}
-      {:error, _} -> {:noreply, assign(socket, :narration_invite, false)}
-    end
-  end
+  # A page without a recording, read because the reader pressed play
+  # (TravelingPoetWeb.Listening).
+  def handle_event("narration_request", _params, socket),
+    do: TravelingPoetWeb.Listening.request(socket)
 
   def handle_event("toggle_chat", _params, socket) do
     {:noreply, assign(socket, :sidebar_open, !socket.assigns.sidebar_open)}
@@ -814,38 +768,16 @@ defmodule TravelingPoetWeb.JournalLive do
     end
   end
 
-  # The page's narration landed (it follows the publish by a few seconds).
+  # The page's reading: it landed, it failed, or it never came back.
   @impl true
-  # The reading never came back (a hung upload, a lost task): put the ring back.
-  def handle_info({:narration_timeout, entry_id}, socket) do
-    %{entry: entry, narration: narration, narration_pending: pending} = socket.assigns
+  def handle_info({:narration_timeout, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
 
-    if pending && entry && entry.id == entry_id && is_nil(narration),
-      do: handle_info({:narration_failed, entry_id}, socket),
-      else: {:noreply, socket}
-  end
+  def handle_info({:narration_failed, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
 
-  def handle_info({:narration_failed, entry_id}, socket) do
-    if socket.assigns.entry && socket.assigns.entry.id == entry_id,
-      do:
-        {:noreply,
-         socket
-         |> assign(:narration_pending, false)
-         |> put_flash(:error, "The page could not be read just now. Try again in a moment.")},
-      else: {:noreply, socket}
-  end
-
-  def handle_info({:narration_ready, entry_id}, socket) do
-    current = socket.assigns.entry
-
-    if current && current.id == entry_id,
-      do:
-        {:noreply,
-         socket
-         |> assign(:narration, TravelingPoet.Narration.narration_for(entry_id))
-         |> assign(:narration_pending, false)},
-      else: {:noreply, socket}
-  end
+  def handle_info({:narration_ready, _} = msg, socket),
+    do: TravelingPoetWeb.Listening.handle_info(msg, socket)
 
   # The poet re-put an entry after feedback. Stay on the page being read.
   @impl true
@@ -1356,7 +1288,6 @@ defmodule TravelingPoetWeb.JournalLive do
               place_links={place_links(@places, ~p"/journal/#{Date.to_iso8601(@entry.entry_date)}")}
               spot_media={@spot_media}
               narration={@narration}
-              narration_invite={@narration_invite}
               narration_on_demand={@narration_on_demand}
               narration_pending={@narration_pending}
               narration_estimate={@narration_estimate}
