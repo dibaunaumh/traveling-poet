@@ -948,7 +948,16 @@ defmodule TravelingPoet.Provisioner do
           }
         }
       },
-      tools: %{web: %{search: %{provider: "perplexity"}}},
+      # OpenClaw 2026.10 hides tool schemas behind a "tool search" surface by
+      # default ("cataloged 71 tools behind compact prompt surface"): the
+      # model must search, describe, then call. The fleet model looped on it
+      # and never reached journal_put_places (Udi's poet, 2026-10-16); direct
+      # schemas are what every skill was written against.
+      tools: %{web: %{search: %{provider: "perplexity"}}, toolSearch: false},
+      # The same release learns "workshop skills" on its own: a background
+      # review after ten model iterations and an unused-skill cleanup, both
+      # model turns we did not ask for, the cleanup able to archive skills.
+      skills: %{workshop: %{autonomous: %{mode: "off"}}},
       models: %{
         providers: %{
           "openrouter" => %{

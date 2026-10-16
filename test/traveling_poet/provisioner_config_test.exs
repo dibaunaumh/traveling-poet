@@ -23,6 +23,15 @@ defmodule TravelingPoet.ProvisionerConfigTest do
     assert config.gateway.bind == "lan"
   end
 
+  # With tool search on (the 2026.10 default) the fleet model looped hunting
+  # for journal_put_places; the workshop review spends model turns of its own.
+  test "tools are offered as direct schemas and the skill workshop stays off" do
+    config = Provisioner.openclaw_config("gw-token", "https://poet.travel", "vendor/model-x")
+
+    assert config.tools.toolSearch == false
+    assert config.skills.workshop.autonomous.mode == "off"
+  end
+
   # Without `contracts.tools` and startup activation the 2026.10 gateway never
   # loads the plugin ("1 plugin: memory-core") and the poet has no app tools.
   test "the plugin manifest declares every registered tool and loads at startup" do
