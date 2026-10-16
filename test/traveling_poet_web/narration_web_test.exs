@@ -28,7 +28,7 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     {poet, entry, narration}
   end
 
-  test "the owner's page and a public page carry the player; a private page without narration has none",
+  test "the owner's page and a public page carry the player, with the recording when there is one",
        %{
          conn: conn
        } do
@@ -49,10 +49,13 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     {:ok, _view, html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
     assert html =~ ~s(data-src="/media/#{narration.id}")
 
+    # A page nobody has listened to yet shows the same ring with an estimate.
     other = poet_fixture(user_fixture(), %{is_public: true})
     published_entry_fixture(other, %{title: "Quiet", entry_date: ~D[2026-10-14]})
     {:ok, _view, html} = live(build_conn(), ~p"/p/#{other.slug}/2026-10-14")
-    refute html =~ ~s(id="listen")
+    assert html =~ ~s(id="listen")
+    assert html =~ "Listen, about"
+    refute html =~ "data-src="
   end
 
   test "the audio is served by sending the browser to the bucket, under the drawing's rules", %{
@@ -88,10 +91,10 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     @frame_header <> :binary.copy(<<0>>, size - 4)
   end
 
-  test "a page without a recording shows the player with an estimate when the reading is on, and a press reads it",
+  test "a page without a recording shows the player with an estimate, and a press reads it",
        %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
-    {_poet, entry} = unnarrated(user, %{settings: %{"narration" => true}})
+    {_poet, entry} = unnarrated(user)
     Application.put_env(:traveling_poet, :openrouter_api_key, "test-key")
     on_exit(fn -> Application.put_env(:traveling_poet, :openrouter_api_key, nil) end)
 
@@ -119,90 +122,72 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert html =~ ~s(data-state="idle")
   end
 
-  test "a page without a recording shows no player when the reading is off (the offer instead)",
-       %{conn: conn} do
-    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
-    {_poet, _entry} = unnarrated(user)
+  test "a public reader's press reads the page too, and the poet's daily cap is the guard",
+       %{conn: _conn} do
+    user = user_fixture()
+    {poet, entry} = unnarrated(user)
+    Application.put_env(:traveling_poet, :openrouter_api_key, "test-key")
+    on_exit(fn -> Application.put_env(:traveling_poet, :openrouter_api_key, nil) end)
 
-    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
-    {:ok, view, html} = live(conn, ~p"/journal/2026-10-14")
-    refute html =~ ~s(id="listen")
-    assert html =~ "listen-invite"
+    {:ok, view, html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
+    assert html =~ ~s(id="listen")
+    assert html =~ "Listen, about"
 
-    # The event is ignored when the page cannot be read on request.
+    Req.Test.stub(TravelingPoet.Narration, fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("audio/mpeg")
+      |> Plug.Conn.send_resp(200, mp3(120))
+    end)
+
+    Req.Test.allow(TravelingPoet.Narration, self(), view.pid)
     render_hook(view, "narration_request", %{})
-    refute render(view) =~ ~s(id="listen")
+    narration = TravelingPoet.Narration.narration_for(entry.id)
+    assert narration
+    html = render(view)
+    assert html =~ ~s(data-src="/media/#{narration.id}")
+    assert html =~ "Listen, 2 min"
+
+    # Over the cap, the press fails like any other and the ring comes back.
+    Application.put_env(:traveling_poet, :daily_narration_cap, 0)
+    on_exit(fn -> Application.delete_env(:traveling_poet, :daily_narration_cap) end)
+    quiet = poet_fixture(user_fixture(), %{is_public: true})
+    published_entry_fixture(quiet, %{title: "Quiet", entry_date: ~D[2026-10-14]})
+    {:ok, view, _html} = live(build_conn(), ~p"/p/#{quiet.slug}/2026-10-14")
+    render_hook(view, "narration_request", %{})
+    html = render(view)
+    assert html =~ "could not be read just now"
+    assert html =~ ~s(data-state="idle")
+    refute html =~ "data-src="
   end
 
-  test "an owner who has not turned the reading on is offered it on the page, once; public readers are not",
-       %{conn: conn} do
+  test "with no speech model configured there is no ring anywhere, and no offer", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     {poet, _entry} = unnarrated(user)
+    Application.put_env(:traveling_poet, :narration_model, nil)
+
+    on_exit(fn ->
+      Application.put_env(:traveling_poet, :narration_model, "test/narration-model")
+    end)
 
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
     {:ok, view, html} = live(conn, ~p"/journal/2026-10-14")
-    assert html =~ ~s(id="listen-invite")
-    assert html =~ "Hear your pages read aloud"
     refute html =~ ~s(id="listen")
-    # The ring is a mark, not a button: only "Turn it on" switches the feature on.
-    refute html =~ ~r/<button[^>]*class="narration-play/
-    assert html =~ ~r/<span[^>]*class="narration-play narration-play-mark/
-
-    {:ok, _public, public_html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
-    refute public_html =~ "listen-invite"
-
-    view |> element("#listen-invite button", "Not now") |> render_click()
-    refute render(view) =~ "listen-invite"
-    assert Poets.get_poet_by_user(user.id).settings["narration_invite"] == "dismissed"
-    refute Poets.get_poet_by_user(user.id).settings["narration"]
-
-    {:ok, _view, html} = live(conn, ~p"/journal/2026-10-14")
     refute html =~ "listen-invite"
+    render_hook(view, "narration_request", %{})
+    refute render(view) =~ ~s(id="listen")
+
+    {:ok, _view, html} = live(build_conn(), ~p"/p/#{poet.slug}/2026-10-14")
+    refute html =~ ~s(id="listen")
   end
 
-  test "Turn it on is the Settings switch in place, and the offer goes away", %{conn: conn} do
-    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
-    {_poet, _entry} = unnarrated(user)
-
-    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
-    {:ok, view, _html} = live(conn, ~p"/journal/2026-10-14")
-
-    view |> element("#listen-invite button", "Turn it on") |> render_click()
-    html = render(view)
-    refute html =~ "listen-invite"
-    assert html =~ "Reading this page now"
-    assert Poets.get_poet_by_user(user.id).settings["narration"] == true
-
-    {:ok, _view, settings} = live(conn, ~p"/settings")
-    assert settings =~ ~r/name="narration"[^>]*checked/
-  end
-
-  test "a reader who turned the reading on, or whose page is already read, gets no offer",
-       %{conn: conn} do
-    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
-    {_poet, _entry, _narration} = narrated(user, %{settings: %{"narration" => true}})
-
-    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
-    {:ok, _view, html} = live(conn, ~p"/journal/2026-10-14")
-    assert html =~ ~s(id="listen")
-    refute html =~ "listen-invite"
-  end
-
-  test "the Settings switch is off until the reader turns the reading on", %{conn: conn} do
+  test "Settings has no Read aloud switch: the reading is on for every page", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet_fixture(user, %{name: "Wren"})
 
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
-    {:ok, view, html} = live(conn, ~p"/settings")
-    assert html =~ "Read aloud"
-    refute html =~ ~r/name="narration"[^>]*checked/
-
-    render_change(view, "save_poet", %{"poet_name" => "Wren", "narration" => "on"})
-    assert Poets.get_poet_by_user(user.id).settings["narration"] == true
-    assert render(view) =~ ~r/name="narration"[^>]*checked/
-
-    render_change(view, "save_poet", %{"poet_name" => "Wren", "telegram_notify" => "on"})
-    assert Poets.get_poet_by_user(user.id).settings["narration"] == false
+    {:ok, _view, html} = live(conn, ~p"/settings")
+    refute html =~ "Read aloud"
+    refute html =~ ~s(name="narration")
   end
 
   test "the page email offers the reading when the poet reads aloud" do

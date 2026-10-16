@@ -30,7 +30,6 @@ defmodule TravelingPoet.Application do
       # keys or the Apple key are set)
       TravelingPoet.WebPush.Notifier,
       TravelingPoet.Email.Notifier,
-      TravelingPoet.Narration.Worker,
       # Missed-day watchdog (no-op unless FLEET_HEALTH_CHECK_INTERVAL_MINUTES > 0)
       TravelingPoet.FleetHealth.Alerter,
       # Reads connected Google Calendars for upcoming trips (no-op unless

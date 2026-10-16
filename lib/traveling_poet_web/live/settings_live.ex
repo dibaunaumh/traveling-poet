@@ -360,7 +360,6 @@ defmodule TravelingPoetWeb.SettingsLive do
       |> Map.put("stay_duration_days", parse_days(params["stay_duration_days"]))
       |> Map.put("telegram_notify", params["telegram_notify"] == "on")
       |> Map.put("verbosity", parse_verbosity(params["verbosity"]))
-      |> put_narration(params)
       # Kept in step with the column so the two don't drift: the column is
       # what reaches the agent every run, this copy is what gets baked into
       # the workspace on the next provision.
@@ -813,15 +812,6 @@ defmodule TravelingPoetWeb.SettingsLive do
     end
   end
 
-  # The toggle is only on the form when narration is configured; without it
-  # the reader's earlier choice stands rather than flipping off. Off until
-  # the reader turns it on (opt-in, a cost measure).
-  defp put_narration(settings, params) do
-    if TravelingPoet.Narration.configured?(),
-      do: Map.put(settings, "narration", params["narration"] == "on"),
-      else: settings
-  end
-
   defp parse_verbosity(v) when v in ["brief", "balanced", "expansive"], do: v
   defp parse_verbosity(_), do: "balanced"
 
@@ -1188,22 +1178,6 @@ defmodule TravelingPoetWeb.SettingsLive do
                     checked={Map.get(@poet.settings || %{}, "telegram_notify", true)}
                   />
                   <span>Telegram note when a new entry is published</span>
-                </label>
-
-                <label :if={TravelingPoet.Narration.configured?()} class="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="narration"
-                    class="toggle"
-                    checked={Map.get(@poet.settings || %{}, "narration", false)}
-                  />
-                  <span>
-                    <b>Read aloud</b>
-                    <span class="block text-sm opacity-60">
-                      Each new page comes with a recording of it, about five minutes, to
-                      listen to on the page
-                    </span>
-                  </span>
                 </label>
               </form>
 

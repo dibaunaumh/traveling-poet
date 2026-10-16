@@ -63,9 +63,9 @@ config :traveling_poet,
       else: System.get_env("SPOT_IMAGE_MODEL", "microsoft/mai-image-2.6-flash")
     ),
   # Narration (card-122): the entry read aloud through OpenRouter's speech
-  # endpoint on the same key. Unset model = feature off. Pinned in test so
-  # the module is exercised against the Req.Test stub; the worker is off
-  # there (narration_auto).
+  # endpoint on the same key, read on demand when someone presses the ring
+  # (dec-004). Unset model = feature off. Pinned in test so the module is
+  # exercised against the Req.Test stub.
   narration_model:
     if(config_env() == :test,
       do: "test/narration-model",

@@ -55,11 +55,10 @@ config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]
 config :traveling_poet, hotels_req_options: [plug: {Req.Test, TravelingPoet.Hotels}]
 # Narration: the speech call goes to a stub, the mp3 to a fake bucket, and
-# nothing narrates on its own (tests call Narration.generate/1).
+# the on-demand task runs inline, in the test's sandbox connection.
 config :traveling_poet,
   narration_req_options: [plug: {Req.Test, TravelingPoet.Narration}],
   narration_storage: TravelingPoet.FakeNarrationStorage,
-  narration_auto: false,
   narration_inline: true
 
 # Onboarding and mode switches provision the sprite in a background task.

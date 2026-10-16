@@ -22,9 +22,9 @@ defmodule TravelingPoet.Email.EntryEmail do
   @doc """
   `%{to, subject, html, text, headers}` for one entry. `assigns`: `user`,
   `poet`, `entry`, `day`, `drawing_url` (or nil), `page_url`,
-  `unsubscribe_url`, and `listen?` with `listen_minutes` when the page is
-  read aloud too (the narration follows the publish by seconds, so the
-  email only promises it).
+  `unsubscribe_url`, and `listen?` with `listen_minutes` when the page can
+  be read aloud (on demand, from the ring on the page; the minutes are an
+  estimate from the words).
   """
   def build(%{user: user, poet: poet, entry: entry, day: day} = a) do
     push = WebPush.entry_payload(poet, entry, day)

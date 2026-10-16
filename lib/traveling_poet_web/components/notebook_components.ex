@@ -81,13 +81,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
     default: nil,
     doc: "the entry's narration media, when it has been read aloud"
 
-  attr :narration_invite, :boolean,
-    default: false,
-    doc: "offer the owner the reading in the player's place (owner journal only)"
-
   attr :narration_on_demand, :boolean,
     default: false,
-    doc: "show the player on a page without a recording; a tap reads it then plays"
+    doc: "show the player on a page without a recording; a press reads it then plays"
 
   attr :narration_pending, :boolean,
     default: false,
@@ -129,7 +125,6 @@ defmodule TravelingPoetWeb.NotebookComponents do
           pending={@narration_pending}
           estimate={@narration_estimate}
         />
-        <.narration_invite :if={!@narration and !@narration_on_demand and @narration_invite} />
         <.spread_item
           :for={item <- @spread.left}
           item={item}
@@ -176,9 +171,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
   a bare `<audio>` it owns; the recording's URL travels on `data-src` so a
   LiveView patch never fights the hook over the element), because the
   browser's built-in bar is a dark slab that belongs to no page. Without a
-  recording the same ring reads the page on request: the hook pushes
-  `narration_request`, the page is read in a task, and `{:narration_ready,
-  id}` brings the URL, which the hook then plays. `preload="none"` so a page
+  recording the same ring reads the page on request (the only way a page
+  gets read, dec-004): the hook pushes `narration_request`, the page is
+  read in a task, and `{:narration_ready, id}` brings the URL, which the
+  hook then plays. `TravelingPoetWeb.Listening` is the LiveView half. `preload="none"` so a page
   view costs no bytes until the reader presses play; the source is
   `/media/:id`, which sends the browser on to the bucket.
   """
@@ -232,34 +228,6 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   defp narration_label(%{duration_seconds: s}, _pending, _estimate),
     do: "Listen, " <> narration_length(s)
-
-  @doc """
-  The reading offered where the player would sit, to an owner who has not
-  turned it on: the same ring and ink, so the page shows what it is offering.
-  "Turn it on" is the Settings switch in place and reads this page at once;
-  "Not now" is final. The parent LiveView handles both events. The ring is a
-  mark, not a button: readers pressed it without reading the line and had
-  the feature switched on by what looked like play (Udi, 2026-10-15).
-  """
-  def narration_invite(assigns) do
-    ~H"""
-    <div id="listen-invite" class="narration narration-invite" role="status">
-      <span class="narration-play narration-play-mark" aria-hidden="true">
-        <svg class="narration-icon-play" viewBox="0 0 16 16">
-          <path d="M4.5 2.8v10.4L13 8z" />
-        </svg>
-      </span>
-      <div class="narration-body">
-        <span class="narration-label">Hear your pages read aloud, about 5 minutes each.</span>
-        <span class="narration-invite-actions">
-          <button type="button" phx-click="narration_on">Turn it on</button>
-          <span aria-hidden="true">&middot;</span>
-          <button type="button" phx-click="narration_invite_dismiss">Not now</button>
-        </span>
-      </div>
-    </div>
-    """
-  end
 
   @doc "\"5 min\" or \"40 sec\"."
   def narration_length(seconds) when is_integer(seconds) and seconds < 60, do: "#{seconds} sec"
