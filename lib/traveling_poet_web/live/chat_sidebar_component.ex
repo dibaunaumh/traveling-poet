@@ -62,6 +62,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
         else: socket
 
     socket =
+      if Map.has_key?(assigns, :poet_name),
+        do: assign(socket, :poet_name, assigns.poet_name),
+        else: assign_new(socket, :poet_name, fn -> nil end)
+
+    socket =
       if assigns[:sidebar_open] != nil,
         do: assign(socket, :sidebar_open, assigns.sidebar_open),
         else: socket
@@ -271,6 +276,14 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     end
   end
 
+  @doc """
+  The chat as the notebook's own notepad (card-69): a sheet of the same
+  paper, the poet's name in its hand, the poet's lines in the journal's
+  writing and the reader's in the app's type on a tint of the paper, no
+  bubbles, no badges, an ink ring to send. Readers found the stock white
+  panel with blue bubbles "unrelated" to the app; the classes below are
+  styled in app.css under .chat-pad, the layout classes stay Tailwind.
+  """
   @impl true
   def render(assigns) do
     ~H"""
@@ -279,18 +292,18 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
       phx-hook="MobileViewport"
       class={
         [
-          "flex-col bg-white border-slate-200",
+          "chat-pad flex-col",
           # phone: hidden until opened, then a fullscreen overlay.
           # tablet (md): the same overlay narrowed to a drawer on the right,
           # so the notebook keeps the whole width underneath it.
           if(@mobile_chat_open,
             do:
-              "chat-overlay flex fixed inset-0 z-50 md:left-auto md:w-[min(24rem,100vw)] md:border-l md:shadow-2xl",
+              "chat-overlay flex fixed inset-0 z-50 md:left-auto md:w-[min(24rem,100vw)] md:shadow-2xl",
             else: "hidden"
           ),
           # wide desk (xl): static side panel, width from --chat-width. Only
           # there is there room for two pages AND a chat column.
-          "xl:static xl:inset-auto xl:z-auto xl:border-l xl:shadow-none",
+          "xl:static xl:inset-auto xl:z-auto xl:shadow-none",
           if(@sidebar_open,
             do: "xl:flex xl:w-[var(--chat-width,24rem)]",
             else: "xl:hidden"
@@ -299,19 +312,16 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
       }
     >
       <div :if={@sidebar_open or @mobile_chat_open} class="flex flex-col h-full">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
-          <div>
-            <h3 class="font-semibold text-slate-900 text-sm">
-              {if @user.agent_name && @user.agent_name != "", do: @user.agent_name, else: "AI Agent"}
-            </h3>
-            <span class={"text-xs px-2 py-0.5 rounded-full #{status_class(@sprite_status)}"}>
+        <div class="chat-pad-head flex items-center justify-between gap-2 px-4 pt-3 pb-2">
+          <div class="min-w-0">
+            <h3 class="chat-pad-name truncate">{poet_name(assigns)}</h3>
+            <span class="chat-pad-status" data-status={@sprite_status}>
               {status_label(@sprite_status)}
             </span>
           </div>
           <button
             phx-click="toggle_mobile_chat"
-            class="xl:hidden btn btn-ghost btn-sm"
+            class="xl:hidden chat-pad-close"
             aria-label="Close chat"
           >
             <.icon name="hero-x-mark" class="size-5" />
@@ -319,134 +329,94 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
         </div>
 
         <%= if @sprite_status in [:not_provisioned, :unknown] do %>
-          <!-- Not provisioned message -->
-          <div class="flex-1 flex items-center justify-center p-4">
-            <div class="text-center text-slate-500 text-sm">
-              <p class="mb-2">Your poet is still being set up.</p>
-              <p>The chat opens the moment it is reachable.</p>
+          <div class="flex-1 flex items-center justify-center p-6">
+            <div class="chat-pad-empty text-center">
+              <p class="chat-pad-empty-title">{poet_name(assigns)} is still being set up.</p>
+              <p>The notepad opens the moment they are reachable.</p>
             </div>
           </div>
         <% else %>
-          <!-- Messages -->
           <div
             id="chat-messages"
-            class="flex-1 overflow-y-auto p-4 space-y-3"
+            class="flex-1 overflow-y-auto px-4 py-3 space-y-4"
             phx-hook="ScrollBottom"
           >
             <%= if @messages == [] and !@streaming do %>
-              <div class="text-center text-slate-400 mt-8">
-                <p class="text-sm">Send a message to start chatting</p>
+              <div class="chat-pad-empty text-center mt-10">
+                <p class="chat-pad-empty-title">Write to {poet_name(assigns)}.</p>
+                <p>Ask for a place, a detour, a drawing. Or just say hello.</p>
               </div>
             <% end %>
 
             <%= for msg <- @messages do %>
-              <div class={"flex #{if msg.role == "user", do: "justify-end", else: "justify-start"}"}>
-                <div class={"max-w-[85%] rounded-lg px-3 py-2 text-sm #{msg_class(msg.role)}"}>
-                  <div class="text-xs text-slate-400 mb-1">
-                    {if msg.role == "user", do: "You", else: @user.agent_name || "Agent"}
+              <div class={["chat-line", msg.role == "user" && "chat-line-reader"]}>
+                <%= if msg.role == "user" do %>
+                  <span class="sr-only">You:</span>
+                  <div class="chat-reader whitespace-pre-wrap">{display_content(msg)}</div>
+                <% else %>
+                  <span class="chat-pad-who">{poet_name(assigns)}</span>
+                  <div class="chat-markdown chat-poet">{render_markdown(msg.content)}</div>
+                <% end %>
+                <%= for file <- attachment_files(msg) do %>
+                  <div class="chat-pad-chip">
+                    <.icon name="hero-paper-clip" class="size-3.5" />
+                    <span class="font-medium">{file["filename"]}</span>
+                    <span class="opacity-60">{format_size(file["size"])}</span>
                   </div>
-                  <%= if msg.role == "user" do %>
-                    <div class="whitespace-pre-wrap">{display_content(msg)}</div>
-                  <% else %>
-                    <div class="chat-markdown">{render_markdown(msg.content)}</div>
-                  <% end %>
-                  <%= for file <- attachment_files(msg) do %>
-                    <div class="mt-2 inline-flex items-center gap-2 px-2 py-1 rounded bg-white/60 border border-slate-200 text-xs text-slate-700">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656L5.05 11.293a6 6 0 108.485 8.485L20 13.314"
-                        />
-                      </svg>
-                      <span class="font-medium">{file["filename"]}</span>
-                      <span class="text-slate-400">{format_size(file["size"])}</span>
-                    </div>
-                  <% end %>
-                </div>
+                <% end %>
               </div>
             <% end %>
 
             <%= if @streaming do %>
-              <div class="flex justify-start">
-                <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-800">
-                  <div class="text-xs text-slate-400 mb-1">{@user.agent_name || "Agent"}</div>
-                  <div class="chat-markdown">
-                    {render_markdown(@current_response)}<span class="animate-pulse">|</span>
-                  </div>
+              <div class="chat-line">
+                <span class="chat-pad-who">{poet_name(assigns)}</span>
+                <div class="chat-markdown chat-poet">
+                  {render_markdown(@current_response)}<span class="chat-pad-cursor" aria-hidden="true"></span>
                 </div>
               </div>
             <% end %>
 
             <%= if @held do %>
-              <div
-                id="chat-held-note"
-                class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 text-xs"
-              >
-                Held until {@user.agent_name || "your poet"} finishes the page. It goes out on its own.
-              </div>
+              <p id="chat-held-note" class="chat-pad-note">
+                Held until {poet_name(assigns)} finishes the page. It goes out on its own.
+              </p>
             <% end %>
 
             <%= if @error do %>
-              <div class="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-600 text-xs">
-                {@error}
-              </div>
+              <p class="chat-pad-note chat-pad-note-error" role="alert">{@error}</p>
             <% end %>
           </div>
 
-          <!-- Input -->
-          <div class="border-t border-slate-200 p-3" phx-drop-target={attachment_ref(assigns)}>
+          <div class="chat-pad-composer px-4 pt-2 pb-3" phx-drop-target={attachment_ref(assigns)}>
             <p
               :if={@first_entry == :in_flight and not @held}
               id="chat-first-entry-hint"
-              class="mb-2 text-xs text-slate-500"
+              class="chat-pad-note mb-2"
             >
-              {@user.agent_name || "Your poet"} is writing the first entry. A message sent now waits
+              {poet_name(assigns)} is writing the first entry. A message sent now waits
               until the page is done.
             </p>
             <%= for entry <- attachment_entries(assigns) do %>
-              <div class="mb-2 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs">
-                <svg
-                  class="w-4 h-4 text-slate-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656L5.05 11.293a6 6 0 108.485 8.485L20 13.314"
-                  />
-                </svg>
-                <span class="flex-1 truncate text-slate-700 font-medium">{entry.client_name}</span>
-                <span class="text-slate-400">{format_size(entry.client_size)}</span>
+              <div class="chat-pad-chip chat-pad-chip-pending mb-2">
+                <.icon name="hero-paper-clip" class="size-3.5" />
+                <span class="flex-1 truncate font-medium">{entry.client_name}</span>
+                <span class="opacity-60">{format_size(entry.client_size)}</span>
                 <%= if entry.progress > 0 and entry.progress < 100 do %>
-                  <span class="text-blue-600">{entry.progress}%</span>
+                  <span>{entry.progress}%</span>
                 <% end %>
                 <button
                   type="button"
                   phx-click="cancel_attachment"
                   phx-value-ref={entry.ref}
                   aria-label="Remove attachment"
-                  class="p-0.5 text-slate-400 hover:text-slate-700"
+                  class="chat-pad-chip-remove"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <.icon name="hero-x-mark" class="size-4" />
                 </button>
               </div>
             <% end %>
             <%= for err <- attachment_errors(assigns) do %>
-              <div class="mb-2 text-xs text-red-600">
-                {upload_error_message(err)}
-              </div>
+              <p class="chat-pad-note chat-pad-note-error mb-2">{upload_error_message(err)}</p>
             <% end %>
 
             <form
@@ -465,26 +435,17 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                   :if={@chat_attachment_upload}
                   for={@chat_attachment_upload.ref}
                   title="Attach a file"
-                  class={[
-                    "shrink-0 cursor-pointer p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors",
-                    @streaming && "opacity-50 cursor-not-allowed"
-                  ]}
+                  class={["chat-pad-attach", @streaming && "opacity-50 cursor-not-allowed"]}
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656L5.05 11.293a6 6 0 108.485 8.485L20 13.314"
-                    />
-                  </svg>
+                  <.icon name="hero-paper-clip" class="size-5" />
+                  <span class="sr-only">Attach a file</span>
                 </label>
                 <textarea
                   name="message"
-                  placeholder="Type a message..."
+                  placeholder={"Write to #{poet_name(assigns)}…"}
                   disabled={composer_locked?(assigns)}
                   rows="1"
-                  class="flex-1 px-3 py-2 text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 focus:outline-none disabled:opacity-50 resize-none overflow-y-auto max-h-40 leading-5"
+                  class="chat-pad-input flex-1 resize-none overflow-y-auto max-h-40"
                   autocomplete="off"
                   phx-hook="ChatInput"
                   id="chat-input"
@@ -492,9 +453,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                 <button
                   type="submit"
                   disabled={composer_locked?(assigns) or attachment_uploading?(assigns)}
-                  class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors"
+                  class="chat-pad-send"
+                  aria-label={send_label(assigns)}
+                  title={send_label(assigns)}
                 >
-                  {send_label(assigns)}
+                  <.icon name={send_icon(assigns)} class={send_icon_class(assigns)} />
                 </button>
               </div>
             </form>
@@ -515,25 +478,31 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp composer_locked?(_), do: false
 
   defp send_label(%{held: true}), do: "Held"
-  defp send_label(%{streaming: true, external_turn: false}), do: "..."
+  defp send_label(%{streaming: true, external_turn: false}), do: "Sending"
   defp send_label(_), do: "Send"
 
-  defp status_class(:running), do: "bg-green-100 text-green-700"
-  defp status_class(:waking), do: "bg-yellow-100 text-yellow-700"
-  defp status_class(:reconnecting), do: "bg-yellow-100 text-yellow-700"
-  defp status_class(:provisioned), do: "bg-blue-100 text-blue-700"
-  defp status_class(:not_provisioned), do: "bg-slate-100 text-slate-500"
-  defp status_class(_), do: "bg-slate-100 text-slate-500"
+  defp send_icon(%{held: true}), do: "hero-clock"
+  defp send_icon(%{streaming: true, external_turn: false}), do: "hero-arrow-path"
+  defp send_icon(_), do: "hero-paper-airplane"
 
-  defp status_label(:running), do: "Running"
-  defp status_label(:waking), do: "Waking..."
-  defp status_label(:reconnecting), do: "Reconnecting..."
-  defp status_label(:provisioned), do: "Ready"
-  defp status_label(:not_provisioned), do: "Setting up"
-  defp status_label(:unknown), do: "Checking..."
+  defp send_icon_class(%{streaming: true, external_turn: false, held: false}),
+    do: "size-4 motion-safe:animate-spin"
 
-  defp msg_class("user"), do: "bg-blue-100 text-blue-900"
-  defp msg_class(_), do: "bg-slate-100 text-slate-800"
+  defp send_icon_class(_), do: "size-4"
+
+  # The poet's name as the reader gave it (the journal passes it); the
+  # sprite's `users.agent_name` mirrors it and stands in when it is missing.
+  defp poet_name(%{poet_name: name}) when is_binary(name) and name != "", do: name
+  defp poet_name(%{user: %{agent_name: name}}) when is_binary(name) and name != "", do: name
+  defp poet_name(_assigns), do: "Your poet"
+
+  # Plain words in the paper's ink, never a coloured badge.
+  defp status_label(:running), do: "awake"
+  defp status_label(:waking), do: "waking up…"
+  defp status_label(:reconnecting), do: "reconnecting…"
+  defp status_label(:provisioned), do: "ready"
+  defp status_label(:not_provisioned), do: "setting up"
+  defp status_label(:unknown), do: "checking…"
 
   defp attachment_ref(%{chat_attachment_upload: %{ref: ref}}), do: ref
   defp attachment_ref(_), do: nil

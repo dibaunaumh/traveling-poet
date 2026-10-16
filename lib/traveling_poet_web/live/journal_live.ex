@@ -1368,6 +1368,7 @@ defmodule TravelingPoetWeb.JournalLive do
           module={TravelingPoetWeb.ChatSidebarComponent}
           id="chat-sidebar"
           user={@user}
+          poet_name={@poet && @poet.name}
           sidebar_open={@sidebar_open}
           mobile_chat_open={@mobile_chat_open}
           first_entry={@first_entry}
