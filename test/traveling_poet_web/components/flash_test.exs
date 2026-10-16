@@ -16,12 +16,24 @@ defmodule TravelingPoetWeb.FlashTest do
     assert error =~ ~s(data-autohide-ms="9000")
   end
 
-  test "the reconnect notices stay until the connection is back" do
+  # Udi, card-99: the stock red "We can't find the internet" scared readers
+  # when it was the server restarting on a deploy. One quiet notice now,
+  # shown late by reconnect_notice.js, and never closing itself.
+  test "a dropped connection is one quiet notice that waits for the connection to be back" do
     html = render_component(&Layouts.flash_group/1, flash: %{})
 
-    for id <- ~w(client-error server-error) do
-      [tag] = Regex.run(~r/<div[^>]*id="#{id}"[^>]*>/, html)
-      refute tag =~ "AutoDismiss", "#{id} would close itself"
-    end
+    [tag] = Regex.run(~r/<div[^>]*id="reconnecting"[^>]*>/, html)
+    assert tag =~ ~s(hidden)
+    assert tag =~ ~s(role="status")
+    assert tag =~ "tpoet:disconnected"
+    assert tag =~ "tpoet:connected"
+    refute tag =~ "AutoDismiss"
+    refute tag =~ "alert"
+
+    assert html =~ "Reconnecting…"
+    assert html =~ "Nothing is lost"
+    refute html =~ "find the internet"
+    refute html =~ "Something went wrong"
+    refute html =~ ~s(id="client-error")
   end
 end
