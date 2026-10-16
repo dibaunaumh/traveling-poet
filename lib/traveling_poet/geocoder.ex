@@ -46,6 +46,9 @@ defmodule TravelingPoet.Geocoder do
       lat: parse_float(result["lat"]),
       lng: parse_float(result["lon"]),
       country_code: address["country_code"] |> upcase_or_nil(),
+      # what the result is (city, town, state, country, ...): a country or a
+      # state after a comma qualifies a place instead of naming a stop
+      kind: result["addresstype"],
       # the city behind a street address, for naming a trip's destination
       city: address["city"] || address["town"] || address["village"] || address["municipality"],
       country: address["country"]

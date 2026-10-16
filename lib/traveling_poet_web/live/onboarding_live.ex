@@ -11,6 +11,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
   import TravelingPoetWeb.PoetComponents
 
   alias TravelingPoet.{Accounts, Geocoder, Poets, Provisioner}
+  alias TravelingPoet.Geocoder.Destinations
   alias TravelingPoet.Poets.Presets
   alias TravelingPoet.Topics
   alias TravelingPoet.Topics.Topic
@@ -57,6 +58,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:location_query, "")
         |> assign(:location_results, [])
         |> assign(:location_error, nil)
+        |> assign(:location_busy, nil)
+        |> assign(:route_notice, nil)
         |> assign(:show_location_search, false)
         |> assign(:passions, [])
         |> assign(:passion_words, %{})
@@ -71,10 +74,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
-  # `?place=Lisbon` comes from the home page's destination box. Geocode it once
-  # on the connected mount (the dead render keeps the pre-picked city for a
-  # moment); if nothing matches, keep the default and open the search box
-  # with the visitor's words in it, so nothing they typed is lost.
+  # `?place=Lisbon` comes from the home page's destination box. Look it up
+  # once on the connected mount (the dead render keeps the pre-picked city
+  # for a moment), off the LiveView because a route is one geocoder call per
+  # city; if nothing matches, keep the default and open the search box with
+  # the visitor's words in it, so nothing they typed is lost.
   @impl true
   def handle_params(%{"place" => place}, _uri, socket) when is_binary(place) do
     place = String.trim(place)
@@ -82,39 +86,104 @@ defmodule TravelingPoetWeb.OnboardingLive do
     if place == "" or not connected?(socket) do
       {:noreply, socket}
     else
-      {:noreply, adopt_requested_place(socket, place)}
+      {:noreply, look_up(socket, place, :home)}
     end
   end
 
   def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
-  defp adopt_requested_place(socket, place) do
-    case Geocoder.Limiter.search(place) do
-      {:ok, [top | _]} ->
-        socket
-        |> assign(:location, top)
-        |> assign(:location_query, place)
-        |> assign(:show_location_search, false)
-
-      {:ok, []} ->
-        socket
-        |> assign(:location_query, place)
-        |> assign(:show_location_search, true)
-        |> assign(
-          :location_error,
-          "Couldn’t find “#{place}” — try another spelling or pick a nearby city."
-        )
-
-      {:error, _reason} ->
-        socket
-        |> assign(:location_query, place)
-        |> assign(:show_location_search, true)
-        |> assign(
-          :location_error,
-          "Couldn’t look up “#{place}” right now — search again or pick a city."
-        )
-    end
+  # One lookup at a time: `Destinations.resolve/1` reads "Paris, Texas" as a
+  # place and "Lisbon, Porto" as a route (card-97: the home page's own
+  # placeholder is a list, and a list sent whole to the geocoder found
+  # nothing). `from` is :home for the ?place= box, :search for the wizard's.
+  defp look_up(socket, query, from) do
+    socket
+    |> assign(:location_query, query)
+    |> assign(:location_busy, query)
+    |> assign(:location_error, nil)
+    |> assign(:location_results, [])
+    |> start_async(:destination, fn -> {from, query, Destinations.resolve(query)} end)
   end
+
+  @impl true
+  def handle_async(:destination, {:ok, {from, query, result}}, socket) do
+    {:noreply, socket |> assign(:location_busy, nil) |> adopt_destination(from, query, result)}
+  end
+
+  def handle_async(:destination, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:location_busy, nil)
+     |> assign(:show_location_search, true)
+     |> assign(:location_error, lookup_failed(socket.assigns.location_query))}
+  end
+
+  defp adopt_destination(socket, :home, _query, {:place, [top | _]}) do
+    socket
+    |> assign(:location, top)
+    |> assign(:show_location_search, false)
+  end
+
+  # Wander mode auto-selects the top hit: beta testing showed people type a
+  # place, press Search, and expect Continue to work without also clicking a
+  # result (they can still click a different one to switch). Scout mode
+  # adds stops explicitly, so it only lists.
+  defp adopt_destination(socket, :search, _query, {:place, results}) do
+    socket
+    |> assign(:location_results, results)
+    |> maybe_autoselect(results)
+  end
+
+  # Several places are a route, and a route is the scout's mission: the
+  # stops land in the itinerary in the order typed, and a wanderer becomes a
+  # scout (said on the page, undone with one tap on Wanderer). In the
+  # scout's own box the stops are appended, like adding them one by one.
+  defp adopt_destination(socket, from, _query, {:route, stops, missing}) do
+    was = socket.assigns.mode
+    existing = if(was == "scout" and from == :search, do: socket.assigns.stops, else: [])
+
+    socket
+    |> assign(:mode, "scout")
+    |> assign(:stops, existing ++ stops)
+    |> assign(:location_query, "")
+    |> assign(:route_notice, if(was != "scout", do: route_notice(stops)))
+    |> assign(:location_error, if(missing != [], do: missing_stops(missing)))
+  end
+
+  defp adopt_destination(socket, :home, query, {:none, _}) do
+    socket
+    |> assign(:show_location_search, true)
+    |> assign(
+      :location_error,
+      "Couldn’t find “#{query}” — try another spelling or pick a nearby city."
+    )
+  end
+
+  defp adopt_destination(socket, :search, _query, {:none, _}),
+    do: assign(socket, :location_error, "No places found — try a broader name.")
+
+  defp adopt_destination(socket, :home, query, {:error, _reason}) do
+    socket
+    |> assign(:show_location_search, true)
+    |> assign(:location_error, lookup_failed(query))
+  end
+
+  defp adopt_destination(socket, :search, _query, {:error, reason}),
+    do: assign(socket, :location_error, "Search failed: #{reason}")
+
+  defp lookup_failed(query),
+    do: "Couldn’t look up “#{query}” right now — search again or pick a city."
+
+  defp route_notice(stops) do
+    names = stops |> Enum.map(&short_name/1) |> Enum.join(", ")
+    "Several places make a route, so your poet will scout them in this order: #{names}."
+  end
+
+  defp missing_stops(missing),
+    do: "Couldn’t find #{Enum.map_join(missing, ", ", &"“#{&1}”")} — search below to add it."
+
+  defp short_name(%{city: city}) when is_binary(city) and city != "", do: city
+  defp short_name(%{place_name: name}), do: name |> String.split(",") |> hd() |> String.trim()
 
   ## Step navigation
 
@@ -194,7 +263,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
      socket
      |> assign(:mode, mode)
      |> assign(:location_results, [])
-     |> assign(:location_error, nil)}
+     |> assign(:location_error, nil)
+     |> assign(:route_notice, nil)}
   end
 
   @impl true
@@ -210,25 +280,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
   def handle_event("search_location", %{"query" => query}, socket) do
     query = String.trim(query)
 
-    if query == "" do
-      {:noreply, socket}
-    else
-      case TravelingPoet.Geocoder.Limiter.search(query) do
-        {:ok, results} ->
-          {:noreply,
-           socket
-           |> assign(:location_query, query)
-           |> assign(:location_results, results)
-           |> assign(
-             :location_error,
-             if(results == [], do: "No places found — try a broader name.")
-           )
-           |> maybe_autoselect(results)}
-
-        {:error, reason} ->
-          {:noreply, assign(socket, :location_error, "Search failed: #{reason}")}
-      end
-    end
+    if query == "" or socket.assigns.location_busy,
+      do: {:noreply, socket},
+      else: {:noreply, look_up(socket, query, :search)}
   end
 
   @impl true
@@ -450,10 +504,6 @@ defmodule TravelingPoetWeb.OnboardingLive do
     end
   end
 
-  # Wander mode auto-selects the top hit: beta testing showed people type a
-  # place, press Search, and expect Continue to work without also clicking a
-  # result (they can still click a different one to switch). Scout mode
-  # adds stops explicitly, so it only lists.
   defp maybe_autoselect(%{assigns: %{mode: "wander"}} = socket, [top | _]),
     do: assign(socket, :location, top)
 
@@ -820,10 +870,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   name="query"
                   value={@location_query}
                   class="input input-bordered input-sm flex-1"
-                  placeholder="Search a city or town…"
+                  placeholder="A city or town, or a route: Lisbon, Porto…"
                 />
-                <button type="submit" class="btn btn-sm">Search</button>
+                <button type="submit" class="btn btn-sm" disabled={@location_busy != nil}>
+                  Search
+                </button>
               </form>
+              <p :if={@location_busy} class="text-sm opacity-60 mb-2">
+                Looking up “{@location_busy}”…
+              </p>
               <p :if={@location_error} class="text-error text-sm mb-2">{@location_error}</p>
               <div :if={@location_results != []} class="space-y-1">
                 <button
@@ -840,9 +895,12 @@ defmodule TravelingPoetWeb.OnboardingLive do
           </div>
 
           <div :if={@mode == "scout"} class="mb-5">
+            <p :if={@route_notice} id="route-notice" class="text-sm mb-2">
+              {@route_notice}
+            </p>
             <p class="text-sm opacity-70 mb-2">
-              Add the places in the order you'll visit them. Your poet starts scouting at
-              the first one.
+              Add the places in the order you'll visit them, one at a time or as a list.
+              Your poet starts scouting at the first one.
             </p>
             <form phx-submit="search_location" class="flex gap-2 mb-2">
               <input
@@ -850,10 +908,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 name="query"
                 value={@location_query}
                 class="input input-bordered input-sm flex-1"
-                placeholder="Search a city or town…"
+                placeholder="A city or town, or a route: Lisbon, Porto…"
               />
-              <button type="submit" class="btn btn-sm">Search</button>
+              <button type="submit" class="btn btn-sm" disabled={@location_busy != nil}>
+                Search
+              </button>
             </form>
+            <p :if={@location_busy} class="text-sm opacity-60 mb-2">
+              Looking up “{@location_busy}”…
+            </p>
             <p :if={@location_error} class="text-error text-sm mb-2">{@location_error}</p>
             <div :if={@location_results != []} class="space-y-1 mb-3">
               <button
