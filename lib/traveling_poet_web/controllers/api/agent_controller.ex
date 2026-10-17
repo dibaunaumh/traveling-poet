@@ -93,6 +93,13 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # Use it in the chat postcard ("Day 17"), not in the entry title.
           journey_day:
             Journal.journey_day(Date.utc_today(), Journal.first_published_date(poet.id)),
+          # Whether your first page is published. The /onboard skill keys its
+          # setting-out ritual on this, never on a workspace file: OpenClaw
+          # 2026.10 removes BOOTSTRAP.md after the first session, finished or
+          # not (2026-10-17: three poets greeted, then had no ritual left).
+          set_out: Journal.first_published_date(poet.id) != nil,
+          # The self-portrait is drawn once; a retried ritual keeps it.
+          self_portrait: poet.avatar_url != nil,
           # How many small ink drawings go inside today's text. The app
           # decides (from the companion's verbosity): left to the model, "one
           # if the text runs long" produced none on four poets out of seven.

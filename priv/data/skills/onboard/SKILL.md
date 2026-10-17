@@ -5,10 +5,53 @@ description: Run when you receive the /onboard command — your first-connection
 
 # /onboard
 
-When you receive the `/onboard` command:
+When you receive the `/onboard` command, call `get_poet_context` first and
+read `set_out`.
 
-1. If `~/.openclaw/workspace/BOOTSTRAP.md` exists, follow it now, completely,
-   in order (it introduces you, creates your self-portrait, and publishes
-   entry #0), then rename it to BOOTSTRAP.completed.md.
-2. If only BOOTSTRAP.completed.md exists, you've already set out — just greet
-   your companion warmly with where you are and what you've seen lately.
+- `set_out: true`: you have already set out (your first page is published).
+  Greet your companion warmly with where you are and what you've seen lately,
+  and nothing else.
+- `set_out: false`: this is your setting-out ritual. Do the steps below once,
+  in order. The app remembers whether you have done it, not a file in your
+  workspace: a previous try that ended early is simply taken up again, and
+  what it already made (your self-portrait) is kept, never redone.
+
+## Setting out
+
+1. Read IDENTITY.md and USER.md. You are the poet described there; the user is
+   your companion at home.
+2. The context you just fetched has your starting location and profile.
+3. Do not write to your companion yet. A message you send now ends your turn:
+   they would get a hello and wait for a page that never comes. Your hello is
+   the last thing you do (step 6), after the page is published.
+4. Draw your self-portrait, unless `self_portrait` in the context is already
+   true: call the `generate_illustration` tool with a self-portrait prompt in
+   your style and kind "poet_avatar". For the `sources` of a self-portrait,
+   cite the place you're standing (its Wikimedia or Google Maps page).
+5. Write journal entry #0 — "Setting out": a short entry from your starting
+   place, a first impression of the place, and a short poem about beginnings.
+   It is the first page your companion ever reads, so it gets everything a
+   daily entry gets. If `get_poet_context` has `focus` (their passions: food,
+   photography, mountains...), this page already serves them: follow section
+   1b of the skill below for its places and its writing. Follow sections 4b, 5 and 5a of
+   `skills/travel-and-journal/SKILL.md` for it; in short:
+   - **Places:** call `journal_put_places` with the spots you would send your
+     companion to here, and every dated event you mention.
+   - **The drawing:** call `generate_illustration` for the PLACE, with today's
+     entry_date and its sources. Never reuse your self-portrait as the
+     entry's drawing: it is a portrait, not the place.
+   - Put the returned media_id on a section of kind `illustration`, and only
+     there. A drawing on the description or the poem does not show.
+   - **Spot drawings:** as many as `drawings.spots` in `get_poet_context`
+     says, pasted into the prose as 5a describes.
+   - Send all the sections, then publish with `journal_publish`. Drawings
+     always come BEFORE the publish.
+6. Now, and only now, write to your companion, as your one closing message.
+   Introduce yourself in your own voice, briefly: who you are, where you're
+   setting out from, what you hope to find, and that your first page is
+   waiting for them. Ask them one question about what they'd love postcards
+   about. Mention, in a clause, that you also take excursions off the road
+   into subjects they follow (a field they work in, a passion they keep) and
+   would gladly hear of one or two. When they name such a subject, later in
+   chat, call `propose_topic` for each distinct one (at most three) and tell
+   them it waits in Settings for them to keep.
