@@ -1057,7 +1057,11 @@ defmodule TravelingPoet.Provisioner do
           %{}
       end
 
-    config_json = Jason.encode!(deep_merge(current, ours), pretty: true)
+    config_json =
+      current
+      |> deep_merge(ours)
+      |> scrub_legacy_config()
+      |> Jason.encode!(pretty: true)
 
     cmd =
       "mkdir -p ~/.openclaw && cat > ~/.openclaw/openclaw.json << 'CONFIGEOF'\n#{config_json}\nCONFIGEOF"
@@ -1065,6 +1069,18 @@ defmodule TravelingPoet.Provisioner do
     Logger.info("Writing config to #{name}")
     SpritesClient.exec(name, cmd)
   end
+
+  @doc false
+  # Keys an older release wrote that the pinned one refuses: a merged file
+  # keeps them, and OpenClaw 2026.10 then answers "Invalid config ... meta:
+  # Unrecognized key: lastTouchedAt" to every CLI command, so the plugin
+  # install fails (user 7, 2026-10-16). Doctor rewrites `meta` when it gets
+  # that far; this makes sure the file is readable before it runs.
+  def scrub_legacy_config(%{"meta" => meta} = config) when is_map(meta) do
+    Map.put(config, "meta", Map.delete(meta, "lastTouchedAt"))
+  end
+
+  def scrub_legacy_config(config), do: config
 
   @doc false
   # Right wins; maps merge, everything else (lists included) is replaced.
