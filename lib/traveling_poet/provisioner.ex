@@ -78,8 +78,8 @@ defmodule TravelingPoet.Provisioner do
   # The provisioning chain, in order. The journal's setup card groups these
   # into the four things a reader can picture; keep the order in sync with the
   # `with` in do_provision_user/2.
-  @steps ~w(create_sprite make_public install_openclaw write_config write_env
-            write_workspace write_tpoet_plugin pair_device import_pairing
+  @steps ~w(create_sprite make_public install_openclaw write_config prepare_state
+            write_env write_workspace write_tpoet_plugin pair_device import_pairing
             ensure_gateway_service get_sprite_url)a
 
   @doc "The provisioning steps in the order they run."
@@ -152,6 +152,7 @@ defmodule TravelingPoet.Provisioner do
            step(user_id, :write_config, fn ->
              write_config(sprite_name, gateway_token, phoenix_url, poet_model(poet))
            end),
+         {:ok, _} <- step(user_id, :prepare_state, fn -> prepare_state(sprite_name) end),
          {:ok, _} <-
            step(user_id, :write_env, fn ->
              write_env(sprite_name, gateway_token, agent_api_token, phoenix_url)
@@ -1846,6 +1847,22 @@ defmodule TravelingPoet.Provisioner do
     """
   end
 
+  # A fresh OpenClaw 2026.10 install creates its SQLite state on the first
+  # CLI call and reports it "undergoing offline maintenance" for a moment,
+  # and until doctor has run it calls the config invalid. The first sign-ups
+  # after the fleet upgrade (2026-10-17, users 39 to 43) ran `plugins
+  # install` straight into that ("Config health-state write failed ...
+  # Config invalid; run `openclaw doctor --fix` before installing plugins")
+  # and ended in "error", while the upgrade path, which runs doctor before
+  # the plugin, never saw it. So doctor runs right after the config is
+  # written, with the sprite still awake from the install.
+  defp prepare_state(sprite_name) do
+    case doctor_fix(sprite_name) do
+      :ok -> {:ok, :prepared}
+      {:error, _} = error -> error
+    end
+  end
+
   defp write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token) do
     plugin_js = tpoet_plugin_source(phoenix_url, agent_api_token)
 
@@ -1876,15 +1893,41 @@ defmodule TravelingPoet.Provisioner do
          {:ok, _} <-
            write_file(sprite_name, "#{plugin_dir}/openclaw.plugin.json", plugin_manifest),
          {:ok, _} <- write_file(sprite_name, "#{plugin_dir}/package.json", package_json),
-         {:ok, output} <-
-           SpritesClient.exec(
-             sprite_name,
-             "#{openclaw_path(sprite_name)} plugins install --force --accept-capabilities #{plugin_dir} 2>&1"
-           ),
-         :ok <- plugin_installed(output) do
+         :ok <- install_plugin(sprite_name, plugin_dir, 3) do
       {:ok, :written}
     end
   end
+
+  # The state store may still be busy (see prepare_state/1) when the plugin
+  # is installed; that answer is retried a few times before it counts.
+  @plugin_retry_ms 5_000
+
+  defp install_plugin(sprite_name, plugin_dir, attempts_left) do
+    with {:ok, output} <-
+           SpritesClient.exec(
+             sprite_name,
+             "#{openclaw_path(sprite_name)} plugins install --force --accept-capabilities #{plugin_dir} 2>&1"
+           ) do
+      case plugin_installed(output) do
+        {:error, {:plugin_install_busy, _}} when attempts_left > 1 ->
+          Logger.info(
+            "Provisioner: OpenClaw state busy on #{sprite_name}, retrying plugin install"
+          )
+
+          Process.sleep(plugin_retry_ms())
+          install_plugin(sprite_name, plugin_dir, attempts_left - 1)
+
+        {:error, {:plugin_install_busy, text}} ->
+          {:error, {:plugin_install_failed, text}}
+
+        verdict ->
+          verdict
+      end
+    end
+  end
+
+  defp plugin_retry_ms,
+    do: Application.get_env(:traveling_poet, :plugin_retry_ms, @plugin_retry_ms)
 
   # `plugins install` from a local path answers "Install cancelled; rerun with
   # --force after reviewing the source" since OpenClaw 2026.10 (ClawHub trust
@@ -1892,10 +1935,14 @@ defmodule TravelingPoet.Provisioner do
   # (--accept-capabilities), and exec reports a non-zero exit only in its
   # framing. Without this check a poet came up with no tools and the app none
   # the wiser.
-  defp plugin_installed(output) do
+  @doc false
+  def plugin_installed(output) do
     text = extract_text(output)
 
     cond do
+      text =~ ~r/offline maintenance|run `openclaw doctor --fix` before installing/i ->
+        {:error, {:plugin_install_busy, String.slice(text, -800..-1//1)}}
+
       text =~ ~r/Install cancelled|was not updated|not installed|requires capability consent/i ->
         {:error, {:plugin_install_failed, String.slice(text, -800..-1//1)}}
 

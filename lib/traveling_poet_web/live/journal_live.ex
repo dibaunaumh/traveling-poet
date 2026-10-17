@@ -906,7 +906,7 @@ defmodule TravelingPoetWeb.JournalLive do
     {"Renting a room", [:create_sprite, :make_public]},
     {"Installing the writing desk", [:install_openclaw]},
     {"Packing notebook, pens and maps",
-     [:write_config, :write_env, :write_workspace, :write_tpoet_plugin]},
+     [:write_config, :prepare_state, :write_env, :write_workspace, :write_tpoet_plugin]},
     {"Opening the door", [:ensure_gateway_service, :pair_device, :get_sprite_url]}
   ]
 
