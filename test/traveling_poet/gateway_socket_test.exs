@@ -115,6 +115,32 @@ defmodule TravelingPoet.GatewaySocketTest do
     assert_received {:gateway_event, {:text_replace, "Under the bridge"}}
   end
 
+  # Udi's poet failed every chat turn for an evening (2026-10-16) with only
+  # "Agent error" to show for it. A failed turn now also reaches the
+  # admins' reporter (FleetHealth.TurnErrors; the test env's sink here).
+  test "a failed turn is reported to the admins as well as to the subscribers" do
+    Process.register(self(), :turn_errors_sink)
+
+    on_exit(fn ->
+      if Process.whereis(:turn_errors_sink) == self(), do: Process.unregister(:turn_errors_sink)
+    end)
+
+    st = state(%{subscribers: MapSet.new([self()])})
+
+    failed = %{
+      type: "event",
+      event: "agent",
+      payload: %{
+        stream: "lifecycle",
+        data: %{phase: "error", message: "The AI service couldn't accept this request."}
+      }
+    }
+
+    assert {:ok, _} = GatewaySocket.handle_frame(frame(failed), st)
+    assert_received {:gateway_event, {:error, "The AI service couldn't accept this request."}}
+    assert_received {:turn_error, 1, "The AI service couldn't accept this request."}
+  end
+
   test "a status request answers the caller" do
     assert {:ok, _} = GatewaySocket.handle_cast({:status, self()}, state())
     assert_received {:gateway_status, :authenticated}

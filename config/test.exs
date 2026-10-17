@@ -68,6 +68,8 @@ config :traveling_poet,
 config :traveling_poet, provision_in_background: false
 # No sprite to restart before a first-entry retry (FirstEntry.fresh_start/1).
 config :traveling_poet, fresh_start_on_retry: false
+# A failed turn on the socket reaches a test sink, not Telegram (FleetHealth.TurnErrors).
+config :traveling_poet, turn_error_reporter: {TravelingPoet.TurnErrorsSink, :report_async}
 # Resend calls go to a stub; an unstubbed one raises.
 config :traveling_poet, email_req_options: [plug: {Req.Test, TravelingPoet.Email}]
 

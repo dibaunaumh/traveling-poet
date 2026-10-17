@@ -79,6 +79,8 @@ The Phoenix app never writes journal prose itself. Its only server-side text LLM
 | `Email.Notifier` | `RESEND_API_KEY` (+ `EMAIL_FROM`) | The daily page email on publish, via Resend's HTTP API (`Email`, Req only). Skips readers with `users.email_notify` off and Hide My Email relay addresses; the drawing uses a signed `?sig=` so private journals work (`MediaController`); one-click unsubscribe at `/email/unsubscribe/:token` (POST outside CSRF, the signed token is the auth) |
 | `Geocoder.Limiter` | always on | Serialises every Nominatim call to 1 req/s app-wide. All geocoding must go through it |
 
+`FleetHealth.TurnErrors` is not a process: `GatewaySocket` calls it on every failed turn (agent lifecycle error, chat error state, chat.send error). It records a `turn_error` usage event, and pages the admins once per poet per 4 h with what the poet was doing (from the attempt events of the last 15 min), the gateway's message, and the last `rawErrorPreview` from the sprite's gateway log (`/tmp/openclaw/openclaw-<date>.log`, read while the sprite is still awake). The test env routes it to `TravelingPoet.TurnErrorsSink` (`:turn_error_reporter`).
+
 Operator paging goes through `Alerts.notify_admins/1` (`ALERT_TELEGRAM_CHAT_ID`, else every admin who paired Telegram). Callers compose and dedup; it only sends.
 
 The app runs on exactly ONE Fly machine (SQLite on a volume, single Telegram poller, in-process schedulers). Never scale horizontally, and never set `min_machines_running` to 0.
