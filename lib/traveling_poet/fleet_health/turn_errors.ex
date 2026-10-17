@@ -39,6 +39,7 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
   alias TravelingPoet.Usage.UsageEvent
 
   @quiet_hours 4
+  @echo_seconds 10
   @context_minutes 15
   @context_kinds %{
     "daily_run_attempt" => "daily run",
@@ -55,8 +56,9 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
   @doc """
   Records the failed turn and pages the admins unless they were paged about
   this poet in the last #{@quiet_hours} hours. Returns `{:ok, :paged}`,
-  `{:ok, :quiet}`, `{:ok, :recorded}` for a scheduled turn, or
-  `{:error, reason}` from the page.
+  `{:ok, :quiet}`, `{:ok, :recorded}` for a scheduled turn, `{:ok, :echo}`
+  for another error event of a turn recorded in the last #{@echo_seconds}
+  seconds, or `{:error, reason}` from the page.
   """
   def report(user_id, message, opts \\ []) do
     notify = Keyword.get(opts, :notify, &Alerts.notify_admins/1)
@@ -65,24 +67,50 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
     message = message |> to_string() |> String.slice(0, 300)
     channel = channel_for(user_id, now)
 
-    {:ok, _} =
-      Usage.record(user_id, "turn_error", %{
-        metadata: %{"message" => message, "channel" => channel}
-      })
-
     # One failed turn reaches the socket as three error events within the
     # same second (the agent lifecycle error, the chat error state and the
     # error-shaped event), each reported in a task of its own. On 2026-10-17
     # all three read the quiet window before any had recorded the page, and
-    # the admins got three pages per poet. The check and the page run under
-    # a lock per poet, so the second and third find the first one's record.
-    if channel == "chat" do
-      :global.trans({{__MODULE__, user_id}, self()}, fn ->
-        page_unless_quiet(user_id, channel, message, now, notify, raw)
-      end)
-    else
-      {:ok, :recorded}
-    end
+    # the admins got three pages per poet; the admin page then showed "3 turn
+    # errors" for one failed turn all day. Record and page under a lock per
+    # poet, and let a report within `@echo_seconds` of the last be that same
+    # turn: the second and third find the first one's record and add nothing.
+    :global.trans({{__MODULE__, user_id}, self()}, fn ->
+      cond do
+        recorded_recently?(user_id, now) ->
+          {:ok, :echo}
+
+        true ->
+          {:ok, _} =
+            Usage.record(user_id, "turn_error", %{
+              occurred_at: DateTime.truncate(now, :second),
+              metadata: %{"message" => message, "channel" => channel}
+            })
+
+          if channel == "chat" do
+            page_unless_quiet(user_id, channel, message, now, notify, raw)
+          else
+            {:ok, :recorded}
+          end
+      end
+    end)
+  end
+
+  @doc """
+  How many of the reader's own chat turns failed today. The admin page shows
+  this, not every turn error: a scheduled turn's failure is retried and shows
+  as a missed or late day if the retries fail too, so a poet that published
+  after one bad attempt has nothing to report. The four poets flagged on the
+  admin page's first evening (2026-10-17) had all published.
+  """
+  def chat_failures_today(user_id, now \\ DateTime.utc_now()) do
+    start = now |> DateTime.to_date() |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+
+    UsageEvent
+    |> where([e], e.user_id == ^user_id and e.kind == "turn_error" and e.occurred_at >= ^start)
+    |> where([e], fragment("json_extract(?, '$.channel')", e.metadata) == "chat")
+    |> select([e], count(e.id))
+    |> Repo.one()
   end
 
   defp page_unless_quiet(user_id, channel, message, now, notify, raw) do
@@ -140,6 +168,14 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
       nil -> "chat"
       kind -> Map.fetch!(@context_kinds, kind)
     end
+  end
+
+  defp recorded_recently?(user_id, now) do
+    since = DateTime.add(now, -@echo_seconds, :second)
+
+    UsageEvent
+    |> where([e], e.user_id == ^user_id and e.kind == "turn_error" and e.occurred_at >= ^since)
+    |> Repo.exists?()
   end
 
   defp paged_recently?(user_id, now) do

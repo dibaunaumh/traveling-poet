@@ -42,7 +42,7 @@ defmodule TravelingPoet.Usage do
           cost_cents_est: Map.get(attrs, :cost_cents_est, estimated_cost(kind)),
           occurred_at: DateTime.utc_now() |> DateTime.truncate(:second)
         },
-        Map.take(attrs, [:tokens_in, :tokens_out, :metadata, :cost_cents_est])
+        Map.take(attrs, [:tokens_in, :tokens_out, :metadata, :cost_cents_est, :occurred_at])
       )
     )
     |> Repo.insert()

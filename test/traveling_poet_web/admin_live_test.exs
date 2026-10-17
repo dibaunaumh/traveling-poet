@@ -5,7 +5,7 @@ defmodule TravelingPoetWeb.AdminLiveTest do
   import Phoenix.LiveViewTest
   import TravelingPoet.Fixtures
 
-  alias TravelingPoet.Accounts
+  alias TravelingPoet.{Accounts, Usage}
 
   defp sign_in(conn, user), do: Plug.Test.init_test_session(conn, %{user_id: user.id})
 
@@ -53,6 +53,32 @@ defmodule TravelingPoetWeb.AdminLiveTest do
     users = view |> element("#users") |> render()
     assert users =~ "Lorcan Byway"
     refute users =~ "Kofi Evenstar"
+  end
+
+  test "a failed chat turn is a problem; a scheduled turn's retried failure is not", %{conn: conn} do
+    admin = user_fixture(%{is_admin: true})
+    felt = agent_user_fixture(%{name: "Ines R"})
+    poet_fixture(felt, %{name: "Teodora Marsh"})
+    absorbed = agent_user_fixture(%{name: "Omar K"})
+    poet_fixture(absorbed, %{name: "Bram Hollow"})
+
+    {:ok, _} =
+      Usage.record(felt.id, "turn_error", %{metadata: %{"channel" => "chat", "message" => "x"}})
+
+    for _ <- 1..3 do
+      {:ok, _} =
+        Usage.record(absorbed.id, "turn_error", %{
+          metadata: %{"channel" => "daily run", "message" => "malformed tool call"}
+        })
+    end
+
+    {:ok, view, _html} = live(sign_in(conn, admin), ~p"/admin")
+
+    attention = view |> element("#needs-attention") |> render()
+    assert attention =~ "Teodora Marsh"
+    assert attention =~ "1 failed chat turn today"
+    refute attention =~ "Bram Hollow"
+    assert view |> element("button[phx-value-f=problems]") |> render() =~ "1"
   end
 
   test "readers are listed by name, with the email one hover away", %{conn: conn} do
