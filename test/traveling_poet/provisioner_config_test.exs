@@ -17,7 +17,7 @@ defmodule TravelingPoet.ProvisionerConfigTest do
   # which took one poet's chat down for a day.
   test "the fleet model is declared text only so image parts are dropped, not sent" do
     config = Provisioner.openclaw_config("gw-token", "https://poet.travel", "vendor/model-x")
-    [model] = config.models.providers.openrouter.models
+    [model] = config.models.providers["openrouter"].models
 
     assert model.id == "vendor/model-x"
     assert model.input == ["text"]

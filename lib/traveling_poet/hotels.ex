@@ -120,7 +120,7 @@ defmodule TravelingPoet.Hotels do
   @doc """
   Where "Book" sends the reader: the white-label booking site set up in
   LiteAPI (`LITEAPI_BOOKING_URL`, a template with {hotel_id}, {checkin},
-  {checkout}, {adults}). Nil until it is set, and then no link is shown.
+  {checkout}, {adults}, {occupancies}). Nil until it is set, and then no link is shown.
   """
   def booking_url(%{id: id}, %Date{} = checkin, %Date{} = checkout, adults) do
     case Application.get_env(:traveling_poet, :liteapi_booking_url) do
@@ -130,10 +130,21 @@ defmodule TravelingPoet.Hotels do
         |> String.replace("{checkin}", Date.to_iso8601(checkin))
         |> String.replace("{checkout}", Date.to_iso8601(checkout))
         |> String.replace("{adults}", to_string(adults))
+        |> String.replace("{occupancies}", occupancies_param(adults))
 
       _ ->
         nil
     end
+  end
+
+  # The white-label hotel page takes its guests as `occupancies`: a base64
+  # JSON array of rooms, each with adults and children (LiteAPI, "Deeplinking
+  # to Whitelabel"). There is no plain `adults` parameter on that page.
+  defp occupancies_param(adults) do
+    [%{adults: adults, children: []}]
+    |> Jason.encode!()
+    |> Base.encode64()
+    |> URI.encode_www_form()
   end
 
   defp key, do: Application.get_env(:traveling_poet, :liteapi_key)
