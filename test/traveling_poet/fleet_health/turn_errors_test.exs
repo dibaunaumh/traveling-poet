@@ -56,6 +56,30 @@ defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
     refute text =~ "Provider error"
   end
 
+  test "three error events of one failed turn, reported at once, page once", %{
+    user: user,
+    opts: opts
+  } do
+    Ecto.Adapters.SQL.Sandbox.mode(TravelingPoet.Repo, {:shared, self()})
+
+    messages = [
+      "OpenClaw couldn't finish this reply.",
+      "Chat error",
+      "Chat error"
+    ]
+
+    results =
+      messages
+      |> Enum.map(fn m -> Task.async(fn -> TurnErrors.report(user.id, m, opts) end) end)
+      |> Task.await_many()
+
+    assert Enum.sort(results) == [{:ok, :paged}, {:ok, :quiet}, {:ok, :quiet}]
+    assert_received {:paged, _}
+    refute_received {:paged, _}
+    assert Usage.today_count(user.id, "turn_error") == 3
+    assert Usage.today_count(user.id, "turn_error_alert") == 1
+  end
+
   test "repeats within the quiet window are counted, not paged", %{user: user, opts: opts} do
     assert {:ok, :paged} = TurnErrors.report(user.id, "first", opts)
     assert_received {:paged, _}
