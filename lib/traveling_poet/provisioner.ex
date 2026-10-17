@@ -972,7 +972,14 @@ defmodule TravelingPoet.Provisioner do
                 # (verified empirically in alice-in-goals against custom
                 # OpenAI-compatible providers)
                 reasoning: true,
-                input: ["text", "image"],
+                # Text only, on purpose: the fleet model has no image-capable
+                # endpoint on OpenRouter ("404 No endpoints found that support
+                # image input"). OpenClaw 2026.10 honours this declaration and
+                # sends every image part in a conversation to a model that
+                # claims image input; one poet's chat died for a whole day on
+                # a single image in its history (2026-10-16). Declared text
+                # only, OpenClaw drops image parts instead.
+                input: ["text"],
                 contextWindow:
                   Application.get_env(:traveling_poet, :openrouter_context_window, 200_000),
                 maxTokens: Application.get_env(:traveling_poet, :openrouter_max_tokens, 32_768)
