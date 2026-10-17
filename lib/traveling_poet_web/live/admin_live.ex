@@ -3,22 +3,43 @@ defmodule TravelingPoetWeb.AdminLive do
 
   import Ecto.Query
 
-  alias TravelingPoet.{Accounts, Credits, FleetHealth, OpenRouter, Repo, Usage}
+  alias TravelingPoet.{Accounts, Credits, FirstEntry, FleetHealth, OpenRouter, Repo, Usage}
   alias TravelingPoet.Accounts.Purge
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
+
+  # The user table's filters, in the order the bar shows them. "new" is a
+  # sign-up of the last seven days; "today" and "week" are readers seen since
+  # UTC midnight and in the last seven days; "low" is a poet whose credits
+  # run out within Credits.low_credits_days/0.
+  @filters ~w(all problems new today week low)
+  @filter_labels [
+    {"all", "All"},
+    {"problems", "Problems"},
+    {"new", "New"},
+    {"today", "Active today"},
+    {"week", "Active this week"},
+    {"low", "Low on credits"}
+  ]
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:page_title, "Admin — fleet health & costs")
+     |> assign(:filter, "all")
+     |> assign(:filter_labels, @filter_labels)
      |> load_fleet()}
   end
 
   @impl true
   def handle_event("refresh", _params, socket) do
     {:noreply, load_fleet(socket)}
+  end
+
+  @impl true
+  def handle_event("filter", %{"f" => filter}, socket) when filter in @filters do
+    {:noreply, assign(socket, :filter, filter)}
   end
 
   @impl true
@@ -72,6 +93,9 @@ defmodule TravelingPoetWeb.AdminLive do
 
   defp load_fleet(socket) do
     rollup = Usage.fleet_rollup() |> Map.new(&{&1.user_id, &1})
+    health = FleetHealth.report()
+    health_by_poet = Map.new(health, &{&1.poet.id, &1})
+    now = DateTime.utc_now()
 
     rows =
       from(u in User,
@@ -82,6 +106,7 @@ defmodule TravelingPoetWeb.AdminLive do
       |> Repo.all()
       |> Enum.map(fn {user, poet} ->
         usage = rollup[user.id] || %{week_cost: 0, events: 0}
+        turn_errors = Usage.today_count(user.id, "turn_error")
 
         %{
           user: user,
@@ -90,14 +115,17 @@ defmodule TravelingPoetWeb.AdminLive do
           today_cost: Usage.today_cost(user.id),
           week_cost: usage.week_cost,
           runs_today: Usage.today_count(user.id, "daily_run"),
-          budget: user.daily_budget_cents
+          budget: user.daily_budget_cents,
+          problems: problems(user, poet, poet && health_by_poet[poet.id], turn_errors),
+          new?: since?(user.inserted_at, DateTime.add(now, -7, :day)),
+          seen_today?: since?(user.last_seen_at, start_of_today(now)),
+          seen_this_week?: since?(user.last_seen_at, DateTime.add(now, -7, :day)),
+          low_credits?: low_credits?(user, poet)
         }
       end)
-      |> Enum.sort_by(& &1.week_cost, :desc)
+      |> Enum.sort_by(&{&1.problems == [], -&1.week_cost})
 
     total_week = rows |> Enum.map(& &1.week_cost) |> Enum.sum()
-
-    health = FleetHealth.report()
 
     socket
     |> assign(:rows, rows)
@@ -106,6 +134,54 @@ defmodule TravelingPoetWeb.AdminLive do
     |> assign(:health_summary, health_summary(health))
     |> assign(:openrouter, openrouter_banner())
   end
+
+  # What is wrong with this poet right now, in the admin's words. Empty is
+  # the normal case. A poet that stalled on 2026-10-17 was only visible as
+  # one red "error" badge in a long table, and the four readers it concerned
+  # waited an hour; this is what the page now leads with.
+  defp problems(_user, nil, _health, _turn_errors), do: []
+
+  defp problems(user, poet, health, turn_errors) do
+    [
+      poet.status == "error" && "setup failed",
+      health && health.status == :failing && "missed today",
+      health && health.status == :late && health.attempts_today > 0 &&
+        "#{health.attempts_today} failed #{plural(health.attempts_today, "attempt")} today",
+      FirstEntry.status(user, poet) == :exhausted && "first page never came",
+      turn_errors > 0 && "#{turn_errors} turn #{plural(turn_errors, "error")} today"
+    ]
+    |> Enum.filter(&is_binary/1)
+  end
+
+  defp plural(1, word), do: word
+  defp plural(_, word), do: word <> "s"
+
+  defp low_credits?(_user, nil), do: false
+  defp low_credits?(user, poet), do: Credits.low?(user, poet)
+
+  defp since?(nil, _since), do: false
+
+  defp since?(%NaiveDateTime{} = at, since),
+    do: since?(DateTime.from_naive!(at, "Etc/UTC"), since)
+
+  defp since?(%DateTime{} = at, since), do: DateTime.compare(at, since) != :lt
+
+  defp start_of_today(now),
+    do: now |> DateTime.to_date() |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+
+  defp visible(rows, "all"), do: rows
+  defp visible(rows, "problems"), do: Enum.filter(rows, &(&1.problems != []))
+  defp visible(rows, "new"), do: Enum.filter(rows, & &1.new?)
+  defp visible(rows, "today"), do: Enum.filter(rows, & &1.seen_today?)
+  defp visible(rows, "week"), do: Enum.filter(rows, & &1.seen_this_week?)
+  defp visible(rows, "low"), do: Enum.filter(rows, & &1.low_credits?)
+
+  defp filter_count(rows, filter), do: rows |> visible(filter) |> length()
+
+  # The name is what identifies a reader now that Sign in with Apple hands
+  # us relay addresses; the email stays one hover away for the purge form.
+  defp display_name(%User{name: name}) when is_binary(name) and name != "", do: name
+  defp display_name(%User{email: email}), do: email |> String.split("@") |> hd()
 
   # The calendar connection and the nearest trip on the books, for the row.
   defp trip_summary(user, poet) do
@@ -228,6 +304,25 @@ defmodule TravelingPoetWeb.AdminLive do
           <span>{@openrouter.text}</span>
         </div>
 
+        <div
+          :if={Enum.any?(@rows, &(&1.problems != []))}
+          id="needs-attention"
+          class="alert alert-error mb-4 items-start"
+        >
+          <div>
+            <p class="font-semibold">Needs attention</p>
+            <ul class="mt-1 text-sm">
+              <li :for={row <- Enum.filter(@rows, &(&1.problems != []))}>
+                <b>{row.poet.name}</b>
+                <span class="opacity-80">({display_name(row.user)})</span>: {Enum.join(
+                  row.problems,
+                  ", "
+                )}
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <div class="overflow-x-auto mb-10">
           <table class="table table-sm">
             <thead>
@@ -288,8 +383,21 @@ defmodule TravelingPoetWeb.AdminLive do
           </div>
         </div>
 
+        <div class="join mb-3" id="user-filters">
+          <button
+            :for={{key, label} <- @filter_labels}
+            type="button"
+            phx-click="filter"
+            phx-value-f={key}
+            class={["btn btn-xs join-item", @filter == key && "btn-active"]}
+          >
+            {label}
+            <span class="opacity-60 tabular-nums">{filter_count(@rows, key)}</span>
+          </button>
+        </div>
+
         <div class="overflow-x-auto">
-          <table class="table table-sm">
+          <table class="table table-sm" id="users">
             <thead>
               <tr>
                 <th>User</th>
@@ -306,8 +414,8 @@ defmodule TravelingPoetWeb.AdminLive do
               </tr>
             </thead>
             <tbody>
-              <tr :for={row <- @rows}>
-                <td>{row.user.email}</td>
+              <tr :for={row <- visible(@rows, @filter)} class={row.problems != [] && "bg-error/5"}>
+                <td title={row.user.email}>{display_name(row.user)}</td>
                 <td
                   class="tabular-nums"
                   title={row.user.last_seen_at && to_string(row.user.last_seen_at)}
@@ -322,6 +430,9 @@ defmodule TravelingPoetWeb.AdminLive do
                     row.poet && row.poet.status == "error" && "badge-error"
                   ]}>
                     {(row.poet && row.poet.status) || "no poet"}
+                  </span>
+                  <span :for={problem <- row.problems} class="badge badge-error badge-xs ml-1">
+                    {problem}
                   </span>
                 </td>
                 <td class="text-xs">
@@ -364,7 +475,7 @@ defmodule TravelingPoetWeb.AdminLive do
                     :if={row.user.id != @current_user.id}
                     phx-submit="purge"
                     class="flex items-center gap-1"
-                    data-confirm={"Permanently delete #{row.user.email}, their poet, journal, illustrations and sprite? This cannot be undone."}
+                    data-confirm={"Permanently delete #{display_name(row.user)} (#{row.user.email}), their poet, journal, illustrations and sprite? This cannot be undone."}
                   >
                     <input type="hidden" name="user_id" value={row.user.id} />
                     <input
