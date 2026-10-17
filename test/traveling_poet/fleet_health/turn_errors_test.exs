@@ -27,12 +27,10 @@ defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
     %{user: user, poet: poet, opts: opts}
   end
 
-  test "the first failed turn pages with the channel and the provider error", %{
+  test "the first failed chat turn pages with the channel and the provider error", %{
     user: user,
     opts: opts
   } do
-    {:ok, _} = Usage.record(user.id, "daily_run_attempt")
-
     assert {:ok, :paged} =
              TurnErrors.report(user.id, "The AI service couldn't accept this request.", opts)
 
@@ -40,9 +38,30 @@ defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
     assert_received {:paged, text}
     assert text =~ "Marta"
     assert text =~ user.email
-    assert text =~ "during daily run"
+    assert text =~ "during chat"
     assert text =~ "Gateway said: The AI service couldn't accept this request."
     assert text =~ "Provider error: 404 No endpoints found that support image input"
+  end
+
+  test "a scheduled turn is counted, not paged: its retries and the fleet check cover it", %{
+    user: user,
+    opts: opts
+  } do
+    {:ok, _} = Usage.record(user.id, "daily_run_attempt")
+
+    assert {:ok, :recorded} = TurnErrors.report(user.id, "OpenClaw couldn't finish", opts)
+
+    refute_received {:paged, _}
+    refute_received {:raw_for, _}
+    assert Usage.today_count(user.id, "turn_error") == 1
+    assert Usage.today_count(user.id, "turn_error_alert") == 0
+
+    assert %{"channel" => "daily run"} =
+             TravelingPoet.Repo.one!(
+               from e in TravelingPoet.Usage.UsageEvent,
+                 where: e.kind == "turn_error",
+                 select: e.metadata
+             )
   end
 
   test "a turn with no attempt behind it is a chat, and no raw error is no line", %{
