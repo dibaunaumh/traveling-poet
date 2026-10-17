@@ -108,6 +108,26 @@ defmodule TravelingPoet.HotelsTest do
              "https://hotels.example/hotels/lp1?checkin=2026-11-10&checkout=2026-11-13&adults=2"
   end
 
+  # LiteAPI's white-label hotel page has no `adults` parameter: guests travel
+  # as `occupancies`, a base64 JSON array of rooms. The first live template
+  # (2026-10-17) needed it, and a Book link that drops the guest count prices
+  # the wrong room.
+  test "the occupancies placeholder carries the adults as LiteAPI's base64 rooms" do
+    Application.put_env(
+      :traveling_poet,
+      :liteapi_booking_url,
+      "https://x.nuitee.link/hotels/{hotel_id}?checkin={checkin}&checkout={checkout}&occupancies={occupancies}"
+    )
+
+    on_exit(fn -> Application.delete_env(:traveling_poet, :liteapi_booking_url) end)
+
+    url = Hotels.booking_url(%{id: "lp1"}, ~D[2026-11-10], ~D[2026-11-13], 3)
+    %{query: query} = URI.parse(url)
+    %{"occupancies" => encoded} = URI.decode_query(query)
+
+    assert Jason.decode!(Base.decode64!(encoded)) == [%{"adults" => 3, "children" => []}]
+  end
+
   test "the owner finds hotels for their dates on the Where to stay page", %{conn: conn} do
     Req.Test.stub(Hotels, &Req.Test.json(&1, @rates))
 
