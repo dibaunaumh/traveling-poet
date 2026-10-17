@@ -110,6 +110,29 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
     )
   end
 
+  test "provisioning runs doctor right after the config, before the plugin install" do
+    steps = Provisioner.steps()
+
+    assert Enum.find_index(steps, &(&1 == :write_config)) + 1 ==
+             Enum.find_index(steps, &(&1 == :prepare_state))
+
+    assert Enum.find_index(steps, &(&1 == :prepare_state)) <
+             Enum.find_index(steps, &(&1 == :write_tpoet_plugin))
+  end
+
+  test "a plugin install that met a busy state store is a retry, not a failure" do
+    busy =
+      "Config health-state write failed: OpenClaw state at /home/sprite/.openclaw/state/openclaw.sqlite is undergoing offline maintenance; retry when it finishes.\nWARNING - Installing plugin from local path\nConfig invalid; run `openclaw doctor --fix` before installing plugins.\n" <>
+        <<3, 1>>
+
+    assert {:error, {:plugin_install_busy, _}} = Provisioner.plugin_installed(busy)
+
+    assert {:error, {:plugin_install_failed, _}} =
+             Provisioner.plugin_installed("Install cancelled; rerun with --force\n" <> <<3, 1>>)
+
+    assert :ok = Provisioner.plugin_installed("Installed plugin tpoet-plugin\n" <> <<3, 0>>)
+  end
+
   test "a first install holds the sprite awake while npm runs detached", %{agent: agent} do
     Agent.update(agent, &%{&1 | installed: nil})
 
