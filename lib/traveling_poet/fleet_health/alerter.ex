@@ -105,11 +105,11 @@ defmodule TravelingPoet.FleetHealth.Alerter do
   defp credit_warning do
     case OpenRouter.key_status() do
       {:ok, %{exhausted?: true} = s} ->
-        "OpenRouter key is OUT of credit (#{money(s.usage)} of #{money(s.limit)} used) — " <>
+        "OpenRouter #{OpenRouter.scope_label(s)} is OUT (#{money(s.remaining)} left of #{money(s.limit)}) — " <>
           "every model turn is being rejected with a 402 before it starts."
 
       {:ok, %{low?: true} = s} ->
-        "OpenRouter key is nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
+        "OpenRouter #{OpenRouter.scope_label(s)} nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
 
       _ ->
         nil

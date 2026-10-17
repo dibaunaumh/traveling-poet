@@ -134,14 +134,15 @@ defmodule TravelingPoetWeb.AdminLive do
         %{
           class: "alert-error",
           text:
-            "OpenRouter key is out of credit — #{money(s.usage)} of #{money(s.limit)} used. " <>
+            "OpenRouter #{OpenRouter.scope_label(s)} is out — #{money(s.remaining)} left of #{money(s.limit)}. " <>
               "Every poet's model turn is being rejected with a 402 until the key is topped up."
         }
 
       {:ok, %{low?: true} = s} ->
         %{
           class: "alert-warning",
-          text: "OpenRouter key nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
+          text:
+            "OpenRouter #{OpenRouter.scope_label(s)} nearly spent: #{money(s.remaining)} left of #{money(s.limit)}."
         }
 
       {:ok, %{limit: nil}} ->
@@ -150,7 +151,8 @@ defmodule TravelingPoetWeb.AdminLive do
       {:ok, s} ->
         %{
           class: "alert-success",
-          text: "OpenRouter key: #{money(s.remaining)} left of #{money(s.limit)}."
+          text:
+            "OpenRouter #{OpenRouter.scope_label(s)}: #{money(s.remaining)} left of #{money(s.limit)}."
         }
 
       {:error, :not_configured} ->
