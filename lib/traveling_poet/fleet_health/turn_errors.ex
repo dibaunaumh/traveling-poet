@@ -19,6 +19,13 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
   still awake from the turn. Polling every sprite's log on a schedule was
   the alternative, and it would wake and bill each sprite every time.
 
+  Only a reader's chat pages (Udi, 2026-10-17: "only page for chat
+  failures"). A scheduled turn (daily run, first entry, marker revision,
+  book) is counted and nothing more: the scheduler retries it, and the
+  fleet health check pages when a poet stops publishing. The first morning
+  of paging, two daily runs failed on the model's "incomplete or malformed
+  tool call", paged, and published on the next attempt.
+
   `report_async/2` is what the socket calls; `report/3` does the work and
   takes `:notify` and `:raw` functions so tests need no Telegram and no
   sprite.
@@ -48,7 +55,8 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
   @doc """
   Records the failed turn and pages the admins unless they were paged about
   this poet in the last #{@quiet_hours} hours. Returns `{:ok, :paged}`,
-  `{:ok, :quiet}` or `{:error, reason}` from the page.
+  `{:ok, :quiet}`, `{:ok, :recorded}` for a scheduled turn, or
+  `{:error, reason}` from the page.
   """
   def report(user_id, message, opts \\ []) do
     notify = Keyword.get(opts, :notify, &Alerts.notify_admins/1)
@@ -68,9 +76,13 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
     # all three read the quiet window before any had recorded the page, and
     # the admins got three pages per poet. The check and the page run under
     # a lock per poet, so the second and third find the first one's record.
-    :global.trans({{__MODULE__, user_id}, self()}, fn ->
-      page_unless_quiet(user_id, channel, message, now, notify, raw)
-    end)
+    if channel == "chat" do
+      :global.trans({{__MODULE__, user_id}, self()}, fn ->
+        page_unless_quiet(user_id, channel, message, now, notify, raw)
+      end)
+    else
+      {:ok, :recorded}
+    end
   end
 
   defp page_unless_quiet(user_id, channel, message, now, notify, raw) do
