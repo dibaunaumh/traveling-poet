@@ -459,7 +459,7 @@ defmodule TravelingPoet.Provisioner do
     verify = Keyword.get(opts, :verify, &verify_gateway/1)
 
     refresh_config_for(user)
-    doctor_fix(sprite_name)
+    doctor = doctor_fix(sprite_name)
 
     with {:ok, _} <- workspace.(user),
          :ok <- verify.(user) do
@@ -467,7 +467,13 @@ defmodule TravelingPoet.Provisioner do
       {:ok, target}
     else
       error ->
-        reason = unwrap_error(error)
+        # A refused migration is the reason the handshake failed, so it is
+        # the reason reported; the handshake's own timeout says nothing.
+        reason =
+          case doctor do
+            {:error, refusal} -> refusal
+            :ok -> unwrap_error(error)
+          end
 
         Logger.error(
           "Provisioner: #{sprite_name} is on OpenClaw #{target} but the app could not confirm it (#{inspect(reason)}); left there, unrecorded"
@@ -565,18 +571,57 @@ defmodule TravelingPoet.Provisioner do
   # retired config keys); its verdict on openclaw.json and the plugin does
   # not matter because both are rewritten right after. It never fails the
   # upgrade, but what it said is kept in the log for the operator.
+  # Doctor's exit code says nothing: it exits 0 after "Doctor stopped because
+  # a state migration refused to continue". One poet (2026-10-16) had its
+  # session store left unmigrated that way, the gateway then exited 78 on
+  # every start, and the upgrade reported a handshake timeout instead of
+  # the refusal. The step still never stops an upgrade on its own (a noisy
+  # doctor is the norm); it returns the refusal so the verdict can name it.
   defp doctor_fix(sprite_name) do
     cmd =
       "timeout 300 $(npm prefix -g)/bin/openclaw doctor --fix --non-interactive 2>&1 | tail -c 2500"
 
     case client().exec(sprite_name, cmd) do
       {:ok, out} ->
-        Logger.info("Provisioner: doctor --fix on #{sprite_name}:\n#{extract_text(out)}")
-        :ok
+        text = extract_text(out)
+        Logger.info("Provisioner: doctor --fix on #{sprite_name}:\n#{text}")
+
+        case doctor_refusal(text) do
+          nil ->
+            :ok
+
+          refusal ->
+            Logger.error("Provisioner: doctor --fix on #{sprite_name} refused: #{refusal}")
+            {:error, {:doctor_refused, refusal}}
+        end
 
       {:error, reason} ->
         Logger.warning("Provisioner: doctor --fix on #{sprite_name} failed: #{inspect(reason)}")
         :ok
+    end
+  end
+
+  @doc false
+  # The lines that name what doctor would not do, or nil when it finished.
+  # "Doctor stopped" heads a refused migration, "Failing check" lists the
+  # steps it skipped, "Invalid config" / "config is invalid" is a file the
+  # current release will not read at all.
+  def doctor_refusal(text) when is_binary(text) do
+    refused? =
+      text =~ "Doctor stopped" or text =~ "Failing check" or text =~ ~r/invalid config/i or
+        text =~ ~r/config is invalid/i
+
+    if refused? do
+      text
+      |> String.split("\n")
+      |> Enum.map(&String.trim/1)
+      |> Enum.filter(fn line ->
+        line =~ "Doctor stopped" or line =~ "Failing check" or line =~ ~r/invalid config/i or
+          line =~ ~r/config is invalid/i or line =~ ~r/^- /
+      end)
+      |> Enum.take(6)
+      |> Enum.join(" | ")
+      |> String.slice(0, 600)
     end
   end
 

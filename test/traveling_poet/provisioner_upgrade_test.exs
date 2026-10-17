@@ -47,7 +47,7 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
           {{:ok, if(st.installed, do: "OpenClaw #{st.installed} (383c124)\n", else: "")}, st}
 
         cmd =~ "doctor --fix" ->
-          {{:ok, "Doctor complete.\n"}, st}
+          {{:ok, Map.get(st, :doctor, "Doctor complete.\n")}, st}
 
         cmd =~ "tail -c" ->
           {{:ok, "npm ERR! code E404\n"}, st}
@@ -257,6 +257,42 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
     assert installs(agent) == []
     assert_received {:workspace, _}
     assert Accounts.get_user!(user.id).openclaw_version == "2026.10.4"
+  end
+
+  # User 7, 2026-10-16: doctor exited 0 after refusing the session migration
+  # (a retired memory-core file blocked it), the gateway then died on every
+  # start, and the upgrade reported a handshake timeout. The refusal is the
+  # reason, and the one thing an operator can act on.
+  test "a refused doctor migration is the reported reason, not the handshake timeout", %{
+    user: user,
+    agent: agent
+  } do
+    refusal = """
+    Doctor stopped because a state migration refused to continue. Resolve the reported migration failure before retrying. Later repairs were not run.
+    Failing check plugin-doctor-state (step-refused): Memory Core short-term recall: upgrades from pre-July-2026 dreaming JSON are no longer migrated
+    Failing check sessions (blocked-by-prior-refusal): Migration step "sessions" was not run because prior step "plugin-doctor-state" refused execution.
+    """
+
+    Agent.update(agent, &Map.put(&1, :doctor, refusal))
+
+    assert {:error, {{:doctor_refused, reason}, installed: "2026.10.4"}} =
+             Provisioner.upgrade_openclaw(
+               user,
+               opts(verify: fn _ -> {:error, %{original: :timeout}} end)
+             )
+
+    assert reason =~ "Doctor stopped"
+    assert reason =~ "Failing check sessions"
+    assert Accounts.get_user!(user.id).openclaw_version == "2026.4.9"
+  end
+
+  test "a doctor that only warns does not change a good verdict", %{user: user, agent: agent} do
+    Agent.update(
+      agent,
+      &Map.put(&1, :doctor, "Doctor warnings: memory search key missing\nDoctor complete.\n")
+    )
+
+    assert {:ok, "2026.10.4"} = Provisioner.upgrade_openclaw(user, opts())
   end
 
   test "a floating tag is refused: the result must be checkable", %{user: user} do
