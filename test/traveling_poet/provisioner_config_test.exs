@@ -23,6 +23,26 @@ defmodule TravelingPoet.ProvisionerConfigTest do
     assert model.input == ["text"]
   end
 
+  # A 2026.4.9 gateway wrote meta.lastTouchedAt; 2026.10 rejects the whole
+  # file over it ("meta: Unrecognized key"), and the merge that protects the
+  # gateway's own keys would carry it along forever.
+  test "the config writer drops keys the pinned release refuses, keeping the rest of meta" do
+    on_sprite = %{
+      "meta" => %{
+        "lastTouchedAt" => "2026-10-15T02:07:30.673Z",
+        "lastTouchedVersion" => "2026.4.9"
+      },
+      "gateway" => %{"auth" => %{"token" => "old"}}
+    }
+
+    ours = %{"gateway" => %{"auth" => %{"token" => "new"}}}
+    merged = on_sprite |> Provisioner.deep_merge(ours) |> Provisioner.scrub_legacy_config()
+
+    assert merged["meta"] == %{"lastTouchedVersion" => "2026.4.9"}
+    assert merged["gateway"]["auth"]["token"] == "new"
+    assert Provisioner.scrub_legacy_config(%{"gateway" => %{}}) == %{"gateway" => %{}}
+  end
+
   # Every connection reaches the gateway through the sprites.app proxy with
   # X-Forwarded-For; OpenClaw 2026.10 answers 403 proxy_attribution_required
   # unless that proxy is trusted. The port in the config is what OpenClaw's
