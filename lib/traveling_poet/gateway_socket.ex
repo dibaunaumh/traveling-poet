@@ -417,6 +417,7 @@ defmodule TravelingPoet.GatewaySocket do
 
       :chat_send ->
         Logger.error("GatewaySocket: chat.send error: #{error_msg}")
+        report_turn_error(state, error_msg)
         notify_subscribers(state, {:gateway_event, {:error, error_msg}})
 
       _ ->
@@ -549,6 +550,7 @@ defmodule TravelingPoet.GatewaySocket do
        ) do
     error_msg = data["message"] || data["error"] || "Agent error"
     Logger.error("GatewaySocket: agent lifecycle error: #{error_msg}")
+    report_turn_error(state, error_msg)
     notify_subscribers(state, {:gateway_event, {:error, error_msg}})
     {:ok, state}
   end
@@ -564,6 +566,7 @@ defmodule TravelingPoet.GatewaySocket do
        ) do
     error_msg = payload["error"] || payload["message"] || "Chat error"
     Logger.error("GatewaySocket: chat error state: #{error_msg}")
+    report_turn_error(state, error_msg)
     notify_subscribers(state, {:gateway_event, {:error, error_msg}})
     {:ok, state}
   end
@@ -576,6 +579,7 @@ defmodule TravelingPoet.GatewaySocket do
       is_map(payload) && (payload["error"] || payload["state"] == "error") ->
         error_msg = payload["error"] || payload["message"] || "Unknown agent error"
         Logger.error("GatewaySocket: error in unmatched event #{frame["event"]}: #{error_msg}")
+        report_turn_error(state, error_msg)
         notify_subscribers(state, {:gateway_event, {:error, error_msg}})
 
       true ->
@@ -609,6 +613,19 @@ defmodule TravelingPoet.GatewaySocket do
       notify_subscribers(state, {:gateway_event, {:text_replace, text}})
       notify_subscribers(state, {:gateway_event, {:done, "chat-history"}})
     end
+  end
+
+  # Every failed turn goes to the admins with its cause
+  # (`FleetHealth.TurnErrors`); the test env swaps the reporter for a sink.
+  defp report_turn_error(%{user_id: user_id}, message) do
+    {mod, fun} =
+      Application.get_env(
+        :traveling_poet,
+        :turn_error_reporter,
+        {TravelingPoet.FleetHealth.TurnErrors, :report_async}
+      )
+
+    apply(mod, fun, [user_id, message])
   end
 
   defp notify_subscribers(state, message) do
