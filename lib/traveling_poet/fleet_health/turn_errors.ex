@@ -62,6 +62,18 @@ defmodule TravelingPoet.FleetHealth.TurnErrors do
         metadata: %{"message" => message, "channel" => channel}
       })
 
+    # One failed turn reaches the socket as three error events within the
+    # same second (the agent lifecycle error, the chat error state and the
+    # error-shaped event), each reported in a task of its own. On 2026-10-17
+    # all three read the quiet window before any had recorded the page, and
+    # the admins got three pages per poet. The check and the page run under
+    # a lock per poet, so the second and third find the first one's record.
+    :global.trans({{__MODULE__, user_id}, self()}, fn ->
+      page_unless_quiet(user_id, channel, message, now, notify, raw)
+    end)
+  end
+
+  defp page_unless_quiet(user_id, channel, message, now, notify, raw) do
     if paged_recently?(user_id, now) do
       {:ok, :quiet}
     else
