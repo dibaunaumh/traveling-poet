@@ -110,6 +110,24 @@ defmodule TravelingPoet.ProvisionerUpgradeTest do
     )
   end
 
+  test "a first install holds the sprite awake while npm runs detached", %{agent: agent} do
+    Agent.update(agent, &%{&1 | installed: nil})
+
+    assert {:ok, _} =
+             Provisioner.install_openclaw("sandbox-test-7", "2026.10.4", install_poll_ms: 1)
+
+    calls = calls(agent)
+    hold_at = Enum.find_index(calls, &match?({:exec, _, "curl" <> _}, &1))
+    install_at = Enum.find_index(calls, &match?({:exec, _, "rm -f" <> _}, &1))
+
+    assert hold_at, "no sprite hold was put"
+    assert hold_at < install_at
+    assert {:exec, _, cmd} = Enum.at(calls, hold_at)
+    assert cmd =~ "PUT http://sprite/v1/tasks"
+    assert cmd =~ "tpoet-install-"
+    assert Agent.get(agent, & &1.installed) == "2026.10.4"
+  end
+
   test "moves a poet to the release, gateway stopped first, and records it", %{
     user: user,
     agent: agent

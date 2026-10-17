@@ -774,7 +774,8 @@ defmodule TravelingPoet.Provisioner do
   # it, since the config, plugin manifest and pairing import written next
   # are the current release's shape. `import_pairing` runs doctor for its
   # state migrations right after.
-  defp install_openclaw(name, openclaw_version) do
+  @doc false
+  def install_openclaw(name, openclaw_version, opts \\ []) do
     npm_version = resolve_openclaw_npm_version(openclaw_version)
 
     case installed_openclaw_version(name) do
@@ -783,12 +784,12 @@ defmodule TravelingPoet.Provisioner do
         {:ok, :already_installed}
 
       nil ->
-        do_install_openclaw(name, npm_version)
+        do_install_openclaw(name, npm_version, opts)
 
       installed ->
         Logger.info("OpenClaw #{installed} installed in #{name}, moving to #{npm_version}")
         client().stop_service(name, "openclaw-gateway")
-        do_install_openclaw(name, npm_version)
+        do_install_openclaw(name, npm_version, opts)
     end
   end
 
@@ -803,10 +804,20 @@ defmodule TravelingPoet.Provisioner do
 
   def resolve_openclaw_npm_version(version) when is_binary(version), do: version
 
-  defp do_install_openclaw(name, npm_version) do
-    with :ok <- install_openclaw_release(name, npm_version, []) do
-      client().exec(name, "mkdir -p #{@workspace}/memory")
-    end
+  # A sprite runs only while something holds it: an exec call, a socket, a
+  # task. The install below is detached from the exec that starts it, so
+  # without a hold npm gets a sliver of CPU on each ten second poll and
+  # nothing in between. The first three sign-ups after the detached install
+  # shipped (2026-10-17, users 39 to 41) each had npm alive and crawling
+  # (85 MB of a 600 MB release after half an hour) when the poll gave up,
+  # and the poet ended in "error". The fleet upgrade already ran under a
+  # hold, which is why its installs took eight minutes.
+  defp do_install_openclaw(name, npm_version, opts) do
+    TravelingPoet.SpriteHold.with_hold(name, "install", fn ->
+      with :ok <- install_openclaw_release(name, npm_version, opts) do
+        client().exec(name, "mkdir -p #{@workspace}/memory")
+      end
+    end)
   end
 
   @install_log "/tmp/tpoet-openclaw-install.log"
