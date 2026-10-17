@@ -22,10 +22,6 @@ defmodule TravelingPoet.Provisioner do
   @external_resource @agents_path
   @agents_md File.read!(@agents_path)
 
-  @bootstrap_path "priv/data/BOOTSTRAP.md"
-  @external_resource @bootstrap_path
-  @bootstrap_md File.read!(@bootstrap_path)
-
   @heartbeat_path "priv/data/HEARTBEAT.md"
   @external_resource @heartbeat_path
   @heartbeat_md File.read!(@heartbeat_path)
@@ -223,7 +219,7 @@ defmodule TravelingPoet.Provisioner do
   @doc """
   Gives a poet a fresh conversation: stops the gateway, sets the session
   files aside (kept as `sessions-reset-<unix time>`, never deleted), starts
-  it again. The workspace (BOOTSTRAP.md, skills, memory) is untouched.
+  it again. The workspace (skills, memory) is untouched.
 
   For a retry of entry #0: Kenji Driftwood's second attempt (2026-09-30)
   inherited the derailed first one, overflowed its context at 64 messages
@@ -1224,8 +1220,8 @@ defmodule TravelingPoet.Provisioner do
     ## Skills
     Skills live under #{@workspace}/skills/<name>/SKILL.md. A command names its
     skill exactly; read that file first, never guess another path:
-    `/onboard` is #{@workspace}/skills/onboard/SKILL.md (your first-session
-    bootstrap, which sends you to #{@workspace}/BOOTSTRAP.md);
+    `/onboard` is #{@workspace}/skills/onboard/SKILL.md (your setting-out
+    ritual: self-portrait, entry #0, then your hello);
     `/travel-and-journal` is skills/travel-and-journal/SKILL.md (the daily
     ritual); `/revise-entry` is skills/revise-entry/SKILL.md (the feedback
     markers your companion left on an entry, for you to act on);
@@ -1252,9 +1248,11 @@ defmodule TravelingPoet.Provisioner do
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/USER.md", user_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/AGENTS.md", @agents_md),
          {:ok, _} <- write_file(sprite_name, "#{@workspace}/HEARTBEAT.md", @heartbeat_md),
-         # never clobber a completed bootstrap on re-provision
-         {:ok, _} <-
-           write_file_if_absent(sprite_name, "#{@workspace}/BOOTSTRAP.md", @bootstrap_md),
+         # No BOOTSTRAP.md: OpenClaw 2026.10 removes that file once the first
+         # session ends, finished or not. Three poets of 2026-10-17 (users
+         # 40, 43, 44) greeted on their first turn, lost the file, and had no
+         # ritual left to follow on the retries. The setting-out ritual lives
+         # in the onboard skill and is keyed on the context's `set_out`.
          {:ok, _} <- write_tree(sprite_name, "#{@workspace}/skills", @skill_contents) do
       {:ok, :written}
     end
@@ -2067,15 +2065,6 @@ defmodule TravelingPoet.Provisioner do
   defp write_file(sprite_name, path, content) do
     encoded = Base.encode64(String.trim(content))
     SpritesClient.exec(sprite_name, "echo '#{encoded}' | base64 -d > #{path}")
-  end
-
-  defp write_file_if_absent(sprite_name, path, content) do
-    encoded = Base.encode64(String.trim(content))
-
-    SpritesClient.exec(
-      sprite_name,
-      "test -f #{path} || test -f #{String.replace(path, ".md", ".completed.md")} || echo '#{encoded}' | base64 -d > #{path}"
-    )
   end
 
   defp write_tree(sprite_name, base_dir, contents) do

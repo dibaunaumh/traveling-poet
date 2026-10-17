@@ -34,6 +34,22 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert body["today"]
   end
 
+  test "context says whether the poet has set out and has a self-portrait", %{
+    conn: conn,
+    poet: poet
+  } do
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["set_out"] == false
+    assert body["self_portrait"] == false
+
+    published_entry_fixture(poet)
+    {:ok, _} = TravelingPoet.Poets.update_poet(poet, %{avatar_url: "/media/1"})
+
+    body = conn |> get(~p"/api/agent/context") |> json_response(200)
+    assert body["set_out"] == true
+    assert body["self_portrait"] == true
+  end
+
   test "context carries the journey so far, and says when today's place is a return",
        %{conn: conn, poet: poet} do
     alias TravelingPoet.Poets
