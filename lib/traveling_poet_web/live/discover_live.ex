@@ -388,7 +388,12 @@ defmodule TravelingPoetWeb.DiscoverLive do
         {entry_when(@selected.entry)}
       </.byline>
       <h2 class="discover-title">{@selected.entry.title}</h2>
-      <.section :if={@selected.drawing} section={%{kind: "illustration"}} media={@selected.drawing} />
+      <.section
+        :if={@selected.drawing}
+        section={%{kind: "illustration"}}
+        media={@selected.drawing}
+        loading="eager"
+      />
       <p :if={@selected.entry.teaser} class="discover-teaser">{@selected.entry.teaser}</p>
       <div class="discover-links">
         <a
@@ -422,7 +427,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         saved={saved(@bookmarks, @selected.place)}
       />
       <div :if={@selected.drawing_from == :entry} class="discover-borrowed">
-        <.section section={%{kind: "illustration"}} media={@selected.drawing} />
+        <.section section={%{kind: "illustration"}} media={@selected.drawing} loading="eager" />
         <p class="text-xs opacity-60">From the page {@selected.poet.name} wrote there</p>
       </div>
       <p :if={@selected.also != []} class="discover-also">

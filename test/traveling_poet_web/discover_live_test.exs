@@ -32,11 +32,21 @@ defmodule TravelingPoetWeb.DiscoverLiveTest do
         lng: -8.6
       })
 
+    drawing = media_fixture(wren, %{journal_entry_id: newest.id, alt_text: "Fado house"})
+
     {:ok, view, html} = live(conn, ~p"/discover")
 
     assert html =~ "Discover"
     assert has_element?(view, "#discover-map[phx-hook=DiscoverMap]")
     assert has_element?(view, "#discover-entry-#{newest.id}", "Fado at night")
+    # The drawing is the card, and the card changes under the tour: it is
+    # asked for at once, not left to lazy loading (which on the phone left
+    # a caption and no drawing).
+    assert has_element?(
+             view,
+             ~s|#discover-entry-#{newest.id} img[src="/media/#{drawing.id}"][loading=eager]|
+           )
+
     assert html =~ "A voice in an alley."
     assert has_element?(view, ~s|a[href="/p/#{wren.slug}/2026-09-02"]|, "Read this page")
 

@@ -120,6 +120,29 @@ document.addEventListener("click", (e) => {
   liveSocket.pushHistoryPatch(e, a.getAttribute("href"), "push", a)
 })
 
+// A drawing that failed to arrive is asked for again. Every drawing is one
+// request through /media/:id to the bucket, and on a phone that request
+// sometimes dies (a dropped connection as the app wakes, a slow bucket
+// read); the browser then keeps the gap until the next visit, and Discover
+// stood with a caption and no drawing for weeks (Udi, 2026-10-18). Two
+// tries, a moment apart. error does not bubble, hence the capture phase.
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target
+    if (!(img instanceof HTMLImageElement)) return
+    const src = img.getAttribute("src") || ""
+    if (!/^\/media\/\d+/.test(src)) return
+    const tries = Number(img.dataset.retries || 0)
+    if (tries >= 2) return
+    img.dataset.retries = String(tries + 1)
+    const url = new URL(src, window.location.origin)
+    url.searchParams.set("retry", String(tries + 1))
+    setTimeout(() => img.setAttribute("src", url.pathname + url.search), 1500 * (tries + 1))
+  },
+  true
+)
+
 // After the patch lands, light the stop the link pointed at for a moment.
 // CSS :target would do this on a real navigation, but browsers do not
 // re-evaluate it after pushState, which is how LiveView patches.

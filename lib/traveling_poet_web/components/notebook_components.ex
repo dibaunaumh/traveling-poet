@@ -824,6 +824,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
     default: %{},
     doc: "the entry's spot drawings by id: the only images a body may embed"
 
+  attr :loading, :string,
+    default: "lazy",
+    doc: "the drawing's img loading; \"eager\" where the drawing is the point of the card"
+
   @doc "One journal section: a taped-on illustration, or a titled block of the poet's prose."
   def section(%{section: %{kind: "illustration"}} = assigns) do
     ~H"""
@@ -832,7 +836,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         src={~p"/media/#{@media.id}"}
         alt={@media.alt_text || "illustration"}
         class="rounded-xl max-w-full shadow"
-        loading="lazy"
+        loading={@loading}
       />
       <figcaption class="text-xs opacity-60 mt-1 flex flex-wrap gap-x-3">
         <span :if={@media.alt_text}>{@media.alt_text}</span>
