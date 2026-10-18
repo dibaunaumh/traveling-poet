@@ -386,6 +386,9 @@ defmodule TravelingPoet.Poets do
       queued = Topics.queued_chat_excursion(poet.id) ->
         excursion(route, queued)
 
+      stay_guide_due?(route, poet) ->
+        Map.merge(route, %{day: "stay", excursion: nil})
+
       topic = Topics.due_topic(poet.id, today) ->
         excursion(route, %Topics.Excursion{
           id: nil,
@@ -398,6 +401,18 @@ defmodule TravelingPoet.Poets do
         Map.merge(route, %{day: "stay", excursion: nil})
     end
   end
+
+  # Where to stay comes before the cadence's excursion at a new scout stop.
+  # Udi's poet arrived in San Francisco on 2026-10-17, the cadence sent it
+  # on a Philosophy excursion on the 18th, and the neighbourhood page he was
+  # waiting for slipped to the 19th (Udi: "I want this to be available as
+  # soon as possible"). A reader's own excursion request still goes first:
+  # they asked for that day.
+  defp stay_guide_due?(%{scouting: true}, %Poet{current_place_name: city} = poet)
+       when is_binary(city) and city != "",
+       do: not TravelingPoet.Guide.Stay.weighed?(poet.id, city)
+
+  defp stay_guide_due?(_route, _poet), do: false
 
   defp arrived_on?(%Poet{arrived_at: %DateTime{} = at}, today),
     do: Date.compare(DateTime.to_date(at), today) == :eq
