@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.NotebookComponents
   import TravelingPoetWeb.RouteComponents
   import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
+  import TravelingPoetWeb.ShareComponents, only: [share_menu: 1]
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
@@ -1202,6 +1203,13 @@ defmodule TravelingPoetWeb.JournalLive do
                 </div>
               </:map>
               <:controls>
+                <.share_menu
+                  id="share-menu"
+                  url={share_url(@poet, @entry)}
+                  title={share_title(@poet, @entry)}
+                  text={@entry.teaser}
+                  public?={@poet.is_public}
+                />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
                   navigate={~p"/journal/#{date}"}
@@ -1223,6 +1231,13 @@ defmodule TravelingPoetWeb.JournalLive do
               guide_url={finds_guide_url(@entry)}
             >
               <:controls>
+                <.share_menu
+                  id="share-menu"
+                  url={share_url(@poet, @entry)}
+                  title={share_title(@poet, @entry)}
+                  text={@entry.teaser}
+                  public?={@poet.is_public}
+                />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
                   navigate={~p"/journal/#{date}"}
@@ -1251,6 +1266,13 @@ defmodule TravelingPoetWeb.JournalLive do
                 </div>
               </:map>
               <:controls>
+                <.share_menu
+                  id="share-menu"
+                  url={share_url(@poet, @entry)}
+                  title={share_title(@poet, @entry)}
+                  text={@entry.teaser}
+                  public?={@poet.is_public}
+                />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
                   navigate={~p"/journal/#{date}"}
@@ -1298,6 +1320,13 @@ defmodule TravelingPoetWeb.JournalLive do
             >
               <:controls>
                 <.marker_menu active={@active_marker} />
+                <.share_menu
+                  id="share-menu"
+                  url={share_url(@poet, @entry)}
+                  title={share_title(@poet, @entry)}
+                  text={@entry.teaser}
+                  public?={@poet.is_public}
+                />
                 <.link
                   :for={{label, date} <- entry_nav(@entries, @entry)}
                   navigate={~p"/journal/#{date}"}
@@ -1711,4 +1740,12 @@ defmodule TravelingPoetWeb.JournalLive do
       end
     end
   end
+
+  # The page as a friend receives it: the public address, and the title
+  # with the poet's name, since the link lands on a journal they may not
+  # know. See ShareComponents.
+  defp share_url(poet, entry),
+    do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}")
+
+  defp share_title(poet, entry), do: "#{entry_title(entry)}, by #{poet.name}"
 end

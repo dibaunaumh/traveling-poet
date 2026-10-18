@@ -145,7 +145,10 @@ defmodule TravelingPoetWeb.JournalMarkersTest do
     {conn, _user, poet, _entry} = owner(conn, %{is_public: true})
     {:ok, _view, html} = live(conn, ~p"/p/#{poet.slug}")
 
-    refute html =~ "marker-menu"
+    # The share menu wears the marker menu's classes; the tray itself is
+    # the element with the id and the hook.
+    refute html =~ ~s(id="marker-menu")
+    refute html =~ "Feedback marker"
     refute html =~ ~s(phx-hook="Markers")
   end
 end

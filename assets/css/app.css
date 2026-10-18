@@ -732,6 +732,15 @@ h1, h2, h3 {
   --marker-c: #6b5b40;
 }
 
+/* The share menu wears the marker menu's clothes in the notebook's ink. */
+.share-menu {
+  --marker-c: #6b5b40;
+}
+
+.share-menu .marker-menu-list li[hidden] {
+  display: none;
+}
+
 /* Options card shown under a tapped highlight or pin. Positioned against
    the notebook page, so the page is the containing block. */
 .notebook-page {

@@ -309,6 +309,49 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     refute owner |> get(~p"/journal/2026-08-27") |> html_response(200) =~ "og:title"
   end
 
+  test "a page's share menu hands over its public link; a private journal gets the Settings note",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    poet = poet_fixture(user, %{name: "Marisol", is_public: true})
+
+    {:ok, entry} =
+      Journal.upsert_entry(poet.id, ~D[2026-08-27], %{
+        title: "The rooftop nobody mentions",
+        teaser: "Swifts at dusk over the mosque.",
+        place_name: "Cordoba"
+      })
+
+    {:ok, _} = Journal.publish_entry(entry)
+    link = "http://localhost:4000/p/#{poet.slug}/2026-08-27"
+
+    # The reader of the public page and the owner get the same menu...
+    {:ok, view, _html} = live(conn, ~p"/p/#{poet.slug}/2026-08-27")
+    menu = view |> element("#share-menu") |> render()
+    assert menu =~ ~s(phx-hook="ShareMenu")
+    assert menu =~ ~s(data-url="#{link}")
+    assert menu =~ "Copy link"
+    assert menu =~ "https://twitter.com/intent/tweet?"
+    assert menu =~ URI.encode_www_form(link)
+    assert menu =~ "The+rooftop+nobody+mentions%2C+by+Marisol.+Swifts+at+dusk"
+    assert menu =~ "https://wa.me/?"
+    assert menu =~ "mailto:?"
+
+    owner = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, _html} = live(owner, ~p"/journal/2026-08-27")
+    assert view |> element("#share-menu") |> render() =~ ~s(data-url="#{link}")
+    # ...on every spread of the page.
+    {:ok, view, _html} = live(owner, ~p"/journal/2026-08-27?spread=places")
+    assert has_element?(view, "#share-menu[data-url='#{link}']")
+
+    # A private journal has no page a friend could open: say so instead.
+    {:ok, _} = TravelingPoet.Poets.update_poet(poet, %{is_public: false})
+    {:ok, view, _html} = live(owner, ~p"/journal/2026-08-27")
+    menu = view |> element("#share-menu") |> render()
+    assert menu =~ "Your journal is private"
+    assert menu =~ ~s(href="/settings")
+    refute menu =~ "Copy link"
+  end
+
   test "a long setup says so, and shows how long it has been", %{conn: conn} do
     user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
     poet = poet_fixture(user)
