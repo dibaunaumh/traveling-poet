@@ -1,7 +1,7 @@
 defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
   @moduledoc """
   A failed poet turn pages the admins once, with what the poet was doing
-  and the provider's own error, and is counted every time. Udi's poet
+  and the provider's own error, and is counted once per turn. Udi's poet
   (2026-10-16) failed chat for an evening with nothing but "Agent error" in
   the reader's chat; the 404 behind it was in the sprite's gateway log.
   """
@@ -75,7 +75,7 @@ defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
     refute text =~ "Provider error"
   end
 
-  test "three error events of one failed turn, reported at once, page once", %{
+  test "three error events of one failed turn, reported at once, page once and count once", %{
     user: user,
     opts: opts
   } do
@@ -92,23 +92,61 @@ defmodule TravelingPoet.FleetHealth.TurnErrorsTest do
       |> Enum.map(fn m -> Task.async(fn -> TurnErrors.report(user.id, m, opts) end) end)
       |> Task.await_many()
 
-    assert Enum.sort(results) == [{:ok, :paged}, {:ok, :quiet}, {:ok, :quiet}]
+    assert Enum.sort(results) == [{:ok, :echo}, {:ok, :echo}, {:ok, :paged}]
     assert_received {:paged, _}
     refute_received {:paged, _}
-    assert Usage.today_count(user.id, "turn_error") == 3
+    assert Usage.today_count(user.id, "turn_error") == 1
     assert Usage.today_count(user.id, "turn_error_alert") == 1
   end
 
+  test "an error event seconds after the last is the same turn; a failure a minute on is a new one",
+       %{user: user, opts: opts} do
+    now = DateTime.utc_now()
+    assert {:ok, :paged} = TurnErrors.report(user.id, "first", Keyword.put(opts, :now, now))
+
+    echo = DateTime.add(now, 2, :second)
+    assert {:ok, :echo} = TurnErrors.report(user.id, "Chat error", Keyword.put(opts, :now, echo))
+
+    later = DateTime.add(now, 1, :minute)
+    assert {:ok, :quiet} = TurnErrors.report(user.id, "second", Keyword.put(opts, :now, later))
+
+    assert Usage.today_count(user.id, "turn_error") == 2
+    assert TurnErrors.chat_failures_today(user.id, later) == 2
+  end
+
+  test "only chat failures count for the admin page", %{user: user, opts: opts} do
+    now = DateTime.utc_now()
+    {:ok, _} = Usage.record(user.id, "daily_run_attempt")
+
+    assert {:ok, :recorded} =
+             TurnErrors.report(user.id, "daily failed", Keyword.put(opts, :now, now))
+
+    chat_at = DateTime.add(now, 1, :minute)
+    {:ok, _} = Usage.record(user.id, "chat_turn", %{occurred_at: chat_at})
+
+    assert {:ok, :paged} =
+             TurnErrors.report(
+               user.id,
+               "chat failed",
+               Keyword.put(opts, :now, DateTime.add(chat_at, 20, :minute))
+             )
+
+    assert Usage.today_count(user.id, "turn_error") == 2
+    assert TurnErrors.chat_failures_today(user.id, DateTime.add(chat_at, 20, :minute)) == 1
+  end
+
   test "repeats within the quiet window are counted, not paged", %{user: user, opts: opts} do
-    assert {:ok, :paged} = TurnErrors.report(user.id, "first", opts)
+    now = DateTime.utc_now()
+    assert {:ok, :paged} = TurnErrors.report(user.id, "first", Keyword.put(opts, :now, now))
     assert_received {:paged, _}
     assert_received {:raw_for, _}
 
-    assert {:ok, :quiet} = TurnErrors.report(user.id, "second", opts)
+    soon = DateTime.add(now, 1, :minute)
+    assert {:ok, :quiet} = TurnErrors.report(user.id, "second", Keyword.put(opts, :now, soon))
     refute_received {:paged, _}
     refute_received {:raw_for, _}
 
-    later = DateTime.add(DateTime.utc_now(), 5, :hour)
+    later = DateTime.add(now, 5, :hour)
     assert {:ok, :paged} = TurnErrors.report(user.id, "third", Keyword.put(opts, :now, later))
     assert_received {:paged, _}
 

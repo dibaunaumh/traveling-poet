@@ -4,6 +4,7 @@ defmodule TravelingPoetWeb.AdminLive do
   import Ecto.Query
 
   alias TravelingPoet.{Accounts, Credits, FirstEntry, FleetHealth, OpenRouter, Repo, Usage}
+  alias TravelingPoet.FleetHealth.TurnErrors
   alias TravelingPoet.Accounts.Purge
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.Poets.Poet
@@ -106,7 +107,7 @@ defmodule TravelingPoetWeb.AdminLive do
       |> Repo.all()
       |> Enum.map(fn {user, poet} ->
         usage = rollup[user.id] || %{week_cost: 0, events: 0}
-        turn_errors = Usage.today_count(user.id, "turn_error")
+        chat_failures = TurnErrors.chat_failures_today(user.id)
 
         %{
           user: user,
@@ -116,7 +117,7 @@ defmodule TravelingPoetWeb.AdminLive do
           week_cost: usage.week_cost,
           runs_today: Usage.today_count(user.id, "daily_run"),
           budget: user.daily_budget_cents,
-          problems: problems(user, poet, poet && health_by_poet[poet.id], turn_errors),
+          problems: problems(user, poet, poet && health_by_poet[poet.id], chat_failures),
           new?: since?(user.inserted_at, DateTime.add(now, -7, :day)),
           seen_today?: since?(user.last_seen_at, start_of_today(now)),
           seen_this_week?: since?(user.last_seen_at, DateTime.add(now, -7, :day)),
@@ -139,16 +140,16 @@ defmodule TravelingPoetWeb.AdminLive do
   # the normal case. A poet that stalled on 2026-10-17 was only visible as
   # one red "error" badge in a long table, and the four readers it concerned
   # waited an hour; this is what the page now leads with.
-  defp problems(_user, nil, _health, _turn_errors), do: []
+  defp problems(_user, nil, _health, _chat_failures), do: []
 
-  defp problems(user, poet, health, turn_errors) do
+  defp problems(user, poet, health, chat_failures) do
     [
       poet.status == "error" && "setup failed",
       health && health.status == :failing && "missed today",
       health && health.status == :late && health.attempts_today > 0 &&
         "#{health.attempts_today} failed #{plural(health.attempts_today, "attempt")} today",
       FirstEntry.status(user, poet) == :exhausted && "first page never came",
-      turn_errors > 0 && "#{turn_errors} turn #{plural(turn_errors, "error")} today"
+      chat_failures > 0 && "#{chat_failures} failed chat #{plural(chat_failures, "turn")} today"
     ]
     |> Enum.filter(&is_binary/1)
   end
