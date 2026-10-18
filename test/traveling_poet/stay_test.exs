@@ -86,6 +86,33 @@ defmodule TravelingPoet.StayTest do
       assert Poets.travel_plan(poet).stay_guide == nil
     end
 
+    test "it goes before the cadence's excursion, not before the reader's own request" do
+      user = user_fixture()
+      poet = scout_poet(user)
+      topic = topic_fixture(poet)
+
+      # A topic is due, and the neighbourhoods still win the first day.
+      plan = Poets.travel_plan(poet)
+      assert plan.day == "stay"
+      assert plan.stay_guide == %{city: "Kraków"}
+      assert plan.excursion == nil
+
+      # Weighed: the excursion takes the next day.
+      entry = published_entry_fixture(poet)
+      area(entry, %{name: "Kazimierz"})
+      plan = Poets.travel_plan(poet)
+      assert plan.day == "excursion"
+      assert plan.excursion.topic_id == topic.id
+
+      # A reader who asked for an excursion in the chat gets it, stay guide or not.
+      poet2 = scout_poet(user_fixture())
+      topic2 = topic_fixture(poet2)
+      excursion_fixture(poet2, topic2, nil, %{requested_destination: "Okinawa"})
+      plan = Poets.travel_plan(poet2)
+      assert plan.day == "excursion"
+      assert plan.stay_guide == nil
+    end
+
     test "never for a wandering poet" do
       poet =
         poet_fixture(user_fixture(), %{
