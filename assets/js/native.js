@@ -35,6 +35,17 @@ const PDF_PATH = /^\/journal\/book\/pdf\/\d+$/
 // view hands them over by itself.
 const SYSTEM_HOSTS = new Set(["t.me", "telegram.me"])
 
+// WhatsApp's share link (wa.me/?text=) is a web page that offers to open
+// the app. In the in-app browser sheet that offer does nothing: the sheet
+// cannot hand a page to another app (Udi, 2026-10-18, the share menu). The
+// app's own scheme carries the same text, and the web view hands a scheme
+// it does not serve to the system, as it does mailto:.
+const WHATSAPP_HOSTS = new Set(["wa.me", "api.whatsapp.com"])
+
+function whatsappScheme(url) {
+  return "whatsapp://send?text=" + encodeURIComponent(url.searchParams.get("text") || "")
+}
+
 function openInSheet(url) {
   return call("Browser", "open", {url, presentationStyle: "popover"})
 }
@@ -170,6 +181,11 @@ function onClick(e) {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return
   if (SYSTEM_HOSTS.has(url.hostname)) return
+  if (WHATSAPP_HOSTS.has(url.hostname)) {
+    e.preventDefault()
+    window.location.href = whatsappScheme(url)
+    return
+  }
 
   if (url.origin === window.location.origin && url.pathname === "/auth/logout" && rememberDeviceToken()) {
     e.preventDefault()
