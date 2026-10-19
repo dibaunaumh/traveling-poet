@@ -37,5 +37,4 @@ defmodule TravelingPoet.PoetNamesTest do
       assert TravelingPoet.Poets.Poet.slugify("!!!") == "poet"
     end
   end
-
 end

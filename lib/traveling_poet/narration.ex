@@ -185,10 +185,12 @@ defmodule TravelingPoet.Narration do
     end
   end
 
-  @doc "Removes a narration: the object and the row."
+  # The recording a new one replaces: its row always, its object only when
+  # the new one was not written over it
   defp replace(%Media{s3_key: key} = old, key), do: Repo.delete(old)
   defp replace(old, _new_key), do: delete(old)
 
+  @doc "Removes a narration: the object and the row."
   def delete(%Media{kind: "narration"} = media) do
     storage().delete_file(media.s3_key)
     Repo.delete(media)
