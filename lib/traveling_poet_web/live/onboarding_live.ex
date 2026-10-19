@@ -38,7 +38,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
       socket =
         socket
-        |> assign(:page_title, "Set up your poet")
+        |> assign(:page_title, dgettext("onboarding", "Set up your poet"))
         |> assign(:step, :poet)
         |> assign(:user_name, user.name || "")
         |> assign(:taken_names, Poets.taken_names())
@@ -161,12 +161,21 @@ defmodule TravelingPoetWeb.OnboardingLive do
     |> assign(:show_location_search, true)
     |> assign(
       :location_error,
-      "Couldn’t find “#{query}” — try another spelling or pick a nearby city."
+      dgettext(
+        "onboarding",
+        "Couldn’t find “%{query}” — try another spelling or pick a nearby city.",
+        query: query
+      )
     )
   end
 
   defp adopt_destination(socket, :search, _query, {:none, _}),
-    do: assign(socket, :location_error, "No places found — try a broader name.")
+    do:
+      assign(
+        socket,
+        :location_error,
+        dgettext("onboarding", "No places found — try a broader name.")
+      )
 
   defp adopt_destination(socket, :home, query, {:error, _reason}) do
     socket
@@ -175,18 +184,36 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   defp adopt_destination(socket, :search, _query, {:error, reason}),
-    do: assign(socket, :location_error, "Search failed: #{reason}")
+    do:
+      assign(
+        socket,
+        :location_error,
+        dgettext("onboarding", "Search failed: %{reason}", reason: reason)
+      )
 
   defp lookup_failed(query),
-    do: "Couldn’t look up “#{query}” right now — search again or pick a city."
+    do:
+      dgettext(
+        "onboarding",
+        "Couldn’t look up “%{query}” right now — search again or pick a city.",
+        query: query
+      )
 
   defp route_notice(stops) do
     names = stops |> Enum.map(&short_name/1) |> Enum.join(", ")
-    "Several places make a route, so your poet will scout them in this order: #{names}."
+
+    dgettext(
+      "onboarding",
+      "Several places make a route, so your poet will scout them in this order: %{names}.",
+      names: names
+    )
   end
 
-  defp missing_stops(missing),
-    do: "Couldn’t find #{Enum.map_join(missing, ", ", &"“#{&1}”")} — search below to add it."
+  defp missing_stops(missing) do
+    dgettext("onboarding", "Couldn’t find %{names} — search below to add it.",
+      names: Enum.map_join(missing, ", ", &"“#{&1}”")
+    )
+  end
 
   defp short_name(%{city: city}) when is_binary(city) and city != "", do: city
   defp short_name(%{place_name: name}), do: name |> String.split(",") |> hd() |> String.trim()
@@ -462,12 +489,21 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
       {:noreply,
        socket
-       |> put_flash(:info, "#{poet.name} is packing their bags!")
+       |> put_flash(
+         :info,
+         dgettext("onboarding", "%{poet} is packing their bags!", poet: poet.name)
+       )
        |> push_navigate(to: ~p"/journal")}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply,
-         put_flash(socket, :error, "Could not create your poet: #{inspect(changeset.errors)}")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("onboarding", "Could not create your poet: %{errors}",
+             errors: inspect(changeset.errors)
+           )
+         )}
 
       {:error, msg} when is_binary(msg) ->
         {:noreply, put_flash(socket, :error, msg)}
@@ -606,6 +642,31 @@ defmodule TravelingPoetWeb.OnboardingLive do
     |> Enum.uniq()
   end
 
+  # What the send-off summary shows: the same list, with each domain named in
+  # the reader's language. The list the poet is given stays in English.
+  defp shown_interests(assigns) do
+    passions =
+      Enum.map(assigns.passions, fn domain ->
+        name = Topic.domain_label(domain)
+
+        case String.trim(Map.get(assigns.passion_words, domain) || "") do
+          "" -> name
+          words -> "#{name}: #{String.slice(words, 0, 120)}"
+        end
+      end)
+
+    (passions ++
+       Enum.to_list(assigns.selected_interests) ++
+       Presets.split_interests(assigns.custom_interests))
+    |> Enum.uniq()
+  end
+
+  # Arrows follow the reading direction.
+  defp route_arrow(locale), do: if(TravelingPoet.Locale.rtl?(locale), do: " ← ", else: " → ")
+
+  defp disclosure(true, _locale), do: "▾"
+  defp disclosure(false, locale), do: if(TravelingPoet.Locale.rtl?(locale), do: "◂", else: "▸")
+
   # `[{domain, label}]`: the reader's words, or the domain's own name.
   defp passion_tastes(assigns) do
     Enum.map(assigns.passions, fn domain ->
@@ -622,7 +683,12 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   defp validate_mode_inputs(%{mode: "scout", stops: []}),
-    do: {:error, "A Trip Scout needs at least one planned stop — go back and add one."}
+    do:
+      {:error,
+       dgettext(
+         "onboarding",
+         "A Trip Scout needs at least one planned stop — go back and add one."
+       )}
 
   defp validate_mode_inputs(_), do: :ok
 
@@ -631,13 +697,16 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
     cond do
       trimmed == "" ->
-        {:error, "Your poet needs a name — type one or press Shuffle."}
+        {:error, dgettext("onboarding", "Your poet needs a name — type one or press Shuffle.")}
 
       String.length(trimmed) > TravelingPoet.Poets.Poet.name_max() ->
-        {:error, "Keep the name under #{TravelingPoet.Poets.Poet.name_max()} characters."}
+        {:error,
+         dgettext("onboarding", "Keep the name under %{max} characters.",
+           max: TravelingPoet.Poets.Poet.name_max()
+         )}
 
       String.contains?(trimmed, ["<", ">"]) ->
-        {:error, "A name can't contain < or >."}
+        {:error, dgettext("onboarding", "A name can't contain < or >.")}
 
       true ->
         {:ok, trimmed}
@@ -676,7 +745,10 @@ defmodule TravelingPoetWeb.OnboardingLive do
         <div class="mb-6">
           <div class="flex items-center justify-between gap-3 mb-1">
             <div class="text-sm opacity-60">
-              Step {step_number(@step)} of {step_count()}
+              {dgettext("onboarding", "Step %{n} of %{total}",
+                n: step_number(@step),
+                total: step_count()
+              )}
             </div>
             <%!-- Sets the interface and the poet's language at once (dec-008);
                   only on the first step, since a switch reloads the page --%>
@@ -702,36 +774,38 @@ defmodule TravelingPoetWeb.OnboardingLive do
         </div>
 
         <div :if={@step == :poet}>
-          <h1 class="text-2xl font-semibold mb-2">Meet your poet</h1>
+          <h1 class="text-2xl font-semibold mb-2">{dgettext("onboarding", "Meet your poet")}</h1>
           <p class="opacity-70 mb-4">
-            We picked one for you — shuffle or tweak anything. You can change all of
-            this later in Settings.
+            {dgettext(
+              "onboarding",
+              "We picked one for you — shuffle or tweak anything. You can change all of this later in Settings."
+            )}
           </p>
           <form id="onboarding-poet" phx-submit="next" phx-change="capture" class="space-y-4">
             <label class="block">
-              <span class="text-sm font-medium">Poet's name</span>
+              <span class="text-sm font-medium">{dgettext("onboarding", "Poet's name")}</span>
               <div class="flex gap-2 mt-1">
                 <input
                   type="text"
                   name="poet_name"
                   value={@poet_name}
                   class="input input-bordered flex-1"
-                  placeholder="Wren, Basho-of-the-Buses, Señora Tinta…"
+                  placeholder={dgettext("onboarding", "Wren, Basho-of-the-Buses, Señora Tinta…")}
                 />
                 <button
                   type="button"
                   id="shuffle-name"
                   phx-click="shuffle_name"
                   class="btn btn-secondary"
-                  title="Pick another name"
+                  title={dgettext("onboarding", "Pick another name")}
                 >
-                  🎲 Shuffle
+                  🎲 {dgettext("onboarding", "Shuffle")}
                 </button>
               </div>
             </label>
 
             <div>
-              <span class="text-sm font-medium">Personality</span>
+              <span class="text-sm font-medium">{dgettext("onboarding", "Personality")}</span>
               <div class="mt-2">
                 <.personality_chips
                   personalities={@personalities}
@@ -752,7 +826,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 class="mt-3 rounded-box bg-base-200 px-4 py-3"
               >
                 <figcaption class="text-xs opacity-60 mb-1">
-                  How this poet might write about a fish market at dawn
+                  {dgettext("onboarding", "How this poet might write about a fish market at dawn")}
                 </figcaption>
                 <blockquote class="text-sm leading-relaxed">
                   {personality_sample(@personality_idx, @locale)}
@@ -762,7 +836,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 :if={@personality_mode == :custom}
                 name="personality_custom"
                 class="textarea textarea-bordered w-full mt-2"
-                placeholder="melancholy but funny; talks to cats; obsessed with bridges"
+                placeholder={
+                  dgettext("onboarding", "melancholy but funny; talks to cats; obsessed with bridges")
+                }
               >{@personality_custom}</textarea>
             </div>
 
@@ -772,13 +848,17 @@ defmodule TravelingPoetWeb.OnboardingLive do
               phx-click="toggle_more"
               class="btn btn-ghost btn-sm px-0"
             >
-              {if @more_open, do: "▾", else: "▸"} More options
-              <span class="opacity-50 font-normal">— chattiness, books for the road</span>
+              {disclosure(@more_open, @locale)} {dgettext("onboarding", "More options")}
+              <span class="opacity-50 font-normal">
+                {dgettext("onboarding", "— chattiness, books for the road")}
+              </span>
             </button>
 
             <div :if={@more_open} id="more-options" class="space-y-4 ps-1">
               <div>
-                <span class="text-sm font-medium">How chatty should the journal be?</span>
+                <span class="text-sm font-medium">
+                  {dgettext("onboarding", "How chatty should the journal be?")}
+                </span>
                 <div class="mt-2 space-y-1">
                   <label class="flex items-center gap-2 text-sm cursor-pointer">
                     <input
@@ -788,7 +868,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
                       class="radio radio-sm"
                       checked={@verbosity == "brief"}
                     />
-                    <span><b>Brief</b> — short postcards, a few lines and a poem</span>
+                    <.rich text={
+                      dgettext("onboarding", "%{name} — short postcards, a few lines and a poem",
+                        name: marker(:name)
+                      )
+                    }>
+                      <:part name="name"><b>{dgettext("onboarding", "Brief")}</b></:part>
+                    </.rich>
                   </label>
                   <label class="flex items-center gap-2 text-sm cursor-pointer">
                     <input
@@ -798,7 +884,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
                       class="radio radio-sm"
                       checked={@verbosity == "balanced"}
                     />
-                    <span><b>Balanced</b> — a solid paragraph or two per section</span>
+                    <.rich text={
+                      dgettext("onboarding", "%{name} — a solid paragraph or two per section",
+                        name: marker(:name)
+                      )
+                    }>
+                      <:part name="name"><b>{dgettext("onboarding", "Balanced")}</b></:part>
+                    </.rich>
                   </label>
                   <label class="flex items-center gap-2 text-sm cursor-pointer">
                     <input
@@ -808,12 +900,20 @@ defmodule TravelingPoetWeb.OnboardingLive do
                       class="radio radio-sm"
                       checked={@verbosity == "expansive"}
                     />
-                    <span><b>Expansive</b> — full travel-journal essays</span>
+                    <.rich text={
+                      dgettext("onboarding", "%{name} — full travel-journal essays",
+                        name: marker(:name)
+                      )
+                    }>
+                      <:part name="name"><b>{dgettext("onboarding", "Expansive")}</b></:part>
+                    </.rich>
                   </label>
                 </div>
               </div>
               <div>
-                <span class="text-sm font-medium">Currently reading (pick any)</span>
+                <span class="text-sm font-medium">
+                  {dgettext("onboarding", "Currently reading (pick any)")}
+                </span>
                 <div class="mt-2">
                   <.book_chips books={@reading_list} selected={@selected_reading} />
                 </div>
@@ -822,19 +922,26 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   name="custom_reading"
                   value={@custom_reading}
                   class="input input-bordered input-sm w-full mt-2"
-                  placeholder="…or any other book (free text)"
+                  placeholder={dgettext("onboarding", "…or any other book (free text)")}
                 />
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-full">Continue</button>
+            <button type="submit" class="btn btn-primary w-full">
+              {dgettext("onboarding", "Continue")}
+            </button>
           </form>
         </div>
 
         <div :if={@step == :journey}>
-          <h1 class="text-2xl font-semibold mb-2">Where are they headed?</h1>
+          <h1 class="text-2xl font-semibold mb-2">
+            {dgettext("onboarding", "Where are they headed?")}
+          </h1>
           <p class="opacity-70 mb-4">
-            A wanderer with a random starting city is ready to go — or plan a real trip.
+            {dgettext(
+              "onboarding",
+              "A wanderer with a random starting city is ready to go — or plan a real trip."
+            )}
           </p>
           <div class="space-y-3 mb-4">
             <button
@@ -848,11 +955,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
               ]}
             >
               <div class="text-lg font-semibold">
-                {if @mode == "wander", do: "🔘", else: "⚪"} 🧭 Wanderer
+                {if @mode == "wander", do: "🔘", else: "⚪"} 🧭 {dgettext("onboarding", "Wanderer")}
               </div>
               <div class="text-sm opacity-70">
-                Let your poet wander the world freely — a new nearby place every few
-                days, discoveries you never asked for.
+                {dgettext(
+                  "onboarding",
+                  "Let your poet wander the world freely — a new nearby place every few days, discoveries you never asked for."
+                )}
               </div>
             </button>
             <button
@@ -866,11 +975,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
               ]}
             >
               <div class="text-lg font-semibold">
-                {if @mode == "scout", do: "🔘", else: "⚪"} 🗺️ Trip Scout
+                {if @mode == "scout", do: "🔘", else: "⚪"} 🗺️ {dgettext("onboarding", "Trip Scout")}
               </div>
               <div class="text-sm opacity-70">
-                Planning a real trip? Your poet pre-visits the places on your route, in
-                order, and reports what will interest you when you get there.
+                {dgettext(
+                  "onboarding",
+                  "Planning a real trip? Your poet pre-visits the places on your route, in order, and reports what will interest you when you get there."
+                )}
               </div>
             </button>
           </div>
@@ -878,7 +989,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
           <div :if={@mode == "wander"} class="mb-5">
             <div class="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-base-200">
               <span id="start-location" class="text-sm">
-                Setting out from <b>{@location && @location.place_name}</b>
+                <.rich text={
+                  dgettext("onboarding", "Setting out from %{place}", place: marker(:place))
+                }>
+                  <:part name="place"><b>{@location && @location.place_name}</b></:part>
+                </.rich>
               </span>
               <button
                 type="button"
@@ -886,7 +1001,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 phx-click="surprise_location"
                 class="btn btn-secondary btn-xs"
               >
-                🎲 Another
+                🎲 {dgettext("onboarding", "Another")}
               </button>
               <button
                 type="button"
@@ -894,7 +1009,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 phx-click="toggle_location_search"
                 class="btn btn-ghost btn-xs"
               >
-                {if @show_location_search, do: "Never mind", else: "Choose a city"}
+                {if @show_location_search,
+                  do: dgettext("onboarding", "Never mind"),
+                  else: dgettext("onboarding", "Choose a city")}
               </button>
             </div>
             <div :if={@show_location_search} class="mt-3">
@@ -904,14 +1021,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   name="query"
                   value={@location_query}
                   class="input input-bordered input-sm flex-1"
-                  placeholder="A city or town, or a route: Lisbon, Porto…"
+                  placeholder={dgettext("onboarding", "A city or town, or a route: Lisbon, Porto…")}
                 />
                 <button type="submit" class="btn btn-sm" disabled={@location_busy != nil}>
-                  Search
+                  {dgettext("onboarding", "Search")}
                 </button>
               </form>
               <p :if={@location_busy} class="text-sm opacity-60 mb-2">
-                Looking up “{@location_busy}”…
+                {dgettext("onboarding", "Looking up “%{query}”…", query: @location_busy)}
               </p>
               <p :if={@location_error} class="text-error text-sm mb-2">{@location_error}</p>
               <div :if={@location_results != []} class="space-y-1">
@@ -933,8 +1050,10 @@ defmodule TravelingPoetWeb.OnboardingLive do
               {@route_notice}
             </p>
             <p class="text-sm opacity-70 mb-2">
-              Add the places in the order you'll visit them, one at a time or as a list.
-              Your poet starts scouting at the first one.
+              {dgettext(
+                "onboarding",
+                "Add the places in the order you'll visit them, one at a time or as a list. Your poet starts scouting at the first one."
+              )}
             </p>
             <form phx-submit="search_location" class="flex gap-2 mb-2">
               <input
@@ -942,14 +1061,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 name="query"
                 value={@location_query}
                 class="input input-bordered input-sm flex-1"
-                placeholder="A city or town, or a route: Lisbon, Porto…"
+                placeholder={dgettext("onboarding", "A city or town, or a route: Lisbon, Porto…")}
               />
               <button type="submit" class="btn btn-sm" disabled={@location_busy != nil}>
-                Search
+                {dgettext("onboarding", "Search")}
               </button>
             </form>
             <p :if={@location_busy} class="text-sm opacity-60 mb-2">
-              Looking up “{@location_busy}”…
+              {dgettext("onboarding", "Looking up “%{query}”…", query: @location_busy)}
             </p>
             <p :if={@location_error} class="text-error text-sm mb-2">{@location_error}</p>
             <div :if={@location_results != []} class="space-y-1 mb-3">
@@ -983,9 +1102,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
           </div>
 
           <div class="mb-6" id="passions">
-            <span class="text-sm font-medium">What do you travel for?</span>
+            <span class="text-sm font-medium">
+              {dgettext("onboarding", "What do you travel for?")}
+            </span>
             <span class="block text-xs opacity-60">
-              Pick up to three. {@poet_name} will look for them in every place it visits.
+              {dgettext(
+                "onboarding",
+                "Pick up to three. %{poet} will look for them in every place it visits.",
+                poet: @poet_name
+              )}
             </span>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
               <button
@@ -1001,7 +1126,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   if(domain in @passions, do: "btn-primary", else: "btn-outline")
                 ]}
               >
-                {Topic.domain_name(domain)}
+                {Topic.domain_label(domain)}
               </button>
             </div>
             <form
@@ -1013,8 +1138,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
             >
               <label :for={domain <- @passions} class="block">
                 <span class="text-xs opacity-70">
-                  {Topic.domain_name(domain)}: {domain |> Topic.hint() |> elem(0) |> String.downcase()}
-                  <span class="opacity-60">(optional)</span>
+                  {Topic.domain_label(domain)}: {domain
+                  |> Topic.hint()
+                  |> elem(0)
+                  |> String.downcase()}
+                  <span class="opacity-60">{dgettext("onboarding", "(optional)")}</span>
                 </span>
                 <input
                   type="text"
@@ -1024,7 +1152,11 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   maxlength="120"
                   phx-debounce="300"
                   class="input input-bordered input-sm w-full"
-                  placeholder={"e.g. " <> (domain |> Topic.hint() |> elem(1))}
+                  placeholder={
+                    dgettext("onboarding", "e.g. %{example}",
+                      example: domain |> Topic.hint() |> elem(1)
+                    )
+                  }
                 />
               </label>
             </form>
@@ -1032,7 +1164,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
           <div class="mb-6">
             <span class="text-sm font-medium">
-              Anything else you'd love postcards about? <span class="opacity-50">(optional)</span>
+              {dgettext("onboarding", "Anything else you'd love postcards about?")}
+              <span class="opacity-50">{dgettext("onboarding", "(optional)")}</span>
             </span>
             <div class="mt-2">
               <.interest_chips interests={@interest_options} selected={@selected_interests} />
@@ -1043,13 +1176,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 name="custom_interests"
                 value={@custom_interests}
                 class="input input-bordered input-sm w-full mt-2"
-                placeholder="…or anything else, comma-separated"
+                placeholder={dgettext("onboarding", "…or anything else, comma-separated")}
               />
             </form>
           </div>
 
           <div class="flex gap-2">
-            <button type="button" phx-click="back" class="btn btn-ghost">Back</button>
+            <button type="button" phx-click="back" class="btn btn-ghost">
+              {dgettext("onboarding", "Back")}
+            </button>
             <button
               type="button"
               id="journey-continue"
@@ -1057,32 +1192,42 @@ defmodule TravelingPoetWeb.OnboardingLive do
               class="btn btn-primary flex-1"
               disabled={@mode == "scout" and @stops == []}
             >
-              Continue
+              {dgettext("onboarding", "Continue")}
             </button>
           </div>
         </div>
 
         <div :if={@step == :send_off}>
-          <h1 class="text-2xl font-semibold mb-2">Ready to set out</h1>
+          <h1 class="text-2xl font-semibold mb-2">{dgettext("onboarding", "Ready to set out")}</h1>
           <ul class="space-y-2 mb-6 text-sm">
-            <li><b>Poet:</b> {@poet_name}</li>
+            <li><b>{dgettext("onboarding", "Poet:")}</b> {@poet_name}</li>
             <li :if={personality_summary(assigns) != ""}>
-              <b>Personality:</b> {personality_summary(assigns)}
+              <b>{dgettext("onboarding", "Personality:")}</b> {personality_summary(assigns)}
             </li>
             <li>
-              <b>Mission:</b> {if @mode == "scout", do: "Trip Scout", else: "Wanderer"}
+              <b>{dgettext("onboarding", "Mission:")}</b> {if @mode == "scout",
+                do: dgettext("onboarding", "Trip Scout"),
+                else: dgettext("onboarding", "Wanderer")}
             </li>
             <li :if={@mode == "wander"}>
-              <b>Starting from:</b> {(@location && @location.place_name) || "—"}
+              <b>{dgettext("onboarding", "Starting from:")}</b> {(@location && @location.place_name) ||
+                "—"}
             </li>
             <li :if={@mode == "scout"}>
-              <b>Route:</b> {Enum.map_join(@stops, " → ", & &1.place_name)}
+              <b>{dgettext("onboarding", "Route:")}</b> {Enum.map_join(
+                @stops,
+                route_arrow(@locale),
+                & &1.place_name
+              )}
             </li>
             <li :if={selected_titles(assigns) != []}>
-              <b>Reading:</b> {Enum.join(selected_titles(assigns), ", ")}
+              <b>{dgettext("onboarding", "Reading:")}</b> {Enum.join(selected_titles(assigns), ", ")}
             </li>
-            <li :if={effective_interests(assigns) != []}>
-              <b>Postcards about:</b> {Enum.join(effective_interests(assigns), ", ")}
+            <li :if={shown_interests(assigns) != []}>
+              <b>{dgettext("onboarding", "Postcards about:")}</b> {Enum.join(
+                shown_interests(assigns),
+                ", "
+              )}
             </li>
           </ul>
 
@@ -1093,13 +1238,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
             class="space-y-4"
           >
             <label class="block">
-              <span class="text-sm font-medium">Postcards addressed to</span>
+              <span class="text-sm font-medium">
+                {dgettext("onboarding", "Postcards addressed to")}
+              </span>
               <input
                 type="text"
                 name="name"
                 value={@user_name}
                 class="input input-bordered w-full mt-1"
-                placeholder="Your name"
+                placeholder={dgettext("onboarding", "Your name")}
               />
             </label>
 
@@ -1111,29 +1258,34 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 checked={@is_public}
               />
               <span>
-                <b>Public journal</b>
+                <b>{dgettext("onboarding", "Public journal")}</b>
                 <span class="block text-sm opacity-60">
-                  Join the world map on our landing page so anyone can read along.
-                  Turn this off to keep the journal to yourself. Your chat with the
-                  poet stays private either way.
+                  {dgettext(
+                    "onboarding",
+                    "Join the world map on our landing page so anyone can read along. Turn this off to keep the journal to yourself. Your chat with the poet stays private either way."
+                  )}
                 </span>
               </span>
             </label>
 
             <p class="text-xs opacity-60">
-              You can pair Telegram, rename your poet, and change any of this later in
-              Settings.
+              {dgettext(
+                "onboarding",
+                "You can pair Telegram, rename your poet, and change any of this later in Settings."
+              )}
             </p>
 
             <div class="flex gap-2">
-              <button type="button" phx-click="back" class="btn btn-ghost">Back</button>
+              <button type="button" phx-click="back" class="btn btn-ghost">
+                {dgettext("onboarding", "Back")}
+              </button>
               <button
                 type="submit"
                 id="send-them-off"
                 class="btn btn-primary flex-1"
-                phx-disable-with="Packing bags…"
+                phx-disable-with={dgettext("onboarding", "Packing bags…")}
               >
-                Send them off 🧳
+                {dgettext("onboarding", "Send them off")} 🧳
               </button>
             </div>
           </form>

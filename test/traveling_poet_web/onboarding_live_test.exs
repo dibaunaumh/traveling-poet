@@ -302,14 +302,14 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert html =~ "Couldn’t find “Atlantis”"
       assert html =~ ~s(name="query" value="Atlantis")
       # the default city is still there to fall back on
-      assert html =~ "Setting out from <b>"
+      assert html =~ ~r/Setting out from <b[^>]*>/
     end
 
     test "no place means the ordinary pre-filled start", %{conn: conn} do
       user = user_fixture()
       {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=")
       html = view |> element("#onboarding-poet") |> render_submit()
-      assert html =~ "Setting out from <b>"
+      assert html =~ ~r/Setting out from <b[^>]*>/
       refute html =~ "Couldn’t find"
     end
   end
@@ -358,7 +358,7 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       render_async(view)
 
       html = view |> element("#onboarding-poet") |> render_submit()
-      assert html =~ "Setting out from <b>Paris, Lamar County, Texas"
+      assert html =~ ~r/Setting out from <b[^>]*>Paris, Lamar County, Texas/
       refute html =~ "scout them in this order"
     end
 
@@ -399,7 +399,7 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       render_click(view, "toggle_location_search", %{})
       render_submit(view, "search_location", %{"query" => "Porto"})
       html = render_async(view)
-      assert html =~ "Setting out from <b>Porto, Portugal"
+      assert html =~ ~r/Setting out from <b[^>]*>Porto, Portugal/
       refute html =~ "scout them in this order"
     end
   end
