@@ -10,6 +10,8 @@ defmodule TravelingPoetWeb.GuideState do
   showing something the owner's does not.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [push_event: 3]
 
@@ -258,8 +260,9 @@ defmodule TravelingPoetWeb.GuideState do
     day = Date.to_iso8601(date)
 
     if poet.id == own.id,
-      do: {"From your journal", "/journal/#{day}"},
-      else: {"From #{poet.name}'s journal", "/p/#{poet.slug}/#{day}"}
+      do: {dgettext("guide", "From your journal"), "/journal/#{day}"},
+      else:
+        {dgettext("guide", "From %{poet}'s journal", poet: poet.name), "/p/#{poet.slug}/#{day}"}
   end
 
   defp source(_poet, _own, _item), do: nil

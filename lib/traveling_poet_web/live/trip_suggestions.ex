@@ -55,11 +55,14 @@ defmodule TravelingPoetWeb.TripSuggestions do
              update_trips(socket, %{
                home_query: q,
                home_results: results,
-               home_error: if(results == [], do: "No places found.")
+               home_error: if(results == [], do: dgettext("guide", "No places found."))
              })}
 
           {:error, reason} ->
-            {:noreply, update_trips(socket, %{home_error: "Search failed: #{reason}"})}
+            {:noreply,
+             update_trips(socket, %{
+               home_error: dgettext("guide", "Search failed: %{reason}", reason: reason)
+             })}
         end
     end
   end
@@ -89,11 +92,20 @@ defmodule TravelingPoetWeb.TripSuggestions do
       note =
         if trip.status == "scouting",
           do:
-            "#{poet.name} sets out for #{trip.name} now; there is not enough time for a full " <>
-              "stay at every stop before you go.",
+            dgettext(
+              "guide",
+              "%{poet} sets out for %{trip} now; there is not enough time for a full stay at every stop before you go.",
+              poet: poet.name,
+              trip: trip.name
+            ),
           else:
-            "#{poet.name} will scout #{trip.name} for your trip, setting out on " <>
-              "#{Trips.date_range(trip.scout_from, trip.scout_from)}."
+            dgettext(
+              "guide",
+              "%{poet} will scout %{trip} for your trip, setting out on %{date}.",
+              poet: poet.name,
+              trip: trip.name,
+              date: Trips.date_range(trip.scout_from, trip.scout_from)
+            )
 
       {:noreply, socket |> assign_trips() |> put_flash(:info, note)}
     else
@@ -121,7 +133,10 @@ defmodule TravelingPoetWeb.TripSuggestions do
       {:noreply,
        socket
        |> assign_trips()
-       |> put_flash(:info, "The trip to #{trip.name} is called off.")}
+       |> put_flash(
+         :info,
+         dgettext("guide", "The trip to %{trip} is called off.", trip: trip.name)
+       )}
     else
       _ -> {:noreply, assign_trips(socket)}
     end
@@ -132,7 +147,10 @@ defmodule TravelingPoetWeb.TripSuggestions do
 
     with %Trip{calendar_gone_at: %DateTime{}} = trip <- Trips.get(poet.id, String.to_integer(id)),
          {:ok, _} <- Trips.keep(poet, trip) do
-      {:noreply, socket |> assign_trips() |> put_flash(:info, "Kept. #{poet.name} still goes.")}
+      {:noreply,
+       socket
+       |> assign_trips()
+       |> put_flash(:info, dgettext("guide", "Kept. %{poet} still goes.", poet: poet.name))}
     else
       _ -> {:noreply, assign_trips(socket)}
     end
@@ -148,11 +166,19 @@ defmodule TravelingPoetWeb.TripSuggestions do
 
       synced_at && DateTime.diff(DateTime.utc_now(), synced_at) < @check_again_after_s ->
         {:noreply,
-         put_flash(socket, :info, "Your calendar was checked a few minutes ago. Try again later.")}
+         put_flash(
+           socket,
+           :info,
+           dgettext("guide", "Your calendar was checked a few minutes ago. Try again later.")
+         )}
 
       true ->
         CalendarSync.sync_soon(user)
-        {:noreply, socket |> assign_trips() |> put_flash(:info, "Checking your calendar.")}
+
+        {:noreply,
+         socket
+         |> assign_trips()
+         |> put_flash(:info, dgettext("guide", "Checking your calendar."))}
     end
   end
 
@@ -165,7 +191,10 @@ defmodule TravelingPoetWeb.TripSuggestions do
      socket
      |> assign(:user, user)
      |> assign_trips()
-     |> put_flash(:info, "Google Calendar disconnected. Trips already planned stay planned.")}
+     |> put_flash(
+       :info,
+       dgettext("guide", "Google Calendar disconnected. Trips already planned stay planned.")
+     )}
   end
 
   def handle_event("trip_" <> _, _params, socket), do: {:noreply, socket}
@@ -189,8 +218,13 @@ defmodule TravelingPoetWeb.TripSuggestions do
     <div :if={@trip} id="trip-nudge" class="alert alert-soft text-sm mt-4 flex-wrap" role="status">
       <.icon name="hero-map" class="size-5 shrink-0" />
       <span class="flex-1 min-w-48">
-        Your calendar has a trip to {@trip.name}, {Trips.date_range(@trip.start_date, @trip.end_date)}.
-        Should {@poet.name} scout it first?
+        {dgettext(
+          "guide",
+          "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first?",
+          trip: @trip.name,
+          dates: Trips.date_range(@trip.start_date, @trip.end_date),
+          poet: @poet.name
+        )}
       </span>
       <div class="flex items-center gap-1">
         <button
@@ -200,7 +234,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
           class="btn btn-primary btn-sm"
           id={"trip-nudge-accept-#{@trip.id}"}
         >
-          Scout this trip
+          {dgettext("guide", "Scout this trip")}
         </button>
         <button
           type="button"
@@ -209,7 +243,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
           class="btn btn-ghost btn-sm opacity-60"
           id={"trip-nudge-dismiss-#{@trip.id}"}
         >
-          Not this trip
+          {dgettext("guide", "Not this trip")}
         </button>
       </div>
     </div>
@@ -225,18 +259,20 @@ defmodule TravelingPoetWeb.TripSuggestions do
     ~H"""
     <div :if={@trips.enabled?} id="trip-settings" class="space-y-4 text-sm">
       <p class="opacity-70">
-        Connect your Google Calendar and {@poet.name} will notice the trips on it and offer to
-        scout them before you go. Only your primary calendar is read, and only the dates and
-        places of trips are kept, never what an event says.
+        {dgettext(
+          "guide",
+          "Connect your Google Calendar and %{poet} will notice the trips on it and offer to scout them before you go. Only your primary calendar is read, and only the dates and places of trips are kept, never what an event says.",
+          poet: @poet.name
+        )}
       </p>
 
       <div id="trip-home">
-        <h3 class="font-medium mb-1">Home</h3>
+        <h3 class="font-medium mb-1">{dgettext("guide", "Home")}</h3>
         <p :if={@trips.home} class="flex items-center gap-2 flex-wrap">
           <span>{@trips.home.place_name}</span>
         </p>
         <p :if={is_nil(@trips.home)} class="opacity-70 mb-2">
-          Where do you set out from? A trip is time spent far from here.
+          {dgettext("guide", "Where do you set out from? A trip is time spent far from here.")}
         </p>
         <form phx-submit="trip_search_home" class="flex gap-2 mt-2">
           <input
@@ -244,9 +280,13 @@ defmodule TravelingPoetWeb.TripSuggestions do
             name="query"
             value={@trips.home_query}
             class="input input-bordered input-sm flex-1"
-            placeholder={if @trips.home, do: "Change your home city", else: "Your home city"}
+            placeholder={
+              if @trips.home,
+                do: dgettext("guide", "Change your home city"),
+                else: dgettext("guide", "Your home city")
+            }
           />
-          <button type="submit" class="btn btn-sm">Search</button>
+          <button type="submit" class="btn btn-sm">{dgettext("guide", "Search")}</button>
         </form>
         <p :if={@trips.home_error} class="text-error text-xs mt-1">{@trips.home_error}</p>
         <div :if={@trips.home_results != []} class="space-y-1 mt-2">
@@ -264,35 +304,42 @@ defmodule TravelingPoetWeb.TripSuggestions do
       <div id="trip-calendar">
         <h3 class="font-medium mb-1">Google Calendar</h3>
         <div :if={!@trips.connected?}>
-          <p :if={is_nil(@trips.home)} class="opacity-70">Pick your home city first.</p>
+          <p :if={is_nil(@trips.home)} class="opacity-70">
+            {dgettext("guide", "Pick your home city first.")}
+          </p>
           <.link
             :if={@trips.home}
             href={~p"/settings/calendar/connect"}
             class="btn btn-secondary btn-sm"
             id="connect-calendar"
           >
-            Connect Google Calendar
+            {dgettext("guide", "Connect Google Calendar")}
           </.link>
           <p :if={@trips.home} class="text-xs opacity-60 mt-1">
-            Google will ask you to allow reading your calendar, alongside anything you have
-            already allowed, such as Google Drive.
+            {dgettext(
+              "guide",
+              "Google will ask you to allow reading your calendar, alongside anything you have already allowed, such as Google Drive."
+            )}
           </p>
         </div>
         <div :if={@trips.connected?} class="space-y-2">
           <p :if={@trips.error == "reconnect"} class="text-warning">
-            The connection to your calendar has lapsed.
+            {dgettext("guide", "The connection to your calendar has lapsed.")}
             <.link href={~p"/settings/calendar/connect"} class="link" id="reconnect-calendar">
-              Reconnect
+              {dgettext("guide", "Reconnect")}
             </.link>
           </p>
           <p :if={@trips.error == "forbidden"} class="text-warning">
-            Google would not let the poet read your calendar. Try reconnecting.
+            {dgettext("guide", "Google would not let the poet read your calendar. Try reconnecting.")}
           </p>
           <p :if={@trips.error == "failed"} class="opacity-70">
-            The last check failed; it will be tried again.
+            {dgettext("guide", "The last check failed; it will be tried again.")}
           </p>
           <p class="opacity-70" id="calendar-status">
-            Connected<span :if={@trips.synced_at}>, last checked {ago(@trips.synced_at)}</span>.
+            <span :if={is_nil(@trips.synced_at)}>{dgettext("guide", "Connected.")}</span>
+            <span :if={@trips.synced_at}>
+              {dgettext("guide", "Connected, last checked %{ago}.", ago: ago(@trips.synced_at))}
+            </span>
           </p>
           <div class="flex items-center gap-2 flex-wrap">
             <button
@@ -301,7 +348,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
               class="btn btn-outline btn-xs"
               id="sync-calendar"
             >
-              Check now
+              {dgettext("guide", "Check now")}
             </button>
             <button
               type="button"
@@ -309,14 +356,14 @@ defmodule TravelingPoetWeb.TripSuggestions do
               class="link text-xs opacity-60"
               id="disconnect-calendar"
             >
-              Disconnect Google Calendar
+              {dgettext("guide", "Disconnect Google Calendar")}
             </button>
           </div>
         </div>
       </div>
 
       <div :if={@trips.suggested != []} id="trip-suggested">
-        <h3 class="font-medium mb-1">Found on your calendar</h3>
+        <h3 class="font-medium mb-1">{dgettext("guide", "Found on your calendar")}</h3>
         <ul class="space-y-2">
           <li
             :for={trip <- @trips.suggested}
@@ -326,10 +373,16 @@ defmodule TravelingPoetWeb.TripSuggestions do
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium">{trip.name}</span>
               <span class="opacity-70">{Trips.date_range(trip.start_date, trip.end_date)}</span>
-              <span :if={trip.changed_at} class="badge badge-ghost badge-xs">updated</span>
+              <span :if={trip.changed_at} class="badge badge-ghost badge-xs">
+                {dgettext("guide", "updated")}
+              </span>
             </div>
             <p :if={length(Trip.destinations(trip)) > 1} class="text-xs opacity-60 mt-1">
-              {Enum.map_join(Trip.destinations(trip), ", then ", & &1["place_name"])}
+              {Enum.map_join(
+                Trip.destinations(trip),
+                dgettext("guide", ", then "),
+                & &1["place_name"]
+              )}
             </p>
             <div class="flex items-center gap-1 mt-2">
               <button
@@ -339,7 +392,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
                 class="btn btn-primary btn-xs"
                 id={"trip-accept-#{trip.id}"}
               >
-                Scout this trip
+                {dgettext("guide", "Scout this trip")}
               </button>
               <button
                 type="button"
@@ -348,7 +401,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
                 class="btn btn-ghost btn-xs opacity-60"
                 id={"trip-dismiss-#{trip.id}"}
               >
-                Not this trip
+                {dgettext("guide", "Not this trip")}
               </button>
             </div>
           </li>
@@ -356,7 +409,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
       </div>
 
       <div :if={@trips.planned != []} id="trip-planned">
-        <h3 class="font-medium mb-1">Planned</h3>
+        <h3 class="font-medium mb-1">{dgettext("guide", "Planned")}</h3>
         <ul class="space-y-2">
           <li :for={trip <- @trips.planned} class="p-3 rounded-lg bg-base-200" id={"trip-#{trip.id}"}>
             <div class="flex items-center gap-2 flex-wrap">
@@ -365,15 +418,19 @@ defmodule TravelingPoetWeb.TripSuggestions do
               <span class="badge badge-ghost badge-xs" id={"trip-timing-#{trip.id}"}>
                 {timing(trip)}
               </span>
-              <span :if={trip.changed_at} class="badge badge-ghost badge-xs">dates updated</span>
+              <span :if={trip.changed_at} class="badge badge-ghost badge-xs">
+                {dgettext("guide", "dates updated")}
+              </span>
             </div>
-            <p class="text-xs opacity-60 mt-1">Its stops are on the itinerary above.</p>
+            <p class="text-xs opacity-60 mt-1">
+              {dgettext("guide", "Its stops are on the itinerary above.")}
+            </p>
             <div
               :if={trip.calendar_gone_at}
               class="text-xs text-warning mt-1 flex items-center gap-2 flex-wrap"
               id={"trip-gone-#{trip.id}"}
             >
-              <span>No longer on your calendar. Still going?</span>
+              <span>{dgettext("guide", "No longer on your calendar. Still going?")}</span>
               <button
                 type="button"
                 phx-click="trip_keep"
@@ -381,7 +438,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
                 class="btn btn-outline btn-xs"
                 id={"trip-keep-#{trip.id}"}
               >
-                Keep
+                {dgettext("guide", "Keep")}
               </button>
             </div>
             <button
@@ -391,7 +448,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
               class="link text-xs opacity-60 mt-1"
               id={"trip-cancel-#{trip.id}"}
             >
-              Call it off
+              {dgettext("guide", "Call it off")}
             </button>
           </li>
         </ul>
@@ -401,31 +458,41 @@ defmodule TravelingPoetWeb.TripSuggestions do
         :if={@trips.connected? and @trips.suggested == [] and @trips.planned == []}
         class="opacity-60"
       >
-        No upcoming trips found yet. Trips need a place and at least two days, or a booking
-        Gmail put on your calendar.
+        {dgettext(
+          "guide",
+          "No upcoming trips found yet. Trips need a place and at least two days, or a booking Gmail put on your calendar."
+        )}
       </p>
     </div>
     """
   end
 
-  defp timing(%Trip{status: "scouting"}), do: "scouting now"
+  defp timing(%Trip{status: "scouting"}), do: dgettext("guide", "scouting now")
 
   defp timing(%Trip{scout_from: %Date{} = from}) do
     if Date.compare(from, Date.utc_today()) == :gt,
-      do: "scouting from #{Trips.date_range(from, from)}",
-      else: "scouting now"
+      do: dgettext("guide", "scouting from %{date}", date: Trips.date_range(from, from)),
+      else: dgettext("guide", "scouting now")
   end
 
-  defp timing(_trip), do: "planned"
+  defp timing(_trip), do: dgettext("guide", "planned")
 
   defp ago(%DateTime{} = at) do
     minutes = div(DateTime.diff(DateTime.utc_now(), at), 60)
 
     cond do
-      minutes < 1 -> "just now"
-      minutes < 60 -> "#{minutes} min ago"
-      minutes < 60 * 24 -> "#{div(minutes, 60)} h ago"
-      true -> "#{div(minutes, 60 * 24)} d ago"
+      minutes < 1 ->
+        dgettext("guide", "just now")
+
+      # One English form each; Hebrew says "a minute ago" for one
+      minutes < 60 ->
+        dngettext("guide", "%{count} min ago", "%{count} min ago", minutes)
+
+      minutes < 60 * 24 ->
+        dngettext("guide", "%{count} h ago", "%{count} h ago", div(minutes, 60))
+
+      true ->
+        dngettext("guide", "%{count} d ago", "%{count} d ago", div(minutes, 60 * 24))
     end
   end
 end
