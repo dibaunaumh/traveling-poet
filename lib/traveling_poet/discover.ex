@@ -183,7 +183,12 @@ defmodule TravelingPoet.Discover do
       end)
       |> Enum.sort_by(&{&1.date, &1.id}, :desc)
 
-    %{tree: PlaceTopics.tree(), places: places, finds: village_finds(ids)}
+    # subject names in the reader's language (card-101); slugs are the keys
+    %{
+      tree: PlaceTopics.tree(TravelingPoet.Locale.current()),
+      places: places,
+      finds: village_finds(ids)
+    }
   end
 
   # What the poets brought back from days off the road (talks, papers,

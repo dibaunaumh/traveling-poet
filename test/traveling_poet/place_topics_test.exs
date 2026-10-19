@@ -344,4 +344,31 @@ defmodule TravelingPoet.PlaceTopicsTest do
       assert Repo.get!(TravelingPoet.Topics.Topic, topic.id).subject == @mind
     end
   end
+
+  describe "in Hebrew (card-101)" do
+    test "every node has its Hebrew name, and a reader gets it" do
+      for path <- PlaceTopics.paths() do
+        assert [_, _, _] = labels = PlaceTopics.labels(path, "he")
+        assert Enum.all?(labels, &(&1 =~ ~r/\p{Hebrew}/u)), path
+        refute Enum.any?(labels, &(&1 =~ ~r/[\x{2014}\x{2013}]/u)), path
+      end
+
+      assert PlaceTopics.labels("art/modern-and-contemporary-art/contemporary-art", "he") ==
+               ["אמנות", "אמנות מודרנית ועכשווית", "אמנות עכשווית"]
+
+      assert [%{"name" => "אמנות", "slug" => "art"} | _] = PlaceTopics.tree("he")
+    end
+
+    test "the classifier and the poet keep the English names" do
+      path = "art/modern-and-contemporary-art/contemporary-art"
+
+      TravelingPoet.Locale.with_locale("he", fn ->
+        assert PlaceTopics.names(path) == ["Art", "Modern & contemporary art", "Contemporary art"]
+        assert hd(PlaceTopics.labels(path)) == "אמנות"
+      end)
+
+      assert [%{"name" => "Art"} | _] = PlaceTopics.tree()
+      assert [%{"name" => "Art"} | _] = PlaceTopics.tree("en")
+    end
+  end
 end

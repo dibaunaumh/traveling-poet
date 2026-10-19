@@ -131,6 +131,9 @@ defmodule TravelingPoet.Hotels do
         |> String.replace("{checkout}", Date.to_iso8601(checkout))
         |> String.replace("{adults}", to_string(adults))
         |> String.replace("{occupancies}", occupancies_param(adults))
+        # the reader's language (card-101), when the template asks for it
+        # (`language={language}` in LITEAPI_BOOKING_URL)
+        |> String.replace("{language}", TravelingPoet.Locale.current())
 
       _ ->
         nil
