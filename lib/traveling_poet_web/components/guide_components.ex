@@ -316,7 +316,7 @@ defmodule TravelingPoetWeb.GuideComponents do
           <.link
             :if={@entry_url}
             navigate={@entry_url.(stop.excursion.scheduled_for)}
-            class="link ml-1"
+            class="link ms-1"
           >
             read the entry
           </.link>
@@ -334,9 +334,9 @@ defmodule TravelingPoetWeb.GuideComponents do
           <span :if={!stop.excursion.destination_url}>{destination_label(stop.excursion)}</span>
         </div>
 
-        <div class="relative pl-6 border-l border-base-300">
+        <div class="relative ps-6 border-s border-base-300">
           <div :for={find <- stop.finds} class="relative mb-5 flex gap-3">
-            <span class="absolute -left-[1.85rem] top-1.5 size-3 rounded-full bg-secondary ring-2 ring-base-100"></span>
+            <span class="absolute -start-[1.85rem] top-1.5 size-3 rounded-full bg-secondary ring-2 ring-base-100"></span>
             <img
               :if={@media[find.media_id]}
               src={~p"/media/#{find.media_id}"}
@@ -461,9 +461,9 @@ defmodule TravelingPoetWeb.GuideComponents do
         </div>
         <div class="text-xs opacity-60 mb-4">{format_date(day.date)}</div>
 
-        <div class="relative pl-6 border-l border-base-300">
+        <div class="relative ps-6 border-s border-base-300">
           <div :for={place <- day.places} class="relative mb-5 flex gap-3">
-            <span class="absolute -left-[1.85rem] top-1.5 size-3 rounded-full bg-secondary ring-2 ring-base-100"></span>
+            <span class="absolute -start-[1.85rem] top-1.5 size-3 rounded-full bg-secondary ring-2 ring-base-100"></span>
             <img
               :if={@media[place.media_id]}
               src={~p"/media/#{place.media_id}"}
@@ -573,7 +573,7 @@ defmodule TravelingPoetWeb.GuideComponents do
     ~H"""
     <details id={@id} class="mt-3 text-sm">
       <summary class="cursor-pointer link">Put these places in Google Maps</summary>
-      <ol class="mt-2 ml-5 list-decimal space-y-1 opacity-80">
+      <ol class="mt-2 ms-5 list-decimal space-y-1 opacity-80">
         <li><a href={@kml_url} class="link">Download the places file</a>.</li>
         <li>
           Open <a

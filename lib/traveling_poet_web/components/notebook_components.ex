@@ -12,6 +12,18 @@ defmodule TravelingPoetWeb.NotebookComponents do
   alias TravelingPoet.Topics
   alias TravelingPoetWeb.GuideComponents
 
+  @doc """
+  `lang` and `dir` for the poet's own words: the language the page was
+  written in (`entry.language`), not the interface's, so an English page
+  reads left to right under a Hebrew interface and the other way round
+  (card-101). Only the words: the spread around them, its labels and dates
+  follow the interface, so the two never scramble each other.
+  """
+  def page_lang(entry) do
+    lang = TravelingPoet.Locale.normalize(Map.get(entry, :language)) || "en"
+    [lang: lang, dir: TravelingPoet.Locale.dir(lang)]
+  end
+
   attr :entry, :map, required: true
   attr :day, :integer, default: nil, doc: "journey day, see Journal.journey_day/2"
   attr :tag, :string, default: "h2"
@@ -29,8 +41,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
     ~H"""
     <.dynamic_tag tag_name={@tag} class="notebook-title">
       <span :if={@day} class="notebook-day">Day {@day}</span>
-      {entry_title(@entry)}
-      <span :if={@show_date} class="notebook-date ml-2">
+      <span {page_lang(@entry)}>{entry_title(@entry)}</span>
+      <span :if={@show_date} class="notebook-date ms-2">
         {TravelingPoet.Locale.format_date(@entry.entry_date, :long)}
       </span>
       <span :if={@excursion_label} class="notebook-excursion">
@@ -252,6 +264,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
     <div
       id={"section-#{@entry.id}-#{@section.position}"}
       class="mb-6 marker-target"
+      {page_lang(@entry)}
       data-section-kind={@section.kind}
       data-section-position={@section.position}
       data-media-id={@section.media_id}
@@ -274,6 +287,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
     <div
       id={"media-#{@entry.id}-#{@drawing.id}"}
       class="mb-6 marker-target"
+      {page_lang(@entry)}
       data-section-kind="illustration"
       data-media-id={@drawing.id}
     >
@@ -333,7 +347,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             <.place_stamp place={place} n={n} />
             <div class="stop-body">
               <div class="flex items-start justify-between gap-2">
-                <div class="stop-name">{place.name}</div>
+                <div class="stop-name" dir="auto">{place.name}</div>
                 <GuideComponents.save_button
                   :if={@bookmarks}
                   saved={GuideComponents.saved(@bookmarks, place)}
@@ -343,7 +357,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
               </div>
               <GuideComponents.event_dates place={place} />
               <GuideComponents.poet_pick :if={place.poet_rating} place={place} poet={@poet} />
-              <p :if={place.blurb} class="stop-blurb">{place.blurb}</p>
+              <p :if={place.blurb} class="stop-blurb" {page_lang(@entry)}>{place.blurb}</p>
               <div :if={place.address} class="stop-address">{place.address}</div>
               <img
                 :if={@place_media[place.media_id]}
@@ -420,7 +434,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             class="stay-area"
           >
             <div class="flex items-baseline justify-between gap-2">
-              <div class="stop-name">{area.name}</div>
+              <div class="stop-name" dir="auto">{area.name}</div>
               <span :if={area.recommended} class="stay-pick">{@poet.name}'s pick</span>
             </div>
             <p :if={area.summary} class="text-sm leading-relaxed">{area.summary}</p>
@@ -497,7 +511,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         <li :for={h <- elem(@hotels, 1)} id={"hotel-#{h.id}"} class="hotel">
           <img :if={h.photo} src={h.photo} alt="" class="hotel-photo" loading="lazy" />
           <div class="hotel-body">
-            <div class="stop-name">{h.name}</div>
+            <div class="stop-name" dir="auto">{h.name}</div>
             <div class="hotel-price">
               {money(h.per_night, h.currency)} a night, {money(h.total, h.currency)} in all
             </div>
@@ -627,7 +641,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
             <.find_stamp find={find} n={n} />
             <div class="stop-body">
               <div class="flex items-start justify-between gap-2">
-                <div class="stop-name">
+                <div class="stop-name" dir="auto">
                   <a href={find.url} target="_blank" rel="noopener noreferrer nofollow">
                     {find.name}
                   </a>
@@ -640,7 +654,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
                 />
               </div>
               <GuideComponents.poet_pick :if={find.poet_rating} place={find} poet={@poet} />
-              <p :if={find.blurb} class="stop-blurb">{find.blurb}</p>
+              <p :if={find.blurb} class="stop-blurb" {page_lang(@entry)}>{find.blurb}</p>
               <img
                 :if={@find_media[find.media_id]}
                 src={~p"/media/#{find.media_id}"}

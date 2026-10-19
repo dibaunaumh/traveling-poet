@@ -254,7 +254,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
             :for={{result, idx} <- Enum.with_index(@trips.home_results)}
             phx-click="trip_pick_home"
             phx-value-idx={idx}
-            class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
+            class="btn btn-outline btn-xs w-full justify-start text-start normal-case"
           >
             {result.place_name}
           </button>

@@ -731,7 +731,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   # the grant gone (reconnect), failed (try again), or not yet.
   defp drive_save(assigns) do
     ~H"""
-    <span class="ml-2" id="drive-save">
+    <span class="ms-2" id="drive-save">
       <a
         :if={@pdf.drive_status == "saved" && @pdf.drive_web_link}
         href={@pdf.drive_web_link}
@@ -1283,7 +1283,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   :for={{result, idx} <- Enum.with_index(@stop_results)}
                   phx-click="add_stop"
                   phx-value-idx={idx}
-                  class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
+                  class="btn btn-outline btn-xs w-full justify-start text-start normal-case"
                 >
                   + {result.place_name}
                 </button>
@@ -1296,10 +1296,10 @@ defmodule TravelingPoetWeb.SettingsLive do
                   <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
                   <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
                     {stop.place_name}
-                    <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
+                    <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ms-1">
                       asked in chat
                     </span>
-                    <span :if={stop.source == "trip"} class="badge badge-ghost badge-xs ml-1">
+                    <span :if={stop.source == "trip"} class="badge badge-ghost badge-xs ms-1">
                       for your trip
                     </span>
                   </span>

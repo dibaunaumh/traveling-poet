@@ -1003,7 +1003,7 @@ defmodule TravelingPoetWeb.JournalLive do
     <article id="first-entry-placeholder" class="notebook-page mt-6">
       <h2 class="notebook-title">
         The first entry
-        <span class="notebook-date ml-2">
+        <span class="notebook-date ms-2">
           {TravelingPoet.Locale.format_date(Date.utc_today(), :long)}
         </span>
       </h2>
@@ -1096,7 +1096,7 @@ defmodule TravelingPoetWeb.JournalLive do
               :if={@entries != []}
               href={~p"/journal/book"}
               target="_blank"
-              class="ml-auto btn btn-ghost btn-sm"
+              class="ms-auto btn btn-ghost btn-sm"
               title="The whole journal as a printable book"
             >
               <.icon name="hero-book-open" class="size-4" /> Book
@@ -1106,7 +1106,7 @@ defmodule TravelingPoetWeb.JournalLive do
               phx-click="toggle_chat"
               class={[
                 "hidden xl:inline-flex btn btn-ghost btn-sm",
-                @entries == [] && "ml-auto"
+                @entries == [] && "ms-auto"
               ]}
               aria-label="Toggle chat"
             >
@@ -1420,7 +1420,7 @@ defmodule TravelingPoetWeb.JournalLive do
           :if={!provisioning?(assigns) and !@mobile_chat_open}
           id="chat-fab"
           phx-click="toggle_mobile_chat"
-          class="chat-fab xl:hidden fixed right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
+          class="chat-fab xl:hidden fixed end-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
           aria-label="Open chat"
         >
           <.icon name="hero-chat-bubble-left-right" class="size-6" />

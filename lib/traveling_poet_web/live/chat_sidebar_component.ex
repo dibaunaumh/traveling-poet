@@ -298,7 +298,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
           # so the notebook keeps the whole width underneath it.
           if(@mobile_chat_open,
             do:
-              "chat-overlay flex fixed inset-0 z-50 md:left-auto md:w-[min(24rem,100vw)] md:shadow-2xl",
+              "chat-overlay flex fixed inset-0 z-50 md:start-auto md:w-[min(24rem,100vw)] md:shadow-2xl",
             else: "hidden"
           ),
           # wide desk (xl): static side panel, width from --chat-width. Only
@@ -352,10 +352,10 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
               <div class={["chat-line", msg.role == "user" && "chat-line-reader"]}>
                 <%= if msg.role == "user" do %>
                   <span class="chat-pad-who chat-pad-who-reader">{reader_name(assigns)}</span>
-                  <div class="chat-reader whitespace-pre-wrap">{display_content(msg)}</div>
+                  <div class="chat-reader whitespace-pre-wrap" dir="auto">{display_content(msg)}</div>
                 <% else %>
                   <span class="chat-pad-who">{poet_name(assigns)}</span>
-                  <div class="chat-markdown chat-poet">{render_markdown(msg.content)}</div>
+                  <div class="chat-markdown chat-poet" dir="auto">{render_markdown(msg.content)}</div>
                 <% end %>
                 <%= for file <- attachment_files(msg) do %>
                   <div class="chat-pad-chip">
@@ -370,7 +370,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
             <%= if @streaming do %>
               <div class="chat-line">
                 <span class="chat-pad-who">{poet_name(assigns)}</span>
-                <div class="chat-markdown chat-poet">
+                <div class="chat-markdown chat-poet" dir="auto">
                   {render_markdown(@current_response)}<span class="chat-pad-cursor" aria-hidden="true"></span>
                 </div>
               </div>
@@ -445,6 +445,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                   placeholder={"Write to #{poet_name(assigns)}…"}
                   disabled={composer_locked?(assigns)}
                   rows="1"
+                  dir="auto"
                   class="chat-pad-input flex-1 resize-none overflow-y-auto max-h-40"
                   autocomplete="off"
                   phx-hook="ChatInput"

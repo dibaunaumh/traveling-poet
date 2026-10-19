@@ -11,27 +11,22 @@
 msgid ""
 msgstr ""
 
-#: lib/traveling_poet_web/live/settings_live.ex:329
 #, elixir-autogen, elixir-format
 msgid "Could not save that setting."
 msgstr ""
 
-#: lib/traveling_poet_web/live/settings_live.ex:1814
 #, elixir-autogen, elixir-format
 msgid "Language"
 msgstr ""
 
-#: lib/traveling_poet_web/live/settings_live.ex:1826
 #, elixir-autogen, elixir-format
 msgid "The app's language, and the one %{poet} writes in from its next page."
 msgstr ""
 
-#: lib/traveling_poet_web/live/settings_live.ex:891
 #, elixir-autogen, elixir-format
 msgid "last excursion %{date}"
 msgstr ""
 
-#: lib/traveling_poet_web/live/settings_live.ex:888
 #, elixir-autogen, elixir-format
 msgid "no excursion yet"
 msgstr ""

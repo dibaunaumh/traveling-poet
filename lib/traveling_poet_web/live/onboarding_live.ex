@@ -768,7 +768,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
               <span class="opacity-50 font-normal">— chattiness, books for the road</span>
             </button>
 
-            <div :if={@more_open} id="more-options" class="space-y-4 pl-1">
+            <div :if={@more_open} id="more-options" class="space-y-4 ps-1">
               <div>
                 <span class="text-sm font-medium">How chatty should the journal be?</span>
                 <div class="mt-2 space-y-1">
@@ -835,7 +835,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
               phx-click="choose_mode"
               phx-value-mode="wander"
               class={[
-                "w-full text-left p-4 rounded-xl border-2",
+                "w-full text-start p-4 rounded-xl border-2",
                 if(@mode == "wander", do: "border-primary bg-base-200", else: "border-base-300")
               ]}
             >
@@ -853,7 +853,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
               phx-click="choose_mode"
               phx-value-mode="scout"
               class={[
-                "w-full text-left p-4 rounded-xl border-2",
+                "w-full text-start p-4 rounded-xl border-2",
                 if(@mode == "scout", do: "border-primary bg-base-200", else: "border-base-300")
               ]}
             >
@@ -912,7 +912,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   type="button"
                   phx-click="pick_location"
                   phx-value-idx={idx}
-                  class="btn btn-outline btn-sm w-full justify-start text-left normal-case"
+                  class="btn btn-outline btn-sm w-full justify-start text-start normal-case"
                 >
                   {result.place_name}
                 </button>
@@ -950,7 +950,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 type="button"
                 phx-click="add_stop"
                 phx-value-idx={idx}
-                class="btn btn-outline btn-sm w-full justify-start text-left normal-case"
+                class="btn btn-outline btn-sm w-full justify-start text-start normal-case"
               >
                 + {result.place_name}
               </button>

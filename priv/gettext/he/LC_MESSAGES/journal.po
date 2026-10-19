@@ -11,39 +11,30 @@ msgstr ""
 "Language: he\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/traveling_poet/books/manuscript.ex:194
-#: lib/traveling_poet/books/manuscript.ex:200
-#: lib/traveling_poet_web/components/book_components.ex:608
 #, elixir-autogen, elixir-format
 msgid "%{from} to %{to}"
 msgstr "%{from} עד %{to}"
 
-#: lib/traveling_poet/books/manuscript.ex:186
 #, elixir-autogen, elixir-format
 msgid "A journal"
 msgstr "יומן"
 
-#: lib/traveling_poet/journal/spreads.ex:123
 #, elixir-autogen, elixir-format
 msgid "Entry"
 msgstr "רשומה"
 
-#: lib/traveling_poet/journal/spreads.ex:85
 #, elixir-autogen, elixir-format
 msgid "Finds"
 msgstr "מציאות"
 
-#: lib/traveling_poet/journal/spreads.ex:77
 #, elixir-autogen, elixir-format
 msgid "Places"
 msgstr "מקומות"
 
-#: lib/traveling_poet/journal/spreads.ex:119
 #, elixir-autogen, elixir-format
 msgid "Today"
 msgstr "היום"
 
-#: lib/traveling_poet/journal/spreads.ex:100
 #, elixir-autogen, elixir-format
 msgid "Where to stay"
 msgstr "איפה לישון"

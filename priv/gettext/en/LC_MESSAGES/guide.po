@@ -11,19 +11,14 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/traveling_poet/trips.ex:491
-#: lib/traveling_poet/trips.ex:494
-#: lib/traveling_poet/trips.ex:497
 #, elixir-autogen, elixir-format
 msgid "%{from} to %{to}"
 msgstr ""
 
-#: lib/traveling_poet/guide/place.ex:102
 #, elixir-autogen, elixir-format
 msgid "from %{date}"
 msgstr ""
 
-#: lib/traveling_poet/guide/place.ex:99
 #, elixir-autogen, elixir-format
 msgid "until %{date}"
 msgstr ""

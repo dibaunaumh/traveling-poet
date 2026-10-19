@@ -96,7 +96,7 @@ defmodule TravelingPoetWeb.AffinityComponents do
       <figcaption class="text-xs opacity-60 mt-1">
         <span class="taste-map-key" style={"background: #{@for_color}"}></span>
         leaning toward
-        <span class="taste-map-key ml-3" style={"background: #{@against_color}"}></span>
+        <span class="taste-map-key ms-3" style={"background: #{@against_color}"}></span>
         leaning away
       </figcaption>
     </figure>

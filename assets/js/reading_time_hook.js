@@ -21,7 +21,11 @@ const IDLE_MS = 45000
 const ACTIVITY = ["scroll", "wheel", "pointermove", "pointerdown", "keydown", "touchstart"]
 
 export async function paragraphKey(text) {
-  const normalized = text.replace(/\s+/gu, " ").trim()
+  // Same as Journal.Paragraphs.normalize/1: direction marks out, then spaces
+  const normalized = text
+    .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/gu, "")
+    .replace(/\s+/gu, " ")
+    .trim()
   const bytes = new TextEncoder().encode(normalized)
   const digest = await crypto.subtle.digest("SHA-256", bytes)
   return Array.from(new Uint8Array(digest))

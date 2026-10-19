@@ -2,6 +2,47 @@
    Latin and latin-ext slices only. The book waits for these before paginating,
    so page breaks are measured with the real hands, not a fallback. */
 
+/* Hebrew (card-101), under the same family names so no font-family rule
+   changes and the book still waits for them: Frank Ruhl Libre stands in for
+   Fraunces, Fredoka for the prose hand (Patrick Hand) and Gveret Levin for
+   the margin hand (Caveat), Udi's picks of 2026-10-18. OFL, from Google
+   Fonts. Declared FIRST: where their range overlaps a Latin face's
+   (punctuation around U+2000), the later Latin face wins. Hebrew has no
+   italic, so Fraunces italic takes the upright letters. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: block;
+  src: url(/fonts/frank-ruhl-libre-hebrew.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 300 900;
+  font-display: block;
+  src: url(/fonts/frank-ruhl-libre-hebrew.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: block;
+  src: url(/fonts/gveret-levin-hebrew.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: 'Patrick Hand';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: block;
+  src: url(/fonts/fredoka-hebrew.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+
+
 /* latin-ext */
 @font-face {
   font-family: 'Caveat';
