@@ -16,6 +16,10 @@ defmodule TravelingPoet.Application do
       {Phoenix.PubSub, name: TravelingPoet.PubSub},
       {Registry, keys: :unique, name: TravelingPoet.GatewayRegistry},
       {DynamicSupervisor, name: TravelingPoet.GatewaySocketSupervisor, strategy: :one_for_one},
+      # A reader's chat turn, seen through on the server (ChatTurn), and the
+      # journal pages open per reader
+      {DynamicSupervisor, name: TravelingPoet.ChatTurnSupervisor, strategy: :one_for_one},
+      {Registry, keys: :duplicate, name: TravelingPoet.ReaderRegistry},
       # Daily travel/journal driver (no-op unless JOURNEY_CHECK_INTERVAL_MINUTES > 0)
       # Serializes every Nominatim call to OSM's 1 req/s policy. Onboarding and
       # settings geocode on submit too, so a ban would break signup itself.

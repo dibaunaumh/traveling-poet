@@ -549,7 +549,8 @@ defmodule TravelingPoetWeb.JournalLiveTest do
         })
 
       send(view.pid, {:gateway_event, {:done, "r1"}})
-      render(view)
+      # the copy saved first is the one the panel shows, not nothing
+      assert render(view) =~ "Lacing my boots in Lisbon."
 
       agent_messages =
         TravelingPoet.Chat.list_messages(user.id) |> Enum.filter(&(&1.role == "agent"))

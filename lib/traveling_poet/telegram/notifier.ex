@@ -2,8 +2,9 @@ defmodule TravelingPoet.Telegram.Notifier do
   @moduledoc """
   Sends a Telegram note to the paired owner when their poet publishes a
   journal entry, when their credits run low, when a composed book edition
-  is ready, and when the poet asks them something (`Asks`): the question
-  itself, so a reply in Telegram reaches the poet as a chat turn.
+  is ready, when the poet asks them something (`Asks`), and when the poet
+  answers a web chat message after they left (`ChatTurn`): the question or
+  the answer itself, so a reply in Telegram reaches the poet as a chat turn.
 
   The admins hear of the business's own events on `"admin_events"`: a new
   sign-up and a credit purchase, through `Alerts.notify_admins/1`. Opt-out of publish notes via poet settings
@@ -35,6 +36,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "admin_events")
       {:ok, %{}}
     else
@@ -166,6 +168,24 @@ defmodule TravelingPoet.Telegram.Notifier do
     {:noreply, state}
   end
 
+  # The poet answered a web chat message after the reader left (ChatTurn):
+  # the answer itself, so a reply in Telegram carries the conversation on
+  @impl true
+  def handle_info({:poet_replied, user_id, message_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
+         %{user_id: ^user_id} = message <-
+           TravelingPoet.Repo.get(TravelingPoet.Chat.ChatMessage, message_id) do
+      text = Locale.with_locale(user.locale, fn -> reply_text(poet, message) end)
+      Client.send_message(chat_id, text)
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info({:user_signed_up, user_id, identity}, state) do
     with %{} = user <- Accounts.get_user(user_id) do
@@ -195,6 +215,22 @@ defmodule TravelingPoet.Telegram.Notifier do
         question: ask.question,
         poet: poet.name
       )
+
+  # Telegram caps a message at 4096 characters
+  @reply_max 3500
+
+  @doc "The poet's chat answer as a Telegram message, signed. Pure, for tests."
+  def reply_text(poet, message) do
+    answer =
+      if String.length(message.content) > @reply_max,
+        do: String.slice(message.content, 0, @reply_max) <> "…",
+        else: message.content
+
+    dgettext("notify", "%{answer}\n\n(%{poet}. Just reply here.)",
+      answer: answer,
+      poet: poet.name
+    )
+  end
 
   @doc "The note that says the poet's credits are running out, or ran out. Pure, for tests."
   def credits_low_text(poet, balance, link) do

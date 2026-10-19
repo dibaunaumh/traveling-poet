@@ -592,10 +592,9 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:ok, updated} =
           Poets.update_poet(poet, %{settings: Map.put(poet.settings || %{}, "mode", mode)})
 
-        # The mission (and its model) is baked into the sprite at provision
-        # time — repack in the background; keys/tokens are reused so nothing
-        # else is disturbed.
-        Provisioner.provision_in_background(socket.assigns.user)
+        # The mission (and its model) live in the sprite's config and persona
+        # files: repack them in the background, gateway stopped first
+        Provisioner.repack_in_background(socket.assigns.user)
 
         {:noreply,
          socket

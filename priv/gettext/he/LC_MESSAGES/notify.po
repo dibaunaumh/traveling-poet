@@ -190,3 +190,11 @@ msgstr "קובץ ה-PDF של הספר שלכם עם %{poet} מוכן להורד�
 #, elixir-autogen, elixir-format
 msgid "📖 %{poet} has finished composing your book.\n%{link}"
 msgstr "הספר שלכם עם %{poet} מוכן.\n%{link}"
+
+#, elixir-autogen, elixir-format
+msgid "%{answer}\n\n(%{poet}. Just reply here.)"
+msgstr "%{answer}\n\n(%{poet}. אפשר פשוט לענות כאן.)"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} answered you"
+msgstr "תשובה מ-%{poet}"

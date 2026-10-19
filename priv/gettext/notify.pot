@@ -190,3 +190,11 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "📖 %{poet} has finished composing your book.\n%{link}"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{answer}\n\n(%{poet}. Just reply here.)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} answered you"
+msgstr ""

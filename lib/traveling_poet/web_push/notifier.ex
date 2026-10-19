@@ -22,6 +22,7 @@ defmodule TravelingPoet.WebPush.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "books")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
       {:ok, %{}}
     else
       :ignore
@@ -52,6 +53,13 @@ defmodule TravelingPoet.WebPush.Notifier do
       end
     end)
 
+    {:noreply, state}
+  end
+
+  # The poet answered a chat message after the reader left (ChatTurn)
+  @impl true
+  def handle_info({:poet_replied, user_id, message_id}, state) do
+    Task.start(fn -> WebPush.notify_poet_reply(user_id, message_id) end)
     {:noreply, state}
   end
 
