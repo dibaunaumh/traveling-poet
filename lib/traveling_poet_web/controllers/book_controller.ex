@@ -59,6 +59,13 @@ defmodule TravelingPoetWeb.BookController do
       edition = pdf.edition_id && Books.get_edition(pdf.edition_id)
       edition = if match?(%{status: "ready"}, edition), do: edition, else: nil
 
+      # The sprite's browser sends no session: the PDF is the owner's book,
+      # in the owner's language, as /journal/book shows it to them
+      Gettext.put_locale(
+        TravelingPoetWeb.Gettext,
+        TravelingPoet.Locale.normalize(user.locale) || TravelingPoet.Locale.default()
+      )
+
       conn
       |> put_resp_cookie(@render_cookie, token,
         path: "/media",
@@ -120,7 +127,7 @@ defmodule TravelingPoetWeb.BookController do
         do: json(conn, %{url: url}),
         else: redirect(conn, external: url)
     else
-      _ -> conn |> put_status(404) |> text("That PDF is not available.")
+      _ -> conn |> put_status(404) |> text(dgettext("book", "That PDF is not available."))
     end
   end
 
@@ -132,7 +139,10 @@ defmodule TravelingPoetWeb.BookController do
     conn
     |> put_root_layout(html: {Layouts, :book})
     |> put_layout(false)
-    |> assign(:page_title, "#{poet.name}: the book")
+    |> assign(:page_title, dgettext("book", "%{poet}: the book", poet: poet.name))
+    # Its words around the journal are in the reader's language, and the
+    # poet writes in that language too (dec-008), so the page runs that way
+    |> assign(:book_language, TravelingPoet.Locale.current())
     |> render(:show,
       poet: poet,
       companion: first_name(user.name),

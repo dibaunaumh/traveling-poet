@@ -40,13 +40,13 @@ defmodule TravelingPoetWeb.BookComponents do
       <figure :if={@manuscript.cover_drawing} class="book-cover-drawing">
         <img
           src={~p"/media/#{@manuscript.cover_drawing.id}"}
-          alt={@manuscript.cover_drawing.alt_text || "a drawing from the journey"}
+          alt={@manuscript.cover_drawing.alt_text || dgettext("book", "a drawing from the journey")}
         />
       </figure>
       <p class="book-route book-route-count">
         {days_label(@manuscript.entry_count)}
         <span :if={@manuscript.colophon.chapter_count > 1}>
-          in {@manuscript.colophon.chapter_count} places
+          {dgettext("book", "in %{count} places", count: @manuscript.colophon.chapter_count)}
         </span>
       </p>
     </section>
@@ -76,7 +76,7 @@ defmodule TravelingPoetWeb.BookComponents do
 
     ~H"""
     <section class="book-author" id="book-author">
-      <p class="book-kicker">About the author</p>
+      <p class="book-kicker">{dgettext("book", "About the author")}</p>
       <img
         :if={@poet.avatar_url}
         src={@poet.avatar_url}
@@ -85,37 +85,61 @@ defmodule TravelingPoetWeb.BookComponents do
       />
       <h2 class="book-author-name">{@poet.name}</h2>
       <p class="book-author-role">
-        a Traveling Poet<span :if={@companion}>, writing for {@companion}</span>
+        {if @companion,
+          do: dgettext("book", "a Traveling Poet, writing for %{companion}", companion: @companion),
+          else: dgettext("book", "a Traveling Poet")}
       </p>
       <p :if={present?(@poet.personality)} class="book-author-temperament">
         {@poet.personality}
       </p>
       <dl class="book-author-facts">
         <div :if={@interests != []}>
-          <dt>Drawn to</dt>
+          <dt>{dgettext("book", "Drawn to")}</dt>
           <dd>{Enum.join(@interests, ", ")}</dd>
         </div>
         <div :if={@reading != []}>
-          <dt>Reading</dt>
+          <dt>{dgettext("book", "Reading")}</dt>
           <dd>
             <span :for={{book, i} <- Enum.with_index(@reading)}>
-              <span :if={i > 0}>; </span><em>{book["title"]}</em><span :if={present?(book["author"])}> by {book[
-                "author"
-              ]}</span>
+              <span :if={i > 0}>; </span><.book_title book={book} />
             </span>
           </dd>
         </div>
         <div :if={@set_out_from && @set_out_on}>
-          <dt>Set out</dt>
-          <dd>from {@set_out_from}, {TravelingPoet.Locale.format_date(@set_out_on, :long)}</dd>
+          <dt>{dgettext("book", "Set out")}</dt>
+          <dd>
+            {dgettext("book", "from %{place}, %{date}",
+              place: @set_out_from,
+              date: TravelingPoet.Locale.format_date(@set_out_on, :long)
+            )}
+          </dd>
         </div>
         <div :if={length(@manuscript.chapters) > 1}>
-          <dt>Route</dt>
+          <dt>{dgettext("book", "Route")}</dt>
           <dd>{route_line(@manuscript)}</dd>
         </div>
       </dl>
     </section>
     """
+  end
+
+  attr :book, :map, required: true
+
+  # "<em>Title</em> by Author": one sentence, so the author's side can move
+  defp book_title(%{book: book} = assigns) do
+    if present?(book["author"]) do
+      ~H"""
+      <.rich text={
+        dgettext("book", "%{title} by %{author}", title: marker(:title), author: @book["author"])
+      }>
+        <:part name="title"><em>{@book["title"]}</em></:part>
+      </.rich>
+      """
+    else
+      ~H"""
+      <em>{@book["title"]}</em>
+      """
+    end
   end
 
   defp reading_items(%{currently_reading: %{"items" => items}}) when is_list(items),
@@ -130,8 +154,11 @@ defmodule TravelingPoetWeb.BookComponents do
     names = Enum.map(chapters, &short_place(&1.title))
 
     case Enum.split(names, @route_max) do
-      {shown, []} -> Enum.join(shown, " · ")
-      {shown, rest} -> Enum.join(shown, " · ") <> " · and #{length(rest)} more"
+      {shown, []} ->
+        Enum.join(shown, " · ")
+
+      {shown, rest} ->
+        Enum.join(shown ++ [dgettext("book", "and %{count} more", count: length(rest))], " · ")
     end
   end
 
@@ -141,8 +168,7 @@ defmodule TravelingPoetWeb.BookComponents do
 
   defp short_place(other), do: other
 
-  defp days_label(1), do: "One day"
-  defp days_label(n), do: "#{n} days"
+  defp days_label(n), do: dngettext("book", "One day", "%{count} days", n)
 
   attr :text, :string, required: true
 
@@ -183,7 +209,7 @@ defmodule TravelingPoetWeb.BookComponents do
     <section class="book-pull-quote">
       <blockquote>{@text}</blockquote>
       <p class="book-pull-quote-foot">
-        {@poet.name}, day {@day.number}<span :if={@day.entry.place_name}>, {@day.entry.place_name}</span>
+        {signed_day(@poet.name, @day.number, @day.entry.place_name)}
       </p>
     </section>
     """
@@ -203,14 +229,14 @@ defmodule TravelingPoetWeb.BookComponents do
   def toc(assigns) do
     ~H"""
     <section class="book-toc" id="book-toc">
-      <p class="book-kicker">Contents</p>
-      <h2 class="book-h">The journey</h2>
+      <p class="book-kicker">{dgettext("book", "Contents")}</p>
+      <h2 class="book-h">{dgettext("book", "The journey")}</h2>
       <p :if={@manuscript.chapters == []} class="book-muted">
-        No pages yet. The first one lands the morning after the poet sets out.
+        {dgettext("book", "No pages yet. The first one lands the morning after the poet sets out.")}
       </p>
       <ol>
         <li :if={@matter && @matter.foreword} class="toc-chapter">
-          <a href="#book-foreword"><span class="toc-title">Foreword</span></a>
+          <a href="#book-foreword"><span class="toc-title">{dgettext("book", "Foreword")}</span></a>
         </li>
         <li :for={ch <- @manuscript.chapters} class="toc-chapter">
           <a href={"##{ch.anchor}"}>
@@ -219,17 +245,17 @@ defmodule TravelingPoetWeb.BookComponents do
           <ol class="toc-days">
             <li :for={d <- ch.days}>
               <a href={"##{d.anchor}"}>
-                <span class="toc-day">Day {d.number}</span>
+                <span class="toc-day">{dgettext("book", "Day %{n}", n: d.number)}</span>
                 <span class="toc-title">{entry_title(d.entry)}</span>
               </a>
             </li>
           </ol>
         </li>
         <li :if={@matter && @matter.epilogue} class="toc-chapter">
-          <a href="#book-epilogue"><span class="toc-title">Epilogue</span></a>
+          <a href="#book-epilogue"><span class="toc-title">{dgettext("book", "Epilogue")}</span></a>
         </li>
         <li :if={@manuscript.chapters != []} class="toc-chapter">
-          <a href="#book-index"><span class="toc-title">Index</span></a>
+          <a href="#book-index"><span class="toc-title">{dgettext("book", "Index")}</span></a>
         </li>
       </ol>
     </section>
@@ -242,7 +268,7 @@ defmodule TravelingPoetWeb.BookComponents do
   def chapter_opening(assigns) do
     ~H"""
     <section class="book-chapter" id={@chapter.anchor}>
-      <p class="book-kicker">Chapter {@chapter.number}</p>
+      <p class="book-kicker">{dgettext("book", "Chapter %{n}", n: @chapter.number)}</p>
       <h2 class="book-chapter-title">{@chapter.title}</h2>
       <p class="book-chapter-dates">
         {date_range(@chapter.from, @chapter.to)} · {days_label(length(@chapter.days))}
@@ -283,14 +309,16 @@ defmodule TravelingPoetWeb.BookComponents do
     ~H"""
     <article class="book-day" id={@day.anchor}>
       <header class="book-day-head">
-        <span class="notebook-day">Day {@day.number}</span>
+        <span class="notebook-day">{dgettext("book", "Day %{n}", n: @day.number)}</span>
         <span class="notebook-date">{TravelingPoet.Locale.format_date(@day.date, :weekday_long)}</span>
         <h2 class="notebook-title">{entry_title(@entry)}</h2>
       </header>
 
       <div :if={@excursion} class="book-ticket">
-        <div class="ticket-kicker">A day off the road</div>
-        <div class="ticket-topic">An excursion into {excursion_label(@entry)}</div>
+        <div class="ticket-kicker">{dgettext("book", "A day off the road")}</div>
+        <div class="ticket-topic">
+          {dgettext("book", "An excursion into %{topic}", topic: excursion_label(@entry))}
+        </div>
         <div :if={@excursion.destination_name}>{@excursion.destination_name}</div>
       </div>
 
@@ -301,19 +329,27 @@ defmodule TravelingPoetWeb.BookComponents do
       <.sources list={@day.sources} />
 
       <p class="book-day-foot">
-        Read online: <a class="book-url" href={@day.url}>{@day.url}</a>
+        <.rich text={dgettext("book", "Read online: %{url}", url: marker(:url))}>
+          <:part name="url"><a class="book-url" href={@day.url}>{@day.url}</a></:part>
+        </.rich>
       </p>
     </article>
 
     <section :for={poem <- @poems} class="book-poem">
-      <h3 class="notebook-section-title">{poem.title || "A poem"}</h3>
+      <h3 class="notebook-section-title">{poem.title || dgettext("book", "A poem")}</h3>
       <div class="book-poem-body prose">{raw_markdown(poem.body, @spot_media, [])}</div>
       <p class="book-poem-foot">
-        {@poet.name}, day {@day.number}<span :if={@entry.place_name}>, {@entry.place_name}</span>
+        {signed_day(@poet.name, @day.number, @entry.place_name)}
       </p>
     </section>
     """
   end
+
+  # "Ada, day 3, Lisbon" under a poem or a chosen line
+  defp signed_day(poet, n, place) when is_binary(place) and place != "",
+    do: dgettext("book", "%{poet}, day %{n}, %{place}", poet: poet, n: n, place: place)
+
+  defp signed_day(poet, n, _place), do: dgettext("book", "%{poet}, day %{n}", poet: poet, n: n)
 
   attr :media, :map, required: true
 
@@ -322,11 +358,13 @@ defmodule TravelingPoetWeb.BookComponents do
   defp drawing(assigns) do
     ~H"""
     <figure class="taped-photo">
-      <img src={~p"/media/#{@media.id}"} alt={@media.alt_text || "drawing"} />
+      <img src={~p"/media/#{@media.id}"} alt={@media.alt_text || dgettext("book", "drawing")} />
       <figcaption>
         <span :if={@media.alt_text}>{@media.alt_text}</span>
         <span :for={src <- Media.source_items(@media)} class="src">
-          Drawn from {src["label"] || "the real place"}
+          {dgettext("book", "Drawn from %{source}",
+            source: src["label"] || dgettext("book", "the real place")
+          )}
         </span>
       </figcaption>
     </figure>
@@ -339,7 +377,7 @@ defmodule TravelingPoetWeb.BookComponents do
   def sources(assigns) do
     ~H"""
     <div :if={@list != []} class="book-sources">
-      <h3>Sources</h3>
+      <h3>{dgettext("book", "Sources")}</h3>
       <ol>
         <li :for={s <- @list}>
           <span :if={s.label != s.url}>{s.label}</span>
@@ -357,8 +395,8 @@ defmodule TravelingPoetWeb.BookComponents do
   def gazetteer(assigns) do
     ~H"""
     <section :if={@chapter.places != []} class="book-gazetteer">
-      <p class="book-kicker">Chapter {@chapter.number}</p>
-      <h2 class="book-h">Places in {@chapter.title}</h2>
+      <p class="book-kicker">{dgettext("book", "Chapter %{n}", n: @chapter.number)}</p>
+      <h2 class="book-h">{dgettext("book", "Places in %{chapter}", chapter: @chapter.title)}</h2>
       <div
         :for={{place, i} <- Enum.with_index(@chapter.places, 1)}
         class="book-stop"
@@ -381,8 +419,8 @@ defmodule TravelingPoetWeb.BookComponents do
     </section>
 
     <section :if={@chapter.finds != []} class="book-gazetteer">
-      <p class="book-kicker">Chapter {@chapter.number}</p>
-      <h2 class="book-h">Finds from {@chapter.title}</h2>
+      <p class="book-kicker">{dgettext("book", "Chapter %{n}", n: @chapter.number)}</p>
+      <h2 class="book-h">{dgettext("book", "Finds from %{chapter}", chapter: @chapter.title)}</h2>
       <div
         :for={{find, i} <- Enum.with_index(@chapter.finds, 1)}
         class="book-stop"
@@ -413,11 +451,11 @@ defmodule TravelingPoetWeb.BookComponents do
   def index_pages(assigns) do
     ~H"""
     <section class="book-index" id="book-index">
-      <p class="book-kicker">Index</p>
-      <h2 class="book-h">Where to find things</h2>
+      <p class="book-kicker">{dgettext("book", "Index")}</p>
+      <h2 class="book-h">{dgettext("book", "Where to find things")}</h2>
 
       <div :if={@index.places != []} class="idx-section">
-        <h3>Places</h3>
+        <h3>{dgettext("book", "Places")}</h3>
         <ul>
           <li :for={e <- @index.places} class="idx-entry">
             {e.term}
@@ -427,7 +465,7 @@ defmodule TravelingPoetWeb.BookComponents do
       </div>
 
       <div :if={@index.poems != []} class="idx-section">
-        <h3>Poems</h3>
+        <h3>{dgettext("book", "Poems")}</h3>
         <ul>
           <li :for={e <- @index.poems} class="idx-entry">
             {e.term}
@@ -437,7 +475,7 @@ defmodule TravelingPoetWeb.BookComponents do
       </div>
 
       <div :if={@index.topics != []} class="idx-section">
-        <h3>Excursions</h3>
+        <h3>{dgettext("book", "Excursions")}</h3>
         <ul>
           <li :for={e <- @index.topics} class="idx-entry">
             {e.term}
@@ -447,7 +485,7 @@ defmodule TravelingPoetWeb.BookComponents do
       </div>
 
       <div :if={@index.books != []} class="idx-section">
-        <h3>What {@poet.name} was reading</h3>
+        <h3>{dgettext("book", "What %{poet} was reading", poet: @poet.name)}</h3>
         <ul>
           <li :for={b <- @index.books} class="idx-entry">
             {b.term}<span :if={b.author} class="idx-author">, {b.author}</span>
@@ -462,9 +500,11 @@ defmodule TravelingPoetWeb.BookComponents do
 
   defp refs(assigns) do
     ~H"""
-    <a :for={r <- @refs} href={"##{r.anchor}"} class="idx-ref">day {day_of(r)}</a>
+    <a :for={r <- @refs} href={"##{r.anchor}"} class="idx-ref">{ref_label(r)}</a>
     """
   end
+
+  defp ref_label(ref), do: dgettext("book", "day %{date}", date: day_of(ref))
 
   # The index carries the anchor and date; the day number is on the page
   # itself, so the anchor's date is what a reader without page numbers gets.
@@ -478,44 +518,67 @@ defmodule TravelingPoetWeb.BookComponents do
     ~H"""
     <section class="book-colophon" id="book-colophon">
       <p>
-        Written by {@manuscript.colophon.poet_name}, a Traveling Poet,<br />
-        {date_range(@manuscript.from, @manuscript.to)}.
+        <.rich text={
+          dgettext("book", "Written by %{poet}, a Traveling Poet,%{br}%{dates}.",
+            poet: @manuscript.colophon.poet_name,
+            br: marker(:br),
+            dates: date_range(@manuscript.from, @manuscript.to)
+          )
+        }>
+          <:part name="br"><br /></:part>
+        </.rich>
       </p>
-      <p>
-        {days_label(@manuscript.entry_count)}<span :if={@manuscript.colophon.chapter_count > 0}>,
-          {@manuscript.colophon.chapter_count} {if @manuscript.colophon.chapter_count == 1,
-            do: "chapter",
-            else: "chapters"}</span>.
-      </p>
+      <p>{count_line(@manuscript)}</p>
       <p :if={@edition && @edition.composed_at}>
-        The dedication, foreword, chapter openings, epilogue and chosen lines were
-        composed by {@poet.name} for this edition on {TravelingPoet.Locale.format_date(
-          @edition.composed_at,
-          :long
-        )}. The journal is as it was written.
+        {dgettext(
+          "book",
+          "The dedication, foreword, chapter openings, epilogue and chosen lines were composed by %{poet} for this edition on %{date}. The journal is as it was written.",
+          poet: @poet.name,
+          date: TravelingPoet.Locale.format_date(@edition.composed_at, :long)
+        )}
       </p>
       <p :if={@manuscript.cover_drawing} id="book-cover-credit">
-        The cover drawing was made from {cover_sources(@manuscript.cover_drawing)}.
+        <.rich text={
+          dgettext("book", "The cover drawing was made from %{sources}.", sources: marker(:sources))
+        }>
+          <:part name="sources">{cover_sources(@manuscript.cover_drawing)}</:part>
+        </.rich>
       </p>
       <p>
-        Every drawing was made from a real photograph and says which one.
-        The places are the poet's own picks; the ratings are its opinion, not a review score.
+        {dgettext(
+          "book",
+          "Every drawing was made from a real photograph and says which one. The places are the poet's own picks; the ratings are its opinion, not a review score."
+        )}
       </p>
       <p>
-        The journal continues at
-        <a class="book-url" href={@manuscript.colophon.journal_url}>
-          {@manuscript.colophon.journal_url}
-        </a>
+        <.rich text={dgettext("book", "The journal continues at %{url}", url: marker(:url))}>
+          <:part name="url">
+            <a class="book-url" href={@manuscript.colophon.journal_url}>
+              {@manuscript.colophon.journal_url}
+            </a>
+          </:part>
+        </.rich>
       </p>
       <p>
-        {@manuscript.colophon.site_url} · printed {TravelingPoet.Locale.format_date(
-          @manuscript.colophon.generated_at,
-          :long
+        {dgettext("book", "%{site} · printed %{date}",
+          site: @manuscript.colophon.site_url,
+          date: TravelingPoet.Locale.format_date(@manuscript.colophon.generated_at, :long)
         )}
       </p>
     </section>
     """
   end
+
+  # "12 days, 3 chapters."
+  defp count_line(%{entry_count: days, colophon: %{chapter_count: chapters}})
+       when chapters > 0,
+       do:
+         dgettext("book", "%{days}, %{chapters}.",
+           days: days_label(days),
+           chapters: dngettext("book", "%{count} chapter", "%{count} chapters", chapters)
+         )
+
+  defp count_line(%{entry_count: days}), do: dgettext("book", "%{days}.", days: days_label(days))
 
   attr :size, :string, required: true
   attr :size_key, :string, required: true
@@ -531,48 +594,54 @@ defmodule TravelingPoetWeb.BookComponents do
   def toolbar(assigns) do
     ~H"""
     <div class="book-toolbar no-print" id="book-toolbar">
-      <span id="book-status" class="book-status-busy">Laying out your book</span>
+      <span id="book-status" class="book-status-busy">
+        {dgettext("book", "Laying out your book")}
+      </span>
       <span :if={@composing} class="book-toolbar-note" id="book-composing-note">
-        {@poet.name} is composing a new edition
+        {dgettext("book", "%{poet} is composing a new edition", poet: @poet.name)}
       </span>
       <%= if @has_composed do %>
         <a
           href={~p"/journal/book?#{[size: @size_key]}"}
           class={!@plain && "active"}
           id="edition-composed"
-          title={"With the words #{@poet.name} composed for the book"}
+          title={dgettext("book", "With the words %{poet} composed for the book", poet: @poet.name)}
         >
-          Composed
+          {dgettext("book", "Composed")}
         </a>
         <a
           href={~p"/journal/book?#{[size: @size_key, edition: "plain"]}"}
           class={@plain && "active"}
           id="edition-plain"
-          title="The journal as it was written"
+          title={dgettext("book", "The journal as it was written")}
         >
-          As written
+          {dgettext("book", "As written")}
         </a>
       <% end %>
       <a
         :for={{key, label} <- @sizes}
         href={~p"/journal/book?#{size_params(key, @plain and @has_composed)}"}
         class={label == @size && "active"}
-        title={"Paper size #{label}"}
+        title={dgettext("book", "Paper size %{size}", size: label)}
       >
         {label}
       </a>
       <%!-- window.print() does nothing in the iOS app's web view; the PDF is
             the way to paper there. --%>
-      <button :if={!@native} type="button" id="book-print" disabled>Print</button>
+      <button :if={!@native} type="button" id="book-print" disabled>
+        {dgettext("book", "Print")}
+      </button>
       <a
         :if={@pdf_enabled}
         href={~p"/settings#book"}
         id="book-get-pdf"
-        title="A stored PDF to download"
+        title={dgettext("book", "A stored PDF to download")}
       >
-        Get the PDF
+        {dgettext("book", "Get the PDF")}
       </a>
-      <a href={~p"/journal"} title="Back to the journal">Journal</a>
+      <a href={~p"/journal"} title={dgettext("book", "Back to the journal")}>
+        {dgettext("book", "Journal")}
+      </a>
     </div>
     """
   end
@@ -584,7 +653,7 @@ defmodule TravelingPoetWeb.BookComponents do
 
     ~H"""
     <span :for={{src, i} <- Enum.with_index(@items)}>
-      <span :if={i > 0}>, </span>{src["label"] || "a photograph"}
+      <span :if={i > 0}>, </span>{src["label"] || dgettext("book", "a photograph")}
       <a
         class="book-url"
         href={src["url"]}

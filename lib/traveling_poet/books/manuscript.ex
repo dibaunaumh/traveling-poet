@@ -168,7 +168,7 @@ defmodule TravelingPoet.Books.Manuscript do
     %Chapter{
       number: n,
       stay: stay,
-      title: stay.place_name || "On the road",
+      title: stay.place_name || dgettext("book", "On the road"),
       from: first.date,
       to: List.last(days).date,
       anchor: chapter_anchor(n),

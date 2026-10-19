@@ -1,0 +1,318 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} of %{poet}'s places within a ten-minute walk"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} of %{poet}'s places within a ten-minute walk, in %{area}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place to eat"
+msgid_plural "%{count} places to eat"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} shop"
+msgid_plural "%{count} shops"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} sight"
+msgid_plural "%{count} sights"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{finds} worth your time."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{n} min"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{n} sec"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{per_night} a night, %{total} in all"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{rating} guest rating"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{rating} guest rating, %{reviews} reviews"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{source} ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{stops} on the map."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{stops}, %{mapped} on the map."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{topic}: %{destinations}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{topic}: no excursions yet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid ", then "
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A day off the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A quiet page. The drawing says it all today."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "All %{count} %{places} in %{where} →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "All %{count} %{places} in the guide →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Check in"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Check out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Check-out has to come after check-in."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not reach our booking partner just now. Try again in a moment."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Drawn from %{sources}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Each ring is about a ten-minute walk across."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Everything from excursions into %{topic} →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Everything from excursions into this topic →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Excursion: %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Find hotels"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "For you:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Guests"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Hide the chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Hotel search is not switched on yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Hotels for your dates"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Listen"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Listen, %{length}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Listen, about %{length}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Looking..."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No excursions yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No finds logged for this excursion."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No places logged for this day. The guide has the rest of the trip."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No rooms found for those dates."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing to take home today."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nowhere in particular today."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open %{name}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open %{name}'s page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open the guide →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pages of this entry"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Play"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Prices from our booking partner, for your dates. Booking through these links supports Traveling Poet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, a few seconds"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See rooms and book ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Show the chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The catch:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The journey so far"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} brought back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where %{poet} would send you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay in %{city}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Within a ten-minute walk: %{places}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Written from %{place}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You asked for this one in chat."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "an excursion"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "illustration"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "later →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "see the real place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the real place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "topic"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "← earlier"
+msgstr ""
