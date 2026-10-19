@@ -13,6 +13,8 @@ defmodule TravelingPoet.Trips do
   calendar is withdrawn.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Ecto.Query
 
   alias TravelingPoet.{Geo, Poets, Repo}
@@ -486,17 +488,17 @@ defmodule TravelingPoet.Trips do
         day(from)
 
       from.year == to.year and from.month == to.month ->
-        "#{from.day} to #{day(to)}"
+        dgettext("guide", "%{from} to %{to}", from: from.day, to: day(to))
 
       from.year == to.year ->
-        "#{day(from)} to #{day(to)}"
+        dgettext("guide", "%{from} to %{to}", from: day(from), to: day(to))
 
       true ->
-        "#{day(from)} to #{day(to)} #{to.year}"
+        dgettext("guide", "%{from} to %{to}", from: day(from), to: "#{day(to)} #{to.year}")
     end
   end
 
-  defp day(date), do: Calendar.strftime(date, "%-d %B")
+  defp day(date), do: TravelingPoet.Locale.format_date(date, :day_month)
 
   defp broadcast_updated(%Poet{user_id: user_id}) do
     Phoenix.PubSub.broadcast(TravelingPoet.PubSub, "user:#{user_id}", {:trips_updated})

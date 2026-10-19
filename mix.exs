@@ -102,7 +102,15 @@ defmodule TravelingPoet.MixProject do
         "esbuild traveling_poet --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      # gettext.extract --check-up-to-date fails when a string changed in the
+      # code but not in priv/gettext (TranslationsTest then checks the Hebrew)
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "gettext.extract --check-up-to-date",
+        "test"
+      ]
     ]
   end
 end

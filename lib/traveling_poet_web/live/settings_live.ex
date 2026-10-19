@@ -884,8 +884,13 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp topic_schedule(%Topic{status: "active"} = topic, poet_name) do
     last =
       case Topics.last_excursion_on(topic) do
-        nil -> "no excursion yet"
-        date -> "last excursion " <> Calendar.strftime(date, "%b %-d")
+        nil ->
+          dgettext("settings", "no excursion yet")
+
+        date ->
+          dgettext("settings", "last excursion %{date}",
+            date: TravelingPoet.Locale.format_date(date, :short)
+          )
       end
 
     next =
@@ -1149,7 +1154,10 @@ defmodule TravelingPoetWeb.SettingsLive do
 
                 <p :if={@poet.hold_until} class="text-sm flex items-center gap-2">
                   <span>
-                    Staying put through {Calendar.strftime(@poet.hold_until, "%B %-d")}, as you asked in chat.
+                    Staying put through {TravelingPoet.Locale.format_date(
+                      @poet.hold_until,
+                      :month_day
+                    )}, as you asked in chat.
                   </span>
                   <button type="button" phx-click="release_hold" class="btn btn-ghost btn-xs">
                     Let it move on
@@ -1351,9 +1359,9 @@ defmodule TravelingPoetWeb.SettingsLive do
                   <span class="opacity-60 block">
                     ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
                       @book.last_ready_pdf.page_size
-                    )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
+                    )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {TravelingPoet.Locale.format_date(
                       @book.last_ready_pdf.rendered_at,
-                      "%b %-d"
+                      :short
                     )})
                   </span>
                 </div>
@@ -1437,7 +1445,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </p>
 
                 <p :if={book_status(@book) == :ready} class="text-sm mb-2" id="book-ready">
-                  Composed on {Calendar.strftime(@book.edition.composed_at, "%B %-d")}.
+                  Composed on {TravelingPoet.Locale.format_date(@book.edition.composed_at, :month_day)}.
                   It is in the book now.
                 </p>
 
@@ -1751,7 +1759,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   <li :for={tx <- @transactions} class="flex justify-between gap-2">
                     <span>{tx_label(tx.kind)}</span>
                     <span class="opacity-60 text-xs">
-                      {Calendar.strftime(tx.inserted_at, "%b %-d")}
+                      {TravelingPoet.Locale.format_date(tx.inserted_at, :short)}
                     </span>
                     <span class={["tabular-nums", tx.amount < 0 && "opacity-70"]}>
                       {signed(tx.amount)}

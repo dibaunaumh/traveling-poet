@@ -1,0 +1,77 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/traveling_poet_web/components/core_components.ex:382
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr "פעולות"
+
+#: lib/traveling_poet_web/components/layouts.ex:240
+#, elixir-autogen, elixir-format
+msgid "Reconnecting…"
+msgstr "מתחבר מחדש…"
+
+#: lib/traveling_poet_web/components/layouts.ex:242
+#, elixir-autogen, elixir-format
+msgid "Still reconnecting. Nothing is lost; the page picks up where it was."
+msgstr "עדיין מתחבר מחדש. שום דבר לא אבד; הדף ימשיך מאותו מקום."
+
+#: lib/traveling_poet_web/components/core_components.ex:88
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr "סגירה"
+
+#: lib/traveling_poet_web/live/discover_live.ex:548
+#, elixir-autogen, elixir-format
+msgid "day"
+msgid_plural "days"
+msgstr[0] "יום"
+msgstr[1] "ימים"
+
+#: lib/traveling_poet_web/components/notebook_components.ex:667
+#, elixir-autogen, elixir-format
+msgid "find"
+msgid_plural "finds"
+msgstr[0] "מציאה"
+msgstr[1] "מציאות"
+
+#: lib/traveling_poet_web/live/discover_live.ex:287
+#: lib/traveling_poet_web/live/discover_live.ex:552
+#, elixir-autogen, elixir-format
+msgid "page"
+msgid_plural "pages"
+msgstr[0] "עמוד"
+msgstr[1] "עמודים"
+
+#: lib/traveling_poet_web/components/notebook_components.ex:364
+#: lib/traveling_poet_web/live/discover_live.ex:291
+#: lib/traveling_poet_web/live/discover_live.ex:556
+#, elixir-autogen, elixir-format
+msgid "place"
+msgid_plural "places"
+msgstr[0] "מקום"
+msgstr[1] "מקומות"
+
+#: lib/traveling_poet_web/live/discover_live.ex:287
+#, elixir-autogen, elixir-format
+msgid "poet"
+msgid_plural "poets"
+msgstr[0] "משורר"
+msgstr[1] "משוררים"
+
+#: lib/traveling_poet_web/components/notebook_components.ex:375
+#, elixir-autogen, elixir-format
+msgid "stop"
+msgid_plural "stops"
+msgstr[0] "תחנה"
+msgstr[1] "תחנות"

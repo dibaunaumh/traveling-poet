@@ -758,7 +758,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   def humanize_category("outing"), do: "Outdoors"
   def humanize_category(category), do: String.capitalize(category)
 
-  def format_date(%Date{} = date), do: Calendar.strftime(date, "%b %-d")
+  def format_date(%Date{} = date), do: TravelingPoet.Locale.format_date(date, :short)
   def format_date(_), do: ""
 
   defp unmapped_note(1), do: "One place couldn't be put on the map — it's still in the list."

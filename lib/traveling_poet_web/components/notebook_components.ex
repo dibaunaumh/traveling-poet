@@ -31,7 +31,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
       <span :if={@day} class="notebook-day">Day {@day}</span>
       {entry_title(@entry)}
       <span :if={@show_date} class="notebook-date ml-2">
-        {Calendar.strftime(@entry.entry_date, "%B %-d, %Y")}
+        {TravelingPoet.Locale.format_date(@entry.entry_date, :long)}
       </span>
       <span :if={@excursion_label} class="notebook-excursion">
         Excursion: {@excursion_label}

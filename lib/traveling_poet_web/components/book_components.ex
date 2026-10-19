@@ -107,7 +107,7 @@ defmodule TravelingPoetWeb.BookComponents do
         </div>
         <div :if={@set_out_from && @set_out_on}>
           <dt>Set out</dt>
-          <dd>from {@set_out_from}, {Calendar.strftime(@set_out_on, "%B %-d, %Y")}</dd>
+          <dd>from {@set_out_from}, {TravelingPoet.Locale.format_date(@set_out_on, :long)}</dd>
         </div>
         <div :if={length(@manuscript.chapters) > 1}>
           <dt>Route</dt>
@@ -284,7 +284,7 @@ defmodule TravelingPoetWeb.BookComponents do
     <article class="book-day" id={@day.anchor}>
       <header class="book-day-head">
         <span class="notebook-day">Day {@day.number}</span>
-        <span class="notebook-date">{Calendar.strftime(@day.date, "%A, %B %-d, %Y")}</span>
+        <span class="notebook-date">{TravelingPoet.Locale.format_date(@day.date, :weekday_long)}</span>
         <h2 class="notebook-title">{entry_title(@entry)}</h2>
       </header>
 
@@ -468,7 +468,7 @@ defmodule TravelingPoetWeb.BookComponents do
 
   # The index carries the anchor and date; the day number is on the page
   # itself, so the anchor's date is what a reader without page numbers gets.
-  defp day_of(%{date: %Date{} = d}), do: Calendar.strftime(d, "%b %-d")
+  defp day_of(%{date: %Date{} = d}), do: TravelingPoet.Locale.format_date(d, :short)
 
   attr :manuscript, :map, required: true
   attr :edition, :map, default: nil
@@ -489,9 +489,9 @@ defmodule TravelingPoetWeb.BookComponents do
       </p>
       <p :if={@edition && @edition.composed_at}>
         The dedication, foreword, chapter openings, epilogue and chosen lines were
-        composed by {@poet.name} for this edition on {Calendar.strftime(
+        composed by {@poet.name} for this edition on {TravelingPoet.Locale.format_date(
           @edition.composed_at,
-          "%B %-d, %Y"
+          :long
         )}. The journal is as it was written.
       </p>
       <p :if={@manuscript.cover_drawing} id="book-cover-credit">
@@ -508,9 +508,9 @@ defmodule TravelingPoetWeb.BookComponents do
         </a>
       </p>
       <p>
-        {@manuscript.colophon.site_url} · printed {Calendar.strftime(
+        {@manuscript.colophon.site_url} · printed {TravelingPoet.Locale.format_date(
           @manuscript.colophon.generated_at,
-          "%B %-d, %Y"
+          :long
         )}
       </p>
     </section>
@@ -600,10 +600,13 @@ defmodule TravelingPoetWeb.BookComponents do
   defp date_range(%Date{} = from, %Date{} = to) when from == to, do: long_date(from)
 
   defp date_range(%Date{} = from, %Date{} = to) do
-    if from.year == to.year,
-      do: "#{Calendar.strftime(from, "%B %-d")} to #{long_date(to)}",
-      else: "#{long_date(from)} to #{long_date(to)}"
+    from =
+      if from.year == to.year,
+        do: TravelingPoet.Locale.format_date(from, :month_day),
+        else: long_date(from)
+
+    dgettext("journal", "%{from} to %{to}", from: from, to: long_date(to))
   end
 
-  defp long_date(%Date{} = d), do: Calendar.strftime(d, "%B %-d, %Y")
+  defp long_date(%Date{} = d), do: TravelingPoet.Locale.format_date(d, :long)
 end

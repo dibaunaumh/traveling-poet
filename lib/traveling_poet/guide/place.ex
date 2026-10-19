@@ -7,6 +7,8 @@ defmodule TravelingPoet.Guide.Place do
   as one -- hence the field name.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -94,17 +96,17 @@ defmodule TravelingPoet.Guide.Place do
   def date_range(%__MODULE__{starts_on: nil, ends_on: nil}), do: nil
 
   def date_range(%__MODULE__{starts_on: nil, ends_on: ends_on}),
-    do: "until " <> fmt(ends_on)
+    do: dgettext("guide", "until %{date}", date: fmt(ends_on))
 
   def date_range(%__MODULE__{starts_on: starts_on, ends_on: nil}),
-    do: "from " <> fmt(starts_on)
+    do: dgettext("guide", "from %{date}", date: fmt(starts_on))
 
   def date_range(%__MODULE__{starts_on: same, ends_on: same}), do: fmt(same)
 
   def date_range(%__MODULE__{starts_on: starts_on, ends_on: ends_on}),
     do: fmt(starts_on) <> " – " <> fmt(ends_on)
 
-  defp fmt(date), do: Calendar.strftime(date, "%b %-d")
+  defp fmt(date), do: TravelingPoet.Locale.format_date(date, :short)
 
   @doc "Is this place placeable on the map?"
   def mapped?(%__MODULE__{lat: lat, lng: lng}), do: is_number(lat) and is_number(lng)

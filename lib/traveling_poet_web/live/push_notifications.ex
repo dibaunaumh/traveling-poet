@@ -164,7 +164,12 @@ defmodule TravelingPoetWeb.PushNotifications do
           id="next-page-at"
           phx-hook="LocalTime"
           datetime={DateTime.to_iso8601(@next.at)}
-        >{Calendar.strftime(@next.at, "%-d %b around %H:%M UTC")}</time>{next_place(@next)}.
+        >{dgettext("notify", "%{date} around %{time} UTC",
+          date: TravelingPoet.Locale.format_date(@next.at, :day_mon),
+          time: TravelingPoet.Locale.format_date(@next.at, :time)
+        )}</time>{next_place(
+          @next
+        )}.
       </p>
       <div
         :if={

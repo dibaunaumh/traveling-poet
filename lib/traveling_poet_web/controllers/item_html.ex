@@ -10,7 +10,7 @@ defmodule TravelingPoetWeb.ItemHTML do
   def date_range(%{time_start: s, time_end: s}), do: fmt(s)
   def date_range(%{time_start: s, time_end: e}), do: fmt(s) <> " to " <> fmt(e)
 
-  def fmt(%Date{} = date), do: Calendar.strftime(date, "%b %-d, %Y")
+  def fmt(%Date{} = date), do: TravelingPoet.Locale.format_date(date, :short_year)
 
   def phrase("at", :out), do: "at"
   def phrase("at", :in), do: "here:"

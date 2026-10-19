@@ -1004,7 +1004,7 @@ defmodule TravelingPoetWeb.JournalLive do
       <h2 class="notebook-title">
         The first entry
         <span class="notebook-date ml-2">
-          {Calendar.strftime(Date.utc_today(), "%B %-d, %Y")}
+          {TravelingPoet.Locale.format_date(Date.utc_today(), :long)}
         </span>
       </h2>
       <div class="mt-3 text-sm space-y-2">

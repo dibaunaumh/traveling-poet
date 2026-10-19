@@ -583,7 +583,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   end
 
   defp entry_when(%{entry_date: date, place_name: place}) do
-    day = Calendar.strftime(date, "%B %-d")
+    day = TravelingPoet.Locale.format_date(date, :month_day)
     if place in [nil, ""], do: day, else: "#{day}, #{place}"
   end
 

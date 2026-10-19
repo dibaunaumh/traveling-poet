@@ -1,0 +1,49 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/traveling_poet/books/manuscript.ex:194
+#: lib/traveling_poet/books/manuscript.ex:200
+#: lib/traveling_poet_web/components/book_components.ex:608
+#, elixir-autogen, elixir-format
+msgid "%{from} to %{to}"
+msgstr ""
+
+#: lib/traveling_poet/books/manuscript.ex:186
+#, elixir-autogen, elixir-format
+msgid "A journal"
+msgstr ""
+
+#: lib/traveling_poet/journal/spreads.ex:123
+#, elixir-autogen, elixir-format
+msgid "Entry"
+msgstr ""
+
+#: lib/traveling_poet/journal/spreads.ex:85
+#, elixir-autogen, elixir-format
+msgid "Finds"
+msgstr ""
+
+#: lib/traveling_poet/journal/spreads.ex:77
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr ""
+
+#: lib/traveling_poet/journal/spreads.ex:119
+#, elixir-autogen, elixir-format
+msgid "Today"
+msgstr ""
+
+#: lib/traveling_poet/journal/spreads.ex:100
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr ""

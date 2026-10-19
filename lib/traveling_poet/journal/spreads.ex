@@ -25,6 +25,8 @@ defmodule TravelingPoet.Journal.Spreads do
   `{:find, find}`. The fourth argument then carries finds instead of places.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   @type item :: {:section, map} | {:media, map}
   @type spread :: %{key: String.t(), label: String.t(), left: [item], right: [item]}
 
@@ -72,7 +74,7 @@ defmodule TravelingPoet.Journal.Spreads do
       nil ->
         %{
           key: "places",
-          label: "Places",
+          label: dgettext("journal", "Places"),
           left: [{:map, nil}],
           right: Enum.map(items, &{:place, &1})
         }
@@ -80,7 +82,7 @@ defmodule TravelingPoet.Journal.Spreads do
       excursion ->
         %{
           key: "finds",
-          label: "Finds",
+          label: dgettext("journal", "Finds"),
           left: [{:excursion, excursion}],
           right: Enum.map(items, &{:find, &1})
         }
@@ -95,7 +97,7 @@ defmodule TravelingPoet.Journal.Spreads do
   def stay(ranked, places) do
     %{
       key: "stay",
-      label: "Where to stay",
+      label: dgettext("journal", "Where to stay"),
       left: [{:map, %{areas: Enum.map(ranked, & &1.area), places: places}}],
       right: Enum.map(ranked, &{:area, &1})
     }
@@ -113,10 +115,12 @@ defmodule TravelingPoet.Journal.Spreads do
   # The tab names the day, and only today's entry is "Today": paging back
   # to an earlier entry, the tab reads its date, not a promise it cannot keep.
   defp entry_label(%{entry_date: %Date{} = date}, today) do
-    if Date.compare(date, today) == :eq, do: "Today", else: Calendar.strftime(date, "%b %-d")
+    if Date.compare(date, today) == :eq,
+      do: dgettext("journal", "Today"),
+      else: TravelingPoet.Locale.format_date(date, :short)
   end
 
-  defp entry_label(_entry, _today), do: "Entry"
+  defp entry_label(_entry, _today), do: dgettext("journal", "Entry")
 
   @doc """
   The spread a reader asked for by key, or the first one when the key is

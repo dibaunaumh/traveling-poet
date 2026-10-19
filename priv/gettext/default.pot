@@ -1,0 +1,77 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/traveling_poet_web/components/core_components.ex:382
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/traveling_poet_web/components/layouts.ex:240
+#, elixir-autogen, elixir-format
+msgid "Reconnecting…"
+msgstr ""
+
+#: lib/traveling_poet_web/components/layouts.ex:242
+#, elixir-autogen, elixir-format
+msgid "Still reconnecting. Nothing is lost; the page picks up where it was."
+msgstr ""
+
+#: lib/traveling_poet_web/components/core_components.ex:88
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/traveling_poet_web/live/discover_live.ex:548
+#, elixir-autogen, elixir-format
+msgid "day"
+msgid_plural "days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/traveling_poet_web/components/notebook_components.ex:667
+#, elixir-autogen, elixir-format
+msgid "find"
+msgid_plural "finds"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/traveling_poet_web/live/discover_live.ex:287
+#: lib/traveling_poet_web/live/discover_live.ex:552
+#, elixir-autogen, elixir-format
+msgid "page"
+msgid_plural "pages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/traveling_poet_web/components/notebook_components.ex:364
+#: lib/traveling_poet_web/live/discover_live.ex:291
+#: lib/traveling_poet_web/live/discover_live.ex:556
+#, elixir-autogen, elixir-format
+msgid "place"
+msgid_plural "places"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/traveling_poet_web/live/discover_live.ex:287
+#, elixir-autogen, elixir-format
+msgid "poet"
+msgid_plural "poets"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/traveling_poet_web/components/notebook_components.ex:375
+#, elixir-autogen, elixir-format
+msgid "stop"
+msgid_plural "stops"
+msgstr[0] ""
+msgstr[1] ""
