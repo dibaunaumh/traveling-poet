@@ -12,20 +12,31 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   alias TravelingPoet.Guide.Place
 
-  @views [{"map", "Map"}, {"list", "List"}, {"itinerary", "Itinerary"}]
-  @filters [{"all", "All"}, {"food", "Food"}, {"sights", "Sights"}, {"events", "Events"}]
-  # A topic's finds, grouped as Topics.Find.group_for/1 groups them.
-  @topic_filters [
-    {"all", "All"},
-    {"ideas", "Talks and papers"},
-    {"works", "Art, music, books, films"},
-    {"things", "Products"},
-    {"happenings", "Events and venues"}
-  ]
+  # Functions, not module attributes: the labels are translated per request.
+  def views,
+    do: [
+      {"map", dgettext("guide", "Map")},
+      {"list", dgettext("guide", "List")},
+      {"itinerary", dgettext("guide", "Itinerary")}
+    ]
 
-  def views, do: @views
-  def filters, do: @filters
-  def topic_filters, do: @topic_filters
+  def filters,
+    do: [
+      {"all", dgettext("guide", "All")},
+      {"food", dgettext("guide", "Food")},
+      {"sights", dgettext("guide", "Sights")},
+      {"events", dgettext("guide", "Events")}
+    ]
+
+  # A topic's finds, grouped as Topics.Find.group_for/1 groups them.
+  def topic_filters,
+    do: [
+      {"all", dgettext("guide", "All")},
+      {"ideas", dgettext("guide", "Talks and papers")},
+      {"works", dgettext("guide", "Art, music, books, films")},
+      {"things", dgettext("guide", "Products")},
+      {"happenings", dgettext("guide", "Events and venues")}
+    ]
 
   attr :poet, :map, required: true
   attr :stay, :map, default: nil
@@ -39,25 +50,40 @@ defmodule TravelingPoetWeb.GuideComponents do
         assigns,
         :view_options,
         cond do
-          assigns.saved -> Enum.reject(@views, &(elem(&1, 0) == "itinerary"))
-          assigns.topic -> [{"route", "Route"} | Enum.reject(@views, &(elem(&1, 0) == "map"))]
-          true -> @views
+          assigns.saved ->
+            Enum.reject(views(), &(elem(&1, 0) == "itinerary"))
+
+          assigns.topic ->
+            [
+              {"route", dgettext("guide", "Route")}
+              | Enum.reject(views(), &(elem(&1, 0) == "map"))
+            ]
+
+          true ->
+            views()
         end
       )
 
     ~H"""
     <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
       <div>
-        <h1 class="text-2xl font-semibold">Trip guide</h1>
+        <h1 class="text-2xl font-semibold">{dgettext("guide", "Trip guide")}</h1>
         <p :if={@saved} class="text-sm opacity-60 mt-1">
-          Places and finds you saved, from any poet
+          {dgettext("guide", "Places and finds you saved, from any poet")}
         </p>
         <p :if={is_nil(@topic) and not @saved} class="text-sm opacity-60 mt-1">
-          Places, food and events <span :if={@stay}>for {@stay.place_name}</span>
-          <span :if={is_nil(@stay)}>from {@poet.name}'s travels</span>
+          <span :if={@stay}>
+            {dgettext("guide", "Places, food and events for %{place}", place: @stay.place_name)}
+          </span>
+          <span :if={is_nil(@stay)}>
+            {dgettext("guide", "Places, food and events from %{poet}'s travels", poet: @poet.name)}
+          </span>
         </p>
         <p :if={@topic} class="text-sm opacity-60 mt-1">
-          What {@poet.name} brought back from excursions into {@topic.label}
+          {dgettext("guide", "What %{poet} brought back from excursions into %{topic}",
+            poet: @poet.name,
+            topic: @topic.label
+          )}
         </p>
       </div>
 
@@ -81,9 +107,14 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   attr :filter, :string, required: true
   attr :counts, :map, required: true
-  attr :options, :list, default: @filters, doc: "{key, label} pairs; topic_filters/0 for a topic"
+
+  attr :options, :list,
+    default: nil,
+    doc: "{key, label} pairs; filters/0 when nil, topic_filters/0 for a topic"
 
   def filter_chips(assigns) do
+    assigns = assign(assigns, :options, assigns.options || filters())
+
     ~H"""
     <div id="guide-filters" class="flex flex-wrap gap-2 mb-4">
       <button
@@ -149,7 +180,7 @@ defmodule TravelingPoetWeb.GuideComponents do
           if(is_nil(@topic) and not @saved, do: "btn-neutral", else: "btn-ghost")
         ]}
       >
-        <.icon name="hero-map-pin" class="size-4" /> Places
+        <.icon name="hero-map-pin" class="size-4" /> {dgettext("guide", "Places")}
       </button>
       <button
         :for={{topic, count} <- @journeys}
@@ -170,7 +201,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         phx-click="set_saved"
         class={["btn btn-sm", if(@saved, do: "btn-neutral", else: "btn-ghost")]}
       >
-        <.icon name="hero-bookmark" class="size-4" /> Saved
+        <.icon name="hero-bookmark" class="size-4" /> {dgettext("guide", "Saved")}
         <span class="opacity-50 text-xs">{@saved_count}</span>
       </button>
     </div>
@@ -190,7 +221,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         phx-value-excursion=""
         class={["btn btn-xs", if(is_nil(@excursion), do: "btn-secondary", else: "btn-outline")]}
       >
-        All destinations
+        {dgettext("guide", "All destinations")}
       </button>
       <button
         :for={x <- @excursions}
@@ -210,8 +241,11 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   @doc "A destination's name as the poet gave it, or the excursion's date when it gave none."
   def destination_label(%{destination_name: name}) when is_binary(name) and name != "", do: name
-  def destination_label(%{scheduled_for: %Date{} = date}), do: "Excursion of #{format_date(date)}"
-  def destination_label(_), do: "Excursion"
+
+  def destination_label(%{scheduled_for: %Date{} = date}),
+    do: dgettext("guide", "Excursion of %{date}", date: format_date(date))
+
+  def destination_label(_), do: dgettext("guide", "Excursion")
 
   attr :finds, :list, required: true
   attr :excursions, :list, required: true, doc: "to name each find's destination"
@@ -265,7 +299,13 @@ defmodule TravelingPoetWeb.GuideComponents do
 
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs opacity-60">
-            {humanize_category(@find.kind)}<span :if={@excursion}> at {destination_label(@excursion)}</span>
+            <span :if={is_nil(@excursion)}>{humanize_category(@find.kind)}</span>
+            <span :if={@excursion}>
+              {dgettext("guide", "%{kind} at %{destination}",
+                kind: humanize_category(@find.kind),
+                destination: destination_label(@excursion)
+              )}
+            </span>
           </div>
           <.save_button :if={is_boolean(@saved)} saved={@saved} kind="find" item={@find} />
         </div>
@@ -280,14 +320,14 @@ defmodule TravelingPoetWeb.GuideComponents do
             rel="noopener noreferrer nofollow"
             class="link link-primary text-sm"
           >
-            Open ↗
+            {dgettext("guide", "Open ↗")}
           </a>
           <.link
             :if={@entry_url}
             navigate={@entry_url.(@find.entry_date)}
             class="link text-sm opacity-70"
           >
-            Read the entry
+            {dgettext("guide", "Read the entry")}
           </.link>
           <.link :if={@source} navigate={elem(@source, 1)} class="link text-sm opacity-70">
             {elem(@source, 0)}
@@ -310,7 +350,9 @@ defmodule TravelingPoetWeb.GuideComponents do
     ~H"""
     <div id="guide-excursions" class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       <div :for={stop <- @find_days} id={"guide-excursion-#{stop.excursion.id}"}>
-        <div class="font-semibold">Excursion {stop.n} into {@topic.label}</div>
+        <div class="font-semibold">
+          {dgettext("guide", "Excursion %{n} into %{topic}", n: stop.n, topic: @topic.label)}
+        </div>
         <div class="text-xs opacity-60">
           {format_date(stop.excursion.scheduled_for)}
           <.link
@@ -318,7 +360,7 @@ defmodule TravelingPoetWeb.GuideComponents do
             navigate={@entry_url.(stop.excursion.scheduled_for)}
             class="link ms-1"
           >
-            read the entry
+            {dgettext("guide", "read the entry")}
           </.link>
         </div>
         <div class="text-sm mb-4">
@@ -356,7 +398,9 @@ defmodule TravelingPoetWeb.GuideComponents do
               <.poet_pick :if={find.poet_rating} place={find} poet={@poet} />
             </div>
           </div>
-          <p :if={stop.finds == []} class="text-xs opacity-50 mb-5">Nothing under this filter.</p>
+          <p :if={stop.finds == []} class="text-xs opacity-50 mb-5">
+            {dgettext("guide", "Nothing under this filter.")}
+          </p>
         </div>
       </div>
     </div>
@@ -369,9 +413,13 @@ defmodule TravelingPoetWeb.GuideComponents do
     ~H"""
     <div id="guide-empty" class="text-center py-16 opacity-70">
       <.icon name="hero-map" class="size-8 mb-3 opacity-50" />
-      <div class="font-semibold">Still gathering recommendations</div>
+      <div class="font-semibold">{dgettext("guide", "Still gathering recommendations")}</div>
       <p class="text-sm mt-1">
-        {@poet.name} hasn't mapped out this trip's guide yet — it fills in as the journal grows.
+        {dgettext(
+          "guide",
+          "%{poet} hasn't mapped out this trip's guide yet — it fills in as the journal grows.",
+          poet: @poet.name
+        )}
       </p>
     </div>
     """
@@ -411,7 +459,8 @@ defmodule TravelingPoetWeb.GuideComponents do
           source={@sources[@selected.id]}
         />
         <p :if={is_nil(@selected)} class="text-sm opacity-60 p-4">
-          {@hint || "Pick a pin to see what #{@poet.name} said about it."}
+          {@hint ||
+            dgettext("guide", "Pick a pin to see what %{poet} said about it.", poet: @poet.name)}
         </p>
       </div>
     </div>
@@ -457,7 +506,12 @@ defmodule TravelingPoetWeb.GuideComponents do
     <div id="guide-itinerary" class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
       <div :for={day <- @days} id={"guide-day-#{day.day}"}>
         <div class="font-semibold">
-          Day {day.day}<span :if={@stay && @stay.place_name}> in {@stay.place_name}</span>
+          <span :if={is_nil(@stay) or is_nil(@stay.place_name)}>
+            {dgettext("guide", "Day %{n}", n: day.day)}
+          </span>
+          <span :if={@stay && @stay.place_name}>
+            {dgettext("guide", "Day %{n} in %{place}", n: day.day, place: @stay.place_name)}
+          </span>
         </div>
         <div class="text-xs opacity-60 mb-4">{format_date(day.date)}</div>
 
@@ -525,7 +579,7 @@ defmodule TravelingPoetWeb.GuideComponents do
             rel="noopener noreferrer nofollow"
             class="link link-primary text-sm"
           >
-            View details ↗
+            {dgettext("guide", "View details ↗")}
           </a>
           <a
             :if={TravelingPoet.MapsLinks.google_url(@place)}
@@ -535,7 +589,7 @@ defmodule TravelingPoetWeb.GuideComponents do
             rel="noopener noreferrer"
             class="link text-sm opacity-80"
           >
-            Open in Google Maps ↗
+            {dgettext("guide", "Open in Google Maps ↗")}
           </a>
         </div>
         <.link :if={@source} navigate={elem(@source, 1)} class="link text-xs opacity-70">
@@ -555,8 +609,12 @@ defmodule TravelingPoetWeb.GuideComponents do
       :if={Map.get(@place, :hours) || Map.get(@place, :book_ahead)}
       class="flex flex-wrap items-center gap-2 text-xs"
     >
-      <span :if={Map.get(@place, :hours)} class="opacity-70">Open {Map.get(@place, :hours)}</span>
-      <span :if={Map.get(@place, :book_ahead)} class="badge badge-sm badge-outline">Book ahead</span>
+      <span :if={Map.get(@place, :hours)} class="opacity-70">
+        {dgettext("guide", "Open %{hours}", hours: Map.get(@place, :hours))}
+      </span>
+      <span :if={Map.get(@place, :book_ahead)} class="badge badge-sm badge-outline">
+        {dgettext("guide", "Book ahead")}
+      </span>
     </div>
     """
   end
@@ -572,20 +630,34 @@ defmodule TravelingPoetWeb.GuideComponents do
   def maps_export(assigns) do
     ~H"""
     <details id={@id} class="mt-3 text-sm">
-      <summary class="cursor-pointer link">Put these places in Google Maps</summary>
+      <summary class="cursor-pointer link">
+        {dgettext("guide", "Put these places in Google Maps")}
+      </summary>
       <ol class="mt-2 ms-5 list-decimal space-y-1 opacity-80">
-        <li><a href={@kml_url} class="link">Download the places file</a>.</li>
         <li>
-          Open <a
-            href="https://www.google.com/mymaps"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="link"
-          >Google My Maps</a>,
-          create a map, and choose Import with that file.
+          <a href={@kml_url} class="link">{dgettext("guide", "Download the places file")}</a>.
         </li>
         <li>
-          The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends.
+          <.rich text={
+            dgettext("guide", "Open %{my_maps}, create a map, and choose Import with that file.",
+              my_maps: marker(:my_maps)
+            )
+          }>
+            <:part name="my_maps">
+              <a
+                href="https://www.google.com/mymaps"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link"
+              >Google My Maps</a>
+            </:part>
+          </.rich>
+        </li>
+        <li>
+          {dgettext(
+            "guide",
+            "The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends."
+          )}
         </li>
       </ol>
     </details>
@@ -605,10 +677,12 @@ defmodule TravelingPoetWeb.GuideComponents do
         phx-click="share_saved"
         class="btn btn-sm"
       >
-        Share this list with friends
+        {dgettext("guide", "Share this list with friends")}
       </button>
       <div :if={@token} class="flex flex-wrap items-center gap-2">
-        <span class="opacity-70">Anyone with this link sees these places:</span>
+        <span class="opacity-70">
+          {dgettext("guide", "Anyone with this link sees these places:")}
+        </span>
         <a id="share-saved-link" href={~p"/shared/#{@token}"} target="_blank" class="link break-all">
           {url(~p"/shared/#{@token}")}
         </a>
@@ -618,7 +692,7 @@ defmodule TravelingPoetWeb.GuideComponents do
           phx-click="stop_sharing"
           class="btn btn-ghost btn-xs"
         >
-          Stop sharing
+          {dgettext("guide", "Stop sharing")}
         </button>
       </div>
     </div>
@@ -637,13 +711,16 @@ defmodule TravelingPoetWeb.GuideComponents do
     <section id="day-plan" class="mt-4 rounded-box border border-base-300 bg-base-200 p-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="font-semibold">Plan my days</h2>
+          <h2 class="font-semibold">{dgettext("guide", "Plan my days")}</h2>
           <p class="text-xs opacity-70">
-            Your saved places, grouped by part of town and in walking order: coffee first, dinner last.
+            {dgettext(
+              "guide",
+              "Your saved places, grouped by part of town and in walking order: coffee first, dinner last."
+            )}
           </p>
         </div>
         <form id="day-plan-form" phx-change="plan_days" class="flex items-center gap-2 text-sm">
-          <label for="day-plan-days">Days</label>
+          <label for="day-plan-days">{dgettext("guide", "Days")}</label>
           <select id="day-plan-days" name="days" class="select select-sm w-20">
             <option :for={n <- 1..7} value={n} selected={n == @days}>{n}</option>
           </select>
@@ -651,12 +728,17 @@ defmodule TravelingPoetWeb.GuideComponents do
       </div>
 
       <p :if={length(@plan) < @days} id="day-plan-fewer" class="mt-3 text-sm opacity-70">
-        Your saved places fit in {length(@plan)} {if length(@plan) == 1, do: "day", else: "days"}, so the rest are free.
+        {dngettext(
+          "guide",
+          "Your saved places fit in %{count} day, so the rest are free.",
+          "Your saved places fit in %{count} days, so the rest are free.",
+          length(@plan)
+        )}
       </p>
       <ol class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <li :for={day <- @plan} id={"plan-day-#{day.day}"} class="rounded-box bg-base-100 p-3">
           <div class="flex items-baseline justify-between gap-2">
-            <h3 class="font-semibold text-sm">Day {day.day}</h3>
+            <h3 class="font-semibold text-sm">{dgettext("guide", "Day %{n}", n: day.day)}</h3>
             <a
               :if={day.route_url}
               id={"plan-route-#{day.day}"}
@@ -665,7 +747,7 @@ defmodule TravelingPoetWeb.GuideComponents do
               rel="noopener noreferrer"
               class="link text-xs"
             >
-              Walk it in Google Maps ↗
+              {dgettext("guide", "Walk it in Google Maps ↗")}
             </a>
           </div>
           <ol class="mt-2 space-y-2">
@@ -701,10 +783,18 @@ defmodule TravelingPoetWeb.GuideComponents do
       phx-value-id={@item.id}
       class={["btn btn-ghost btn-xs gap-1 px-1", @saved && "text-primary"]}
       aria-pressed={to_string(@saved)}
-      title={if @saved, do: "Saved. Tap to remove", else: "Save to your guide"}
+      title={
+        if @saved,
+          do: dgettext("guide", "Saved. Tap to remove"),
+          else: dgettext("guide", "Save to your guide")
+      }
     >
       <.icon name={if @saved, do: "hero-bookmark-solid", else: "hero-bookmark"} class="size-4" />
-      <span class="text-xs">{if @saved, do: "Saved", else: "Save"}</span>
+      <span class="text-xs">
+        {if @saved,
+          do: dpgettext("guide", "save button", "Saved"),
+          else: dgettext("guide", "Save")}
+      </span>
     </button>
     """
   end
@@ -729,7 +819,7 @@ defmodule TravelingPoetWeb.GuideComponents do
     <div :if={@range} class="text-xs flex items-center gap-1" data-testid="event-dates">
       <.icon name="hero-calendar-days" class="size-3 opacity-50" />
       <span class={[@ended && "opacity-50 line-through"]}>{@range}</span>
-      <span :if={@ended} class="badge badge-ghost badge-xs">ended</span>
+      <span :if={@ended} class="badge badge-ghost badge-xs">{dgettext("guide", "ended")}</span>
     </div>
     """
   end
@@ -745,24 +835,48 @@ defmodule TravelingPoetWeb.GuideComponents do
     <div
       class="text-xs flex items-center gap-1"
       data-testid="poet-pick"
-      title={"#{@poet.name}'s own rating — not a review score"}
+      title={dgettext("guide", "%{poet}'s own rating — not a review score", poet: @poet.name)}
     >
       <span class="text-warning">{String.duplicate("★", @place.poet_rating)}</span>
-      <span class="opacity-60">{@poet.name}'s pick</span>
+      <span class="opacity-60">{dgettext("guide", "%{poet}'s pick", poet: @poet.name)}</span>
     </div>
     """
   end
 
-  # Taste-day find kinds read better as what they are.
-  def humanize_category("screen"), do: "Film or series"
-  def humanize_category("outing"), do: "Outdoors"
+  # Taste-day find kinds read better as what they are. Every category and
+  # kind is a closed list (Guide.Place, Topics.Find), so each has its
+  # translation; anything else is shown as it came.
+  def humanize_category("screen"), do: dgettext("guide", "Film or series")
+  def humanize_category("outing"), do: dgettext("guide", "Outdoors")
+  def humanize_category("restaurant"), do: dgettext("guide", "Restaurant")
+  def humanize_category("cafe"), do: dgettext("guide", "Cafe")
+  def humanize_category("viewpoint"), do: dgettext("guide", "Viewpoint")
+  def humanize_category("attraction"), do: dgettext("guide", "Attraction")
+  def humanize_category("event"), do: dgettext("guide", "Event")
+  def humanize_category("landmark"), do: dgettext("guide", "Landmark")
+  def humanize_category("shop"), do: dgettext("guide", "Shop")
+  def humanize_category("artwork"), do: dgettext("guide", "Artwork")
+  def humanize_category("dish"), do: dgettext("guide", "Dish")
+  def humanize_category("person"), do: dgettext("guide", "Person")
+  def humanize_category("talk"), do: dgettext("guide", "Talk")
+  def humanize_category("paper"), do: dgettext("guide", "Paper")
+  def humanize_category("product"), do: dgettext("guide", "Product")
+  def humanize_category("session"), do: dgettext("guide", "Session")
+  def humanize_category("venue"), do: dgettext("guide", "Venue")
+  def humanize_category("music"), do: dgettext("guide", "Music")
+  def humanize_category("book"), do: dgettext("guide", "Book")
+  def humanize_category("other"), do: dgettext("guide", "Other")
   def humanize_category(category), do: String.capitalize(category)
 
   def format_date(%Date{} = date), do: TravelingPoet.Locale.format_date(date, :short)
   def format_date(_), do: ""
 
-  defp unmapped_note(1), do: "One place couldn't be put on the map — it's still in the list."
-
   defp unmapped_note(n),
-    do: "#{n} places couldn't be put on the map — they're still in the list."
+    do:
+      dngettext(
+        "guide",
+        "One place couldn't be put on the map — it's still in the list.",
+        "%{count} places couldn't be put on the map — they're still in the list.",
+        n
+      )
 end

@@ -53,7 +53,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       |> assign(:compact, compact)
       # Embedded, the host page names the tab; a compact view on the home
       # page otherwise retitled it "Discover".
-      |> then(&if(compact, do: &1, else: assign(&1, :page_title, "Discover")))
+      |> then(&if(compact, do: &1, else: assign(&1, :page_title, dgettext("guide", "Discover"))))
       |> assign(:me, me(session["me_poet_id"]))
       |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
       |> assign_discover()
@@ -166,7 +166,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   # As the village tile says it: a find the poet could only call "other" is
   # simply a find.
-  defp find_kind("other"), do: "Find"
+  defp find_kind("other"), do: dgettext("guide", "Find")
   defp find_kind(kind), do: humanize_category(kind)
 
   defp subjects(%{topic: a, second_topic: b}) do
@@ -180,33 +180,49 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp tag(kind, overview), do: Map.put(overview, :kind, kind)
 
   # The kinds of thing on the item side (Spaces), as the kind filter offers
-  # them. Keep in step with KINDS in village.js.
-  @kinds [
-    {"", "Everything"},
-    {"place", "Places"},
-    {"event", "Events"},
-    {"artwork", "Artworks"},
-    {"work", "Works"},
-    {"idea", "Ideas"},
-    {"product", "Products"}
-  ]
+  # them. Keep in step with KINDS in village.js. A function, so the labels
+  # are translated per request.
+  defp kinds,
+    do: [
+      {"", dgettext("guide", "Everything")},
+      {"place", dgettext("guide", "Places")},
+      {"event", dgettext("guide", "Events")},
+      {"artwork", dgettext("guide", "Artworks")},
+      {"work", dgettext("guide", "Works")},
+      {"idea", dgettext("guide", "Ideas")},
+      {"product", dgettext("guide", "Products")}
+    ]
 
-  defp kinds, do: @kinds
+  # "3 places", "1 idea": the count and its word, translated whole.
+  defp kind_count("place", n), do: dngettext("guide", "%{count} place", "%{count} places", n)
+  defp kind_count("event", n), do: dngettext("guide", "%{count} event", "%{count} events", n)
 
-  @kind_words %{
-    "place" => {"place", "places"},
-    "event" => {"event", "events"},
-    "artwork" => {"artwork", "artworks"},
-    "work" => {"work", "works"},
-    "idea" => {"idea", "ideas"},
-    "product" => {"product", "products"},
-    "other" => {"find", "finds"}
-  }
+  defp kind_count("artwork", n),
+    do: dngettext("guide", "%{count} artwork", "%{count} artworks", n)
 
-  defp kind_word(kind, n) do
-    {one, many} = Map.get(@kind_words, kind, {"find", "finds"})
-    if n == 1, do: one, else: many
-  end
+  defp kind_count("work", n), do: dngettext("guide", "%{count} work", "%{count} works", n)
+  defp kind_count("idea", n), do: dngettext("guide", "%{count} idea", "%{count} ideas", n)
+
+  defp kind_count("product", n),
+    do: dngettext("guide", "%{count} product", "%{count} products", n)
+
+  defp kind_count(_other, n), do: dngettext("guide", "%{count} find", "%{count} finds", n)
+
+  # Discover.related/1 words a Spaces link in English; the same words as the
+  # item page (ItemHTML.phrase/2), translated here for the reader.
+  defp related_phrase("at"), do: dgettext("guide", "at")
+  defp related_phrase("here:"), do: dgettext("guide", "here:")
+  defp related_phrase("part of"), do: dgettext("guide", "part of")
+  defp related_phrase("includes"), do: dgettext("guide", "includes")
+  defp related_phrase("made by"), do: dgettext("guide", "made by")
+  defp related_phrase("made"), do: dgettext("guide", "made")
+  defp related_phrase("commemorates"), do: dgettext("guide", "commemorates")
+  defp related_phrase("remembered by"), do: dgettext("guide", "remembered by")
+  defp related_phrase("about"), do: dgettext("guide", "about")
+  defp related_phrase("the subject of"), do: dgettext("guide", "the subject of")
+  defp related_phrase("a later edition of"), do: dgettext("guide", "a later edition of")
+  defp related_phrase("returned as"), do: dgettext("guide", "returned as")
+  defp related_phrase(phrase), do: phrase
 
   # The kinds a route can be drawn for: the ones with pins.
   defp routes(%{kinds: kinds}) do
@@ -220,7 +236,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
     kinds
     |> Map.drop(~w(place event))
     |> Enum.sort_by(fn {_k, n} -> -n end)
-    |> Enum.map_join(", ", fn {kind, n} -> "#{n} #{kind_word(kind, n)}" end)
+    |> Enum.map_join(", ", fn {kind, n} -> kind_count(kind, n) end)
   end
 
   defp unmapped(_), do: ""
@@ -238,7 +254,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       />
       <p class="discover-more">
         <a href={~p"/discover"} class="link" data-track="discover-more">
-          Everything the poets have found, in Discover &rarr;
+          {dgettext("guide", "Everything the poets have found, in Discover →")}
         </a>
       </p>
     </div>
@@ -249,7 +265,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:discover}>
       <div class="discover-head">
-        <h1 class="text-2xl font-bold">Discover</h1>
+        <h1 class="text-2xl font-bold">{dgettext("guide", "Discover")}</h1>
         <.totals discover={@discover} />
       </div>
 
@@ -258,12 +274,18 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <div
         class="discover-layers"
         role="group"
-        aria-label="Show on the map"
+        aria-label={dgettext("guide", "Show on the map")}
         id="discover-layers"
         phx-update="ignore"
       >
         <button
-          :for={{layer, label} <- [poets: "Poets", entries: "Pages", places: "Places"]}
+          :for={
+            {layer, label} <- [
+              poets: dgettext("guide", "Poets"),
+              entries: dgettext("guide", "Pages"),
+              places: dgettext("guide", "Places")
+            ]
+          }
           type="button"
           class="spread-chip discover-layer"
           data-layer={layer}
@@ -281,18 +303,23 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   attr :discover, :map, required: true
 
+  # The words between the counts agree with them in Hebrew ("written" is
+  # one form in English, two there), hence dngettext with one English form.
   defp totals(assigns) do
     ~H"""
     <p class="text-sm opacity-70" id="discover-totals">
-      {@discover.totals.poets} {ngettext("poet", "poets", @discover.totals.poets)} on the road, {@discover.totals.entries} {ngettext(
+      {@discover.totals.poets} {ngettext("poet", "poets", @discover.totals.poets)} {dgettext(
+        "guide",
+        "on the road,"
+      )} {@discover.totals.entries} {ngettext(
         "page",
         "pages",
         @discover.totals.entries
-      )} written, {@discover.totals.places} {ngettext(
+      )} {dngettext("guide", "written,", "written,", @discover.totals.entries)} {@discover.totals.places} {ngettext(
         "place",
         "places",
         @discover.totals.places
-      )} found.
+      )} {dngettext("guide", "found.", "found.", @discover.totals.places)}
     </p>
     """
   end
@@ -311,14 +338,14 @@ defmodule TravelingPoetWeb.DiscoverLive do
       id="discover-views"
       class="discover-views"
       role="group"
-      aria-label="How to look"
+      aria-label={dgettext("guide", "How to look")}
       phx-update="ignore"
     >
       <button type="button" data-view="world" aria-pressed="true">
-        <.icon name="hero-globe-europe-africa" class="size-4" /> World
+        <.icon name="hero-globe-europe-africa" class="size-4" /> {dgettext("guide", "World")}
       </button>
       <button type="button" data-view="village" aria-pressed="false">
-        <.icon name="hero-squares-2x2" class="size-4" /> Village
+        <.icon name="hero-squares-2x2" class="size-4" /> {dgettext("guide", "Village")}
       </button>
     </div>
     <%!-- The kind filter, for both views; the hook owns aria-selected and the counts. --%>
@@ -327,7 +354,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       id="discover-kinds"
       class="discover-kinds"
       role="group"
-      aria-label="What to show"
+      aria-label={dgettext("guide", "What to show")}
       phx-update="ignore"
     >
       <button
@@ -357,23 +384,31 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <aside id="discover-panel" class="discover-panel" aria-live="polite">
         <.overview :if={@selected} selected={@selected} bookmarks={@bookmarks} />
         <p :if={is_nil(@selected) and @me} class="text-sm opacity-60 p-4">
-          Here is where {@me.poet} sets out from. Yours will be the first poet on the road.
+          {dgettext(
+            "guide",
+            "Here is where %{poet} sets out from. Yours will be the first poet on the road.",
+            poet: @me.poet
+          )}
         </p>
         <p :if={is_nil(@selected) and is_nil(@me)} class="text-sm opacity-60 p-4">
-          No poets on the road yet. The first ones are still lacing their boots.
+          {dgettext("guide", "No poets on the road yet. The first ones are still lacing their boots.")}
         </p>
         <div :if={@discover.rotation != []} class="discover-tour-nav">
           <button type="button" class="btn btn-ghost btn-sm" data-discover-prev>
-            <.icon name="hero-chevron-left" class="size-4" /> Previous page
+            <.icon name="hero-chevron-left" class="size-4" /> {dgettext(
+              "guide",
+              "Previous page"
+            )}
           </button>
           <button type="button" class="btn btn-ghost btn-sm" data-discover-next>
-            Next page <.icon name="hero-chevron-right" class="size-4" />
+            {dgettext("guide", "Next page")}
+            <.icon name="hero-chevron-right" class="size-4" />
           </button>
         </div>
       </aside>
     </div>
     <p :if={@discover.anonymous != []} class="text-xs opacity-50 mt-2">
-      Grey dots are poets whose journals are private.
+      {dgettext("guide", "Grey dots are poets whose journals are private.")}
     </p>
     """
   end
@@ -400,7 +435,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
           href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.entry.entry_date)}"}
           class="link"
         >
-          Read this page
+          {dgettext("guide", "Read this page")}
         </a>
         <button
           type="button"
@@ -409,7 +444,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
           phx-value-kind="poet"
           phx-value-id={@selected.poet.slug}
         >
-          More about {@selected.poet.name}
+          {dgettext("guide", "More about %{poet}", poet: @selected.poet.name)}
         </button>
       </div>
     </article>
@@ -419,7 +454,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp overview(%{selected: %{kind: :place}} = assigns) do
     ~H"""
     <div class="discover-card" id={"discover-place-#{@selected.place.id}"}>
-      <.byline poet={@selected.poet}>recommends</.byline>
+      <.byline poet={@selected.poet}>{dgettext("guide", "recommends")}</.byline>
       <.place_card
         place={@selected.place}
         media={@selected.drawing_from == :place && @selected.drawing}
@@ -428,14 +463,22 @@ defmodule TravelingPoetWeb.DiscoverLive do
       />
       <div :if={@selected.drawing_from == :entry} class="discover-borrowed">
         <.section section={%{kind: "illustration"}} media={@selected.drawing} loading="eager" />
-        <p class="text-xs opacity-60">From the page {@selected.poet.name} wrote there</p>
+        <p class="text-xs opacity-60">
+          {dgettext("guide", "From the page %{poet} wrote there", poet: @selected.poet.name)}
+        </p>
       </div>
       <p :if={@selected.also != []} class="discover-also">
-        Also found by {Enum.map_join(@selected.also, ", ", & &1.name)}
+        {dgettext("guide", "Also found by %{poets}",
+          poets: Enum.map_join(@selected.also, ", ", & &1.name)
+        )}
       </p>
-      <ul :if={@selected.related != []} class="discover-related" aria-label="Related">
+      <ul
+        :if={@selected.related != []}
+        class="discover-related"
+        aria-label={dgettext("guide", "Related")}
+      >
         <li :for={r <- @selected.related}>
-          {r.phrase}
+          {related_phrase(r.phrase)}
           <button
             :if={r.place_id}
             type="button"
@@ -449,14 +492,18 @@ defmodule TravelingPoetWeb.DiscoverLive do
           <span :if={!r.place_id}>{r.name}</span>
         </li>
       </ul>
-      <div :if={@selected.topics != []} class="discover-subjects" aria-label="Subjects">
+      <div
+        :if={@selected.topics != []}
+        class="discover-subjects"
+        aria-label={dgettext("guide", "Subjects")}
+      >
         <button
           :for={{path, names} <- @selected.topics}
           type="button"
           class="discover-subject"
           phx-click="village"
           phx-value-topic={path}
-          title="See this subject in the village"
+          title={dgettext("guide", "See this subject in the village")}
         >
           {Enum.join(names, " › ")}
         </button>
@@ -468,16 +515,16 @@ defmodule TravelingPoetWeb.DiscoverLive do
           }
           class="link"
         >
-          Open in {@selected.poet.name}&rsquo;s guide
+          {dgettext("guide", "Open in %{poet}’s guide", poet: @selected.poet.name)}
         </a>
         <a
           href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.place.entry_date)}"}
           class="link"
         >
-          Read the page it came from
+          {dgettext("guide", "Read the page it came from")}
         </a>
         <a :if={@selected.item_slug} href={~p"/items/#{@selected.item_slug}"} class="link">
-          Every poet's notes on it
+          {dgettext("guide", "Every poet's notes on it")}
         </a>
       </div>
     </div>
@@ -488,7 +535,10 @@ defmodule TravelingPoetWeb.DiscoverLive do
     ~H"""
     <div class="discover-card" id={"discover-find-#{@selected.find.id}"}>
       <.byline poet={@selected.poet}>
-        brought back{if @selected.destination, do: " from " <> @selected.destination}
+        {if @selected.destination,
+          do:
+            dgettext("guide", "brought back from %{destination}", destination: @selected.destination),
+          else: dgettext("guide", "brought back")}
       </.byline>
       <div class="flex items-center justify-between gap-2">
         <p class="discover-find-kind">{find_kind(@selected.find.kind)}</p>
@@ -502,27 +552,36 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <h2 class="discover-title">{@selected.find.name}</h2>
       <p :if={@selected.find.blurb} class="discover-teaser">{@selected.find.blurb}</p>
       <p :if={@selected.find.poet_rating} class="text-xs opacity-60">
-        {@selected.poet.name}&rsquo;s pick: {@selected.find.poet_rating} of 5
+        {dgettext("guide", "%{poet}’s pick: %{rating} of 5",
+          poet: @selected.poet.name,
+          rating: @selected.find.poet_rating
+        )}
       </p>
-      <div :if={@selected.topics != []} class="discover-subjects" aria-label="Subjects">
+      <div
+        :if={@selected.topics != []}
+        class="discover-subjects"
+        aria-label={dgettext("guide", "Subjects")}
+      >
         <button
           :for={{path, names} <- @selected.topics}
           type="button"
           class="discover-subject"
           phx-click="village"
           phx-value-topic={path}
-          title="See this subject in the village"
+          title={dgettext("guide", "See this subject in the village")}
         >
           {Enum.join(names, " › ")}
         </button>
       </div>
       <div class="discover-links">
-        <a href={@selected.find.url} class="link" target="_blank" rel="noopener">Open it</a>
+        <a href={@selected.find.url} class="link" target="_blank" rel="noopener">
+          {dgettext("guide", "Open it")}
+        </a>
         <a
           href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.entry.entry_date)}"}
           class="link"
         >
-          Read the page it came from
+          {dgettext("guide", "Read the page it came from")}
         </a>
       </div>
     </div>
@@ -532,9 +591,11 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp overview(%{selected: %{kind: :poet}} = assigns) do
     ~H"""
     <div class="notebook-page discover-card" id={"discover-poet-#{@selected.poet.slug}"}>
-      <.byline poet={@selected.poet}>now in {@selected.poet.current_place_name}</.byline>
+      <.byline poet={@selected.poet}>
+        {dgettext("guide", "now in %{place}", place: @selected.poet.current_place_name)}
+      </.byline>
       <p :if={@selected.latest} class="discover-teaser">
-        Latest page:
+        {dgettext("guide", "Latest page:")}
         <a
           href={~p"/p/#{@selected.poet.slug}/#{Date.to_iso8601(@selected.latest.entry_date)}"}
           class="link"
@@ -545,7 +606,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
       <div class="tour-stats">
         <div class="tour-stat">
           <b>{@selected.stats.days}</b>
-          <span>{ngettext("day", "days", @selected.stats.days)} on the road</span>
+          <span>
+            {ngettext("day", "days", @selected.stats.days)} {dgettext("guide", "on the road")}
+          </span>
         </div>
         <div class="tour-stat">
           <b>{@selected.stats.entries}</b>
@@ -556,7 +619,11 @@ defmodule TravelingPoetWeb.DiscoverLive do
           <span>{ngettext("place", "places", @selected.stats.places)}</span>
         </div>
       </div>
-      <div :if={routes(@selected.stats) != []} class="discover-journeys" aria-label="Routes">
+      <div
+        :if={routes(@selected.stats) != []}
+        class="discover-journeys"
+        aria-label={dgettext("guide", "Routes")}
+      >
         <button
           :for={{kind, n} <- routes(@selected.stats)}
           type="button"
@@ -564,18 +631,20 @@ defmodule TravelingPoetWeb.DiscoverLive do
           phx-click="journey"
           phx-value-poet={@selected.poet.slug}
           phx-value-kind={kind}
-          title="Draw the route on the map"
+          title={dgettext("guide", "Draw the route on the map")}
         >
-          {n} {kind_word(kind, n)}, in order
+          {dgettext("guide", "%{things}, in order", things: kind_count(kind, n))}
         </button>
       </div>
       <p :if={unmapped(@selected.stats) != ""} class="text-xs opacity-60 mt-2">
-        Also brought back {unmapped(@selected.stats)}.
+        {dgettext("guide", "Also brought back %{things}.", things: unmapped(@selected.stats))}
       </p>
       <div class="discover-links">
-        <a href={~p"/p/#{@selected.poet.slug}"} class="link">Open {@selected.poet.name}&rsquo;s journal</a>
+        <a href={~p"/p/#{@selected.poet.slug}"} class="link">
+          {dgettext("guide", "Open %{poet}’s journal", poet: @selected.poet.name)}
+        </a>
         <a href={~p"/p/#{@selected.poet.slug}/guide"} class="link">
-          {@selected.poet.name}&rsquo;s guide
+          {dgettext("guide", "%{poet}’s guide", poet: @selected.poet.name)}
         </a>
       </div>
     </div>
