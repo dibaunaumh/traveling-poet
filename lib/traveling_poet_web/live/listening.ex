@@ -14,6 +14,8 @@ defmodule TravelingPoetWeb.Listening do
   guard; a reading over it fails like any other, with a flash.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [put_flash: 3]
 
@@ -61,7 +63,10 @@ defmodule TravelingPoetWeb.Listening do
         {:noreply,
          socket
          |> assign(:narration_pending, false)
-         |> put_flash(:error, "The page could not be read just now. Try again in a moment.")},
+         |> put_flash(
+           :error,
+           dgettext("journal", "The page could not be read just now. Try again in a moment.")
+         )},
       else: {:noreply, socket}
   end
 

@@ -27,14 +27,18 @@ defmodule TravelingPoetWeb.TelegramPairing do
         {:noreply, assign(socket, :telegram, %{socket.assigns.telegram | link: link})}
 
       _ ->
-        {:noreply, put_flash(socket, :error, "Could not create a pairing link.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("journal", "Could not create a pairing link."))}
     end
   end
 
   def handle_event("telegram_unpair", _params, socket) do
     case Telegram.Pairing.unpair(socket.assigns.user) do
       {:ok, user} ->
-        {:noreply, socket |> assign(:user, user) |> put_flash(:info, "Telegram unpaired.")}
+        {:noreply,
+         socket
+         |> assign(:user, user)
+         |> put_flash(:info, dgettext("journal", "Telegram unpaired."))}
 
       _ ->
         {:noreply, socket}
@@ -49,7 +53,7 @@ defmodule TravelingPoetWeb.TelegramPairing do
      socket
      |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
      |> assign(:telegram, %{socket.assigns.telegram | link: nil})
-     |> put_flash(:info, "Telegram paired.")}
+     |> put_flash(:info, dgettext("journal", "Telegram paired."))}
   end
 
   # -- components --
@@ -61,9 +65,9 @@ defmodule TravelingPoetWeb.TelegramPairing do
   @doc "The settings section: paired state, unpair, or mint a link."
   def telegram_settings(assigns) do
     ~H"""
-    <h2 class="font-semibold mb-2">Telegram</h2>
+    <h2 class="font-semibold mb-2">{dgettext("journal", "Telegram")}</h2>
     <div :if={!@telegram.configured?} class="text-sm opacity-60">
-      Telegram isn't configured on this server.
+      {dgettext("journal", "Telegram isn't configured on this server.")}
     </div>
     <div :if={@telegram.configured?} class="space-y-2">
       <TravelingPoetWeb.PushNotifications.expect
@@ -73,13 +77,17 @@ defmodule TravelingPoetWeb.TelegramPairing do
       />
       <div :if={@user.telegram_chat_id} class="flex items-center gap-3">
         <span class="text-sm">
-          Paired{if @user.telegram_username, do: " as @#{@user.telegram_username}"}
+          {if @user.telegram_username,
+            do: dgettext("journal", "Paired as @%{username}", username: @user.telegram_username),
+            else: dgettext("journal", "Paired")}
         </span>
-        <button phx-click="telegram_unpair" class="btn btn-outline btn-sm">Unpair</button>
+        <button phx-click="telegram_unpair" class="btn btn-outline btn-sm">
+          {dgettext("journal", "Unpair")}
+        </button>
       </div>
       <div :if={is_nil(@user.telegram_chat_id)} class="space-y-2">
         <button phx-click="telegram_pair_link" class="btn btn-secondary btn-sm">
-          Generate pairing link
+          {dgettext("journal", "Generate pairing link")}
         </button>
         <div :if={@telegram.link}>
           <a href={@telegram.link} target="_blank" rel="noopener" class="link break-all">
@@ -104,14 +112,21 @@ defmodule TravelingPoetWeb.TelegramPairing do
     <div :if={@telegram.configured?} id="telegram-tip" class="text-sm space-y-2">
       <div :if={@user.telegram_chat_id}>
         <p class="font-medium">
-          Telegram is paired{if @user.telegram_username, do: " as @#{@user.telegram_username}"}.
+          {if @user.telegram_username,
+            do:
+              dgettext("journal", "Telegram is paired as @%{username}.",
+                username: @user.telegram_username
+              ),
+            else: dgettext("journal", "Telegram is paired.")}
         </p>
         <p class="opacity-70">
-          {@poet.name} will write to you there when the first entry is out.
+          {dgettext("journal", "%{poet} will write to you there when the first entry is out.",
+            poet: @poet.name
+          )}
         </p>
       </div>
       <div :if={is_nil(@user.telegram_chat_id)} class="space-y-2">
-        <p class="font-medium">Get the first entry on Telegram.</p>
+        <p class="font-medium">{dgettext("journal", "Get the first entry on Telegram.")}</p>
         <TravelingPoetWeb.PushNotifications.expect
           channel={:telegram}
           name={@poet.name}
@@ -122,14 +137,16 @@ defmodule TravelingPoetWeb.TelegramPairing do
           phx-click="telegram_pair_link"
           class="btn btn-secondary btn-sm"
         >
-          Pair Telegram
+          {dgettext("journal", "Pair Telegram")}
         </button>
         <div :if={@telegram.link} class="space-y-1">
-          <p>Open Telegram and press Start:</p>
+          <p>{dgettext("journal", "Open Telegram and press Start:")}</p>
           <a href={@telegram.link} target="_blank" rel="noopener" class="link break-all">
             {@telegram.link}
           </a>
-          <p class="opacity-60 text-xs">This page updates by itself once you are paired.</p>
+          <p class="opacity-60 text-xs">
+            {dgettext("journal", "This page updates by itself once you are paired.")}
+          </p>
         </div>
       </div>
     </div>

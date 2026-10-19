@@ -82,7 +82,7 @@ defmodule TravelingPoetWeb.PoetComponents do
         phx-click="custom_personality"
         class={["btn btn-xs", if(@custom, do: "btn-primary", else: "btn-outline")]}
       >
-        ✍️ Write your own
+        ✍️ {dgettext("journal", "Write your own")}
       </button>
     </div>
     """

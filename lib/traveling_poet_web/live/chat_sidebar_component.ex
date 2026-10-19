@@ -163,7 +163,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
       streaming: false,
       external_turn: false,
       held: false,
-      error: "Agent error: #{reason}"
+      error: dgettext("journal", "Agent error: %{reason}", reason: reason)
     )
   end
 
@@ -322,7 +322,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
           <button
             phx-click="toggle_mobile_chat"
             class="xl:hidden chat-pad-close"
-            aria-label="Close chat"
+            aria-label={dgettext("journal", "Close chat")}
           >
             <.icon name="hero-x-mark" class="size-5" />
           </button>
@@ -331,8 +331,10 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
         <%= if @sprite_status in [:not_provisioned, :unknown] do %>
           <div class="flex-1 flex items-center justify-center p-6">
             <div class="chat-pad-empty text-center">
-              <p class="chat-pad-empty-title">{poet_name(assigns)} is still being set up.</p>
-              <p>The notepad opens the moment they are reachable.</p>
+              <p class="chat-pad-empty-title">
+                {dgettext("journal", "%{poet} is still being set up.", poet: poet_name(assigns))}
+              </p>
+              <p>{dgettext("journal", "The notepad opens the moment they are reachable.")}</p>
             </div>
           </div>
         <% else %>
@@ -343,8 +345,12 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
           >
             <%= if @messages == [] and !@streaming do %>
               <div class="chat-pad-empty text-center mt-10">
-                <p class="chat-pad-empty-title">Write to {poet_name(assigns)}.</p>
-                <p>Ask for a place, a detour, a drawing. Or just say hello.</p>
+                <p class="chat-pad-empty-title">
+                  {dgettext("journal", "Write to %{poet}.", poet: poet_name(assigns))}
+                </p>
+                <p>
+                  {dgettext("journal", "Ask for a place, a detour, a drawing. Or just say hello.")}
+                </p>
               </div>
             <% end %>
 
@@ -378,7 +384,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
 
             <%= if @held do %>
               <p id="chat-held-note" class="chat-pad-note">
-                Held until {poet_name(assigns)} finishes the page. It goes out on its own.
+                {dgettext(
+                  "journal",
+                  "Held until %{poet} finishes the page. It goes out on its own.",
+                  poet: poet_name(assigns)
+                )}
               </p>
             <% end %>
 
@@ -393,8 +403,11 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
               id="chat-first-entry-hint"
               class="chat-pad-note mb-2"
             >
-              {poet_name(assigns)} is writing the first entry. A message sent now waits
-              until the page is done.
+              {dgettext(
+                "journal",
+                "%{poet} is writing the first entry. A message sent now waits until the page is done.",
+                poet: poet_name(assigns)
+              )}
             </p>
             <%= for entry <- attachment_entries(assigns) do %>
               <div class="chat-pad-chip chat-pad-chip-pending mb-2">
@@ -408,7 +421,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                   type="button"
                   phx-click="cancel_attachment"
                   phx-value-ref={entry.ref}
-                  aria-label="Remove attachment"
+                  aria-label={dgettext("journal", "Remove attachment")}
                   class="chat-pad-chip-remove"
                 >
                   <.icon name="hero-x-mark" class="size-4" />
@@ -434,15 +447,15 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
                 <label
                   :if={@chat_attachment_upload}
                   for={@chat_attachment_upload.ref}
-                  title="Attach a file"
+                  title={dgettext("journal", "Attach a file")}
                   class={["chat-pad-attach", @streaming && "opacity-50 cursor-not-allowed"]}
                 >
                   <.icon name="hero-paper-clip" class="size-5" />
-                  <span class="sr-only">Attach a file</span>
+                  <span class="sr-only">{dgettext("journal", "Attach a file")}</span>
                 </label>
                 <textarea
                   name="message"
-                  placeholder={"Write to #{poet_name(assigns)}…"}
+                  placeholder={dgettext("journal", "Write to %{poet}…", poet: poet_name(assigns))}
                   disabled={composer_locked?(assigns)}
                   rows="1"
                   dir="auto"
@@ -478,9 +491,9 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp composer_locked?(%{streaming: true, external_turn: false}), do: true
   defp composer_locked?(_), do: false
 
-  defp send_label(%{held: true}), do: "Held"
-  defp send_label(%{streaming: true, external_turn: false}), do: "Sending"
-  defp send_label(_), do: "Send"
+  defp send_label(%{held: true}), do: dgettext("journal", "Held")
+  defp send_label(%{streaming: true, external_turn: false}), do: dgettext("journal", "Sending")
+  defp send_label(_), do: dgettext("journal", "Send")
 
   defp send_icon(%{held: true}), do: "hero-clock"
   defp send_icon(%{streaming: true, external_turn: false}), do: "hero-arrow-path"
@@ -495,7 +508,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   # sprite's `users.agent_name` mirrors it and stands in when it is missing.
   defp poet_name(%{poet_name: name}) when is_binary(name) and name != "", do: name
   defp poet_name(%{user: %{agent_name: name}}) when is_binary(name) and name != "", do: name
-  defp poet_name(_assigns), do: "Your poet"
+  defp poet_name(_assigns), do: dgettext("journal", "Your poet")
 
   # The reader's own lines carry their first name, in the same hand as the
   # poet's, so a lone highlighted line still says whose it is (Udi, 2026-10-16:
@@ -503,19 +516,19 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
   defp reader_name(%{user: %{name: name}}) when is_binary(name) do
     case name |> String.trim() |> String.split(~r/\s+/, parts: 2) do
       [first | _] when first != "" -> first
-      _ -> "You"
+      _ -> dgettext("journal", "You")
     end
   end
 
-  defp reader_name(_assigns), do: "You"
+  defp reader_name(_assigns), do: dgettext("journal", "You")
 
   # Plain words in the paper's ink, never a coloured badge.
-  defp status_label(:running), do: "awake"
-  defp status_label(:waking), do: "waking up…"
-  defp status_label(:reconnecting), do: "reconnecting…"
-  defp status_label(:provisioned), do: "ready"
-  defp status_label(:not_provisioned), do: "setting up"
-  defp status_label(:unknown), do: "checking…"
+  defp status_label(:running), do: dgettext("journal", "awake")
+  defp status_label(:waking), do: dgettext("journal", "waking up…")
+  defp status_label(:reconnecting), do: dgettext("journal", "reconnecting…")
+  defp status_label(:provisioned), do: dgettext("journal", "ready")
+  defp status_label(:not_provisioned), do: dgettext("journal", "setting up")
+  defp status_label(:unknown), do: dgettext("journal", "checking…")
 
   defp attachment_ref(%{chat_attachment_upload: %{ref: ref}}), do: ref
   defp attachment_ref(_), do: nil
@@ -536,11 +549,20 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     Enum.any?(attachment_entries(assigns), fn e -> not e.done? end)
   end
 
-  defp upload_error_message({_entry, :too_large}), do: "File is too large (max 25 MB)."
-  defp upload_error_message({_entry, :not_accepted}), do: "File type is not accepted."
-  defp upload_error_message({_entry, err}), do: "Upload error: #{inspect(err)}"
-  defp upload_error_message(:too_many_files), do: "Only one attachment per message."
-  defp upload_error_message(err), do: "Upload error: #{inspect(err)}"
+  defp upload_error_message({_entry, :too_large}),
+    do: dgettext("journal", "File is too large (max 25 MB).")
+
+  defp upload_error_message({_entry, :not_accepted}),
+    do: dgettext("journal", "File type is not accepted.")
+
+  defp upload_error_message({_entry, err}),
+    do: dgettext("journal", "Upload error: %{error}", error: inspect(err))
+
+  defp upload_error_message(:too_many_files),
+    do: dgettext("journal", "Only one attachment per message.")
+
+  defp upload_error_message(err),
+    do: dgettext("journal", "Upload error: %{error}", error: inspect(err))
 
   defp attachment_files(%{attachments: %{"files" => files}}) when is_list(files), do: files
   defp attachment_files(_), do: []
