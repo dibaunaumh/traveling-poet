@@ -223,13 +223,29 @@ defmodule TravelingPoet.Asks do
   What the poet is sent for a reader's message: the message itself, headed by
   a note from the app when it answers the poet's question. Left to find the
   ask on its own, a poet answered in chat just after midnight read its day
-  plan instead, and wrote the day's excursion into an old topic. The note is
+  plan instead, and wrote the day's excursion into an old topic. A reader who
+  reads another language than English gets a one-line language note too
+  (card-101): a chat carries on in the language of its history, and a reader
+  who just switched would otherwise be answered in the old one. The notes are
   for the poet only; the chat keeps the reader's own words.
   """
   def frame_reply(user_id, text) do
-    case answering(user_id) do
-      nil -> text
-      ask -> answer_note(ask) <> "\n\n" <> text
+    [language_note(user_id), ask_note(answering(user_id)), text]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n\n")
+  end
+
+  defp ask_note(nil), do: nil
+  defp ask_note(%Ask{} = ask), do: answer_note(ask)
+
+  defp language_note(user_id) do
+    locale =
+      Repo.one(from u in TravelingPoet.Accounts.User, where: u.id == ^user_id, select: u.locale)
+
+    case TravelingPoet.Locale.normalize(locale) do
+      nil -> nil
+      "en" -> nil
+      locale -> "[From the app: write to them in #{TravelingPoet.Locale.name(locale)}.]"
     end
   end
 

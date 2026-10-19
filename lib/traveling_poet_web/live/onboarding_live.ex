@@ -42,9 +42,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:step, :poet)
         |> assign(:user_name, user.name || "")
         |> assign(:taken_names, Poets.taken_names())
-        |> then(&assign(&1, :poet_name, Presets.random_name(nil, &1.assigns.taken_names)))
-        |> assign(:personalities, Presets.personalities())
-        |> assign(:personality_idx, Presets.random_personality_index())
+        |> then(
+          &assign(
+            &1,
+            :poet_name,
+            Presets.random_name(nil, &1.assigns.taken_names, &1.assigns.locale)
+          )
+        )
+        |> assign(:personalities, Presets.personalities(socket.assigns.locale))
+        |> assign(:personality_idx, Presets.random_personality_index(socket.assigns.locale))
         |> assign(:personality_custom, "")
         |> assign(:personality_mode, :preset)
         |> assign(:verbosity, "balanced")
@@ -63,7 +69,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:show_location_search, false)
         |> assign(:passions, [])
         |> assign(:passion_words, %{})
-        |> assign(:interest_options, Presets.interests())
+        |> assign(:interest_options, Presets.interests(socket.assigns.locale))
         |> assign(:selected_interests, MapSet.new())
         |> assign(:custom_interests, "")
         |> assign(:is_public, true)
@@ -231,7 +237,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
   @impl true
   def handle_event("shuffle_name", _params, socket) do
     %{poet_name: shown, taken_names: taken} = socket.assigns
-    {:noreply, assign(socket, :poet_name, Presets.random_name(shown, taken))}
+
+    {:noreply,
+     assign(socket, :poet_name, Presets.random_name(shown, taken, socket.assigns.locale))}
   end
 
   @impl true
@@ -563,8 +571,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
   defp effective_personality(%{personality_mode: :custom, personality_custom: custom}),
     do: String.trim(custom)
 
-  defp effective_personality(%{personality_idx: idx}) do
-    case Presets.personality_at(idx) do
+  defp effective_personality(%{personality_idx: idx} = assigns) do
+    case Presets.personality_at(idx, assigns.locale) do
       %{"text" => text} -> text
       _ -> ""
     end
@@ -572,8 +580,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   # The same scene in every voice, so a reader compares voices, not places
   # (card-61: a reader found their poet too lyrical and wanted something drier).
-  defp personality_sample(idx) do
-    case Presets.personality_at(idx) do
+  defp personality_sample(idx, locale) do
+    case Presets.personality_at(idx, locale) do
       %{"sample" => sample} -> sample
       _ -> nil
     end
@@ -582,8 +590,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
   defp personality_summary(%{personality_mode: :custom} = assigns),
     do: effective_personality(assigns)
 
-  defp personality_summary(%{personality_idx: idx}) do
-    case Presets.personality_at(idx) do
+  defp personality_summary(%{personality_idx: idx} = assigns) do
+    case Presets.personality_at(idx, assigns.locale) do
       %{"label" => label} -> label
       _ -> ""
     end
@@ -739,7 +747,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 {effective_personality(assigns)}
               </p>
               <figure
-                :if={@personality_mode == :preset and personality_sample(@personality_idx)}
+                :if={@personality_mode == :preset and personality_sample(@personality_idx, @locale)}
                 id="personality-sample"
                 class="mt-3 rounded-box bg-base-200 px-4 py-3"
               >
@@ -747,7 +755,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   How this poet might write about a fish market at dawn
                 </figcaption>
                 <blockquote class="text-sm leading-relaxed">
-                  {personality_sample(@personality_idx)}
+                  {personality_sample(@personality_idx, @locale)}
                 </blockquote>
               </figure>
               <textarea
