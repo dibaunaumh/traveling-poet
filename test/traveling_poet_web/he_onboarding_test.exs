@@ -35,7 +35,10 @@ defmodule TravelingPoetWeb.HeOnboardingTest do
     refute html =~ "Ready to set out"
   end
 
-  test "the taste the poet is given stays in English", %{conn: conn} do
+  # The interests line keeps the domain's English name; the taste itself is
+  # the reader's to read in Settings, so it is saved in their language, its
+  # domain the same key either way.
+  test "a taste picked without words is saved in the reader's language", %{conn: conn} do
     user = user_fixture(%{locale: "he"})
     {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding")
 
@@ -46,7 +49,7 @@ defmodule TravelingPoetWeb.HeOnboardingTest do
 
     poet = TravelingPoet.Poets.get_poet_by_user(user.id)
     assert "Food & drink" in poet.interests
-    assert Enum.map(TravelingPoet.Topics.list(poet.id), & &1.label) == ["Food & drink"]
+    assert [%{label: "אוכל ושתייה", domain: "food"}] = TravelingPoet.Topics.list(poet.id)
   end
 
   test "domain labels and the tour follow the reader's language" do

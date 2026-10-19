@@ -147,7 +147,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         topics =
           [overview.place.topic, overview.place.second_topic]
           |> Enum.reject(&is_nil/1)
-          |> Enum.map(&{&1, PlaceTopics.names(&1)})
+          |> Enum.map(&{&1, PlaceTopics.labels(&1)})
           |> Enum.reject(fn {_path, names} -> is_nil(names) end)
 
         tag(:place, Map.put(overview, :topics, topics))
@@ -172,7 +172,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   defp subjects(%{topic: a, second_topic: b}) do
     [a, b]
     |> Enum.reject(&is_nil/1)
-    |> Enum.map(&{&1, PlaceTopics.names(&1)})
+    |> Enum.map(&{&1, PlaceTopics.labels(&1)})
     |> Enum.reject(fn {_path, names} -> is_nil(names) end)
   end
 

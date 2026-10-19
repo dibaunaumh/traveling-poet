@@ -667,19 +667,25 @@ defmodule TravelingPoetWeb.OnboardingLive do
   defp disclosure(true, _locale), do: "▾"
   defp disclosure(false, locale), do: if(TravelingPoet.Locale.rtl?(locale), do: "◂", else: "▸")
 
-  # `[{domain, label}]`: the reader's words, or the domain's own name.
+  # `[{domain, label}]`: the reader's words, or the domain's own name in
+  # their language (a taste's label is theirs to read in Settings).
   defp passion_tastes(assigns) do
     Enum.map(assigns.passions, fn domain ->
       case String.trim(Map.get(assigns.passion_words, domain) || "") do
-        "" -> {domain, Topic.domain_name(domain)}
+        "" -> {domain, Topic.domain_label(domain)}
         words -> {domain, String.slice(words, 0, 120)}
       end
     end)
   end
 
+  # Three names from the reader's own presets, so the example matches the
+  # names the shuffle offers
+  defp name_examples(locale),
+    do: (locale |> Presets.names() |> Enum.take(3) |> Enum.join(", ")) <> "…"
+
   defp passion_line(domain, label) do
     name = Topic.domain_name(domain)
-    if label == name, do: name, else: "#{name}: #{label}"
+    if label in [name, Topic.domain_label(domain)], do: name, else: "#{name}: #{label}"
   end
 
   defp validate_mode_inputs(%{mode: "scout", stops: []}),
@@ -790,7 +796,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
                   name="poet_name"
                   value={@poet_name}
                   class="input input-bordered flex-1"
-                  placeholder={dgettext("onboarding", "Wren, Basho-of-the-Buses, Señora Tinta…")}
+                  placeholder={name_examples(@locale)}
                 />
                 <button
                   type="button"

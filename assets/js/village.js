@@ -25,6 +25,7 @@
 //
 // The Village owns only its own box. The DiscoverMap hook drives it: tells it
 // where to focus, which place to highlight, and asks it for the tour's order.
+import {t, tv} from "./strings"
 
 // One hue per subject, far enough apart to tell neighbours apart; deeper
 // tiles keep their subject's hue. A subject not listed takes the fallback.
@@ -112,14 +113,16 @@ const esc = (s) =>
 // What a find is, in a word, as GuideComponents.humanize_category/1 says it.
 const FIND_KINDS = { screen: "Film or series", outing: "Outdoors", other: "Find" }
 const findKind = (kind) =>
-  FIND_KINDS[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : "Find")
+  tv("find_kinds", FIND_KINDS)[kind] ||
+  FIND_KINDS[kind] ||
+  (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : t("find", "Find"))
 
 // An event's dates, short: "Sep 29", "Sep 29 – Oct 3". ISO in, as the
 // server sends them; the year is left out, the tile is small.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const shortDate = (iso) => {
   const [, m, d] = iso.split("-").map(Number)
-  return `${MONTHS[m - 1]} ${d}`
+  return t("short_date", "{month} {day}", {month: tv("short_months", MONTHS)[m - 1], day: d})
 }
 const when = (starts, ends) => (ends && ends !== starts ? `${shortDate(starts)} – ${shortDate(ends)}` : shortDate(starts))
 
@@ -133,7 +136,7 @@ export class Village {
     this.mode = "tiles"
     this.kind = ""
     this.current = null
-    this.el.innerHTML = `<nav class="village-crumbs" aria-label="Subjects"></nav><div class="village-tiles"></div>`
+    this.el.innerHTML = `<nav class="village-crumbs" aria-label="${esc(t("village_subjects", "Subjects"))}"></nav><div class="village-tiles"></div>`
     this.crumbs = this.el.querySelector(".village-crumbs")
     this.tiles = this.el.querySelector(".village-tiles")
 
@@ -154,7 +157,7 @@ export class Village {
       .map((p) => ({ ...p, key: `p${p.id}`, type: "place" }))
       .concat(this.finds.map((f) => ({ ...f, key: `f${f.id}`, type: "find" })))
     this.nodes = new Map()
-    this.nodes.set("", { path: "", name: "All subjects", depth: 0, children: [], hue: null })
+    this.nodes.set("", { path: "", name: t("village_all_subjects", "All subjects"), depth: 0, children: [], hue: null })
     ;((data && data.tree) || []).forEach((a) => {
       const hue = hueOf(a.slug)
       this.addNode(a.slug, a.name, "", 1, hue)
@@ -326,9 +329,9 @@ export class Village {
     const modes =
       node.depth === 3
         ? ""
-        : `<span class="village-mode" role="group" aria-label="How to lay it out">
-            <button type="button" data-village-mode="tiles" aria-pressed="${this.mode === "tiles"}">Tiles</button>
-            <button type="button" data-village-mode="shelf" aria-pressed="${this.mode === "shelf"}">Shelf</button>
+        : `<span class="village-mode" role="group" aria-label="${esc(t("village_layout", "How to lay it out"))}">
+            <button type="button" data-village-mode="tiles" aria-pressed="${this.mode === "tiles"}">${esc(t("village_tiles", "Tiles"))}</button>
+            <button type="button" data-village-mode="shelf" aria-pressed="${this.mode === "shelf"}">${esc(t("village_shelf", "Shelf"))}</button>
           </span>`
     this.crumbs.innerHTML = crumbs + modes
 
@@ -346,7 +349,7 @@ export class Village {
       .map((c) => this.nodes.get(c))
       .filter((c) => c.count > 0)
       .map((c) => ({ value: c.count, node: c }))
-    if (items.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
+    if (items.length === 0) return `<p class="village-empty">${esc(t("village_empty", "Nothing here yet."))}</p>`
 
     return squarify(items, { x: 0, y: 0, w, h })
       .map(({ item, x, y, w: tw, h: th }) => {
@@ -371,7 +374,7 @@ export class Village {
       .map((c) => ({ node: this.nodes.get(c), items: this.itemsUnder(c) }))
       .filter((g) => g.items.length > 0)
       .sort((a, b) => b.items.length - a.items.length)
-    if (groups.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
+    if (groups.length === 0) return `<p class="village-empty">${esc(t("village_empty", "Nothing here yet."))}</p>`
 
     return groups
       .map(
@@ -386,7 +389,7 @@ export class Village {
   // A topic's places and finds, newest first.
   itemGrid(node) {
     const items = this.itemsUnder(node.path)
-    if (items.length === 0) return `<p class="village-empty">Nothing here yet.</p>`
+    if (items.length === 0) return `<p class="village-empty">${esc(t("village_empty", "Nothing here yet."))}</p>`
     return items.map((p) => this.itemTile(p, node)).join("")
   }
 
@@ -397,7 +400,7 @@ export class Village {
       <span class="village-place-name">${esc(p.name)}</span>
       <span class="village-place-where">${esc(p.type === "find" ? findKind(p.kind) : p.city || "")}</span>
       ${p.starts ? `<span class="village-place-when">${esc(when(p.starts, p.ends))}</span>` : ""}
-      ${p.found_by > 1 ? `<span class="village-place-more">found by ${p.found_by} poets</span>` : ""}
+      ${p.found_by > 1 ? `<span class="village-place-more">${esc(t("village_found_by", "found by {count} poets", {count: p.found_by}))}</span>` : ""}
     </button>`
   }
 }

@@ -7,6 +7,7 @@
 // section and illustration markers (and text markers whose quote is gone) as
 // pins in the left margin. Everything it adds is stripped and redrawn on every
 // update, so a revised entry never keeps stale marks.
+import {t} from "./strings"
 
 const MAX_QUOTE = 500
 const CONTEXT = 64
@@ -219,24 +220,26 @@ const Markers = {
     label.textContent = m.label
     const status = document.createElement("span")
     status.className = "marker-popover-note"
-    status.textContent = m.sent ? "sent to your poet" : "waiting to be sent"
+    status.textContent = m.sent
+      ? t("marker_sent", "sent to your poet")
+      : t("marker_waiting", "waiting to be sent")
     pop.append(label, status)
 
     if (m.kind === "other") {
       const text = document.createElement("span")
       text.className = "marker-popover-note-text"
-      text.textContent = m.note ? "“" + m.note + "”" : "no note yet"
+      text.textContent = m.note ? "“" + m.note + "”" : t("marker_no_note", "no note yet")
       const edit = document.createElement("button")
       edit.type = "button"
       edit.className = "marker-popover-edit"
-      edit.textContent = m.note ? "Edit" : "Write it"
+      edit.textContent = m.note ? t("marker_edit", "Edit") : t("marker_write", "Write it")
       pop.append(text, edit)
     }
 
     const remove = document.createElement("button")
     remove.type = "button"
     remove.className = "marker-popover-remove"
-    remove.textContent = "Remove"
+    remove.textContent = t("marker_remove", "Remove")
     pop.append(remove)
     this.showPopover(pop, target)
   },
@@ -249,12 +252,12 @@ const Markers = {
 
     const label = document.createElement("span")
     label.className = "marker-popover-label"
-    label.textContent = "Tell your poet"
+    label.textContent = t("marker_tell", "Tell your poet")
     const input = document.createElement("input")
     input.type = "text"
     input.className = "marker-note-input"
     input.maxLength = 500
-    input.placeholder = "What would you change, or want more of?"
+    input.placeholder = t("marker_note_placeholder", "What would you change, or want more of?")
     input.value = m.note || ""
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); this.saveNote() }
@@ -262,11 +265,11 @@ const Markers = {
     const save = document.createElement("button")
     save.type = "button"
     save.className = "marker-note-save"
-    save.textContent = "Save"
+    save.textContent = t("marker_save", "Save")
     const cancel = document.createElement("button")
     cancel.type = "button"
     cancel.className = "marker-popover-remove marker-note-cancel"
-    cancel.textContent = "Cancel"
+    cancel.textContent = t("marker_cancel", "Cancel")
     pop.append(label, input, save, cancel)
     this.showPopover(pop, target)
     input.focus()
@@ -360,7 +363,7 @@ function highlight(prose, m) {
     const mark = document.createElement("mark")
     mark.className = "marker marker-" + m.kind + (m.sent ? " marker-sent" : "")
     mark.dataset.markerId = m.id
-    mark.title = m.label + " (tap for options)"
+    mark.title = t("marker_mark_title", "{label} (tap for options)", {label: m.label})
     target.parentNode.insertBefore(mark, target)
     mark.appendChild(target)
   })
@@ -431,7 +434,9 @@ function renderPins(wrapper, pins, icons) {
       (m.sent ? " marker-sent" : "") +
       (m.orphan ? " marker-orphan" : "")
     pin.dataset.markerId = m.id
-    pin.title = m.label + (m.orphan ? " (this passage has since changed)" : "") + ". Tap for options."
+    pin.title = m.orphan
+      ? t("marker_pin_orphan_title", "{label} (this passage has since changed). Tap for options.", {label: m.label})
+      : t("marker_pin_title", "{label}. Tap for options.", {label: m.label})
     const icon = document.createElement("span")
     icon.className = (icons[m.kind] || "hero-bookmark-mini") + " marker-pin-icon"
     pin.appendChild(icon)

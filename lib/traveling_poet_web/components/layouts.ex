@@ -88,6 +88,10 @@ defmodule TravelingPoetWeb.Layouts do
           <li :if={@current_user}>
             <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">{gettext("Sign out")}</a>
           </li>
+          <%!-- a visitor's way to the other language (a reader's is in Settings) --%>
+          <li :if={is_nil(@current_user)}>
+            <.language_switch id="language-switch-header" class="btn btn-ghost btn-sm" />
+          </li>
           <li :if={is_nil(@current_user)}>
             <a href={~p"/auth/google"} class="btn btn-primary btn-sm">{gettext("Sign in")}</a>
           </li>
@@ -109,6 +113,11 @@ defmodule TravelingPoetWeb.Layouts do
             {TravelingPoet.Credits.format(@current_user.credits_balance || 0)}
           </.link>
           <.theme_toggle />
+          <.language_switch
+            :if={is_nil(@current_user)}
+            id="language-switch-header-narrow"
+            class="btn btn-ghost btn-sm"
+          />
           <.link
             :if={is_nil(@current_user)}
             navigate={~p"/discover"}
@@ -214,6 +223,7 @@ defmodule TravelingPoetWeb.Layouts do
   honours `?lang=` and remembers it in the session.
   """
   attr :class, :any, default: nil
+  attr :id, :string, default: "language-switch"
 
   def language_switch(assigns) do
     other = if TravelingPoet.Locale.current() == "he", do: "en", else: "he"
@@ -231,7 +241,7 @@ defmodule TravelingPoetWeb.Layouts do
       hreflang={@other}
       dir={@dir}
       class={@class}
-      id="language-switch"
+      id={@id}
       data-track="language-switch"
     >
       {@name}

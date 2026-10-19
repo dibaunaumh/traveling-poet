@@ -1746,7 +1746,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
               <div class="space-y-4">
                 <div :for={domain <- Topic.domains()} id={"tastes-#{domain}"}>
-                  <h3 class="text-sm font-medium">{Topic.domain_name(domain)}</h3>
+                  <h3 class="text-sm font-medium">{Topic.domain_label(domain)}</h3>
                   <p class="text-xs opacity-60 mb-1">{taste_hint(domain)}</p>
                   <ul :if={@tastes[domain]} class="space-y-2 mb-2">
                     <.topic_row

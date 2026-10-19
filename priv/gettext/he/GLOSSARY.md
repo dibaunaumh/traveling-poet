@@ -9,7 +9,7 @@ missing here, add it.
 - The reader is addressed in the plural imperative and plural forms: לחצו,
   בחרו, תקבלו, שלכם. Never masculine-singular as a default.
 - The poet: avoid gendered verbs and adjectives about the poet. Build the
-  sentence around its name or a noun ("ל%{poet} יש", "העמוד של %{poet}",
+  sentence around its name or a noun ("ל-%{poet} יש", "העמוד של %{poet}",
   "%{poet} כבר בדרך" is fine: a prepositional phrase, no verb agreement).
   Past tense third person is gendered (כתב/כתבה): rephrase ("העמוד החדש של
   %{poet}" instead of "%{poet} כתב עמוד").
@@ -17,7 +17,7 @@ missing here, add it.
   sentence. No emoji.
 - The wordmark stays "Traveling *Poet*" in Latin letters, never translated.
 - Arrows in strings point the way Hebrew reads: "→ Next" becomes "הבא ←",
-  "← Back" becomes "→ חזרה".
+  "← Back" becomes "→ חזרה", the outbound "↗" becomes "↖".
 - Numbers and placeholders stay as they are: %{count}, %{poet}, %{date}.
   A placeholder can move anywhere in the sentence. Use "-" to attach a prefix
   letter to a placeholder that may be Latin or a number: "ב-%{place}",
@@ -57,9 +57,27 @@ missing here, add it.
 | where to stay | איפה לישון |
 | itinerary | מסלול |
 | trip (from the calendar) | טיול |
+| calendar | לוח השנה (never יומן, which is the journal); "Google Calendar" stays in Latin letters |
+| route (an excursion's drawing) | הדרך (מסלול is the itinerary) |
 | book, edition | ספר, מהדורה |
+| composed edition, compose | מהדורה ערוכה, עריכה |
+| as written | כפי שנכתב |
+| foreword, epilogue | פתח דבר, אחרית דבר |
+| contents, index (book) | תוכן העניינים, מפתח |
 | notifications | התראות |
 | settings | הגדרות |
 | sign in, sign out | התחברות, התנתקות |
 | listen (narration) | האזנה |
 | tour (product tour) | סיור |
+| pairing (Telegram), pairing link | חיבור, קישור חיבור |
+| top up (credits) | טעינת קרדיטים, להטענה |
+| notepad (the chat panel) | פנקס |
+| shuffle | הגרלה |
+| personality | אופי |
+| Meet your poet (onboarding title) | נעים להכיר |
+| Wanderer (the mode) | נדידה |
+| repack | אריזה מחדש |
+| check in, check out | כניסה, יציאה |
+| Home Screen | מסך הבית |
+| a web page (not a journal page) | דף |
+| Saved (the tab) / Saved (on a Save button) | שמורים / נשמר |

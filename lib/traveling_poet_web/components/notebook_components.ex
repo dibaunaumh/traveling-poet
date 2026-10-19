@@ -955,7 +955,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           class="link"
         >
           {dgettext("notebook", "%{source} ↗",
-            source: src["label"] || dgettext("notebook", "see the real place")
+            source: source_label(src["label"], dgettext("notebook", "see the real place"))
           )}
         </a>
       </figcaption>
@@ -988,7 +988,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
               class="link"
             >
               {dgettext("notebook", "%{source} ↗",
-                source: src["label"] || dgettext("notebook", "the real place")
+                source: source_label(src["label"], dgettext("notebook", "the real place"))
               )}
             </a>
           </:part>
@@ -1215,4 +1215,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
   def section_icon("products"), do: "🧺"
   def section_icon("kindness"), do: "💛"
   def section_icon(_), do: ""
+
+  # A source with no label of its own, or the English default older drawings
+  # stored, reads in the reader's language
+  defp source_label(label, fallback) when label in [nil, "", "see the real place"], do: fallback
+  defp source_label(label, _fallback), do: label
 end

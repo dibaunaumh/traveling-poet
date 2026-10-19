@@ -19,6 +19,7 @@ defmodule TravelingPoetWeb.I18n do
   Imported into every template with the rest of the HTML helpers.
   """
   use Phoenix.Component
+  use Gettext, backend: TravelingPoetWeb.Gettext
 
   # Private-use characters: never in a translation, never in user text that
   # reaches a msgid
@@ -66,5 +67,74 @@ defmodule TravelingPoetWeb.I18n do
         _ -> piece
       end
     end)
+  end
+
+  @doc """
+  The words the page's own scripts write (`assets/js/strings.js`), in the
+  process's language, as JSON safe inside a `<script>`. A `{name}` stays for
+  the script to fill.
+  """
+  def js_strings_json do
+    Jason.encode!(js_strings(), escape: :html_safe)
+  end
+
+  defp js_strings do
+    %{
+      marker_sent: dgettext("js", "sent to your poet"),
+      marker_waiting: dgettext("js", "waiting to be sent"),
+      marker_no_note: dgettext("js", "no note yet"),
+      marker_edit: dgettext("js", "Edit"),
+      marker_write: dgettext("js", "Write it"),
+      marker_remove: dgettext("js", "Remove"),
+      marker_tell: dgettext("js", "Tell your poet"),
+      marker_note_placeholder: dgettext("js", "What would you change, or want more of?"),
+      marker_save: dgettext("js", "Save"),
+      marker_cancel: dgettext("js", "Cancel"),
+      marker_mark_title: dgettext("js", "%{label} (tap for options)", label: "{label}"),
+      marker_pin_title: dgettext("js", "%{label}. Tap for options.", label: "{label}"),
+      marker_pin_orphan_title:
+        dgettext("js", "%{label} (this passage has since changed). Tap for options.",
+          label: "{label}"
+        ),
+      narration_reading: dgettext("js", "Reading this page, a few seconds"),
+      narration_progress:
+        dgettext("js", "%{elapsed} of %{total}", elapsed: "{elapsed}", total: "{total}"),
+      narration_failed: dgettext("js", "The recording would not play. Try again in a moment."),
+      play: dgettext("js", "Play"),
+      pause: dgettext("js", "Pause"),
+      book_pages: dgettext("js", "%{count} pages", count: "{count}"),
+      book_no_pages: dgettext("js", "Page numbers unavailable"),
+      copied: dgettext("js", "Copied"),
+      copy_failed: dgettext("js", "Could not copy"),
+      copy_link: dgettext("js", "Copy link"),
+      village_subjects: dgettext("js", "Subjects"),
+      village_all_subjects: dgettext("js", "All subjects"),
+      village_layout: dgettext("js", "How to lay it out"),
+      village_tiles: dgettext("js", "Tiles"),
+      village_shelf: dgettext("js", "Shelf"),
+      village_empty: dgettext("js", "Nothing here yet."),
+      village_found_by: dgettext("js", "found by %{count} poets", count: "{count}"),
+      find: dgettext("js", "Find"),
+      find_kinds: find_kinds(),
+      short_months: short_months(),
+      short_date: dgettext("js", "%{month} %{day}", month: "{month}", day: "{day}"),
+      map_show_everything: dgettext("js", "Show everything"),
+      map_view_details: dgettext("js", "View details ↗"),
+      map_your_poet: dgettext("js", "Your poet"),
+      iap_unavailable: dgettext("js", "Credit packs are not available right now.")
+    }
+  end
+
+  # What a find is, as the guide says it; "other" is simply a find
+  defp find_kinds do
+    TravelingPoet.Topics.Find.kinds()
+    |> Map.new(&{&1, TravelingPoetWeb.GuideComponents.humanize_category(&1)})
+    |> Map.put("other", dgettext("js", "Find"))
+  end
+
+  defp short_months do
+    for month <- 1..12 do
+      TravelingPoet.Locale.format_date(Date.new!(2026, month, 1), :month_abbr)
+    end
   end
 end

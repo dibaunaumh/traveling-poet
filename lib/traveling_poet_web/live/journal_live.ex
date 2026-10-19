@@ -261,7 +261,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
     socket
     |> assign(:markers, markers)
-    |> assign(:markers_json, Jason.encode!(Markers.payload(markers)))
+    |> assign(:markers_json, Jason.encode!(markers_for_reader(markers)))
   end
 
   # Only the owner, and only on the live mount — the dead render would double
@@ -1849,4 +1849,12 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp share_title(poet, entry),
     do: dgettext("journal", "%{title}, by %{poet}", title: entry_title(entry), poet: poet.name)
+
+  # The payload's labels are the poet's English (Marker.label/1); the margin
+  # pins and popovers show the reader's
+  defp markers_for_reader(markers) do
+    markers
+    |> Markers.payload()
+    |> Enum.map(&Map.put(&1, :label, TravelingPoetWeb.MarkerComponents.kind_label(&1.kind)))
+  end
 end

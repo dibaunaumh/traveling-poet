@@ -229,7 +229,7 @@ msgstr "מדריך, שמורים, ואז תכנון הימים שלי."
 
 #, elixir-autogen, elixir-format
 msgid "Guide, Saved, then Share this list with friends."
-msgstr "מדריך, שמורים, ואז שיתוף הרשימה עם חברים."
+msgstr "מדריך, שמורים, ואז שתפו את הרשימה עם חברים."
 
 #, elixir-autogen, elixir-format
 msgid "How chatty should the journal be?"
@@ -618,10 +618,6 @@ msgstr "איפה לישון"
 #, elixir-autogen, elixir-format
 msgid "While you wait, a look around"
 msgstr "בזמן ההמתנה, סיור קצר"
-
-#, elixir-autogen, elixir-format
-msgid "Wren, Basho-of-the-Buses, Señora Tinta…"
-msgstr "צוף, באשו של האוטובוסים, סניורה טינטה…"
 
 #, elixir-autogen, elixir-format
 msgid "You can pair Telegram, rename your poet, and change any of this later in Settings."

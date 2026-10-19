@@ -7,6 +7,7 @@
 // only then is StoreKit told the purchase is finished: until that happens
 // StoreKit keeps redelivering it, so a credit cannot be lost to a dropped
 // connection (native.js picks up the redelivery at the next launch).
+import {t} from "./strings"
 import {call, settle} from "./native"
 
 const AppleIAP = {
@@ -21,11 +22,11 @@ const AppleIAP = {
       const priced = new Map(products.map((p) => [p.id, p.displayPrice]))
       // Only what the App Store actually has on sale is offered.
       const onSale = this.products.filter((p) => priced.has(p.product_id))
-      if (onSale.length === 0) return this.say("Credit packs are not available right now.")
+      if (onSale.length === 0) return this.say(t("iap_unavailable", "Credit packs are not available right now."))
       onSale.forEach((p) => this.packs.appendChild(this.button(p, priced.get(p.product_id))))
     } catch (err) {
       console.warn("[iap] products", err)
-      this.say("Credit packs are not available right now.")
+      this.say(t("iap_unavailable", "Credit packs are not available right now."))
     }
   },
 

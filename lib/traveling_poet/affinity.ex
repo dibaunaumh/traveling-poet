@@ -63,6 +63,8 @@ defmodule TravelingPoet.Affinity do
   The profile: `[%{path, names, score}]`, highest first, dismissed subjects
   left out. `names` are the path's names on the tree.
   """
+  # Subject names are the reader's (PlaceTopics.labels/2, card-101): the
+  # profile is shown in Settings only.
   def profile(%User{} = user, now \\ DateTime.utc_now()) do
     dismissed = MapSet.new(dismissed_paths(user))
 
@@ -71,7 +73,7 @@ defmodule TravelingPoet.Affinity do
     |> score(now)
     |> Enum.reject(fn {path, _} -> MapSet.member?(dismissed, path) end)
     |> Enum.map(fn {path, score} ->
-      %{path: path, names: PlaceTopics.names(path), score: score}
+      %{path: path, names: PlaceTopics.labels(path), score: score}
     end)
     |> Enum.filter(& &1.names)
   end
@@ -121,7 +123,7 @@ defmodule TravelingPoet.Affinity do
   def dismissed(%User{} = user) do
     user
     |> dismissed_paths()
-    |> Enum.map(&%{path: &1, names: PlaceTopics.names(&1)})
+    |> Enum.map(&%{path: &1, names: PlaceTopics.labels(&1)})
     |> Enum.filter(& &1.names)
   end
 

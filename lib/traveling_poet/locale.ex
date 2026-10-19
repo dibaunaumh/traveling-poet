@@ -123,6 +123,7 @@ defmodule TravelingPoet.Locale do
       day_mon: "%-d %b",
       month_year: "%B %Y",
       month: "%B",
+      month_abbr: "%b",
       time: "%H:%M"
     },
     "he" => %{
@@ -135,6 +136,7 @@ defmodule TravelingPoet.Locale do
       day_mon: "%-d ב%b",
       month_year: "%B %Y",
       month: "%B",
+      month_abbr: "%b",
       time: "%H:%M"
     }
   }
