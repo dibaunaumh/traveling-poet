@@ -1,9 +1,10 @@
 <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
   <div class="max-w-sm mx-auto py-8">
-    <h1 class="text-xl font-semibold">Reviewer sign-in</h1>
+    <h1 class="text-xl font-semibold">{gettext("Reviewer sign-in")}</h1>
     <p class="text-sm opacity-70 mt-2">
-      For App Store review. It opens a demo account whose poet has already been
-      travelling for a while. Everyone else signs in with Apple or Google.
+      {gettext(
+        "For App Store review. It opens a demo account whose poet has already been travelling for a while. Everyone else signs in with Apple or Google."
+      )}
     </p>
 
     <p :if={@error} id="review-login-error" class="alert alert-error text-sm mt-4">{@error}</p>
@@ -11,7 +12,7 @@
     <form id="review-login-form" action={~p"/auth/review"} method="post" class="mt-4 space-y-3">
       <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
       <label class="block">
-        <span class="text-sm font-medium">Email</span>
+        <span class="text-sm font-medium">{gettext("Email")}</span>
         <input
           type="email"
           name="email"
@@ -22,7 +23,7 @@
         />
       </label>
       <label class="block">
-        <span class="text-sm font-medium">Password</span>
+        <span class="text-sm font-medium">{gettext("Password")}</span>
         <input
           type="password"
           name="password"
@@ -31,7 +32,7 @@
           class="input input-bordered w-full mt-1"
         />
       </label>
-      <button type="submit" class="btn btn-primary w-full">Sign in</button>
+      <button type="submit" class="btn btn-primary w-full">{gettext("Sign in")}</button>
     </form>
   </div>
 </Layouts.app>

@@ -10,7 +10,7 @@ defmodule TravelingPoetWeb.CreditsController do
   # checkout must not be reachable by hand either.
   def checkout(%{assigns: %{native_app: true}} = conn, _params) do
     conn
-    |> put_flash(:error, "Credits are bought through the App Store in the app.")
+    |> put_flash(:error, gettext("Credits are bought through the App Store in the app."))
     |> redirect(to: ~p"/settings#credits")
   end
 
@@ -19,7 +19,7 @@ defmodule TravelingPoetWeb.CreditsController do
 
     case Credits.pack(pack_id) do
       nil ->
-        conn |> put_flash(:error, "Unknown credit pack.") |> redirect(to: ~p"/settings")
+        conn |> put_flash(:error, gettext("Unknown credit pack.")) |> redirect(to: ~p"/settings")
 
       pack ->
         urls = %{success: url(~p"/settings?purchased=1"), cancel: url(~p"/settings")}
@@ -36,7 +36,7 @@ defmodule TravelingPoetWeb.CreditsController do
             Logger.error("checkout failed for user #{user.id}: #{inspect(reason)}")
 
             conn
-            |> put_flash(:error, "Checkout is unavailable right now.")
+            |> put_flash(:error, gettext("Checkout is unavailable right now."))
             |> redirect(to: ~p"/settings")
         end
     end
@@ -53,7 +53,7 @@ defmodule TravelingPoetWeb.CreditsController do
     else
       _ ->
         conn
-        |> put_flash(:error, "That checkout link is invalid or expired.")
+        |> put_flash(:error, gettext("That checkout link is invalid or expired."))
         |> redirect(to: ~p"/settings")
     end
   end
@@ -69,7 +69,8 @@ defmodule TravelingPoetWeb.CreditsController do
          {:ok, _} <- Credits.purchase(user, pack_id, Mock.reference(token)) do
       redirect(conn, to: ~p"/settings?purchased=1")
     else
-      _ -> conn |> put_flash(:error, "Mock payment failed.") |> redirect(to: ~p"/settings")
+      _ ->
+        conn |> put_flash(:error, gettext("Mock payment failed.")) |> redirect(to: ~p"/settings")
     end
   end
 

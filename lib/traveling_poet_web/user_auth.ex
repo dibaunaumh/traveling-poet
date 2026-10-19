@@ -5,6 +5,8 @@ defmodule TravelingPoetWeb.UserAuth do
 
   use TravelingPoetWeb, :verified_routes
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Plug.Conn
   import Phoenix.Controller
 
@@ -77,7 +79,7 @@ defmodule TravelingPoetWeb.UserAuth do
       conn
     else
       conn
-      |> put_flash(:error, "You must log in to access this page.")
+      |> put_flash(:error, gettext("You must log in to access this page."))
       |> redirect(to: ~p"/")
       |> halt()
     end
@@ -133,7 +135,7 @@ defmodule TravelingPoetWeb.UserAuth do
   defp ensure_authenticated_redirect(socket) do
     socket =
       socket
-      |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+      |> Phoenix.LiveView.put_flash(:error, gettext("You must log in to access this page."))
       |> Phoenix.LiveView.redirect(to: ~p"/")
 
     {:halt, socket}

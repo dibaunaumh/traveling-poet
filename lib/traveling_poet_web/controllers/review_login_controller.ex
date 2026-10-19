@@ -8,7 +8,7 @@ defmodule TravelingPoetWeb.ReviewLoginController do
 
   def new(conn, _params) do
     conn
-    |> assign(:page_title, "Reviewer sign-in")
+    |> assign(:page_title, gettext("Reviewer sign-in"))
     |> render(:new, error: nil)
   end
 
@@ -20,12 +20,12 @@ defmodule TravelingPoetWeb.ReviewLoginController do
       {:error, :throttled} ->
         conn
         |> put_status(429)
-        |> render(:new, error: "Too many attempts. Please wait a quarter of an hour.")
+        |> render(:new, error: gettext("Too many attempts. Please wait a quarter of an hour."))
 
       {:error, _} ->
         conn
         |> put_status(401)
-        |> render(:new, error: "That email and password do not match.")
+        |> render(:new, error: gettext("That email and password do not match."))
     end
   end
 

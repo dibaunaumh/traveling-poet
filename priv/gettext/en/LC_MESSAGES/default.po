@@ -62,3 +62,519 @@ msgid "stop"
 msgid_plural "stops"
 msgstr[0] ""
 msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{credits} credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A narrative, a poem, a watercolor, and the practical notes with dates. Grounded in real places, written with warmth. Ask it questions any time."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A new poet needs a few minutes to set out and write its first page. The journal shows where it is while you wait. After that a new page arrives once a day, in the morning of the place your poet is in."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Architecture or street food, history or hidden gardens. Your poet learns your kind of discovery, and remembers it. Say “vegetarian” once and it shows up in every city."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Bad Request"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Before your poet sets out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Checkout is unavailable right now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connected to Google Drive."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connected to Google Drive. Saving your PDF there now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Continue with Google"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Credits are bought through the App Store in the app."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Days accumulate into a journal you can read back, share, or hand to the friend who’s going next month."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Discover"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Each day's journey costs credits, and a poet that runs out rests until there are more. Your balance and recent activity are under Credits in Settings. If the balance is fine and a day was still missed, write in: it is usually something on our side, and missed days are not charged."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Email"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Every page, every question, every “tell me more” sharpens what it finds."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Failed to authenticate."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Failed to authenticate. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "For App Store review. It opens a demo account whose poet has already been travelling for a while. Everyone else signs in with Apple or Google."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Forbidden"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Give your poet the itinerary, or connect your Google Calendar and it notices the trips on it and offers to scout them. It sets out in time to visit each stop just before you do: food stalls, overlooked museums, the view nobody mentions. It reports back in order, so you land knowing where to go."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google Calendar connected. Looking for trips now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google Drive was not allowed, so nothing was saved."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google did not grant Google Calendar access. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google did not grant Google Drive access. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Home"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I agree, send out my poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Internal Server Error"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "It learns you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "It scouts ahead"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "It travels and journals daily"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "It’s grounded"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "It’s proactive"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Last updated %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Lisbon, Kyoto, Oaxaca…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Look around first"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "MOCK CHECKOUT — no real payment happens here. Testing only."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Main"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Menu"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Mock payment failed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "My data and my account"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "My poet has not written anything yet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "My poet stopped writing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "My poet's journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "New here? Where should your poet set out from?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No more daily emails"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not Found"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not now, sign me out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open your journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pages become a notebook"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Password"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pay (mock)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Please choose the Google account you sign in with."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Poets on the road right now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Privacy"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Privacy Policy"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading your Google Calendar was not allowed, so nothing was read."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Real places, real maps, sourced images. No restaurants that don’t exist."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reviewer sign-in"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Running low on credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Scout a trip"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See how it works ↓"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send out your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send someone ahead of you."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send someone ahead of you. Your poet travels through real places and writes you an illustrated journal page every morning."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Settings"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign in"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign in with Apple"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign in with Google"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something in an entry is wrong"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Somewhere in the world, a page is being written for you."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Start wandering"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Stop the daily emails?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Stop the emails"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Support"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Teach your poet what you love"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Terms"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Terms of Service"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That Google account already has its own Traveling Poet account."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That checkout link is invalid or expired."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That email and password do not match."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That sign-in did not go through. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The only tool that pre-visits your itinerary before you buy a ticket."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The poet's pages are written by a language model from sources it read, and it can be mistaken. Mark the passage in the journal and the poet revises it, or tell it in the chat. If an entry contains something that should not be there at all, write to the address above."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Their newest pages, turning on their own. Pick anything on the map to read it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This document is shown in English, which is the binding version."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This link does not work"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "To write for you, those models are sent:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Too many attempts. Please wait a quarter of an hour."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Traveling Poet is run by one person. Write to %{address} and you will get an answer from him, usually within a day or two. It helps to say which poet is yours and what you saw."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Traveling from home?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trips coming up?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trips scouted, not sold. No ads, no affiliate links."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Turn them on or off under Notifications in Settings. You can also pair Telegram there and have each day's page sent to you as a message."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Two ways to travel. Both end up in the same notebook."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Unauthorized"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Unknown credit pack."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Welcome, %{name}!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Welcome, there!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What is kept and why is in the %{privacy}; the rules of the service are in the %{terms}. To delete your account and everything in it, open Settings, go to Account and choose Delete account. It takes effect at once and cannot be undone."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where should your poet set out from?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Why this isn’t another travel app."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You can turn the daily emails off under Notifications in %{settings}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You don’t search. Your poet finds things you’d never think to look for."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You must log in to access this page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your email address and your payment details are never part of what your poet is given. The full account is in the %{privacy}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your first days of travel are on us. Sign in with Google to send it off."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet keeps writing. To get the emails again, turn them back on under Notifications in %{settings}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet sets out from %{place}. Sign in and it goes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet wanders and writes. Each morning a new illustrated page arrives from somewhere real: what it saw, what’s on this month, what to carry home, who to help while you’re there. And every so often it takes a day off the road for an excursion into something you follow, a conference, a festival, a lab, a journal, and writes back what is new there."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet will keep writing; you just won't get an email when a new page is up. You can turn them back on in Settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet's journal, its drawings and its replies in the chat are made by AI models. They are not run by Traveling Poet: they belong to outside providers, reached through a service called OpenRouter."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your traveling poet learns what fascinates you, then goes. It scouts a trip you’ve planned, or wanders the world and writes you an illustrated journal page every morning."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "privacy policy"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "terms"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the name you give, so your poet can address you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the places, interests and preferences you choose, and what your poet learns from your feedback on its pages"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "what you write to your poet in the chat, and any file you send it there"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "“Cities with layers. Old bookshops. Skip the beaches.” And a day a week on jazz."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "“Seville → Ronda → Málaga, ten days in September.” Or just the flights on your calendar."
+msgstr ""

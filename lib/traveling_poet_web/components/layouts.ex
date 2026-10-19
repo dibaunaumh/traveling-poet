@@ -56,36 +56,40 @@ defmodule TravelingPoetWeb.Layouts do
         <%!-- Wide: every destination in a row. --%>
         <ul class="hidden sm:flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
-            <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>Journal</.link>
+            <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>{gettext(
+              "Journal"
+            )}</.link>
           </li>
           <li>
             <.link navigate={~p"/discover"} class={nav_class(@active_tab == :discover)}>
-              Discover
+              {gettext("Discover")}
             </.link>
           </li>
           <li :if={@current_user}>
-            <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>Guide</.link>
+            <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>{gettext("Guide")}</.link>
           </li>
           <li :if={@current_user && @credits_low}>
             <.link
               navigate={~p"/settings"}
               class="badge badge-warning badge-sm gap-1"
-              title="Running low on credits"
+              title={gettext("Running low on credits")}
             >
               <.icon name="hero-sparkles" class="size-3" />
-              {TravelingPoet.Credits.format(@current_user.credits_balance || 0)} credits
+              {gettext("%{credits} credits",
+                credits: TravelingPoet.Credits.format(@current_user.credits_balance || 0)
+              )}
             </.link>
           </li>
           <li :if={@current_user}>
             <.link navigate={~p"/settings"} class={nav_class(@active_tab == :settings)}>
-              Settings
+              {gettext("Settings")}
             </.link>
           </li>
           <li :if={@current_user}>
-            <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">Sign out</a>
+            <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">{gettext("Sign out")}</a>
           </li>
           <li :if={is_nil(@current_user)}>
-            <a href={~p"/auth/google"} class="btn btn-primary btn-sm">Sign in</a>
+            <a href={~p"/auth/google"} class="btn btn-primary btn-sm">{gettext("Sign in")}</a>
           </li>
           <li>
             <.theme_toggle />
@@ -99,7 +103,7 @@ defmodule TravelingPoetWeb.Layouts do
             :if={@current_user && @credits_low}
             navigate={~p"/settings"}
             class="badge badge-warning badge-sm gap-1"
-            title="Running low on credits"
+            title={gettext("Running low on credits")}
           >
             <.icon name="hero-sparkles" class="size-3" />
             {TravelingPoet.Credits.format(@current_user.credits_balance || 0)}
@@ -110,41 +114,41 @@ defmodule TravelingPoetWeb.Layouts do
             navigate={~p"/discover"}
             class={nav_class(@active_tab == :discover)}
           >
-            Discover
+            {gettext("Discover")}
           </.link>
           <a
             :if={is_nil(@current_user)}
             href={~p"/auth/google"}
             class="btn btn-primary btn-sm"
           >
-            Sign in
+            {gettext("Sign in")}
           </a>
           <details :if={@current_user} class="dropdown dropdown-end" id="nav-menu">
-            <summary class="btn btn-ghost btn-sm" aria-label="Menu" aria-haspopup="menu">
+            <summary class="btn btn-ghost btn-sm" aria-label={gettext("Menu")} aria-haspopup="menu">
               <.icon name="hero-bars-3" class="size-5" />
             </summary>
             <ul class="menu dropdown-content bg-base-100 rounded-box z-10 mt-1 w-40 p-2 shadow">
               <li>
                 <.link navigate={~p"/journal"} class={@active_tab == :journal && "font-semibold"}>
-                  Journal
+                  {gettext("Journal")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/discover"} class={@active_tab == :discover && "font-semibold"}>
-                  Discover
+                  {gettext("Discover")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/guide"} class={@active_tab == :guide && "font-semibold"}>
-                  Guide
+                  {gettext("Guide")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/settings"} class={@active_tab == :settings && "font-semibold"}>
-                  Settings
+                  {gettext("Settings")}
                 </.link>
               </li>
-              <li><a href={~p"/auth/logout"}>Sign out</a></li>
+              <li><a href={~p"/auth/logout"}>{gettext("Sign out")}</a></li>
             </ul>
           </details>
         </div>
@@ -173,34 +177,65 @@ defmodule TravelingPoetWeb.Layouts do
 
   defp shell_tabbar(assigns) do
     ~H"""
-    <nav id="shell-tabbar" class="shell-tabbar" aria-label="Main">
+    <nav id="shell-tabbar" class="shell-tabbar" aria-label={gettext("Main")}>
       <.link navigate={~p"/journal"} aria-current={@active_tab == :journal && "page"}>
         <.icon name="hero-book-open" class="size-6" />
-        <span>Journal</span>
+        <span>{gettext("Journal")}</span>
       </.link>
       <.link navigate={~p"/discover"} aria-current={@active_tab == :discover && "page"}>
         <.icon name="hero-globe-europe-africa" class="size-6" />
-        <span>Discover</span>
+        <span>{gettext("Discover")}</span>
       </.link>
       <.link navigate={~p"/guide"} aria-current={@active_tab == :guide && "page"}>
         <.icon name="hero-map" class="size-6" />
-        <span>Guide</span>
+        <span>{gettext("Guide")}</span>
       </.link>
       <%!-- Chat is not a page: on the journal it opens the chat over it,
             from anywhere else it goes to the journal with the chat open. --%>
       <button :if={@active_tab == :journal} type="button" phx-click="toggle_mobile_chat">
         <.icon name="hero-chat-bubble-left-right" class="size-6" />
-        <span>Chat</span>
+        <span>{gettext("Chat")}</span>
       </button>
       <.link :if={@active_tab != :journal} navigate={~p"/journal?chat=1"}>
         <.icon name="hero-chat-bubble-left-right" class="size-6" />
-        <span>Chat</span>
+        <span>{gettext("Chat")}</span>
       </.link>
       <.link navigate={~p"/settings"} aria-current={@active_tab == :settings && "page"}>
         <.icon name="hero-cog-6-tooth" class="size-6" />
-        <span>Settings</span>
+        <span>{gettext("Settings")}</span>
       </.link>
     </nav>
+    """
+  end
+
+  @doc """
+  A quiet link to the interface in the other language, for a visitor who
+  is not signed in (a reader picks theirs in Settings). `Plugs.Locale`
+  honours `?lang=` and remembers it in the session.
+  """
+  attr :class, :any, default: nil
+
+  def language_switch(assigns) do
+    other = if TravelingPoet.Locale.current() == "he", do: "en", else: "he"
+
+    assigns =
+      assigns
+      |> assign(:other, other)
+      |> assign(:name, TravelingPoet.Locale.native_name(other))
+      |> assign(:dir, TravelingPoet.Locale.dir(other))
+
+    ~H"""
+    <a
+      href={"?lang=#{@other}"}
+      lang={@other}
+      hreflang={@other}
+      dir={@dir}
+      class={@class}
+      id="language-switch"
+      data-track="language-switch"
+    >
+      {@name}
+    </a>
     """
   end
 

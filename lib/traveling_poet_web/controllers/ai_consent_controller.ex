@@ -22,7 +22,7 @@ defmodule TravelingPoetWeb.AiConsentController do
 
     if needed?(user, conn.assigns[:native_app]) do
       conn
-      |> assign(:page_title, "Before your poet sets out")
+      |> assign(:page_title, gettext("Before your poet sets out"))
       |> render(:show, layout: false)
     else
       redirect(conn, to: next_path(conn, user))

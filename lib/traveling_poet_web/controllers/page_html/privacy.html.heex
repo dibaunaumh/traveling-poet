@@ -1,7 +1,21 @@
 <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
-  <article class="legal">
-    <h1>Privacy Policy</h1>
-    <p class="legal-date">Last updated {@updated}</p>
+  <%!-- The body is English whatever the interface language (only the
+        English is binding), so it reads left to right; the page's own
+        words around it follow the interface. --%>
+  <article class="legal" lang="en" dir="ltr">
+    <p
+      :if={TravelingPoet.Locale.current() != "en"}
+      id="legal-language-note"
+      class="text-sm opacity-70 mb-4"
+      lang={@locale}
+      dir={@dir}
+    >
+      {gettext("This document is shown in English, which is the binding version.")}
+    </p>
+    <h1 lang={@locale} dir={@dir}>{gettext("Privacy Policy")}</h1>
+    <p class="legal-date" lang={@locale} dir={@dir}>
+      {gettext("Last updated %{date}", date: @updated)}
+    </p>
 
     <p>
       Traveling Poet gives you an AI poet that travels virtually through real places and
@@ -210,9 +224,9 @@
       account holders are told by email or in the app before it takes effect.
     </p>
 
-    <p class="legal-foot">
-      <.link navigate={~p"/terms"} class="link">Terms of Service</.link>
-      · <.link navigate={~p"/"} class="link">Home</.link>
+    <p class="legal-foot" lang={@locale} dir={@dir}>
+      <.link navigate={~p"/terms"} class="link">{gettext("Terms of Service")}</.link>
+      · <.link navigate={~p"/"} class="link">{gettext("Home")}</.link>
     </p>
   </article>
 </Layouts.app>

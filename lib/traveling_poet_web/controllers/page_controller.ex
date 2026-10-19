@@ -80,28 +80,36 @@ defmodule TravelingPoetWeb.PageController do
 
   @contact "support@poet.travel"
   # Bumped by hand when either document changes in a way that matters.
-  @legal_updated "20 September 2026"
-  @privacy_updated "30 September 2026"
+  @legal_updated ~D[2026-09-20]
+  @privacy_updated ~D[2026-09-30]
 
   @doc "The privacy policy, at the url Google's OAuth consent screen points at."
   def privacy(conn, _params) do
     conn
-    |> assign(:page_title, "Privacy Policy")
-    |> render(:privacy, contact: @contact, updated: @privacy_updated)
+    |> assign(:page_title, gettext("Privacy Policy"))
+    |> render(:privacy, contact: @contact, updated: updated(@privacy_updated))
   end
 
   @doc "The terms of service, alongside the privacy policy."
   def terms(conn, _params) do
     conn
-    |> assign(:page_title, "Terms of Service")
-    |> render(:terms, contact: @contact, updated: @legal_updated)
+    |> assign(:page_title, gettext("Terms of Service"))
+    |> render(:terms, contact: @contact, updated: updated(@legal_updated))
   end
 
   @doc "Where to get help: the support URL an App Store listing has to carry."
   def support(conn, _params) do
     conn
-    |> assign(:page_title, "Support")
+    |> assign(:page_title, gettext("Support"))
     |> render(:support, contact: @contact)
+  end
+
+  # "30 September 2026" in English, as these pages always said it
+  defp updated(date) do
+    case TravelingPoet.Locale.current() do
+      "en" -> "#{TravelingPoet.Locale.format_date(date, :day_month)} #{date.year}"
+      _ -> TravelingPoet.Locale.format_date(date, :long)
+    end
   end
 
   @doc "Onboarding, with the requested starting place when there is one."

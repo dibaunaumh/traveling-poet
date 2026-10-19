@@ -55,7 +55,7 @@ defmodule TravelingPoetWeb.AuthController do
       redirect(conn, external: NativeAuth.failed_url())
     else
       conn
-      |> put_flash(:error, "Failed to authenticate.")
+      |> put_flash(:error, gettext("Failed to authenticate."))
       |> redirect(to: "/")
     end
   end
@@ -74,7 +74,9 @@ defmodule TravelingPoetWeb.AuthController do
         redirect(conn, external: NativeAuth.failed_url())
 
       is_nil(feature) ->
-        conn |> put_flash(:error, "Failed to authenticate.") |> redirect(to: ~p"/settings")
+        conn
+        |> put_flash(:error, gettext("Failed to authenticate."))
+        |> redirect(to: ~p"/settings")
 
       is_nil(current) ->
         finish_connect(conn, native, feature, "wrong_account")
@@ -185,7 +187,7 @@ defmodule TravelingPoetWeb.AuthController do
 
       {:error, _changeset} ->
         conn
-        |> put_flash(:error, "Failed to authenticate. Please try again.")
+        |> put_flash(:error, gettext("Failed to authenticate. Please try again."))
         |> redirect(to: "/")
     end
   end

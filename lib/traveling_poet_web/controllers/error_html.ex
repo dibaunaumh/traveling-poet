@@ -19,6 +19,16 @@ defmodule TravelingPoetWeb.ErrorHTML do
   # the template name. For example, "404.html" becomes
   # "Not Found".
   def render(template, _assigns) do
-    Phoenix.Controller.status_message_from_template(template)
+    template
+    |> Phoenix.Controller.status_message_from_template()
+    |> translated()
   end
+
+  # The pages a reader can actually land on, in their language
+  defp translated("Not Found"), do: gettext("Not Found")
+  defp translated("Internal Server Error"), do: gettext("Internal Server Error")
+  defp translated("Forbidden"), do: gettext("Forbidden")
+  defp translated("Unauthorized"), do: gettext("Unauthorized")
+  defp translated("Bad Request"), do: gettext("Bad Request")
+  defp translated(message), do: message
 end

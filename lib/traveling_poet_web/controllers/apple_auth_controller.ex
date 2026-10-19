@@ -51,7 +51,7 @@ defmodule TravelingPoetWeb.AppleAuthController do
         Logger.warning("Sign in with Apple refused: #{refusal(reason)}")
 
         conn
-        |> put_flash(:error, "That sign-in did not go through. Please try again.")
+        |> put_flash(:error, gettext("That sign-in did not go through. Please try again."))
         |> redirect(to: ~p"/")
     end
   end
