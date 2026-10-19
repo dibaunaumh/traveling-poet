@@ -15,7 +15,9 @@ defmodule TravelingPoet.Email.EntryEmail do
   Gmail filed it under Promotions.
   """
 
-  alias TravelingPoet.Email
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
+  alias TravelingPoet.{Email, Locale}
 
   alias TravelingPoet.WebPush
 
@@ -25,8 +27,16 @@ defmodule TravelingPoet.Email.EntryEmail do
   `unsubscribe_url`, and `listen?` with `listen_minutes` when the page can
   be read aloud (on demand, from the ring on the page; the minutes are an
   estimate from the words).
+
+  Written in the reader's language (`users.locale`): nothing else sets one
+  for a background sender. The page's own words, its title and teaser, carry
+  the page's language (`journal_entries.language`), which may differ.
   """
-  def build(%{user: user, poet: poet, entry: entry, day: day} = a) do
+  def build(%{user: user} = a) do
+    Locale.with_locale(Map.get(user, :locale), fn -> build_in_locale(a) end)
+  end
+
+  defp build_in_locale(%{user: user, poet: poet, entry: entry, day: day} = a) do
     push = WebPush.entry_payload(poet, entry, day)
     title = present(entry.title)
     subject = title || push.title
@@ -53,20 +63,56 @@ defmodule TravelingPoet.Email.EntryEmail do
           ~s(<p><a href="#{esc(a.page_url)}"><img src="#{esc(a.drawing_url)}" alt="#{esc(title || heading)}" width="480" style="max-width:100%;height:auto"></a></p>),
         else: ""
 
+    locale = Locale.current()
+    page = page_lang(a.entry)
+
+    # Translations are the app's own words, so only what goes into them is
+    # escaped (an apostrophe stays an apostrophe, as it was in English).
+    # The teaser is the page's own words unless the poet wrote none and the
+    # app's fallback line stands in for it.
+    teaser_lang = if poet_words?(a.entry), do: page, else: ""
+
+    listen =
+      if a[:listen?] do
+        ~s( &middot; <a href="#{esc(a.page_url)}#listen">#{listen_words(a)}</a>)
+      else
+        ""
+      end
+
     """
     <!doctype html>
-    <html><body style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:#222">
-    <div style="max-width:560px">
+    <html lang="#{locale}" dir="#{Locale.dir(locale)}"><body style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:#222">
+    <div lang="#{locale}" dir="#{Locale.dir(locale)}" style="max-width:560px">
     <p>#{esc(heading)}</p>
-    #{if title, do: "<p><b>#{esc(title)}</b></p>", else: ""}
-    <p>#{esc(teaser)}</p>
+    #{if title, do: "<p#{page}><b>#{esc(title)}</b></p>", else: ""}
+    <p#{teaser_lang}>#{esc(teaser)}</p>
     #{drawing}
-    <p><a href="#{esc(a.page_url)}">Read today's page</a>#{if a[:listen?], do: ~s( &middot; <a href="#{esc(a.page_url)}#listen">or listen, about #{a[:listen_minutes] || 5} minutes</a>), else: ""}</p>
-    <p style="font-size:13px;color:#777">A new page from #{esc(a.poet.name)} each day. <a href="#{esc(a.unsubscribe_url)}" style="color:#777">Stop these emails</a></p>
+    <p><a href="#{esc(a.page_url)}">#{dgettext("notify", "Read today's page")}</a>#{listen}</p>
+    <p style="font-size:13px;color:#777">#{dgettext("notify", "A new page from %{poet} each day.", poet: esc(a.poet.name))} <a href="#{esc(a.unsubscribe_url)}" style="color:#777">#{dgettext("notify", "Stop these emails")}</a></p>
     </div>
     </body></html>
     """
   end
+
+  # English said "minutes" for one minute too, and still does
+  defp listen_words(a) do
+    dngettext(
+      "notify",
+      "or listen, about %{count} minutes",
+      "or listen, about %{count} minutes",
+      a[:listen_minutes] || 5
+    )
+  end
+
+  # ` lang="he" dir="rtl"` for the page's own words, when its language is known
+  defp page_lang(entry) do
+    case Locale.normalize(Map.get(entry, :language)) do
+      nil -> ""
+      lang -> ~s( lang="#{lang}" dir="#{Locale.dir(lang)}")
+    end
+  end
+
+  defp poet_words?(entry), do: present(entry.teaser) != nil or present(entry.title) != nil
 
   defp text(a, heading, title, teaser) do
     [
@@ -75,13 +121,20 @@ defmodule TravelingPoet.Email.EntryEmail do
       "",
       teaser,
       "",
-      "Read today's page: #{a.page_url}",
+      dgettext("notify", "Read today's page: %{url}", url: a.page_url),
       if(a[:listen?],
-        do: "Or listen, about #{a[:listen_minutes] || 5} minutes: #{a.page_url}#listen"
+        do:
+          dngettext(
+            "notify",
+            "Or listen, about %{count} minutes: %{url}",
+            "Or listen, about %{count} minutes: %{url}",
+            a[:listen_minutes] || 5,
+            url: "#{a.page_url}#listen"
+          )
       ),
       "",
-      "A new page from #{a.poet.name} each day.",
-      "Stop these emails: #{a.unsubscribe_url}"
+      dgettext("notify", "A new page from %{poet} each day.", poet: a.poet.name),
+      dgettext("notify", "Stop these emails: %{url}", url: a.unsubscribe_url)
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
