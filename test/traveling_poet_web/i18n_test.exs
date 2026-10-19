@@ -6,16 +6,18 @@ defmodule TravelingPoetWeb.I18nTest do
   import TravelingPoetWeb.I18n
 
   test "a translated sentence keeps its markup wherever the language puts it" do
-    assigns = %{text: "קראו את #{marker(:guide)} לפני היציאה <b>"}
+    assigns = %{text: "קראו את #{marker(:guide)}. לפני היציאה <b>"}
 
     html =
       rendered_to_string(~H"""
       <.rich text={@text}>
-        <:part name="guide"><a href="/guide">המדריך</a></:part>
+        <:part name="guide">
+          <a href="/guide">המדריך</a>
+        </:part>
       </.rich>
       """)
 
-    assert html =~ ~r{קראו את <a[^>]* href="/guide">המדריך</a> לפני היציאה &lt;b&gt;}u
+    assert html =~ ~r{קראו את <a[^>]* href="/guide">המדריך</a>\. לפני היציאה &lt;b&gt;}u
   end
 
   test "pieces" do

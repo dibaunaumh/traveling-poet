@@ -13,6 +13,9 @@ defmodule TravelingPoetWeb.I18n do
         </:part>
       </.rich>
 
+  A part is rendered to a string and trimmed, so it may hold links, icons and
+  function components, not a stateful LiveComponent.
+
   Imported into every template with the rest of the HTML helpers.
   """
   use Phoenix.Component
@@ -36,16 +39,21 @@ defmodule TravelingPoetWeb.I18n do
   def rich(assigns) do
     assigns = assign(assigns, :pieces, pieces(assigns.text))
 
+    # phx-no-format: any whitespace the formatter put between the pieces
+    # would show as a space between a word and its link
     ~H"""
-    <%= for piece <- @pieces do %>
-      <%= case piece do %>
-        <% {:part, name} -> %>
-          {render_slot(Enum.filter(@part, &(&1.name == name)))}
-        <% text -> %>
-          {text}
-      <% end %>
-    <% end %>
+    <span phx-no-format><%= for piece <- @pieces do %><%= case piece do %><% {:part, name} -> %>{trimmed(render_slot(Enum.filter(@part, &(&1.name == name))))}<% text -> %>{text}<% end %><% end %></span>
     """
+  end
+
+  # A part, trimmed: a slot the formatter broke over several lines would
+  # otherwise bring a space in with it
+  defp trimmed(rendered) do
+    rendered
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
+    |> String.trim()
+    |> Phoenix.HTML.raw()
   end
 
   @doc false
