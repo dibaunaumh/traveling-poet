@@ -1,5 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html> <%!-- A book reads in its pages' language, not the interface's --%>
+<html
+  lang={assigns[:book_language] || "en"}
+  dir={TravelingPoet.Locale.dir(assigns[:book_language])}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

@@ -24,7 +24,9 @@ defmodule TravelingPoetWeb.AuthController do
       "name" => auth.info.name,
       # Lets a Google sign-in find the account an Apple sign-in made with the
       # same address (Accounts.find_or_create_from_oauth/2); absent means no.
-      "email_verified" => email_verified?(auth)
+      "email_verified" => email_verified?(auth),
+      # Kept only when the account is new (Plugs.Locale picked it)
+      "locale" => conn.assigns[:locale]
     }
 
     # Parked by the home page's destination box; log_in_user clears the

@@ -316,6 +316,20 @@ defmodule TravelingPoetWeb.SettingsLive do
     {:noreply, assign_affinity(socket)}
   end
 
+  # A new language needs a full page load: the page's lang and dir sit on
+  # <html>, which a LiveView patch never touches.
+  @impl true
+  def handle_event("set_locale", %{"locale" => locale}, socket) do
+    case Accounts.set_locale(socket.assigns.user, locale) do
+      {:ok, _} ->
+        {:noreply, redirect(socket, to: ~p"/settings#account")}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("settings", "Could not save that setting."))}
+    end
+  end
+
   @impl true
   def handle_event("toggle_email", params, socket) do
     case Accounts.update_user(socket.assigns.user, %{
@@ -1784,6 +1798,29 @@ defmodule TravelingPoetWeb.SettingsLive do
                     class="input input-bordered w-full mt-1"
                   />
                   <span class="text-xs opacity-50">How {@poet.name} addresses you.</span>
+                </label>
+              </form>
+
+              <form id="locale-form" phx-change="set_locale" class="mb-4">
+                <label class="block">
+                  <span class="text-sm font-medium">{dgettext("settings", "Language")}</span>
+                  <select name="locale" class="select select-bordered w-full mt-1">
+                    <option
+                      :for={locale <- TravelingPoet.Locale.supported()}
+                      value={locale}
+                      lang={locale}
+                      selected={@user.locale == locale}
+                    >
+                      {TravelingPoet.Locale.native_name(locale)}
+                    </option>
+                  </select>
+                  <span class="text-xs opacity-50">
+                    {dgettext(
+                      "settings",
+                      "The app's language, and the one %{poet} writes in from its next page.",
+                      poet: @poet.name
+                    )}
+                  </span>
                 </label>
               </form>
 

@@ -187,6 +187,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
 
   ## Step navigation
 
+  # A language switch reloads the page: lang and dir sit on <html>.
+  @impl true
+  def handle_event("set_locale", %{"locale" => locale}, socket) do
+    case Accounts.set_locale(socket.assigns.current_user, locale) do
+      {:ok, _} -> {:noreply, redirect(socket, to: ~p"/onboarding")}
+      {:error, _} -> {:noreply, socket}
+    end
+  end
+
   # Keep the server's copy of the step's inputs current on every keystroke.
   # Without this the answers live only in the browser until "Continue", and
   # any re-render in between — picking a chip, a flash landing — repaints the
@@ -657,8 +666,25 @@ defmodule TravelingPoetWeb.OnboardingLive do
     >
       <div class="mx-auto max-w-xl py-8">
         <div class="mb-6">
-          <div class="text-sm opacity-60 mb-1">
-            Step {step_number(@step)} of {step_count()}
+          <div class="flex items-center justify-between gap-3 mb-1">
+            <div class="text-sm opacity-60">
+              Step {step_number(@step)} of {step_count()}
+            </div>
+            <%!-- Sets the interface and the poet's language at once (dec-008);
+                  only on the first step, since a switch reloads the page --%>
+            <div :if={@step == :poet} id="onboarding-locale" class="flex gap-1 text-sm">
+              <button
+                :for={locale <- TravelingPoet.Locale.supported()}
+                type="button"
+                phx-click="set_locale"
+                phx-value-locale={locale}
+                lang={locale}
+                aria-pressed={to_string(@locale == locale)}
+                class={["btn btn-ghost btn-xs", @locale == locale && "btn-active"]}
+              >
+                {TravelingPoet.Locale.native_name(locale)}
+              </button>
+            </div>
           </div>
           <progress
             class="progress progress-primary w-full"

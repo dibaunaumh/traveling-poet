@@ -17,6 +17,9 @@ defmodule TravelingPoet.Journal.Entry do
     field :published_at, :utc_datetime
     field :weather, :map, default: %{}
     field :sources, :map, default: %{}
+    # The language the page is written in: the owner's locale when the poet
+    # last saved it (card-101). Sets the page's lang/dir and its voice.
+    field :language, :string, default: "en"
     # Did the poet's own reader actually open this? The only signal a silent
     # user gives, and the difference between "happy and quiet" and "gone".
     field :owner_viewed_at, :utc_datetime
@@ -48,6 +51,7 @@ defmodule TravelingPoet.Journal.Entry do
       :published_at,
       :weather,
       :sources,
+      :language,
       :owner_viewed_at,
       :owner_view_count
     ])
@@ -56,6 +60,7 @@ defmodule TravelingPoet.Journal.Entry do
     |> validate_required([:poet_id, :entry_date])
     |> validate_length(:teaser, max: 140)
     |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:language, TravelingPoet.Locale.supported())
     |> unique_constraint([:poet_id, :entry_date])
   end
 end

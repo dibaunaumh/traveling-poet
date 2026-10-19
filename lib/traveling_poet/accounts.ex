@@ -48,7 +48,12 @@ defmodule TravelingPoet.Accounts do
       true ->
         with {:ok, user} <-
                %User{}
-               |> User.changeset(%{identity => sub, email: email, name: name})
+               |> User.changeset(%{
+                 identity => sub,
+                 email: email,
+                 name: name,
+                 locale: TravelingPoet.Locale.normalize(info["locale"]) || "en"
+               })
                |> Repo.insert() do
           # Welcome credits; idempotent on "signup:<id>" so a retry can't double-grant.
           {:ok, _} = TravelingPoet.Credits.grant_signup(user)
@@ -146,6 +151,18 @@ defmodule TravelingPoet.Accounts do
     user
     |> User.changeset(attrs)
     |> Repo.update()
+  end
+
+  @doc """
+  Switches the reader's language: their interface and, from its next turn,
+  what their poet writes in (dec-008). A no-op for the language they have.
+  """
+  def set_locale(%User{} = user, locale) do
+    case TravelingPoet.Locale.normalize(locale) do
+      nil -> {:error, :unsupported}
+      same when same == user.locale -> {:ok, user}
+      locale -> update_user(user, %{locale: locale})
+    end
   end
 
   @doc """

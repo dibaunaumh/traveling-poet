@@ -48,6 +48,9 @@ defmodule TravelingPoet.Accounts.User do
     field :reading_signals, :boolean, default: true
     # the daily page email (Email.Notifier); off from Settings or the email's link
     field :email_notify, :boolean, default: true
+    # The interface and the poet's writing language, one setting (dec-008;
+    # TravelingPoet.Locale)
+    field :locale, :string, default: "en"
     # The private link to their Saved list (card-93); nil when not shared.
     field :saved_share_token, :string
 
@@ -96,6 +99,7 @@ defmodule TravelingPoet.Accounts.User do
       :onboarding_completed,
       :reading_signals,
       :email_notify,
+      :locale,
       :onboarding_step,
       :last_seen_at,
       :telegram_chat_id,
@@ -133,6 +137,7 @@ defmodule TravelingPoet.Accounts.User do
       :home_country_code
     ])
     |> validate_required([:email])
+    |> validate_inclusion(:locale, TravelingPoet.Locale.supported())
     |> validate_has_identity()
     |> unique_constraint(:email)
     |> unique_constraint(:google_id)
