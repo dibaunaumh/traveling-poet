@@ -106,12 +106,15 @@ defmodule TravelingPoet.MixProject do
         "phx.digest"
       ],
       # gettext.extract --check-up-to-date fails when a string changed in the
-      # code but not in priv/gettext (TranslationsTest then checks the Hebrew)
+      # code but not in priv/gettext (TranslationsTest then checks the Hebrew).
+      # It force-recompiles every module, so it runs in its own VM and on the
+      # dev build: on the test build it left the next precommit's `compile`
+      # redefining loaded modules, which --warnings-as-errors failed.
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
         "format",
-        "gettext.extract --check-up-to-date",
+        "cmd env MIX_ENV=dev mix gettext.extract --check-up-to-date",
         "test"
       ]
     ]

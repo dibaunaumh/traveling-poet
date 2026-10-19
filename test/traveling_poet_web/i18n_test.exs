@@ -41,5 +41,4 @@ defmodule TravelingPoetWeb.I18nTest do
     assert en["short_date"] == "{month} {day}"
     refute TravelingPoetWeb.I18n.js_strings_json() =~ "<"
   end
-
 end

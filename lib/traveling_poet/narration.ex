@@ -115,7 +115,10 @@ defmodule TravelingPoet.Narration do
              duration_seconds:
                Mp3.duration_seconds(bytes) || Script.estimated_seconds(text, language)
            }) do
-      if current, do: delete(current)
+      # A forced re-read of unchanged words lands on the same key as the
+      # recording it replaces; deleting that object would delete the new one
+      # (2026-10-19, entry 684). Drop only the old row then.
+      if current, do: replace(current, key)
 
       Usage.record(user.id, @usage_kind, %{
         metadata: %{
@@ -181,6 +184,11 @@ defmodule TravelingPoet.Narration do
         end
     end
   end
+
+  # The recording a new one replaces: its row always, its object only when
+  # the new one was not written over it
+  defp replace(%Media{s3_key: key} = old, key), do: Repo.delete(old)
+  defp replace(old, _new_key), do: delete(old)
 
   @doc "Removes a narration: the object and the row."
   def delete(%Media{kind: "narration"} = media) do
