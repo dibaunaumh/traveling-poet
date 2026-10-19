@@ -1,0 +1,700 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{name} — a solid paragraph or two per section"
+msgstr "%{name}: פסקה או שתיים טובות לכל חלק"
+
+#, elixir-autogen, elixir-format
+msgid "%{name} — full travel-journal essays"
+msgstr "%{name}: מסות מלאות של יומן מסע"
+
+#, elixir-autogen, elixir-format
+msgid "%{name} — short postcards, a few lines and a poem"
+msgstr "%{name}: גלויות קצרות, כמה שורות ושיר"
+
+#, elixir-autogen, elixir-format
+msgid "%{n} of %{total}"
+msgstr "%{n} מתוך %{total}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is packing their bags!"
+msgstr "התיקים של %{poet} כבר נארזים!"
+
+#, elixir-autogen, elixir-format
+msgid "(optional)"
+msgstr "(לא חובה)"
+
+#, elixir-autogen, elixir-format
+msgid "A Trip Scout needs at least one planned stop — go back and add one."
+msgstr "בשביל סייר מסלול צריך לפחות תחנה אחת מתוכננת. חזרו אחורה והוסיפו אחת."
+
+#, elixir-autogen, elixir-format
+msgid "A city or town, or a route: Lisbon, Porto…"
+msgstr "עיר או עיירה, או מסלול: ליסבון, פורטו…"
+
+#, elixir-autogen, elixir-format
+msgid "A day on the road uses one credit, a Trip Scout day five. You start with ten free, and can top up any time."
+msgstr "יום בדרך עולה קרדיט אחד, ויום של סייר מסלול חמישה. מתחילים עם עשרה בחינם, ואפשר להוסיף מתי שרוצים."
+
+#, elixir-autogen, elixir-format
+msgid "A look around"
+msgstr "סיור קצר"
+
+#, elixir-autogen, elixir-format
+msgid "A name can't contain < or >."
+msgstr "שם לא יכול לכלול < או >."
+
+#, elixir-autogen, elixir-format
+msgid "A page every day"
+msgstr "עמוד בכל יום"
+
+#, elixir-autogen, elixir-format
+msgid "A wanderer with a random starting city is ready to go — or plan a real trip."
+msgstr "הכול מוכן לנדידה מעיר התחלה אקראית. אפשר גם לתכנן טיול אמיתי."
+
+#, elixir-autogen, elixir-format
+msgid "Add the places in the order you'll visit them, one at a time or as a list. Your poet starts scouting at the first one."
+msgstr "הוסיפו את המקומות לפי סדר הביקור, אחד אחד או כרשימה. הסיור מתחיל במקום הראשון."
+
+#, elixir-autogen, elixir-format
+msgid "Agnes Varda, Slow Horses"
+msgstr "אנייס ורדה, שטיסל"
+
+#, elixir-autogen, elixir-format
+msgid "Another"
+msgstr "עיר אחרת"
+
+#, elixir-autogen, elixir-format
+msgid "Anything else you'd love postcards about?"
+msgstr "עוד משהו שתשמחו לקבל עליו גלויות?"
+
+#, elixir-autogen, elixir-format
+msgid "Art & architecture"
+msgstr "אמנות ואדריכלות"
+
+#, elixir-autogen, elixir-format
+msgid "Art and buildings you seek out"
+msgstr "אמנות ומבנים שאתם מחפשים"
+
+#, elixir-autogen, elixir-format
+msgid "Artists, albums or styles you love"
+msgstr "אמנים, אלבומים או סגנונות שאתם אוהבים"
+
+#, elixir-autogen, elixir-format
+msgid "Ask where it is heading, suggest a place, or ask about something it wrote. It answers in its own voice."
+msgstr "שאלו לאן הדרך, הציעו מקום, או שאלו על משהו מהעמודים. התשובה מגיעה באותו קול שכותב את היומן."
+
+#, elixir-autogen, elixir-format
+msgid "Authors or books you love"
+msgstr "סופרים או ספרים שאתם אוהבים"
+
+#, elixir-autogen, elixir-format
+msgid "Back"
+msgstr "חזרה"
+
+#, elixir-autogen, elixir-format
+msgid "Balanced"
+msgstr "מאוזן"
+
+#, elixir-autogen, elixir-format
+msgid "Bauhaus, contemporary painting"
+msgstr "באוהאוס, ציור עכשווי"
+
+#, elixir-autogen, elixir-format
+msgid "Books"
+msgstr "ספרים"
+
+#, elixir-autogen, elixir-format
+msgid "Brief"
+msgstr "קצר"
+
+#, elixir-autogen, elixir-format
+msgid "Change your poet's name, personality or writing voice whenever you like."
+msgstr "אפשר לשנות את השם, האופי או קול הכתיבה מתי שרוצים."
+
+#, elixir-autogen, elixir-format
+msgid "Choose a city"
+msgstr "בחרו עיר"
+
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr "סגירה"
+
+#, elixir-autogen, elixir-format
+msgid "Close the tour"
+msgstr "סגירת הסיור"
+
+#, elixir-autogen, elixir-format
+msgid "Connect Google Calendar and your poet notices an upcoming trip and offers to scout it for you."
+msgstr "חברו את Google Calendar, וכשמתקרב טיול תקבלו הצעה לסייר בו מראש."
+
+#, elixir-autogen, elixir-format
+msgid "Continue"
+msgstr "המשך"
+
+#, elixir-autogen, elixir-format
+msgid "Could not create your poet: %{errors}"
+msgstr "לא הצלחנו להשלים את ההגדרה: %{errors}"
+
+#, elixir-autogen, elixir-format
+msgid "Couldn’t find %{names} — search below to add it."
+msgstr "לא מצאנו את %{names}. חפשו למטה כדי להוסיף."
+
+#, elixir-autogen, elixir-format
+msgid "Couldn’t find “%{query}” — try another spelling or pick a nearby city."
+msgstr "לא מצאנו את \"%{query}\". נסו כתיב אחר או בחרו עיר קרובה."
+
+#, elixir-autogen, elixir-format
+msgid "Couldn’t look up “%{query}” right now — search again or pick a city."
+msgstr "אי אפשר לחפש את \"%{query}\" כרגע. חפשו שוב או בחרו עיר."
+
+#, elixir-autogen, elixir-format
+msgid "Currently reading (pick any)"
+msgstr "מה בקריאה עכשיו (בחרו כמה שרוצים)"
+
+#, elixir-autogen, elixir-format
+msgid "Discover other poets"
+msgstr "גלו משוררים אחרים"
+
+#, elixir-autogen, elixir-format
+msgid "Discover, then Village."
+msgstr "גלו, ואז הכפר."
+
+#, elixir-autogen, elixir-format
+msgid "Every page can be read to you, about five minutes, for the walk or the commute. The first press on a page takes a few seconds while it is read. The email brings the link too."
+msgstr "את כל עמוד אפשר לשמוע בקול, בערך חמש דקות, להליכה או לדרך לעבודה. בלחיצה הראשונה על עמוד לוקח כמה שניות עד שהוא מוקרא. גם במייל מגיע הקישור."
+
+#, elixir-autogen, elixir-format
+msgid "Every page comes with the places your poet visited, and what to see, eat or do there."
+msgstr "כל עמוד מגיע עם המקומות מהדרך, ומה לראות, לאכול או לעשות בהם."
+
+#, elixir-autogen, elixir-format
+msgid "Every place all the poets have found, sorted by subject, from food to festivals."
+msgstr "כל המקומות שכל המשוררים מצאו, ממוינים לפי נושא, מאוכל ועד פסטיבלים."
+
+#, elixir-autogen, elixir-format
+msgid "Every place your poet found, on a map, in a list, or as an itinerary you could follow on a real trip."
+msgstr "כל מקום מהדרך, על מפה, ברשימה, או כמסלול שאפשר ללכת בו בטיול אמיתי."
+
+#, elixir-autogen, elixir-format
+msgid "Every week or so your poet takes a day off the road to visit a place for one of your topics, a festival, a lab, a conference, and brings back finds."
+msgstr "פעם בשבוע בערך יש יום הפסקה מהדרך: גיחה למקום שקשור לאחד הנושאים שלכם, פסטיבל, מעבדה או כנס, ומשם חוזרות מציאות."
+
+#, elixir-autogen, elixir-format
+msgid "Excursion days"
+msgstr "ימי גיחה"
+
+#, elixir-autogen, elixir-format
+msgid "Expansive"
+msgstr "מורחב"
+
+#, elixir-autogen, elixir-format
+msgid "Film & TV"
+msgstr "קולנוע וטלוויזיה"
+
+#, elixir-autogen, elixir-format
+msgid "Films, shows or directors you love"
+msgstr "סרטים, סדרות או במאים שאתם אוהבים"
+
+#, elixir-autogen, elixir-format
+msgid "Food & drink"
+msgstr "אוכל ושתייה"
+
+#, elixir-autogen, elixir-format
+msgid "Gadgets & gifts"
+msgstr "גאדג'טים ומתנות"
+
+#, elixir-autogen, elixir-format
+msgid "Gadgets or gifts that delight you"
+msgstr "גאדג'טים או מתנות שמשמחים אתכם"
+
+#, elixir-autogen, elixir-format
+msgid "Get each new page as a notification or an email, so the daily ritual comes to you."
+msgstr "קבלו כל עמוד חדש בהתראה או במייל, כך שהטקס היומי מגיע אליכם."
+
+#, elixir-autogen, elixir-format
+msgid "Guide, Saved, then Plan my days."
+msgstr "מדריך, שמורים, ואז תכנון הימים שלי."
+
+#, elixir-autogen, elixir-format
+msgid "Guide, Saved, then Share this list with friends."
+msgstr "מדריך, שמורים, ואז שיתוף הרשימה עם חברים."
+
+#, elixir-autogen, elixir-format
+msgid "How chatty should the journal be?"
+msgstr "כמה מפורט יהיה היומן?"
+
+#, elixir-autogen, elixir-format
+msgid "How credits work"
+msgstr "איך עובדים הקרדיטים"
+
+#, elixir-autogen, elixir-format
+msgid "How this poet might write about a fish market at dawn"
+msgstr "דוגמה בקול הזה: שוק דגים עם שחר"
+
+#, elixir-autogen, elixir-format
+msgid "Join the world map on our landing page so anyone can read along. Turn this off to keep the journal to yourself. Your chat with the poet stays private either way."
+msgstr "הצטרפו למפת העולם בעמוד הבית, כדי שכל אחד יוכל לקרוא. כבו את זה כדי לשמור את היומן לעצמכם. השיחה בצ'אט נשארת פרטית בכל מקרה."
+
+#, elixir-autogen, elixir-format
+msgid "Keep the name under %{max} characters."
+msgstr "השם צריך להיות קצר מ-%{max} תווים."
+
+#, elixir-autogen, elixir-format
+msgid "Keep the places and finds you want to see for yourself, in one list on the map."
+msgstr "שמרו את המקומות והמציאות שתרצו לראות בעצמכם, ברשימה אחת על המפה."
+
+#, elixir-autogen, elixir-format
+msgid "Kids' attractions"
+msgstr "אטרקציות לילדים"
+
+#, elixir-autogen, elixir-format
+msgid "Know when it lands"
+msgstr "לדעת כשהעמוד מגיע"
+
+#, elixir-autogen, elixir-format
+msgid "Le Guin, nature writing"
+msgstr "לה גווין, כתיבת טבע"
+
+#, elixir-autogen, elixir-format
+msgid "Let your poet wander the world freely — a new nearby place every few days, discoveries you never asked for."
+msgstr "נדידה חופשית בעולם: מקום קרוב חדש כל כמה ימים, ותגליות שלא ביקשתם."
+
+#, elixir-autogen, elixir-format
+msgid "Listen to the page"
+msgstr "האזנה לעמוד"
+
+#, elixir-autogen, elixir-format
+msgid "Looking up “%{query}”…"
+msgstr "מחפשים את \"%{query}\"…"
+
+#, elixir-autogen, elixir-format
+msgid "Mark a line as interesting or beautiful, or ask for a change. Your poet revises the page and learns what you like."
+msgstr "סמנו שורה כמעניינת או יפה, או בקשו שינוי. העמוד מתעדכן, ומה שאהבתם נלמד להבא."
+
+#, elixir-autogen, elixir-format
+msgid "Meet your poet"
+msgstr "נעים להכיר"
+
+#, elixir-autogen, elixir-format
+msgid "Mission:"
+msgstr "משימה:"
+
+#, elixir-autogen, elixir-format
+msgid "Mogwai, Japanese city pop"
+msgstr "Mogwai, סיטי פופ יפני"
+
+#, elixir-autogen, elixir-format
+msgid "More options"
+msgstr "אפשרויות נוספות"
+
+#, elixir-autogen, elixir-format
+msgid "Mountains & climbing"
+msgstr "הרים וטיפוס"
+
+#, elixir-autogen, elixir-format
+msgid "Music"
+msgstr "מוזיקה"
+
+#, elixir-autogen, elixir-format
+msgid "Never mind"
+msgstr "ביטול"
+
+#, elixir-autogen, elixir-format
+msgid "Next"
+msgstr "הבא"
+
+#, elixir-autogen, elixir-format
+msgid "No places found — try a broader name."
+msgstr "לא נמצאו מקומות. נסו שם כללי יותר."
+
+#, elixir-autogen, elixir-format
+msgid "On a Trip Scout trip your poet weighs the neighbourhoods of each city and picks one, then you can compare hotels by price, rating and how close they are to its places."
+msgstr "בטיול של סייר מסלול נבחרת שכונה אחת בכל עיר, אחרי השוואה בין השכונות. אחר כך אפשר להשוות מלונות לפי מחיר, דירוג ומרחק מהמקומות שבעמוד."
+
+#, elixir-autogen, elixir-format
+msgid "Open Journal. The newest page is on top, and earlier ones are a tap away."
+msgstr "פתחו את היומן. העמוד החדש ביותר למעלה, והקודמים במרחק נגיעה."
+
+#, elixir-autogen, elixir-format
+msgid "Open the Where to stay page of that day."
+msgstr "פתחו את עמוד איפה לישון של אותו יום."
+
+#, elixir-autogen, elixir-format
+msgid "Outdoors"
+msgstr "בטבע"
+
+#, elixir-autogen, elixir-format
+msgid "Packing bags…"
+msgstr "אורזים…"
+
+#, elixir-autogen, elixir-format
+msgid "Peaks and climbing you love"
+msgstr "פסגות וטיפוס שאתם אוהבים"
+
+#, elixir-autogen, elixir-format
+msgid "Personality"
+msgstr "אופי"
+
+#, elixir-autogen, elixir-format
+msgid "Personality:"
+msgstr "אופי:"
+
+#, elixir-autogen, elixir-format
+msgid "Photography"
+msgstr "צילום"
+
+#, elixir-autogen, elixir-format
+msgid "Pick another name"
+msgstr "הגרלת שם אחר"
+
+#, elixir-autogen, elixir-format
+msgid "Pick up to three. %{poet} will look for them in every place it visits."
+msgstr "בחרו עד שלושה, והם ילוו את %{poet} בכל מקום בדרך."
+
+#, elixir-autogen, elixir-format
+msgid "Plan a real trip"
+msgstr "תכננו טיול אמיתי"
+
+#, elixir-autogen, elixir-format
+msgid "Plan it with friends"
+msgstr "לתכנן עם חברים"
+
+#, elixir-autogen, elixir-format
+msgid "Plan my days"
+msgstr "תכנון הימים שלי"
+
+#, elixir-autogen, elixir-format
+msgid "Planning a real trip? Your poet pre-visits the places on your route, in order, and reports what will interest you when you get there."
+msgstr "מתכננים טיול אמיתי? המקומות במסלול שלכם מקבלים ביקור מוקדם, לפי הסדר, ודיווח על מה שיעניין אתכם כשתגיעו."
+
+#, elixir-autogen, elixir-format
+msgid "Poet's name"
+msgstr "שם המשורר"
+
+#, elixir-autogen, elixir-format
+msgid "Poet:"
+msgstr "משורר:"
+
+#, elixir-autogen, elixir-format
+msgid "Point at a passage"
+msgstr "הצביעו על קטע"
+
+#, elixir-autogen, elixir-format
+msgid "Postcards about:"
+msgstr "גלויות על:"
+
+#, elixir-autogen, elixir-format
+msgid "Postcards addressed to"
+msgstr "הגלויות נשלחות אל"
+
+#, elixir-autogen, elixir-format
+msgid "Press the ring under the page's title."
+msgstr "לחצו על הטבעת שמתחת לכותרת העמוד."
+
+#, elixir-autogen, elixir-format
+msgid "Previous"
+msgstr "הקודם"
+
+#, elixir-autogen, elixir-format
+msgid "Public journal"
+msgstr "יומן ציבורי"
+
+#, elixir-autogen, elixir-format
+msgid "Read it"
+msgstr "לקריאה"
+
+#, elixir-autogen, elixir-format
+msgid "Reading:"
+msgstr "קריאה:"
+
+#, elixir-autogen, elixir-format
+msgid "Ready to set out"
+msgstr "מוכנים לצאת לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Route:"
+msgstr "מסלול:"
+
+#, elixir-autogen, elixir-format
+msgid "Save what you would visit"
+msgstr "שמרו את מה שהייתם רוצים לבקר"
+
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr "חיפוש"
+
+#, elixir-autogen, elixir-format
+msgid "Search failed: %{reason}"
+msgstr "החיפוש נכשל: %{reason}"
+
+#, elixir-autogen, elixir-format
+msgid "See where every poet is on a world map, and read their newest pages."
+msgstr "ראו איפה כל משורר נמצא על מפת העולם, וקראו את העמודים החדשים שלהם."
+
+#, elixir-autogen, elixir-format
+msgid "Send them off"
+msgstr "יוצאים לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Set up your poet"
+msgstr "הגדרת המשורר"
+
+#, elixir-autogen, elixir-format
+msgid "Setting out from %{place}"
+msgstr "יוצאים מ-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Credits."
+msgstr "הגדרות, קרדיטים."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Journey."
+msgstr "הגדרות, מסע."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Notifications."
+msgstr "הגדרות, התראות."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Tastes. Or just tell your poet in chat."
+msgstr "הגדרות, טעמים. או פשוט ספרו על זה בצ'אט."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Topics."
+msgstr "הגדרות, נושאים."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, Trips."
+msgstr "הגדרות, טיולים."
+
+#, elixir-autogen, elixir-format
+msgid "Settings, then your poet's name."
+msgstr "הגדרות, ואז שם המשורר."
+
+#, elixir-autogen, elixir-format
+msgid "Several places make a route, so your poet will scout them in this order: %{names}."
+msgstr "כמה מקומות יוצרים מסלול, ולכן הסיור יעבור בהם בסדר הזה: %{names}."
+
+#, elixir-autogen, elixir-format
+msgid "Share your saved places with the people you travel with, by one private link they can open without an account, or as a map in Google Maps."
+msgstr "שתפו את המקומות השמורים עם מי שנוסע איתכם, בקישור פרטי אחד שנפתח גם בלי חשבון, או כמפה ב-Google Maps."
+
+#, elixir-autogen, elixir-format
+msgid "Shuffle"
+msgstr "הגרלה"
+
+#, elixir-autogen, elixir-format
+msgid "Starting from:"
+msgstr "נקודת יציאה:"
+
+#, elixir-autogen, elixir-format
+msgid "Step %{n} of %{total}"
+msgstr "שלב %{n} מתוך %{total}"
+
+#, elixir-autogen, elixir-format
+msgid "Switch your poet to Trip Scout and it travels ahead of you through the stops of your itinerary, so you arrive knowing where to go."
+msgstr "עברו לסייר מסלול, והמסע יתקדם לפניכם דרך התחנות במסלול שלכם, כך שתגיעו כבר יודעים לאן ללכת."
+
+#, elixir-autogen, elixir-format
+msgid "Talk to your poet"
+msgstr "שיחה עם המשורר"
+
+#, elixir-autogen, elixir-format
+msgid "Tap Book on your journal."
+msgstr "הקישו על ספר ביומן."
+
+#, elixir-autogen, elixir-format
+msgid "Tap Chat."
+msgstr "הקישו על צ'אט."
+
+#, elixir-autogen, elixir-format
+msgid "Tap Discover."
+msgstr "הקישו על גלו."
+
+#, elixir-autogen, elixir-format
+msgid "Tap Guide."
+msgstr "הקישו על מדריך."
+
+#, elixir-autogen, elixir-format
+msgid "Tap Save on a place, then Saved in the Guide."
+msgstr "הקישו על שמירה ליד מקום, ואז על שמורים במדריך."
+
+#, elixir-autogen, elixir-format
+msgid "Tap a word or select a passage on a page, then choose a mark."
+msgstr "הקישו על מילה או סמנו קטע בעמוד, ואז בחרו סימון."
+
+#, elixir-autogen, elixir-format
+msgid "Tell your poet what you love, from food to music to mountains, and it steers the journey toward it. Now and then it asks what you have been into lately."
+msgstr "ספרו מה אתם אוהבים, מאוכל ועד מוזיקה והרים, והמסע ינווט לשם. מדי פעם תגיע גם שאלה על מה שמעסיק אתכם לאחרונה."
+
+#, elixir-autogen, elixir-format
+msgid "The global village"
+msgstr "הכפר הגלובלי"
+
+#, elixir-autogen, elixir-format
+msgid "The places in it"
+msgstr "המקומות שבעמוד"
+
+#, elixir-autogen, elixir-format
+msgid "Tour"
+msgstr "סיור"
+
+#, elixir-autogen, elixir-format
+msgid "Trip Scout"
+msgstr "סייר מסלול"
+
+#, elixir-autogen, elixir-format
+msgid "Trips from your calendar"
+msgstr "טיולים מלוח השנה"
+
+#, elixir-autogen, elixir-format
+msgid "Turn the whole journey into a printable book, a PDF, or a copy in Google Drive."
+msgstr "הפכו את כל המסע לספר להדפסה, לקובץ PDF, או לעותק ב-Google Drive."
+
+#, elixir-autogen, elixir-format
+msgid "Turn to the Places side of the page."
+msgstr "עברו לצד המקומות של העמוד."
+
+#, elixir-autogen, elixir-format
+msgid "Turn your saved places into days by neighbourhood, coffee first and dinner last, with opening hours, what to book ahead, and a walking route in Google Maps."
+msgstr "הפכו את המקומות השמורים לימים לפי שכונה, קפה בהתחלה וארוחת ערב בסוף, עם שעות פתיחה, מה להזמין מראש, ומסלול הליכה ב-Google Maps."
+
+#, elixir-autogen, elixir-format
+msgid "Wanderer"
+msgstr "נדידה"
+
+#, elixir-autogen, elixir-format
+msgid "We picked one for you — shuffle or tweak anything. You can change all of this later in Settings."
+msgstr "בחרנו בשבילכם. אפשר להגריל מחדש או לשנות כל פרט, וגם לשנות הכול אחר כך בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "What do you travel for?"
+msgstr "בשביל מה אתם נוסעים?"
+
+#, elixir-autogen, elixir-format
+msgid "What you can do"
+msgstr "מה אפשר לעשות"
+
+#, elixir-autogen, elixir-format
+msgid "What you love doing outside"
+msgstr "מה אתם אוהבים לעשות בחוץ"
+
+#, elixir-autogen, elixir-format
+msgid "What you love to eat and drink"
+msgstr "מה אתם אוהבים לאכול ולשתות"
+
+#, elixir-autogen, elixir-format
+msgid "What you love to photograph"
+msgstr "מה אתם אוהבים לצלם"
+
+#, elixir-autogen, elixir-format
+msgid "What you travel for"
+msgstr "בשביל מה אתם נוסעים"
+
+#, elixir-autogen, elixir-format
+msgid "What your kids love doing"
+msgstr "מה הילדים שלכם אוהבים לעשות"
+
+#, elixir-autogen, elixir-format
+msgid "Where are they headed?"
+msgstr "לאן הדרך?"
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr "איפה לישון"
+
+#, elixir-autogen, elixir-format
+msgid "While you wait, a look around"
+msgstr "בזמן ההמתנה, סיור קצר"
+
+#, elixir-autogen, elixir-format
+msgid "Wren, Basho-of-the-Buses, Señora Tinta…"
+msgstr "צוף, באשו של האוטובוסים, סניורה טינטה…"
+
+#, elixir-autogen, elixir-format
+msgid "You can pair Telegram, rename your poet, and change any of this later in Settings."
+msgstr "אפשר לחבר את טלגרם, לשנות את השם ולשנות כל דבר אחר מאוחר יותר בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Your first page is here."
+msgstr "העמוד הראשון שלכם הגיע."
+
+#, elixir-autogen, elixir-format
+msgid "Your journal as a book"
+msgstr "היומן שלכם כספר"
+
+#, elixir-autogen, elixir-format
+msgid "Your name"
+msgstr "השם שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet needs a name — type one or press Shuffle."
+msgstr "חסר שם. הקלידו שם או לחצו על הגרלה."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet travels a little each day and writes you one illustrated page: a story, a drawing, and the real sources behind both."
+msgstr "בכל יום עוד קצת דרך, ועמוד מאויר אחד בשבילכם: סיפור, ציור, והמקורות האמיתיים שמאחורי שניהם."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet's voice"
+msgstr "קול הכתיבה"
+
+#, elixir-autogen, elixir-format
+msgid "Your trip guide"
+msgstr "מדריך הטיול שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "alpine routes, via ferratas"
+msgstr "מסלולים אלפיניים, ויה פראטה"
+
+#, elixir-autogen, elixir-format
+msgid "coastal walks, wild swimming"
+msgstr "הליכות לאורך החוף, שחייה בטבע"
+
+#, elixir-autogen, elixir-format
+msgid "e.g. %{example}"
+msgstr "למשל %{example}"
+
+#, elixir-autogen, elixir-format
+msgid "melancholy but funny; talks to cats; obsessed with bridges"
+msgstr "מלנכוליה עם הומור; שיחות עם חתולים; אובססיה לגשרים"
+
+#, elixir-autogen, elixir-format
+msgid "notebooks, kitchen tools"
+msgstr "מחברות, כלי מטבח"
+
+#, elixir-autogen, elixir-format
+msgid "science museums, playgrounds, zoos"
+msgstr "מוזיאוני מדע, גני שעשועים, גני חיות"
+
+#, elixir-autogen, elixir-format
+msgid "street food, natural wine"
+msgstr "אוכל רחוב, יין טבעי"
+
+#, elixir-autogen, elixir-format
+msgid "street scenes at dusk, wildlife"
+msgstr "סצנות רחוב בין ערביים, חיות בר"
+
+#, elixir-autogen, elixir-format
+msgid "— chattiness, books for the road"
+msgstr "(כמה לכתוב, ספרים לדרך)"
+
+#, elixir-autogen, elixir-format
+msgid "…or any other book (free text)"
+msgstr "…או כל ספר אחר (טקסט חופשי)"
+
+#, elixir-autogen, elixir-format
+msgid "…or anything else, comma-separated"
+msgstr "…או כל דבר אחר, מופרד בפסיקים"
