@@ -1,7 +1,21 @@
 <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
-  <article class="legal">
-    <h1>Terms of Service</h1>
-    <p class="legal-date">Last updated {@updated}</p>
+  <%!-- The body is English whatever the interface language (only the
+        English is binding), so it reads left to right; the page's own
+        words around it follow the interface. --%>
+  <article class="legal" lang="en" dir="ltr">
+    <p
+      :if={TravelingPoet.Locale.current() != "en"}
+      id="legal-language-note"
+      class="text-sm opacity-70 mb-4"
+      lang={@locale}
+      dir={@dir}
+    >
+      {gettext("This document is shown in English, which is the binding version.")}
+    </p>
+    <h1 lang={@locale} dir={@dir}>{gettext("Terms of Service")}</h1>
+    <p class="legal-date" lang={@locale} dir={@dir}>
+      {gettext("Last updated %{date}", date: @updated)}
+    </p>
 
     <p>
       These terms cover your use of Traveling Poet at poet.travel. The service is run by
@@ -111,9 +125,9 @@
       to use the service after that means accepting the new terms.
     </p>
 
-    <p class="legal-foot">
-      <.link navigate={~p"/privacy"} class="link">Privacy Policy</.link>
-      · <.link navigate={~p"/"} class="link">Home</.link>
+    <p class="legal-foot" lang={@locale} dir={@dir}>
+      <.link navigate={~p"/privacy"} class="link">{gettext("Privacy Policy")}</.link>
+      · <.link navigate={~p"/"} class="link">{gettext("Home")}</.link>
     </p>
   </article>
 </Layouts.app>

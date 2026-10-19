@@ -1,13 +1,23 @@
 <Layouts.app flash={@flash} current_user={assigns[:current_user]}>
   <article class="item-page" id={"item-#{@facts.item.id}"}>
     <p class="item-kind">
-      {@kind_word}<span :if={@facts.item.city}> in {@facts.item.city}</span>
+      <span :if={is_nil(@facts.item.city)}>{kind_label(@kind_word)}</span>
+      <span :if={@facts.item.city}>
+        {dgettext("guide", "%{kind} in %{city}",
+          kind: kind_label(@kind_word),
+          city: @facts.item.city
+        )}
+      </span>
     </p>
     <h1 class="text-2xl font-bold">{@facts.item.name}</h1>
     <p :if={date_range(@facts.item)} class="item-when">{date_range(@facts.item)}</p>
     <p :if={@facts.item.era} class="item-when">{@facts.item.era}</p>
 
-    <div :if={@facts.topics != []} class="discover-subjects" aria-label="Subjects">
+    <div
+      :if={@facts.topics != []}
+      class="discover-subjects"
+      aria-label={dgettext("guide", "Subjects")}
+    >
       <a
         :for={{path, names} <- @facts.topics}
         href={~p"/discover?view=village&topic=#{path}"}
@@ -18,10 +28,14 @@
     </div>
 
     <p class="item-found">
-      Found by {Enum.map_join(@facts.poets, ", ", & &1.name)}
+      {dgettext("guide", "Found by %{poets}", poets: Enum.map_join(@facts.poets, ", ", & &1.name))}
     </p>
 
-    <section :if={@facts.notes != []} class="item-notes" aria-label="What the poets wrote">
+    <section
+      :if={@facts.notes != []}
+      class="item-notes"
+      aria-label={dgettext("guide", "What the poets wrote")}
+    >
       <blockquote :for={note <- @facts.notes} :if={note.blurb} class="item-note">
         <p>{note.blurb}</p>
         <footer>
@@ -29,12 +43,19 @@
             {note.poet.name}
           </a>, {fmt(
             note.date
-          )}<span :if={note.rating}>, {note.poet.name}'s pick: {note.rating} of 5</span>
+          )}<span :if={note.rating}>, {dgettext("guide", "%{poet}'s pick: %{rating} of 5",
+            poet: note.poet.name,
+            rating: note.rating
+          )}</span>
         </footer>
       </blockquote>
     </section>
 
-    <ul :if={@facts.related != []} class="discover-related" aria-label="Related">
+    <ul
+      :if={@facts.related != []}
+      class="discover-related"
+      aria-label={dgettext("guide", "Related")}
+    >
       <li :for={r <- @facts.related}>
         {phrase(r.relation, r.direction)}
         <a href={~p"/items/#{r.item.slug}"} class="link">{r.item.name}</a>
@@ -42,7 +63,7 @@
     </ul>
 
     <p :if={@facts.editions != []} class="item-editions">
-      Earlier:
+      {dgettext("guide", "Earlier:")}
       <a
         :for={e <- @facts.editions}
         href={~p"/items/#{e.slug}"}
@@ -50,20 +71,22 @@
       >{e.name}<span :if={e.time_start}> ({fmt(e.time_start)})</span></a>
     </p>
 
-    <p :if={@facts.parent} class="text-sm opacity-70">In {@facts.parent.name}</p>
+    <p :if={@facts.parent} class="text-sm opacity-70">
+      {dgettext("guide", "In %{place}", place: @facts.parent.name)}
+    </p>
 
     <div class="discover-links">
       <a :if={@maps_url} href={@maps_url} class="link" target="_blank" rel="noopener">
-        Open in Google Maps
+        {dgettext("guide", "Open in Google Maps")}
       </a>
-      <a href={~p"/discover"} class="link">Discover</a>
+      <a href={~p"/discover"} class="link">{dgettext("guide", "Discover")}</a>
       <a
         href={~p"/items/#{@facts.item.slug}/jsonld"}
         class="link"
         rel="alternate"
         type="application/ld+json"
       >
-        Data
+        {dgettext("guide", "Data")}
       </a>
     </div>
   </article>

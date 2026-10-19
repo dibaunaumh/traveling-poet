@@ -24,7 +24,9 @@ defmodule TravelingPoetWeb.AuthController do
       "name" => auth.info.name,
       # Lets a Google sign-in find the account an Apple sign-in made with the
       # same address (Accounts.find_or_create_from_oauth/2); absent means no.
-      "email_verified" => email_verified?(auth)
+      "email_verified" => email_verified?(auth),
+      # Kept only when the account is new (Plugs.Locale picked it)
+      "locale" => conn.assigns[:locale]
     }
 
     # Parked by the home page's destination box; log_in_user clears the
@@ -53,7 +55,7 @@ defmodule TravelingPoetWeb.AuthController do
       redirect(conn, external: NativeAuth.failed_url())
     else
       conn
-      |> put_flash(:error, "Failed to authenticate.")
+      |> put_flash(:error, gettext("Failed to authenticate."))
       |> redirect(to: "/")
     end
   end
@@ -72,7 +74,9 @@ defmodule TravelingPoetWeb.AuthController do
         redirect(conn, external: NativeAuth.failed_url())
 
       is_nil(feature) ->
-        conn |> put_flash(:error, "Failed to authenticate.") |> redirect(to: ~p"/settings")
+        conn
+        |> put_flash(:error, gettext("Failed to authenticate."))
+        |> redirect(to: ~p"/settings")
 
       is_nil(current) ->
         finish_connect(conn, native, feature, "wrong_account")
@@ -183,7 +187,7 @@ defmodule TravelingPoetWeb.AuthController do
 
       {:error, _changeset} ->
         conn
-        |> put_flash(:error, "Failed to authenticate. Please try again.")
+        |> put_flash(:error, gettext("Failed to authenticate. Please try again."))
         |> redirect(to: "/")
     end
   end

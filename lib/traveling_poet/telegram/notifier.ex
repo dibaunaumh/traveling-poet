@@ -8,12 +8,17 @@ defmodule TravelingPoet.Telegram.Notifier do
   The admins hear of the business's own events on `"admin_events"`: a new
   sign-up and a credit purchase, through `Alerts.notify_admins/1`. Opt-out of publish notes via poet settings
   `"telegram_notify" => false`.
+
+  A reader's note is written in their own language (`users.locale`, through
+  `Locale.with_locale/2`): nothing else sets one for a background sender.
+  The admins' pages stay English.
   """
 
   use GenServer
+  use Gettext, backend: TravelingPoetWeb.Gettext
   require Logger
 
-  alias TravelingPoet.{Accounts, Journal, Poets}
+  alias TravelingPoet.{Accounts, Journal, Locale, Poets}
   alias TravelingPoet.Storage.S3
   alias TravelingPoet.Telegram.Client
 
@@ -44,7 +49,12 @@ defmodule TravelingPoet.Telegram.Notifier do
          user when not is_nil(user) <- Accounts.get_user(poet.user_id),
          chat_id when is_integer(chat_id) <- user.telegram_chat_id do
       entry = Journal.get_entry!(entry_id)
-      text = publish_text(poet, entry, Journal.journey_day(entry), entry_link(poet, entry))
+
+      text =
+        Locale.with_locale(user.locale, fn ->
+          publish_text(poet, entry, Journal.journey_day(entry), entry_link(poet, entry))
+        end)
+
       send_publish_note(chat_id, text, Journal.entry_illustration(entry))
     else
       _ -> :ok
@@ -59,13 +69,11 @@ defmodule TravelingPoet.Telegram.Notifier do
          chat_id when is_integer(chat_id) <- user.telegram_chat_id do
       base = Application.get_env(:traveling_poet, :phoenix_url, "")
       poet = Poets.get_poet_by_user(user.id)
-      name = (poet && poet.name) || "Your poet"
 
       text =
-        if balance <= 0,
-          do: "💤 #{name} has run out of credits and is resting. Top up: #{base}/settings",
-          else:
-            "⏳ #{name} has about #{TravelingPoet.Credits.format(balance)} credits left — a few days of travel. Top up: #{base}/settings"
+        Locale.with_locale(user.locale, fn ->
+          credits_low_text(poet, balance, "#{base}/settings")
+        end)
 
       Client.send_message(chat_id, text)
     else
@@ -81,7 +89,11 @@ defmodule TravelingPoet.Telegram.Notifier do
          chat_id when is_integer(chat_id) <- user.telegram_chat_id,
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id) do
       base = Application.get_env(:traveling_poet, :phoenix_url, "")
-      Client.send_message(chat_id, book_ready_text(poet, "#{base}/journal/book"))
+
+      text =
+        Locale.with_locale(user.locale, fn -> book_ready_text(poet, "#{base}/journal/book") end)
+
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end
@@ -95,7 +107,9 @@ defmodule TravelingPoet.Telegram.Notifier do
          chat_id when is_integer(chat_id) <- user.telegram_chat_id,
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id) do
       base = Application.get_env(:traveling_poet, :phoenix_url, "")
-      Client.send_message(chat_id, book_pdf_text(poet, "#{base}/journal/book/pdf/#{pdf_id}"))
+      link = "#{base}/journal/book/pdf/#{pdf_id}"
+      text = Locale.with_locale(user.locale, fn -> book_pdf_text(poet, link) end)
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end
@@ -110,7 +124,9 @@ defmodule TravelingPoet.Telegram.Notifier do
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
          trip when not is_nil(trip) <- TravelingPoet.Trips.get(poet.id, trip_id) do
       base = Application.get_env(:traveling_poet, :phoenix_url, "")
-      Client.send_message(chat_id, trip_suggested_text(poet, trip, "#{base}/settings#trips"))
+      link = "#{base}/settings#trips"
+      text = Locale.with_locale(user.locale, fn -> trip_suggested_text(poet, trip, link) end)
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end
@@ -125,7 +141,9 @@ defmodule TravelingPoet.Telegram.Notifier do
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
          trip when not is_nil(trip) <- TravelingPoet.Trips.get(poet.id, trip_id) do
       base = Application.get_env(:traveling_poet, :phoenix_url, "")
-      Client.send_message(chat_id, trip_changed_text(poet, trip, "#{base}/settings#trips"))
+      link = "#{base}/settings#trips"
+      text = Locale.with_locale(user.locale, fn -> trip_changed_text(poet, trip, link) end)
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end
@@ -139,7 +157,8 @@ defmodule TravelingPoet.Telegram.Notifier do
          chat_id when is_integer(chat_id) <- user.telegram_chat_id,
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
          %{} = ask <- TravelingPoet.Asks.get(ask_id) do
-      Client.send_message(chat_id, question_text(poet, ask))
+      text = Locale.with_locale(user.locale, fn -> question_text(poet, ask) end)
+      Client.send_message(chat_id, text)
     else
       _ -> :ok
     end
@@ -170,7 +189,32 @@ defmodule TravelingPoet.Telegram.Notifier do
   def handle_info(_msg, state), do: {:noreply, state}
 
   @doc "The poet's question as a Telegram message: its words, signed. Pure, for tests."
-  def question_text(poet, ask), do: "#{ask.question}\n\n(#{poet.name}. Just reply here.)"
+  def question_text(poet, ask),
+    do:
+      dgettext("notify", "%{question}\n\n(%{poet}. Just reply here.)",
+        question: ask.question,
+        poet: poet.name
+      )
+
+  @doc "The note that says the poet's credits are running out, or ran out. Pure, for tests."
+  def credits_low_text(poet, balance, link) do
+    name = (poet && poet.name) || dgettext("notify", "Your poet")
+
+    if balance <= 0,
+      do:
+        dgettext("notify", "💤 %{poet} has run out of credits and is resting. Top up: %{link}",
+          poet: name,
+          link: link
+        ),
+      else:
+        dgettext(
+          "notify",
+          "⏳ %{poet} has about %{credits} credits left — a few days of travel. Top up: %{link}",
+          poet: name,
+          credits: TravelingPoet.Credits.format(balance),
+          link: link
+        )
+  end
 
   @doc "What the admins are told about a new sign-up. Pure, for tests."
   def signup_alert_text(user, identity, count) do
@@ -216,26 +260,44 @@ defmodule TravelingPoet.Telegram.Notifier do
 
   @doc "The note that says a planned trip moved on the calendar. Pure, for tests."
   def trip_changed_text(poet, trip, link) do
-    "Your trip to #{trip.name} is now " <>
-      "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}; " <>
-      "#{poet.name} will set out on " <>
-      "#{TravelingPoet.Trips.date_range(trip.scout_from, trip.scout_from)}. #{link}"
+    dgettext(
+      "notify",
+      "Your trip to %{trip} is now %{dates}; %{poet} will set out on %{departure}. %{link}",
+      trip: trip.name,
+      dates: TravelingPoet.Trips.date_range(trip.start_date, trip.end_date),
+      poet: poet.name,
+      departure: TravelingPoet.Trips.date_range(trip.scout_from, trip.scout_from),
+      link: link
+    )
   end
 
   @doc "The note that says a trip was found on the calendar, to scout or not. Pure, for tests."
   def trip_suggested_text(poet, trip, link) do
-    "Your calendar has a trip to #{trip.name}, " <>
-      "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}. " <>
-      "Should #{poet.name} scout it first? Decide here: #{link}"
+    dgettext(
+      "notify",
+      "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first? Decide here: %{link}",
+      trip: trip.name,
+      dates: TravelingPoet.Trips.date_range(trip.start_date, trip.end_date),
+      poet: poet.name,
+      link: link
+    )
   end
 
   @doc "The note that says the book's PDF is ready. A link, not the file: it can be large. Pure, for tests."
   def book_pdf_text(poet, link),
-    do: "📄 The PDF of your book with #{poet.name} is ready to download.\n#{link}"
+    do:
+      dgettext("notify", "📄 The PDF of your book with %{poet} is ready to download.\n%{link}",
+        poet: poet.name,
+        link: link
+      )
 
   @doc "The note that says a composed edition is bound. Pure, for tests."
   def book_ready_text(poet, link),
-    do: "📖 #{poet.name} has finished composing your book.\n#{link}"
+    do:
+      dgettext("notify", "📖 %{poet} has finished composing your book.\n%{link}",
+        poet: poet.name,
+        link: link
+      )
 
   @doc """
   The note that goes out with a published entry, pure so it can be tested:
@@ -247,13 +309,24 @@ defmodule TravelingPoet.Telegram.Notifier do
     hook =
       blank_to_nil(entry.teaser) || blank_to_nil(entry.title) || fallback_hook(entry)
 
-    "Day #{day} · #{poet.name}: #{hook}\n#{link}"
+    dgettext("notify", "Day %{day} · %{poet}: %{hook}\n%{link}",
+      day: day,
+      poet: poet.name,
+      hook: hook,
+      link: link
+    )
   end
 
   defp fallback_hook(entry) do
     case TravelingPoet.Topics.label_for_entry(entry) do
-      nil -> "a new entry from #{entry.place_name || "the road"}"
-      label -> "an excursion into #{label}"
+      nil ->
+        case entry.place_name do
+          nil -> dgettext("notify", "a new entry from the road")
+          place -> dgettext("notify", "a new entry from %{place}", place: place)
+        end
+
+      label ->
+        dgettext("notify", "an excursion into %{topic}", topic: label)
     end
   end
 

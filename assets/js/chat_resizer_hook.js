@@ -39,12 +39,15 @@ const ChatResizer = {
     this.panel = document.getElementById("chat-sidebar-panel");
 
     this.onPointerMove = (e) => {
-      // The sidebar is flush against the viewport's right edge, so its width is
-      // the distance from the cursor to the panel's right edge.
-      const right = this.panel
-        ? this.panel.getBoundingClientRect().right
-        : window.innerWidth;
-      setWidth(clamp(right - e.clientX));
+      // The sidebar is flush against the viewport's outer edge (the right one,
+      // or the left one in a right-to-left page), so its width is the distance
+      // from the cursor to the panel's outer edge.
+      const box = this.panel ? this.panel.getBoundingClientRect() : null;
+      if (document.documentElement.dir === "rtl") {
+        setWidth(clamp(e.clientX - (box ? box.left : 0)));
+      } else {
+        setWidth(clamp((box ? box.right : window.innerWidth) - e.clientX));
+      }
     };
 
     this.endDrag = (e) => {

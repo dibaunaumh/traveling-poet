@@ -155,7 +155,7 @@ h1, h2, h3 {
 
 .legal ul {
   list-style: disc;
-  padding-left: 1.25rem;
+  padding-inline-start: 1.25rem;
 }
 
 .legal li {
@@ -242,7 +242,7 @@ h1, h2, h3 {
     top: 1.5rem;
     display: block;
     overflow: visible;
-    border-left: 1px solid var(--color-base-300);
+    border-inline-start: 1px solid var(--color-base-300);
   }
 
   .settings-nav a {
@@ -250,13 +250,13 @@ h1, h2, h3 {
     border-radius: 0;
     background: none;
     padding: 0.4rem 0.75rem;
-    margin-left: -1px;
-    border-left: 2px solid transparent;
+    margin-inline-start: -1px;
+    border-inline-start: 2px solid transparent;
   }
 
   .settings-nav a[aria-current="true"] {
     background: none;
-    border-left-color: var(--color-primary);
+    border-inline-start-color: var(--color-primary);
   }
 }
 
@@ -318,12 +318,12 @@ h1, h2, h3 {
       rgba(140, 120, 90, 0.16) 2rem
     ),
     /* red margin line */
-    linear-gradient(to right, transparent var(--margin-line), rgba(214, 96, 96, 0.35) var(--margin-line), rgba(214, 96, 96, 0.35) calc(var(--margin-line) + 2px), transparent calc(var(--margin-line) + 2px));
-  border-radius: 0.25rem 0.75rem 0.75rem 0.25rem;
+    linear-gradient(to var(--to-inline-end, right), transparent var(--margin-line), rgba(214, 96, 96, 0.35) var(--margin-line), rgba(214, 96, 96, 0.35) calc(var(--margin-line) + 2px), transparent calc(var(--margin-line) + 2px));
+  border-start-start-radius: 0.25rem; border-start-end-radius: 0.75rem; border-end-end-radius: 0.75rem; border-end-start-radius: 0.25rem;
   box-shadow:
     0 1px 3px rgba(60, 45, 20, 0.25),
     0 8px 24px rgba(60, 45, 20, 0.15);
-  padding: 2rem 2rem 2.5rem var(--gutter);
+  padding-block: 2rem 2.5rem; padding-inline: var(--gutter) 2rem;
 }
 
 .notebook-page .prose {
@@ -361,13 +361,13 @@ h1, h2, h3 {
   font-weight: 600;
   font-size: 1.25rem;
   color: #8c7454;
-  margin-right: 0.5rem;
+  margin-inline-end: 0.5rem;
   white-space: nowrap;
 }
 
 .notebook-day::after {
   content: "\00b7";
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
   opacity: 0.6;
 }
 
@@ -385,7 +385,7 @@ h1, h2, h3 {
   font-size: 1.5rem;
   line-height: 2rem;
   color: #43395f;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 
 /* A drawing "taped" onto the page: white photo border, slight tilt, tape */
@@ -573,20 +573,20 @@ h1, h2, h3 {
   width: 5.5rem;
   height: 1.6rem;
   background: rgba(255, 244, 200, 0.6);
-  border-left: 1px dashed rgba(160, 140, 90, 0.3);
-  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-start: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-end: 1px dashed rgba(160, 140, 90, 0.3);
   box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
 }
 
 .taped-photo::before {
   top: -0.8rem;
-  left: -1.5rem;
+  inset-inline-start: -1.5rem;
   transform: rotate(-38deg);
 }
 
 .taped-photo::after {
   top: -0.8rem;
-  right: -1.5rem;
+  inset-inline-end: -1.5rem;
   transform: rotate(38deg);
 }
 
@@ -714,7 +714,7 @@ h1, h2, h3 {
   background: transparent;
   font-family: "Patrick Hand", cursive;
   font-size: 1rem;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -753,10 +753,10 @@ h1, h2, h3 {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+  padding-block: 0.3rem 0.3rem; padding-inline: 0.6rem 0.4rem;
   background: #fdf8ec;
   border: 1px solid rgba(58, 50, 38, 0.2);
-  border-left: 3px solid var(--marker-c);
+  border-inline-start: 3px solid var(--marker-c);
   border-radius: 0.6rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   font-family: "Patrick Hand", cursive;
@@ -862,7 +862,7 @@ mark.marker.marker-sent {
 
 .marker-pins {
   position: absolute;
-  left: calc(0.6rem - var(--gutter));
+  inset-inline-start: calc(0.6rem - var(--gutter));
   top: 0.15rem;
   display: flex;
   flex-direction: column;
@@ -965,7 +965,7 @@ mark.marker.marker-sent {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 999px 999px 999px 2px;
+  border-start-start-radius: 999px; border-start-end-radius: 999px; border-end-end-radius: 999px; border-end-start-radius: 2px;
   transform: rotate(45deg);
   border: 2px solid #fff;
   box-shadow: 0 3px 8px rgb(0 0 0 / 0.3);
@@ -1125,7 +1125,7 @@ mark.marker.marker-sent {
 @media (min-width: 900px) {
   .home-hero-copy {
     position: absolute;
-    left: max(1.5rem, calc(50% - 700px + 5%));
+    inset-inline-start: max(1.5rem, calc(50% - 700px + 5%));
     top: 50%;
     transform: translateY(-50%);
     width: 36%;
@@ -1193,10 +1193,10 @@ mark.marker.marker-sent {
    through, as if drawn straight onto the page. The sanitizer strips
    classes, so this targets the bare img the markdown produces. */
 .notebook-page .prose img {
-  float: right;
+  float: inline-end;
   max-width: 42%;
   height: auto;
-  margin: 0.25rem 0 0.5rem 1.25rem;
+  margin-block: 0.25rem 0.5rem; margin-inline: 1.25rem 0;
   mix-blend-mode: multiply;
   transform: rotate(1.5deg);
   /* No `filter` here, ever: WebKit (iPhone Safari, the PWA) drops the
@@ -1265,21 +1265,21 @@ mark.marker.marker-sent {
   width: 5.5rem;
   height: 1.6rem;
   background: rgba(255, 244, 200, 0.6);
-  border-left: 1px dashed rgba(160, 140, 90, 0.3);
-  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-start: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-end: 1px dashed rgba(160, 140, 90, 0.3);
   box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
   z-index: 1;
 }
 
 .taped-map::before {
   top: -0.8rem;
-  left: -1.5rem;
+  inset-inline-start: -1.5rem;
   transform: rotate(-38deg);
 }
 
 .taped-map::after {
   top: -0.8rem;
-  right: -1.5rem;
+  inset-inline-end: -1.5rem;
   transform: rotate(38deg);
 }
 
@@ -1299,7 +1299,7 @@ mark.marker.marker-sent {
 
 .notebook-excursion {
   display: inline-block;
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
   font-family: "Caveat", cursive;
   font-size: 1.05rem;
   font-weight: 400;
@@ -1329,8 +1329,8 @@ mark.marker.marker-sent {
   height: 1.6rem;
   margin-left: -2.75rem;
   background: rgba(255, 244, 200, 0.6);
-  border-left: 1px dashed rgba(160, 140, 90, 0.3);
-  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-start: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-end: 1px dashed rgba(160, 140, 90, 0.3);
   box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
   transform: rotate(2deg);
 }
@@ -1466,7 +1466,7 @@ mark.marker.marker-sent {
 .place-stamp .stamp-n {
   position: absolute;
   top: -0.4rem;
-  left: -0.2rem;
+  inset-inline-start: -0.2rem;
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 999px;
@@ -1511,7 +1511,7 @@ mark.marker.marker-sent {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.35rem;
-  margin: 1.25rem 0 -1rem 1rem;
+  margin-block: 1.25rem -1rem; margin-inline: 1rem 0;
 }
 
 .spread-tab {
@@ -1572,22 +1572,31 @@ mark.marker.marker-sent {
   /* Side by side: both pages curve into the fold, each shaded on its fold
      edge; the right page has no margin line, its gutter is its left edge. */
   .spread .spread-left {
-    border-radius: 0.75rem 0.15rem 0.15rem 0.75rem;
-    padding-right: 1.1rem;
+    border-start-start-radius: 0.75rem; border-start-end-radius: 0.15rem; border-end-end-radius: 0.15rem; border-end-start-radius: 0.75rem;
+    padding-inline-end: 1.1rem;
     box-shadow: inset -14px 0 18px -14px rgba(60, 45, 20, 0.3);
   }
 
   .spread .spread-right {
-    border-radius: 0.15rem 0.75rem 0.75rem 0.15rem;
+    border-start-start-radius: 0.15rem; border-start-end-radius: 0.75rem; border-end-end-radius: 0.75rem; border-end-start-radius: 0.15rem;
     background-image: repeating-linear-gradient(
       transparent,
       transparent calc(2rem - 1px),
       rgba(140, 120, 90, 0.16) calc(2rem - 1px),
       rgba(140, 120, 90, 0.16) 2rem
     );
-    padding-left: 1.25rem;
-    padding-right: 2.25rem;
+    padding-inline-start: 1.25rem;
+    padding-inline-end: 2.25rem;
     box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.35);
+  }
+
+  /* A Hebrew page opens on the right, so the fold is on the other side */
+  .spread .spread-left:dir(rtl) {
+    box-shadow: inset 14px 0 18px -14px rgba(60, 45, 20, 0.3);
+  }
+
+  .spread .spread-right:dir(rtl) {
+    box-shadow: inset -14px 0 18px -14px rgba(60, 45, 20, 0.35);
   }
 
   .spread .spread-page-empty {
@@ -1597,14 +1606,14 @@ mark.marker.marker-sent {
   /* The right page has no gutter for marker pins; they sit inside its
      outer margin instead */
   .spread .spread-right .marker-pins {
-    left: auto;
-    right: -2.05rem;
+    inset-inline-start: auto;
+    inset-inline-end: -2.05rem;
   }
 }
 
 @container journal (min-width: 48rem) {
   .spread-wrap {
-    padding-right: 2.4rem;
+    padding-inline-end: 2.4rem;
   }
 
   .spread .spread-page {
@@ -1613,22 +1622,22 @@ mark.marker.marker-sent {
   }
 
   .spread .spread-left {
-    padding-right: 1.75rem;
+    padding-inline-end: 1.75rem;
   }
 
   .spread .spread-right {
-    padding-left: 2.25rem;
-    padding-right: 2rem;
+    padding-inline-start: 2.25rem;
+    padding-inline-end: 2rem;
   }
 
   /* Room outside the page now: the pins move out into it */
   .spread .spread-right .marker-pins {
-    right: -1.9rem;
+    inset-inline-end: -1.9rem;
   }
 
   .spread-tabs {
     position: absolute;
-    right: 0;
+    inset-inline-end: 0;
     top: 3rem;
     z-index: 1;
     flex-direction: column;
@@ -1639,11 +1648,15 @@ mark.marker.marker-sent {
 
   .spread-tab {
     writing-mode: vertical-rl;
-    padding: 0.9rem 0.35rem 0.9rem 0.25rem;
+    padding-block: 0.9rem 0.9rem; padding-inline: 0.25rem 0.35rem;
     border: 1px solid rgba(140, 120, 90, 0.35);
-    border-left: none;
-    border-radius: 0 0.5rem 0.5rem 0;
+    border-inline-start: none;
+    border-start-start-radius: 0; border-start-end-radius: 0.5rem; border-end-end-radius: 0.5rem; border-end-start-radius: 0;
     box-shadow: 2px 2px 6px rgba(60, 45, 20, 0.15);
+  }
+
+  .spread-tab:dir(rtl) {
+    box-shadow: -2px 2px 6px rgba(60, 45, 20, 0.15);
   }
 }
 
@@ -1716,11 +1729,11 @@ mark.marker.marker-sent {
   border: 1px solid transparent;
   background: transparent;
   border-radius: 999px;
-  padding: 0.25rem 0.75rem 0.25rem 0.3rem;
+  padding-block: 0.25rem 0.25rem; padding-inline: 0.3rem 0.75rem;
   cursor: pointer;
   color: inherit;
   opacity: 0.7;
-  text-align: left;
+  text-align: start;
   transition: opacity 120ms ease, background-color 120ms ease;
 }
 @media (hover: hover) {
@@ -1844,8 +1857,8 @@ mark.marker.marker-sent {
 
 .home-example {
   margin: 0;
-  padding-left: 0.9rem;
-  border-left: 2px solid var(--home-number);
+  padding-inline-start: 0.9rem;
+  border-inline-start: 2px solid var(--home-number);
   font-family: "Fraunces", Georgia, serif;
   font-style: italic;
   font-size: 1.05rem;
@@ -1897,9 +1910,9 @@ mark.marker.marker-sent {
 }
 .home-trust-strip li {
   padding: 1.6rem 1.5rem 1.8rem;
-  border-left: 1px solid var(--color-base-100);
+  border-inline-start: 1px solid var(--color-base-100);
 }
-.home-trust-strip li:first-child { border-left: 0; }
+.home-trust-strip li:first-child { border-inline-start: 0; }
 .home-trust-strip li::before {
   content: "";
   display: block;
@@ -1948,14 +1961,14 @@ mark.marker.marker-sent {
 
 @media (max-width: 1023px) {
   .home-trust-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .home-trust-strip li:nth-child(3) { border-left: 0; }
+  .home-trust-strip li:nth-child(3) { border-inline-start: 0; }
   .home-trust-strip li:nth-child(n + 3) { border-top: 1px solid var(--color-base-100); }
 }
 
 @media (max-width: 767px) {
   .home-steps { grid-template-columns: 1fr; gap: 2rem; }
   .home-trust-strip { grid-template-columns: 1fr; }
-  .home-trust-strip li { border-left: 0; }
+  .home-trust-strip li { border-inline-start: 0; }
   .home-trust-strip li:nth-child(n + 2) { border-top: 1px solid var(--color-base-100); }
 }
 
@@ -2186,7 +2199,7 @@ body::before {
   .journal-desk > .journal-column {
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding-right: 0.25rem;
+    padding-inline-end: 0.25rem;
   }
 }
 
@@ -2208,7 +2221,7 @@ body::before {
   --pad-tint: rgba(140, 116, 84, 0.1);
   background: var(--pad-paper);
   color: var(--pad-ink);
-  border-left: 1px solid var(--pad-rule);
+  border-inline-start: 1px solid var(--pad-rule);
 }
 
 .chat-pad-head {
@@ -2238,7 +2251,7 @@ body::before {
   display: inline-block;
   width: 0.4rem;
   height: 0.4rem;
-  margin-right: 0.35rem;
+  margin-inline-end: 0.35rem;
   border-radius: 999px;
   background: var(--pad-ink-soft);
   animation: narration-breathe 1.4s ease-in-out infinite;
@@ -2306,18 +2319,18 @@ body::before {
   line-height: 1.4rem;
   color: var(--pad-ink);
   background: var(--pad-tint);
-  border-radius: 1rem 1rem 0.25rem 1rem;
+  border-start-start-radius: 1rem; border-start-end-radius: 1rem; border-end-end-radius: 0.25rem; border-end-start-radius: 1rem;
   padding: 0.5rem 0.8rem;
 }
 
 .chat-line-reader .chat-pad-who {
-  text-align: right;
+  text-align: end;
 }
 
 /* Markdown inside a poet's line: the journal's rhythm, tighter. */
 .chat-markdown p { margin: 0 0 0.6rem; }
 .chat-markdown p:last-child { margin-bottom: 0; }
-.chat-markdown ul, .chat-markdown ol { margin: 0.2rem 0 0.6rem 1.1rem; }
+.chat-markdown ul, .chat-markdown ol { margin-block: 0.2rem 0.6rem; margin-inline: 1.1rem 0; }
 .chat-markdown ul { list-style: disc; }
 .chat-markdown ol { list-style: decimal; }
 .chat-markdown li { margin: 0.1rem 0; }
@@ -2325,15 +2338,15 @@ body::before {
 .chat-markdown a { color: #4a5f8c; text-decoration: underline; text-decoration-style: wavy; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .chat-markdown h1, .chat-markdown h2, .chat-markdown h3 { font-family: "Caveat", cursive; font-weight: 700; font-size: 1.35rem; line-height: 1.5rem; margin: 0.4rem 0 0.2rem; }
 .chat-markdown code { font-family: ui-monospace, monospace; font-size: 0.85em; background: var(--pad-tint); padding: 0 0.25rem; border-radius: 0.2rem; }
-.chat-markdown blockquote { border-left: 2px solid var(--pad-rule); padding-left: 0.6rem; color: var(--pad-ink-soft); margin: 0.3rem 0 0.6rem; }
+.chat-markdown blockquote { border-inline-start: 2px solid var(--pad-rule); padding-inline-start: 0.6rem; color: var(--pad-ink-soft); margin: 0.3rem 0 0.6rem; }
 .chat-markdown table { font-size: 0.9em; border-collapse: collapse; margin: 0.3rem 0 0.6rem; }
-.chat-markdown td, .chat-markdown th { border-bottom: 1px solid var(--pad-rule-faint); padding: 0.15rem 0.5rem 0.15rem 0; text-align: left; }
+.chat-markdown td, .chat-markdown th { border-bottom: 1px solid var(--pad-rule-faint); padding-block: 0.15rem 0.15rem; padding-inline: 0 0.5rem; text-align: start; }
 
 .chat-pad-cursor {
   display: inline-block;
   width: 0.5em;
   height: 1em;
-  margin-left: 0.1em;
+  margin-inline-start: 0.1em;
   vertical-align: -0.15em;
   border-bottom: 2px solid var(--pad-ink-soft);
   animation: narration-breathe 1s ease-in-out infinite;
@@ -2345,13 +2358,13 @@ body::before {
   font-size: 0.98rem;
   line-height: 1.35rem;
   color: #a2692c;
-  border-left: 2px solid rgba(162, 105, 44, 0.45);
-  padding-left: 0.6rem;
+  border-inline-start: 2px solid rgba(162, 105, 44, 0.45);
+  padding-inline-start: 0.6rem;
 }
 
 .chat-pad-note-error {
   color: #9b3b2e;
-  border-left-color: rgba(155, 59, 46, 0.45);
+  border-inline-start-color: rgba(155, 59, 46, 0.45);
 }
 
 .chat-pad-chip {
@@ -2458,7 +2471,7 @@ body::before {
 
 @media (min-width: 48rem) {
   .chat-overlay {
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 }
 
@@ -2602,7 +2615,7 @@ body::before {
   /* Beside the rail, the chat starts where the rail ends. */
   .chat-overlay.chat-by-bar {
     padding-bottom: env(safe-area-inset-bottom);
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   :root[data-shell] body:has(.shell-tabbar) .app-main {
@@ -2615,7 +2628,7 @@ body::before {
 .map-asleep::after {
   content: "Tap to move the map";
   position: absolute;
-  left: 0.5rem;
+  inset-inline-start: 0.5rem;
   bottom: 0.5rem;
   z-index: 500;
   padding: 0.15rem 0.5rem;
@@ -2673,7 +2686,7 @@ body::before {
 
   @container journal (min-width: 48rem) {
     .spread-wrap {
-      padding-right: 3rem;
+      padding-inline-end: 3rem;
     }
 
     .spread-tab {
@@ -2750,7 +2763,7 @@ body::before {
 }
 
 .app-welcome-ask {
-  text-align: left;
+  text-align: start;
   margin-top: 0.5rem;
 }
 
@@ -2783,7 +2796,7 @@ body::before {
     grid-template-columns: 1fr 1fr;
     column-gap: 1.5rem;
     align-items: center;
-    text-align: left;
+    text-align: start;
   }
 
   .app-welcome-art {
@@ -2814,7 +2827,7 @@ body::before {
 
 /* The iOS app's AI consent step (ai_consent_html/show.html.heex) */
 .app-welcome main.app-consent {
-  text-align: left;
+  text-align: start;
   font-size: 1.02rem;
   line-height: 1.55;
 }
@@ -2827,7 +2840,7 @@ body::before {
 
 .app-consent ul {
   list-style: disc;
-  padding-left: 1.25rem;
+  padding-inline-start: 1.25rem;
   display: grid;
   gap: 0.4rem;
 }
@@ -2859,7 +2872,7 @@ body::before {
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 999px;
-  margin-left: 0.3rem;
+  margin-inline-start: 0.3rem;
   border: 1px solid #fff;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
@@ -3040,12 +3053,12 @@ body::before {
 .discover-filter {
   position: absolute;
   top: 0.6rem;
-  right: 0.6rem;
+  inset-inline-end: 0.6rem;
   z-index: 1000;
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.35rem 0.5rem 0.35rem 0.8rem;
+  padding-block: 0.35rem 0.35rem; padding-inline: 0.8rem 0.5rem;
   border-radius: 999px;
   background: color-mix(in oklab, var(--color-base-100) 92%, transparent);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
@@ -3092,7 +3105,7 @@ body::before {
   background: var(--tile);
   color: #23272b;
   padding: 0.4rem 0.5rem;
-  text-align: left;
+  text-align: start;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -3118,7 +3131,7 @@ body::before {
   overflow-y: auto;
 }
 .village-place {
-  text-align: left;
+  text-align: start;
   padding: 0.5rem 0.6rem;
   border-radius: 6px;
   background: var(--tile);
@@ -3160,7 +3173,7 @@ body::before {
 
 .discover-borrowed { margin-top: 0.5rem; }
 .discover-also { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8; }
-.discover-related { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.85; padding-left: 0; list-style: none; }
+.discover-related { margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.85; padding-inline-start: 0; list-style: none; }
 .discover-related li { margin: 0.1rem 0; }
 .discover-subjects { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.6rem; }
 .discover-subject {
@@ -3286,7 +3299,7 @@ body::before {
 .village-mode {
   display: inline-flex;
   gap: 0.15rem;
-  margin-left: auto;
+  margin-inline-start: auto;
   padding: 0.15rem;
   border: 1px solid var(--color-base-300);
   border-radius: 999px;
@@ -3354,8 +3367,32 @@ body::before {
 .item-when { font-size: 0.9rem; opacity: 0.8; margin-top: 0.2rem; }
 .item-found { margin-top: 0.8rem; font-size: 0.9rem; opacity: 0.8; }
 .item-notes { margin-top: 1rem; display: grid; gap: 0.8rem; }
-.item-note { border-left: 3px solid rgba(47, 93, 98, 0.35); padding: 0.2rem 0 0.2rem 0.8rem; margin: 0; }
+.item-note { border-inline-start: 3px solid rgba(47, 93, 98, 0.35); padding-block: 0.2rem 0.2rem; padding-inline: 0.8rem 0; margin: 0; }
 .item-note footer { font-size: 0.8rem; opacity: 0.75; margin-top: 0.25rem; }
 .item-editions { margin-top: 0.8rem; font-size: 0.9rem; }
 .item-editions a + a::before { content: ", "; }
 .item-page .discover-links { margin-top: 1rem; }
+
+/* Right to left (card-101). Most of this sheet is written in logical
+   properties and mirrors by itself; these are the few things that cannot. */
+.notebook-page:dir(rtl) {
+  /* the red margin line runs down the gutter, on the right */
+  --to-inline-end: left;
+}
+
+/* Leaflet lays its panes and controls out in physical pixels and breaks
+   under rtl; a popup still aligns its own words by their language. */
+.leaflet-container {
+  direction: ltr;
+}
+
+.leaflet-popup-content,
+.leaflet-tooltip {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+/* Arrows point the way the page reads */
+:is(.hero-arrow-left, .hero-arrow-right, .hero-chevron-left, .hero-chevron-right):dir(rtl) {
+  transform: scaleX(-1);
+}

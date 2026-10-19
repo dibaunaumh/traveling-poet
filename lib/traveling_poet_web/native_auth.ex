@@ -30,6 +30,8 @@ defmodule TravelingPoetWeb.NativeAuth do
   session: `connect_token/3` names the user and the feature for 5 minutes.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   alias TravelingPoetWeb.Endpoint
 
   @scheme "travelpoet"
@@ -110,29 +112,31 @@ defmodule TravelingPoetWeb.NativeAuth do
 
   def connect_notice(_), do: nil
 
-  defp notice("calendar", "ok"), do: {:info, "Google Calendar connected. Looking for trips now."}
-  defp notice("drive", "ok"), do: {:info, "Connected to Google Drive."}
+  defp notice("calendar", "ok"),
+    do: {:info, gettext("Google Calendar connected. Looking for trips now.")}
+
+  defp notice("drive", "ok"), do: {:info, gettext("Connected to Google Drive.")}
 
   defp notice("drive", "ok_saving"),
-    do: {:info, "Connected to Google Drive. Saving your PDF there now."}
+    do: {:info, gettext("Connected to Google Drive. Saving your PDF there now.")}
 
   defp notice(_, "wrong_account"),
-    do: {:error, "Please choose the Google account you sign in with."}
+    do: {:error, gettext("Please choose the Google account you sign in with.")}
 
   defp notice(_, "taken"),
-    do: {:error, "That Google account already has its own Traveling Poet account."}
+    do: {:error, gettext("That Google account already has its own Traveling Poet account.")}
 
   defp notice("drive", "not_allowed"),
-    do: {:error, "Google Drive was not allowed, so nothing was saved."}
+    do: {:error, gettext("Google Drive was not allowed, so nothing was saved.")}
 
   defp notice("calendar", "not_allowed"),
-    do: {:error, "Reading your Google Calendar was not allowed, so nothing was read."}
+    do: {:error, gettext("Reading your Google Calendar was not allowed, so nothing was read.")}
 
   defp notice("drive", "failed"),
-    do: {:error, "Google did not grant Google Drive access. Please try again."}
+    do: {:error, gettext("Google did not grant Google Drive access. Please try again.")}
 
   defp notice("calendar", "failed"),
-    do: {:error, "Google did not grant Google Calendar access. Please try again."}
+    do: {:error, gettext("Google did not grant Google Calendar access. Please try again.")}
 
   defp notice(_, _), do: nil
 end

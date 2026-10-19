@@ -30,7 +30,12 @@ defmodule TravelingPoetWeb.GuideLive do
       # Topics are the owner's own; the public guide leaves this off.
       {:ok,
        socket
-       |> assign(poet: poet, selected: nil, show_topics: true, page_title: "Trip guide")
+       |> assign(
+         poet: poet,
+         selected: nil,
+         show_topics: true,
+         page_title: dgettext("guide", "Trip guide")
+       )
        |> assign(:more_places, :idle)
        |> assign(saved_finds: [], saved_poets: %{}, saved_sources: %{})
        |> Bookmarking.assign_bookmarks()}
@@ -130,30 +135,50 @@ defmodule TravelingPoetWeb.GuideLive do
 
     case result do
       {:ok, reply} when is_binary(reply) and reply != "" ->
-        {:noreply, put_flash(socket, :info, "#{poet.name}: #{first_line(reply)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :info,
+           dgettext("guide", "%{poet}: %{reply}", poet: poet.name, reply: first_line(reply))
+         )}
 
       {:ok, _} ->
-        {:noreply, put_flash(socket, :info, "#{poet.name} is done looking around.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :info,
+           dgettext("guide", "%{poet} is done looking around.", poet: poet.name)
+         )}
 
       _ ->
         {:noreply,
-         put_flash(socket, :error, "#{poet.name} did not get back. Try again in a while.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("guide", "%{poet} did not get back. Try again in a while.", poet: poet.name)
+         )}
     end
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   defp more_places_refusal(:no_page, poet),
-    do: "#{poet.name} has not written about this stop yet."
+    do: dgettext("guide", "%{poet} has not written about this stop yet.", poet: poet.name)
 
   defp more_places_refusal(:credits, poet),
-    do: "#{poet.name} is out of credits. Top up in Settings."
+    do: dgettext("guide", "%{poet} is out of credits. Top up in Settings.", poet: poet.name)
 
   defp more_places_refusal(:cap, poet),
-    do: "#{poet.name} is resting until tomorrow (daily limit reached)."
+    do:
+      dgettext("guide", "%{poet} is resting until tomorrow (daily limit reached).",
+        poet: poet.name
+      )
 
   defp more_places_refusal(:busy, poet),
-    do: "#{poet.name} is in the middle of something. Try again in a few minutes."
+    do:
+      dgettext("guide", "%{poet} is in the middle of something. Try again in a few minutes.",
+        poet: poet.name
+      )
 
   defp first_line(reply) do
     reply
@@ -194,9 +219,12 @@ defmodule TravelingPoetWeb.GuideLive do
           id="guide-saved-empty"
           class="text-sm opacity-60 py-10 text-center"
         >
-          Nothing saved <span :if={@filter != "all"}>under this filter</span>
+          <span :if={@filter != "all"}>{dgettext("guide", "Nothing saved under this filter")}</span>
           <span :if={@filter == "all"}>
-            yet. Tap Save on a place or find, here, in any public guide, or in Discover.
+            {dgettext(
+              "guide",
+              "Nothing saved yet. Tap Save on a place or find, here, in any public guide, or in Discover."
+            )}
           </span>
         </p>
         <.map_view
@@ -209,7 +237,7 @@ defmodule TravelingPoetWeb.GuideLive do
           bookmarks={@bookmarks}
           poets={@saved_poets}
           sources={@saved_sources}
-          hint="Pick a pin to see the place you saved."
+          hint={dgettext("guide", "Pick a pin to see the place you saved.")}
         />
         <.list_view
           :if={@view == "list" and @places != []}
@@ -221,7 +249,7 @@ defmodule TravelingPoetWeb.GuideLive do
           sources={@saved_sources}
         />
         <div :if={@saved_finds != []} id="guide-saved-finds" class="mt-8">
-          <h2 class="font-semibold mb-3">Finds you saved</h2>
+          <h2 class="font-semibold mb-3">{dgettext("guide", "Finds you saved")}</h2>
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <.find_card
               :for={find <- @saved_finds}
@@ -242,8 +270,12 @@ defmodule TravelingPoetWeb.GuideLive do
         <.excursion_route
           :if={@view == "route"}
           diagram={@route}
-          title={"Every excursion into #{@topic.label}, and what it brought back"}
-          empty={"No excursions into #{@topic.label} yet."}
+          title={
+            dgettext("guide", "Every excursion into %{topic}, and what it brought back",
+              topic: @topic.label
+            )
+          }
+          empty={dgettext("guide", "No excursions into %{topic} yet.", topic: @topic.label)}
         />
 
         <p
@@ -251,7 +283,7 @@ defmodule TravelingPoetWeb.GuideLive do
           id="guide-finds-empty"
           class="text-sm opacity-60 py-10 text-center"
         >
-          Nothing under this filter.
+          {dgettext("guide", "Nothing under this filter.")}
         </p>
         <.find_list_view
           :if={@view == "list" and @finds != []}
@@ -321,14 +353,24 @@ defmodule TravelingPoetWeb.GuideLive do
             name={if @more_places == :pending, do: "hero-arrow-path", else: "hero-sparkles"}
             class={["size-4", @more_places == :pending && "motion-safe:animate-spin"]}
           />
-          {if @more_places == :pending, do: "Asking #{@poet.name}…", else: "More places"}
+          {if @more_places == :pending,
+            do: dgettext("guide", "Asking %{poet}…", poet: @poet.name),
+            else: dgettext("guide", "More places")}
         </button>
         <span class="text-sm opacity-60">
           <span :if={@more_places == :pending}>
-            {@poet.name} is looking around {@stay.place_name}. New places land here in a minute or two.
+            {dgettext(
+              "guide",
+              "%{poet} is looking around %{place}. New places land here in a minute or two.",
+              poet: @poet.name,
+              place: @stay.place_name
+            )}
           </span>
           <span :if={@more_places != :pending}>
-            {@poet.name} goes back out for a few more around {@stay.place_name}.
+            {dgettext("guide", "%{poet} goes back out for a few more around %{place}.",
+              poet: @poet.name,
+              place: @stay.place_name
+            )}
           </span>
         </span>
       </div>

@@ -14,7 +14,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "That journal doesn't exist or isn't public.")
+         |> put_flash(:error, dgettext("journal", "That journal doesn't exist or isn't public."))
          |> push_navigate(to: ~p"/")}
 
       poet ->
@@ -26,7 +26,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
          socket
          |> assign(:poet, poet)
          |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
-         |> assign(:page_title, "#{poet.name} — Traveling Poet")
+         |> assign(:page_title, dgettext("journal", "%{poet} — Traveling Poet", poet: poet.name))
          |> assign_journal(poet, nil)}
     end
   end
@@ -112,7 +112,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
       Journal.toggle_reaction(entry.id, user.id, kind, "public")
       {:noreply, assign(socket, :public_reactions, public_reaction_counts(entry.id))}
     else
-      {:noreply, put_flash(socket, :error, "Sign in to react.")}
+      {:noreply, put_flash(socket, :error, dgettext("journal", "Sign in to react."))}
     end
   end
 
@@ -222,10 +222,17 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     drawing = Journal.entry_illustration(entry)
 
     %{
-      title: "Day #{Journal.journey_day(entry, journey_start)}: #{entry_title(entry)}",
+      title:
+        dgettext("journal", "Day %{day}: %{title}",
+          day: Journal.journey_day(entry, journey_start),
+          title: entry_title(entry)
+        ),
       description:
         entry.teaser ||
-          "#{poet.name}'s journal from #{entry.place_name || excursion_label(entry) || "the road"}",
+          dgettext("journal", "%{poet}'s journal from %{place}",
+            poet: poet.name,
+            place: entry.place_name || excursion_label(entry) || dgettext("journal", "the road")
+          ),
       image: drawing && "#{base}/media/#{drawing.id}",
       url: "#{base}/p/#{poet.slug}/#{entry.entry_date}"
     }
@@ -262,7 +269,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
           <div>
             <h1 class="text-xl font-semibold">{@poet.name}</h1>
             <p class="text-sm opacity-70">
-              a traveling poet
+              {dgettext("journal", "a traveling poet")}
               <span :if={@poet.current_place_name}>· 📍 {@poet.current_place_name}</span>
             </p>
           </div>
@@ -271,7 +278,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         <.excursion_route
           :if={not is_nil(@route) and !finds_spread?(assigns)}
           diagram={@route}
-          title={"#{@poet.name}'s journey through this topic"}
+          title={dgettext("journal", "%{poet}'s journey through this topic", poet: @poet.name)}
         />
 
         <div
@@ -440,7 +447,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
         </div>
 
         <div :if={is_nil(@entry)} class="mt-10 text-center opacity-70">
-          <p>No published entries yet — check back soon.</p>
+          <p>{dgettext("journal", "No published entries yet — check back soon.")}</p>
         </div>
 
         <%!-- A public journal is published writing, some of it a model's. A
@@ -448,7 +455,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               to say so from the page itself. --%>
         <p class="mt-8 text-center text-xs opacity-50">
           <a href={report_mailto(@poet, @entry)} id="report-journal" class="link">
-            Report this journal
+            {dgettext("journal", "Report this journal")}
           </a>
         </p>
       </div>
@@ -503,7 +510,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   defp share_url(poet, entry),
     do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}")
 
-  defp share_title(poet, entry), do: "#{entry_title(entry)}, by #{poet.name}"
+  defp share_title(poet, entry),
+    do: dgettext("journal", "%{title}, by %{poet}", title: entry_title(entry), poet: poet.name)
 
   @report_to "support@poet.travel"
 

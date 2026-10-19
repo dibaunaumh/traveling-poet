@@ -1,0 +1,766 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{from} to %{to}"
+msgstr "%{from} עד %{to}"
+
+#, elixir-autogen, elixir-format
+msgid "A journal"
+msgstr "יומן"
+
+#, elixir-autogen, elixir-format
+msgid "Entry"
+msgstr "רשומה"
+
+#, elixir-autogen, elixir-format
+msgid "Finds"
+msgstr "מציאות"
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr "מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "Today"
+msgstr "היום"
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr "איפה לישון"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} device is subscribed."
+msgid_plural "%{count} devices are subscribed."
+msgstr[0] "מכשיר אחד רשום להתראות."
+msgstr[1] "%{count} מכשירים רשומים להתראות."
+
+#, elixir-autogen, elixir-format
+msgid "%{count} minute so far."
+msgid_plural "%{count} minutes so far."
+msgstr[0] "דקה אחת עד עכשיו."
+msgstr[1] "%{count} דקות עד עכשיו."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} could not finish the first entry after %{tries} tries. The daily run will try again tomorrow."
+msgstr "העמוד הראשון של %{poet} לא הושלם גם אחרי %{tries} ניסיונות. הסבב היומי ינסה שוב מחר."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is about to open the notebook. %{so_far}"
+msgstr "המחברת של %{poet} עומדת להיפתח. %{so_far}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is awake and about to open the notebook. The first page usually takes 5 to 12 minutes."
+msgstr "המחברת של %{poet} עומדת להיפתח. העמוד הראשון לוקח בדרך כלל 5 עד 12 דקות."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is mid-thought, probably writing to you right now. Give it a moment and resend."
+msgstr "%{poet} באמצע מחשבה, וכנראה תשובה אליכם כבר נכתבת. חכו רגע ושלחו שוב."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is resting — out of credits. %{top_up}"
+msgstr "%{poet} במנוחה: נגמרו הקרדיטים. %{top_up}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is starting the first page again."
+msgstr "ניסיון חדש לעמוד הראשון של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is still being set up."
+msgstr "ההכנות של %{poet} עדיין נמשכות."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing the first entry. A message sent now waits until the page is done."
+msgstr "העמוד הראשון של %{poet} נכתב עכשיו. הודעה שתשלחו עכשיו תחכה עד שהעמוד יהיה מוכן."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing the first entry. This usually takes 5 to 12 minutes; the drawing comes last. You can read along in the chat."
+msgstr "העמוד הראשון של %{poet} נכתב עכשיו. זה לוקח בדרך כלל 5 עד 12 דקות, והציור מגיע אחרון. אפשר לקרוא תוך כדי בצ'אט."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing your first page. %{so_far}"
+msgstr "%{poet} באמצע הכתיבה של העמוד הראשון שלכם. %{so_far}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} published a new journal entry!"
+msgstr "עמוד חדש ביומן של %{poet}!"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} revised this entry."
+msgstr "יש גרסה חדשה לעמוד הזה מאת %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will write to you there when the first entry is out."
+msgstr "כשהעמוד הראשון ייצא, תגיע אליכם לשם הודעה מ-%{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} — Traveling Poet"
+msgstr "%{poet} · Traveling Poet"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s Journal"
+msgstr "היומן של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s journal from %{place}"
+msgstr "היומן של %{poet}, מתוך %{place}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s journey through this topic"
+msgstr "המסע של %{poet} בנושא הזה"
+
+#, elixir-autogen, elixir-format
+msgid "%{title}, by %{poet}"
+msgstr "%{title}, מאת %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{who}'s saved places"
+msgstr "המקומות השמורים של %{who}"
+
+#, elixir-autogen, elixir-format
+msgid "A friend"
+msgstr "חברים"
+
+#, elixir-autogen, elixir-format
+msgid "Add Traveling Poet to your Home Screen."
+msgstr "הוסיפו את Traveling Poet למסך הבית."
+
+#, elixir-autogen, elixir-format
+msgid "Agent error: %{reason}"
+msgstr "תקלה: %{reason}"
+
+#, elixir-autogen, elixir-format
+msgid "Ask for a place, a detour, a drawing. Or just say hello."
+msgstr "בקשו מקום, עיקוף, ציור. או פשוט תגידו שלום."
+
+#, elixir-autogen, elixir-format
+msgid "Attach a file"
+msgstr "צירוף קובץ"
+
+#, elixir-autogen, elixir-format
+msgid "Attachment is missing — please pick a file again."
+msgstr "הקובץ המצורף חסר. בחרו קובץ שוב."
+
+#, elixir-autogen, elixir-format
+msgid "Beautiful"
+msgstr "יפהפה"
+
+#, elixir-autogen, elixir-format
+msgid "Book"
+msgstr "ספר"
+
+#, elixir-autogen, elixir-format
+msgid "Boring"
+msgstr "משעמם"
+
+#, elixir-autogen, elixir-format
+msgid "Chat"
+msgstr "צ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Checking this device for notifications."
+msgstr "בודקים אם המכשיר הזה יכול לקבל התראות."
+
+#, elixir-autogen, elixir-format
+msgid "Checking this device…"
+msgstr "בודקים את המכשיר…"
+
+#, elixir-autogen, elixir-format
+msgid "Close chat"
+msgstr "סגירת הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Copy link"
+msgstr "העתקת קישור"
+
+#, elixir-autogen, elixir-format
+msgid "Could not create a pairing link."
+msgstr "לא הצלחנו ליצור קישור חיבור."
+
+#, elixir-autogen, elixir-format
+msgid "Could not reach your poet. Please try again."
+msgstr "לא הצלחנו ליצור קשר. נסו שוב."
+
+#, elixir-autogen, elixir-format
+msgid "Could not save this device's subscription."
+msgstr "לא הצלחנו לשמור את ההרשמה של המכשיר הזה."
+
+#, elixir-autogen, elixir-format
+msgid "Could not turn notifications on for this device."
+msgstr "לא הצלחנו להפעיל התראות במכשיר הזה."
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day}: %{title}"
+msgstr "יום %{day}: %{title}"
+
+#, elixir-autogen, elixir-format
+msgid "Drawing needed"
+msgstr "חסר ציור"
+
+#, elixir-autogen, elixir-format
+msgid "Email"
+msgstr "אימייל"
+
+#, elixir-autogen, elixir-format
+msgid "Feedback marker"
+msgstr "סימון משוב"
+
+#, elixir-autogen, elixir-format
+msgid "File is too large (max 25 MB)."
+msgstr "הקובץ גדול מדי (עד 25 MB)."
+
+#, elixir-autogen, elixir-format
+msgid "File type is not accepted."
+msgstr "סוג הקובץ הזה לא נתמך."
+
+#, elixir-autogen, elixir-format
+msgid "Generate pairing link"
+msgstr "יצירת קישור חיבור"
+
+#, elixir-autogen, elixir-format
+msgid "Get a notification on this device when %{poet} publishes."
+msgstr "קבלו התראה במכשיר הזה כשיש עמוד חדש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Get it the moment it lands"
+msgstr "קבלו אותו ברגע שהוא מגיע"
+
+#, elixir-autogen, elixir-format
+msgid "Get the first entry on Telegram."
+msgstr "קבלו את העמוד הראשון בטלגרם."
+
+#, elixir-autogen, elixir-format
+msgid "Got it — %{poet} will keep that in mind."
+msgstr "קיבלנו. זה נשמר אצל %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Held"
+msgstr "בהמתנה"
+
+#, elixir-autogen, elixir-format
+msgid "Held until %{poet} finishes the page. It goes out on its own."
+msgstr "ההודעה ממתינה עד שהעמוד של %{poet} יהיה מוכן. היא תישלח מעצמה."
+
+#, elixir-autogen, elixir-format
+msgid "Hide chat"
+msgstr "הסתרת הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Highlight text or tap a paragraph to mark it %{marker}."
+msgstr "בחרו קטע טקסט או הקישו על פסקה כדי לסמן: %{marker}."
+
+#, elixir-autogen, elixir-format
+msgid "I wanted somewhere to go from here"
+msgstr "חיפשתי לאן להמשיך מכאן"
+
+#, elixir-autogen, elixir-format
+msgid "I wanted to know more here"
+msgstr "רציתי לדעת כאן יותר"
+
+#, elixir-autogen, elixir-format
+msgid "I wanted to see this"
+msgstr "רציתי לראות את זה"
+
+#, elixir-autogen, elixir-format
+msgid "In the meantime"
+msgstr "בינתיים"
+
+#, elixir-autogen, elixir-format
+msgid "Installing the writing desk"
+msgstr "מתקינים את שולחן הכתיבה"
+
+#, elixir-autogen, elixir-format
+msgid "Interesting"
+msgstr "מעניין"
+
+#, elixir-autogen, elixir-format
+msgid "Just started."
+msgstr "רק התחלנו."
+
+#, elixir-autogen, elixir-format
+msgid "Link needed"
+msgstr "חסר קישור"
+
+#, elixir-autogen, elixir-format
+msgid "Make it public in Settings"
+msgstr "הפכו אותו לציבורי בהגדרות"
+
+#, elixir-autogen, elixir-format
+msgid "Mark what you want to change"
+msgstr "סמנו מה תרצו לשנות"
+
+#, elixir-autogen, elixir-format
+msgid "More details"
+msgstr "עוד פרטים"
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}, from %{place}."
+msgstr "העמוד הבא: %{time}, מ-%{place}."
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}, from somewhere new."
+msgstr "העמוד הבא: %{time}, ממקום חדש."
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}."
+msgstr "העמוד הבא: %{time}."
+
+#, elixir-autogen, elixir-format
+msgid "No published entries yet — check back soon."
+msgstr "עוד אין עמודים שפורסמו. בקרו כאן שוב בקרוב."
+
+#, elixir-autogen, elixir-format
+msgid "Not creative enough"
+msgstr "לא מספיק יצירתי"
+
+#, elixir-autogen, elixir-format
+msgid "Not now"
+msgstr "לא עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved here yet."
+msgstr "עוד לא נשמר כאן כלום."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are blocked for this site. Allow them in your browser or system settings to get a nudge when %{poet} publishes."
+msgstr "ההתראות חסומות לאתר הזה. אפשרו אותן בהגדרות הדפדפן או המערכת כדי לקבל תזכורת כשיש עמוד חדש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are blocked for this site. Allow them in your browser or system settings, then reload this page."
+msgstr "ההתראות חסומות לאתר הזה. אפשרו אותן בהגדרות הדפדפן או המערכת, ואז טענו את הדף מחדש."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are not available on this device right now."
+msgstr "התראות לא זמינות במכשיר הזה כרגע."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are not available on this device right now. Telegram works everywhere."
+msgstr "התראות לא זמינות במכשיר הזה כרגע. טלגרם עובד בכל מקום."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, then come back here."
+msgstr "ההתראות של Traveling Poet כבויות. הפעילו אותן באפליקציית ההגדרות, תחת עדכונים, וחזרו לכאן."
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, to hear when %{poet} publishes."
+msgstr "ההתראות של Traveling Poet כבויות. הפעילו אותן באפליקציית ההגדרות, תחת עדכונים, כדי לשמוע כשיש עמוד חדש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Nudge this device when %{poet} publishes"
+msgstr "תזכורת במכשיר הזה כשיש עמוד חדש של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "On iPhone and iPad, notifications work once Poet is on your Home Screen: tap Share → Add to Home Screen, open it from there, and come back to this page."
+msgstr "באייפון ובאייפד, התראות עובדות אחרי ש-Poet נמצא במסך הבית: הקישו על שיתוף ← הוספה למסך הבית, פתחו משם, וחזרו לדף הזה."
+
+#, elixir-autogen, elixir-format
+msgid "On iPhone or iPad, notifications work once the app is on your Home Screen: tap Share, then Add to Home Screen, open it from there, and turn on notifications."
+msgstr "באייפון או באייפד, התראות עובדות אחרי שהאפליקציה נמצאת במסך הבית: הקישו על שיתוף, ואז על הוספה למסך הבית, פתחו אותה משם והפעילו התראות."
+
+#, elixir-autogen, elixir-format
+msgid "One a day, when %{name} publishes a new page, and now and then a question from %{name}, never more than once a week. Never marketing."
+msgstr "אחת ביום, כשיש עמוד חדש של %{name}, ומדי פעם שאלה מ-%{name}, לא יותר מפעם בשבוע. אף פעם לא שיווק."
+
+#, elixir-autogen, elixir-format
+msgid "One email a day, only when %{name} publishes a new page."
+msgstr "אימייל אחד ביום, רק כשיש עמוד חדש של %{name}."
+
+#, elixir-autogen, elixir-format
+msgid "One message a day, when %{name} publishes a new page, now and then a question from %{name}, never more than once a week, and a note if your credits run low. Never marketing."
+msgstr "הודעה אחת ביום, כשיש עמוד חדש של %{name}, מדי פעם שאלה מ-%{name}, לא יותר מפעם בשבוע, והודעה כשהקרדיטים שלכם עומדים להיגמר. אף פעם לא שיווק."
+
+#, elixir-autogen, elixir-format
+msgid "Only one attachment per message."
+msgstr "קובץ מצורף אחד בלבד לכל הודעה."
+
+#, elixir-autogen, elixir-format
+msgid "Open Telegram and press Start:"
+msgstr "פתחו את טלגרם ולחצו על Start:"
+
+#, elixir-autogen, elixir-format
+msgid "Open chat"
+msgstr "פתיחת הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Opening the door"
+msgstr "פותחים את הדלת"
+
+#, elixir-autogen, elixir-format
+msgid "Other feedback"
+msgstr "משוב אחר"
+
+#, elixir-autogen, elixir-format
+msgid "Other poets are already out on the road. Here are their newest pages and the places they found. Yours, %{poet}, is the red dot."
+msgstr "משוררים אחרים כבר בדרכים. הנה העמודים החדשים שלהם והמקומות שמצאו. הנקודה האדומה היא %{poet}, שלכם."
+
+#, elixir-autogen, elixir-format
+msgid "Packing notebook, pens and maps"
+msgstr "אורזים מחברת, עטים ומפות"
+
+#, elixir-autogen, elixir-format
+msgid "Pair Telegram"
+msgstr "חיבור טלגרם"
+
+#, elixir-autogen, elixir-format
+msgid "Paired"
+msgstr "מחובר"
+
+#, elixir-autogen, elixir-format
+msgid "Paired as @%{username}"
+msgstr "מחובר בתור @%{username}"
+
+#, elixir-autogen, elixir-format
+msgid "Post on X"
+msgstr "פרסום ב-X"
+
+#, elixir-autogen, elixir-format
+msgid "Put the marker down"
+msgstr "סיום הסימון"
+
+#, elixir-autogen, elixir-format
+msgid "Remove attachment"
+msgstr "הסרת הקובץ המצורף"
+
+#, elixir-autogen, elixir-format
+msgid "Renting a room"
+msgstr "שוכרים חדר"
+
+#, elixir-autogen, elixir-format
+msgid "Report this journal"
+msgstr "דיווח על היומן הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Select a marker & highlight text to provide feedback to the poet"
+msgstr "בחרו סימון וסמנו קטע טקסט כדי לתת משוב על הכתיבה"
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr "שליחה"
+
+#, elixir-autogen, elixir-format
+msgid "Sending"
+msgstr "שולחים"
+
+#, elixir-autogen, elixir-format
+msgid "Setting up %{poet}'s room. %{so_far}"
+msgstr "מכינים את החדר של %{poet}. %{so_far}"
+
+#, elixir-autogen, elixir-format
+msgid "Setting up %{poet}'s travel desk"
+msgstr "מכינים את שולחן המסע של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Share this page"
+msgstr "שיתוף העמוד"
+
+#, elixir-autogen, elixir-format
+msgid "Share..."
+msgstr "שיתוף..."
+
+#, elixir-autogen, elixir-format
+msgid "Shared from %{wordmark}, where an AI poet travels ahead and writes about the places worth going."
+msgstr "שיתוף מתוך %{wordmark}, שם משורר בינה מלאכותית נוסע לפניכם וכותב על המקומות ששווה להגיע אליהם."
+
+#, elixir-autogen, elixir-format
+msgid "Sign in to react."
+msgstr "התחברו כדי להגיב."
+
+#, elixir-autogen, elixir-format
+msgid "Something else I want to tell you about this"
+msgstr "עוד משהו שאני רוצה לומר על זה"
+
+#, elixir-autogen, elixir-format
+msgid "Telegram"
+msgstr "טלגרם"
+
+#, elixir-autogen, elixir-format
+msgid "Telegram is paired as @%{username}."
+msgstr "טלגרם מחובר בתור @%{username}."
+
+#, elixir-autogen, elixir-format
+msgid "Telegram is paired."
+msgstr "טלגרם מחובר."
+
+#, elixir-autogen, elixir-format
+msgid "Telegram isn't configured on this server."
+msgstr "טלגרם לא מוגדר בשרת הזה."
+
+#, elixir-autogen, elixir-format
+msgid "Telegram paired."
+msgstr "טלגרם חובר."
+
+#, elixir-autogen, elixir-format
+msgid "Telegram unpaired."
+msgstr "החיבור לטלגרם נותק."
+
+#, elixir-autogen, elixir-format
+msgid "Tell your poet:"
+msgstr "ספרו מה חשבתם:"
+
+#, elixir-autogen, elixir-format
+msgid "That could not be saved."
+msgstr "לא הצלחנו לשמור את זה."
+
+#, elixir-autogen, elixir-format
+msgid "That journal doesn't exist or isn't public."
+msgstr "היומן הזה לא קיים או שאינו ציבורי."
+
+#, elixir-autogen, elixir-format
+msgid "That shared list no longer exists."
+msgstr "הרשימה המשותפת הזו כבר לא קיימת."
+
+#, elixir-autogen, elixir-format
+msgid "The first attempt did not produce a page. %{poet} will try again within %{minutes} minutes. Nothing is lost."
+msgstr "הניסיון הראשון לא הניב עמוד. ניסיון נוסף של %{poet} יתחיל בתוך %{minutes} דקות. שום דבר לא אבד."
+
+#, elixir-autogen, elixir-format
+msgid "The first entry"
+msgstr "העמוד הראשון"
+
+#, elixir-autogen, elixir-format
+msgid "The notepad opens the moment they are reachable."
+msgstr "הפנקס ייפתח ברגע שאפשר יהיה ליצור קשר."
+
+#, elixir-autogen, elixir-format
+msgid "The page could not be read just now. Try again in a moment."
+msgstr "לא הצלחנו להקריא את העמוד כרגע. נסו שוב בעוד רגע."
+
+#, elixir-autogen, elixir-format
+msgid "The whole journal as a printable book"
+msgstr "כל היומן כספר להדפסה"
+
+#, elixir-autogen, elixir-format
+msgid "This browser can't receive push notifications."
+msgstr "הדפדפן הזה לא יכול לקבל התראות."
+
+#, elixir-autogen, elixir-format
+msgid "This browser can't receive push notifications. Telegram works everywhere."
+msgstr "הדפדפן הזה לא יכול לקבל התראות. טלגרם עובד בכל מקום."
+
+#, elixir-autogen, elixir-format
+msgid "This device"
+msgstr "המכשיר הזה"
+
+#, elixir-autogen, elixir-format
+msgid "This device gets a nudge when a new entry is published"
+msgstr "המכשיר הזה מקבל תזכורת כשמתפרסם עמוד חדש"
+
+#, elixir-autogen, elixir-format
+msgid "This device will get a nudge when the first entry is out."
+msgstr "המכשיר הזה יקבל תזכורת כשהעמוד הראשון ייצא."
+
+#, elixir-autogen, elixir-format
+msgid "This held my attention"
+msgstr "זה תפס את תשומת ליבי"
+
+#, elixir-autogen, elixir-format
+msgid "This moved me"
+msgstr "זה ריגש אותי"
+
+#, elixir-autogen, elixir-format
+msgid "This one is taking longer than usual. Nothing is lost; the poet is still at it."
+msgstr "הפעם זה לוקח יותר מהרגיל. שום דבר לא אבד, העבודה עדיין נמשכת."
+
+#, elixir-autogen, elixir-format
+msgid "This page updates by itself once you are paired."
+msgstr "הדף יתעדכן מעצמו אחרי החיבור."
+
+#, elixir-autogen, elixir-format
+msgid "This passage lost me"
+msgstr "כאן איבדתי עניין"
+
+#, elixir-autogen, elixir-format
+msgid "This reads like anyone could have written it"
+msgstr "זה נשמע כאילו כל אחד היה יכול לכתוב את זה"
+
+#, elixir-autogen, elixir-format
+msgid "This usually takes 2 to 20 minutes. You can close this page; %{poet} keeps working and this page updates on its own."
+msgstr "זה לוקח בדרך כלל 2 עד 20 דקות. אפשר לסגור את הדף: העבודה של %{poet} נמשכת, והדף יתעדכן מעצמו."
+
+#, elixir-autogen, elixir-format
+msgid "To get it the moment it lands, use Share, then Add to Home Screen, and turn on notifications from there."
+msgstr "כדי לקבל אותו ברגע שהוא מגיע, הקישו על שיתוף, ואז על הוספה למסך הבית, והפעילו התראות משם."
+
+#, elixir-autogen, elixir-format
+msgid "Toggle chat"
+msgstr "הצגה או הסתרה של הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Top up"
+msgstr "טעינת קרדיטים"
+
+#, elixir-autogen, elixir-format
+msgid "Turn off"
+msgstr "כיבוי"
+
+#, elixir-autogen, elixir-format
+msgid "Turn on"
+msgstr "הפעלה"
+
+#, elixir-autogen, elixir-format
+msgid "Turn on notifications"
+msgstr "הפעלת התראות"
+
+#, elixir-autogen, elixir-format
+msgid "Unpair"
+msgstr "ניתוק"
+
+#, elixir-autogen, elixir-format
+msgid "Upload error: %{error}"
+msgstr "שגיאה בהעלאה: %{error}"
+
+#, elixir-autogen, elixir-format
+msgid "Upload failed: no file consumed"
+msgstr "ההעלאה נכשלה: לא התקבל קובץ"
+
+#, elixir-autogen, elixir-format
+msgid "Upload still in progress — please wait a moment and try again."
+msgstr "ההעלאה עדיין בתהליך. חכו רגע ונסו שוב."
+
+#, elixir-autogen, elixir-format
+msgid "While you wait"
+msgstr "בזמן ההמתנה"
+
+#, elixir-autogen, elixir-format
+msgid "Working on it"
+msgstr "עובדים על זה"
+
+#, elixir-autogen, elixir-format
+msgid "Write to %{poet}."
+msgstr "כתבו ל-%{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Write to %{poet}…"
+msgstr "כתבו ל-%{poet}…"
+
+#, elixir-autogen, elixir-format
+msgid "Write your own"
+msgstr "כתבו בעצמכם"
+
+#, elixir-autogen, elixir-format
+msgid "You"
+msgstr "אתם"
+
+#, elixir-autogen, elixir-format
+msgid "You can close this page; %{poet} keeps working and this page updates on its own."
+msgstr "אפשר לסגור את הדף: העבודה של %{poet} נמשכת, והדף יתעדכן מעצמו."
+
+#, elixir-autogen, elixir-format
+msgid "You'll get a notification on this device when %{poet} publishes."
+msgstr "תקבלו התראה במכשיר הזה כשיש עמוד חדש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "You'll get a nudge on this device when %{poet} publishes."
+msgstr "תקבלו תזכורת במכשיר הזה כשיש עמוד חדש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Your journal is private, so this page has no link others can open."
+msgstr "היומן שלכם פרטי, ולכן אין לעמוד הזה קישור שאחרים יכולים לפתוח."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr "המשורר שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is out of credits — top up in Settings."
+msgstr "נגמרו הקרדיטים. אפשר לטעון עוד בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is resting until tomorrow (daily limit reached)."
+msgstr "מנוחה עד מחר (הגעתם למגבלה היומית)."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet isn't ready yet."
+msgstr "ההכנות עדיין לא הסתיימו."
+
+#, elixir-autogen, elixir-format
+msgid "Yours started %{count} minute ago."
+msgid_plural "Yours started %{count} minutes ago."
+msgstr[0] "התחלנו לפני דקה."
+msgstr[1] "התחלנו לפני %{count} דקות."
+
+#, elixir-autogen, elixir-format
+msgid "a traveling poet"
+msgstr "שירה בדרכים"
+
+#, elixir-autogen, elixir-format
+msgid "awake"
+msgstr "כאן"
+
+#, elixir-autogen, elixir-format
+msgid "checking…"
+msgstr "בבדיקה…"
+
+#, elixir-autogen, elixir-format
+msgid "inspiring"
+msgstr "מעורר השראה"
+
+#, elixir-autogen, elixir-format
+msgid "love"
+msgstr "אהבתי"
+
+#, elixir-autogen, elixir-format
+msgid "not now"
+msgstr "לא עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "not_for_me"
+msgstr "לא בשבילי"
+
+#, elixir-autogen, elixir-format
+msgid "preparing to set out"
+msgstr "בהכנות ליציאה לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "private feedback — shapes what your poet seeks out next"
+msgstr "משוב פרטי, שמשפיע על הכיוון של העמודים הבאים"
+
+#, elixir-autogen, elixir-format
+msgid "ready"
+msgstr "הכול מוכן"
+
+#, elixir-autogen, elixir-format
+msgid "reconnecting…"
+msgstr "מתחברים מחדש…"
+
+#, elixir-autogen, elixir-format
+msgid "setting up"
+msgstr "בהכנה"
+
+#, elixir-autogen, elixir-format
+msgid "the poet"
+msgstr "המשורר"
+
+#, elixir-autogen, elixir-format
+msgid "the road"
+msgstr "הדרך"
+
+#, elixir-autogen, elixir-format
+msgid "undo"
+msgstr "ביטול"
+
+#, elixir-autogen, elixir-format
+msgid "waking up…"
+msgstr "בהתעוררות…"
+
+#, elixir-autogen, elixir-format
+msgid "want_more"
+msgstr "עוד כזה"
+
+#, elixir-autogen, elixir-format
+msgid "what your poet has learned"
+msgstr "מה כבר נלמד עליכם"
+
+#, elixir-autogen, elixir-format
+msgid "your poet"
+msgstr "המשורר שלכם"

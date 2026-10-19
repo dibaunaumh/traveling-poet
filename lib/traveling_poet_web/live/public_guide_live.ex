@@ -36,7 +36,7 @@ defmodule TravelingPoetWeb.PublicGuideLive do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "That journal doesn't exist or isn't public.")
+         |> put_flash(:error, dgettext("guide", "That journal doesn't exist or isn't public."))
          |> push_navigate(to: ~p"/")}
 
       poet ->
@@ -49,7 +49,7 @@ defmodule TravelingPoetWeb.PublicGuideLive do
          |> assign(:poet, poet)
          |> assign(:selected, nil)
          |> TravelingPoetWeb.Bookmarking.assign_bookmarks()
-         |> assign(:page_title, "#{poet.name}'s trip guide")}
+         |> assign(:page_title, dgettext("guide", "%{poet}'s trip guide", poet: poet.name))}
     end
   end
 
@@ -101,12 +101,14 @@ defmodule TravelingPoetWeb.PublicGuideLive do
         <div>
           <h1 class="text-xl font-semibold">{@poet.name}</h1>
           <p class="text-sm opacity-70">
-            a traveling poet
+            {dgettext("guide", "a traveling poet")}
             <span :if={@poet.current_place_name}>· 📍 {@poet.current_place_name}</span>
           </p>
         </div>
-        <div class="ml-auto flex gap-1">
-          <.link navigate={~p"/p/#{@poet.slug}"} class="btn btn-ghost btn-sm">Journal</.link>
+        <div class="ms-auto flex gap-1">
+          <.link navigate={~p"/p/#{@poet.slug}"} class="btn btn-ghost btn-sm">
+            {dgettext("guide", "Journal")}
+          </.link>
         </div>
       </div>
 

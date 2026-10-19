@@ -7,6 +7,7 @@ defmodule TravelingPoetWeb.AffinityComponents do
   """
 
   use Phoenix.Component
+  use Gettext, backend: TravelingPoetWeb.Gettext
 
   alias TravelingPoet.Affinity.Layout
 
@@ -57,7 +58,9 @@ defmodule TravelingPoetWeb.AffinityComponents do
       <svg
         viewBox={"0 0 #{@width} #{@height}"}
         role="img"
-        aria-label="Your subjects on the map of everything the poets write about"
+        aria-label={
+          dgettext("settings", "Your subjects on the map of everything the poets write about")
+        }
       >
         <g :for={r <- @regions}>
           <rect
@@ -95,9 +98,9 @@ defmodule TravelingPoetWeb.AffinityComponents do
       </svg>
       <figcaption class="text-xs opacity-60 mt-1">
         <span class="taste-map-key" style={"background: #{@for_color}"}></span>
-        leaning toward
-        <span class="taste-map-key ml-3" style={"background: #{@against_color}"}></span>
-        leaning away
+        {dgettext("settings", "leaning toward")}
+        <span class="taste-map-key ms-3" style={"background: #{@against_color}"}></span>
+        {dgettext("settings", "leaning away")}
       </figcaption>
     </figure>
     """
@@ -121,7 +124,16 @@ defmodule TravelingPoetWeb.AffinityComponents do
         r: Float.round(10 + 14 * strength, 1),
         opacity: Float.round(0.3 + 0.7 * strength, 2),
         for?: s.score > 0,
-        title: "#{topic} (#{subject}): #{if s.score > 0, do: "toward", else: "away"}"
+        title:
+          if(s.score > 0,
+            do:
+              dgettext("settings", "%{topic} (%{subject}): toward",
+                topic: topic,
+                subject: subject
+              ),
+            else:
+              dgettext("settings", "%{topic} (%{subject}): away", topic: topic, subject: subject)
+          )
       }
     end)
   end

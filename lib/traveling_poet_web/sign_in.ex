@@ -7,17 +7,27 @@ defmodule TravelingPoetWeb.SignIn do
   """
   use TravelingPoetWeb, :verified_routes
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Phoenix.Controller, only: [put_flash: 3, redirect: 2]
 
   alias TravelingPoetWeb.{PageController, UserAuth}
 
   def establish(conn, user, start_place, greeting_name \\ nil) do
-    name = greeting_name || user.name || "there"
-
     conn
     |> UserAuth.log_in_user(user)
-    |> put_flash(:info, "Welcome, #{name}!")
+    |> put_flash(:info, welcome(user, greeting_name || user.name))
     |> redirect(to: after_login_path(user, start_place))
+  end
+
+  # In the reader's own language: the request was made signed out, so the
+  # locale it was served in may not be theirs
+  defp welcome(user, name) do
+    TravelingPoet.Locale.with_locale(user.locale, fn ->
+      if name,
+        do: gettext("Welcome, %{name}!", name: name),
+        else: gettext("Welcome, there!")
+    end)
   end
 
   defp after_login_path(%{onboarding_completed: true}, _start_place), do: ~p"/journal"

@@ -81,11 +81,20 @@ defmodule TravelingPoetWeb.PushNotifications do
          |> set_push(:subscribed, false)
          |> put_flash(
            :info,
-           "You'll get a notification on this device when #{(poet && poet.name) || "your poet"} publishes."
+           dgettext(
+             "journal",
+             "You'll get a notification on this device when %{poet} publishes.",
+             poet: (poet && poet.name) || dgettext("journal", "your poet")
+           )
          )}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not turn notifications on for this device.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("journal", "Could not turn notifications on for this device.")
+         )}
     end
   end
 
@@ -99,11 +108,18 @@ defmodule TravelingPoetWeb.PushNotifications do
          |> set_push(:subscribed, false)
          |> put_flash(
            :info,
-           "You'll get a nudge on this device when #{(poet && poet.name) || "your poet"} publishes."
+           dgettext("journal", "You'll get a nudge on this device when %{poet} publishes.",
+             poet: (poet && poet.name) || dgettext("journal", "your poet")
+           )
          )}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not save this device's subscription.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("journal", "Could not save this device's subscription.")
+         )}
     end
   end
 
@@ -160,11 +176,18 @@ defmodule TravelingPoetWeb.PushNotifications do
       data-vapid-key={@push.configured? && TravelingPoet.WebPush.public_key()}
     >
       <p id="next-page-line" class="opacity-80">
-        Next page: <time
-          id="next-page-at"
-          phx-hook="LocalTime"
-          datetime={DateTime.to_iso8601(@next.at)}
-        >{Calendar.strftime(@next.at, "%-d %b around %H:%M UTC")}</time>{next_place(@next)}.
+        <.rich text={next_line(@next)}>
+          <:part name="time">
+            <time
+              id="next-page-at"
+              phx-hook="LocalTime"
+              datetime={DateTime.to_iso8601(@next.at)}
+            >{dgettext("notify", "%{date} around %{time} UTC",
+              date: TravelingPoet.Locale.format_date(@next.at, :day_mon),
+              time: TravelingPoet.Locale.format_date(@next.at, :time)
+            )}</time>
+          </:part>
+        </.rich>
       </p>
       <div
         :if={
@@ -180,14 +203,16 @@ defmodule TravelingPoetWeb.PushNotifications do
           data-push-action="subscribe"
           class="btn btn-primary btn-sm"
         >
-          <.icon name="hero-bell" class="size-4" /> Get it the moment it lands
+          <.icon name="hero-bell" class="size-4" /> {dgettext("journal", "Get it the moment it lands")}
         </button>
         <span :if={@push.state == :needs_install} class="flex-1 min-w-48 opacity-80">
-          To get it the moment it lands, use Share, then Add to Home Screen, and turn on
-          notifications from there.
+          {dgettext(
+            "journal",
+            "To get it the moment it lands, use Share, then Add to Home Screen, and turn on notifications from there."
+          )}
         </span>
         <button type="button" data-push-action="dismiss" class="btn btn-ghost btn-sm opacity-60">
-          Not now
+          {dgettext("journal", "Not now")}
         </button>
         <.expect channel={:push} name={@poet.name} id="push-nudge-expect" />
       </div>
@@ -195,9 +220,16 @@ defmodule TravelingPoetWeb.PushNotifications do
     """
   end
 
-  defp next_place(%{place: place}) when is_binary(place), do: ", from #{place}"
-  defp next_place(%{moving?: true}), do: ", from somewhere new"
-  defp next_place(_), do: ""
+  # The line under the latest page, whole: the time is a part (the LocalTime
+  # hook rewrites it), the place a value.
+  defp next_line(%{place: place}) when is_binary(place),
+    do:
+      dgettext("journal", "Next page: %{time}, from %{place}.", time: marker(:time), place: place)
+
+  defp next_line(%{moving?: true}),
+    do: dgettext("journal", "Next page: %{time}, from somewhere new.", time: marker(:time))
+
+  defp next_line(_), do: dgettext("journal", "Next page: %{time}.", time: marker(:time))
 
   attr :channel, :atom, required: true, values: [:push, :telegram, :email]
   attr :name, :string, default: nil
@@ -212,7 +244,12 @@ defmodule TravelingPoetWeb.PushNotifications do
   reader started, so they go unmentioned.
   """
   def expect(assigns) do
-    assigns = assign(assigns, :text, expect_text(assigns.channel, assigns.name || "your poet"))
+    assigns =
+      assign(
+        assigns,
+        :text,
+        expect_text(assigns.channel, assigns.name || dgettext("journal", "your poet"))
+      )
 
     ~H"""
     <p id={@id} class="text-xs opacity-60">{@text}</p>
@@ -221,17 +258,23 @@ defmodule TravelingPoetWeb.PushNotifications do
 
   def expect_text(:push, name),
     do:
-      "One a day, when #{name} publishes a new page, and now and then a question " <>
-        "from #{name}, never more than once a week. Never marketing."
+      dgettext(
+        "journal",
+        "One a day, when %{name} publishes a new page, and now and then a question from %{name}, never more than once a week. Never marketing.",
+        name: name
+      )
 
   def expect_text(:telegram, name),
     do:
-      "One message a day, when #{name} publishes a new page, now and then a question " <>
-        "from #{name}, never more than once a week, and a note if your credits run low. " <>
-        "Never marketing."
+      dgettext(
+        "journal",
+        "One message a day, when %{name} publishes a new page, now and then a question from %{name}, never more than once a week, and a note if your credits run low. Never marketing.",
+        name: name
+      )
 
   def expect_text(:email, name),
-    do: "One email a day, only when #{name} publishes a new page."
+    do:
+      dgettext("journal", "One email a day, only when %{name} publishes a new page.", name: name)
 
   attr :push, :map, required: true
   attr :poet, :any, required: true
@@ -251,36 +294,56 @@ defmodule TravelingPoetWeb.PushNotifications do
       data-vapid-key={TravelingPoet.WebPush.public_key()}
       class="text-sm space-y-2"
     >
-      <p :if={@push.state == :unknown} class="opacity-60">Checking this device for notifications.</p>
+      <p :if={@push.state == :unknown} class="opacity-60">
+        {dgettext("journal", "Checking this device for notifications.")}
+      </p>
       <div :if={@push.state == :available} class="space-y-2">
-        <p class="font-medium">Get a notification on this device when {@poet.name} publishes.</p>
+        <p class="font-medium">
+          {dgettext("journal", "Get a notification on this device when %{poet} publishes.",
+            poet: @poet.name
+          )}
+        </p>
         <button type="button" data-push-action="subscribe" class="btn btn-secondary btn-sm">
-          Turn on notifications
+          {dgettext("journal", "Turn on notifications")}
         </button>
       </div>
       <div :if={@push.state == :needs_install} class="space-y-1">
-        <p class="font-medium">Add Traveling Poet to your Home Screen.</p>
+        <p class="font-medium">{dgettext("journal", "Add Traveling Poet to your Home Screen.")}</p>
         <p class="opacity-70">
-          On iPhone or iPad, notifications work once the app is on your Home Screen: tap Share,
-          then Add to Home Screen, open it from there, and turn on notifications.
+          {dgettext(
+            "journal",
+            "On iPhone or iPad, notifications work once the app is on your Home Screen: tap Share, then Add to Home Screen, open it from there, and turn on notifications."
+          )}
         </p>
       </div>
       <p :if={@push.state == :subscribed} class="font-medium">
-        This device will get a nudge when the first entry is out.
+        {dgettext("journal", "This device will get a nudge when the first entry is out.")}
       </p>
       <p :if={@push.state == :denied and !@push.native?} class="opacity-70">
-        Notifications are blocked for this site. Allow them in your browser or system settings
-        to get a nudge when {@poet.name} publishes.
+        {dgettext(
+          "journal",
+          "Notifications are blocked for this site. Allow them in your browser or system settings to get a nudge when %{poet} publishes.",
+          poet: @poet.name
+        )}
       </p>
       <p :if={@push.state == :denied and @push.native?} class="opacity-70">
-        Notifications are turned off for Traveling Poet. Turn them on in the Settings app,
-        under Notifications, to hear when {@poet.name} publishes.
+        {dgettext(
+          "journal",
+          "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, to hear when %{poet} publishes.",
+          poet: @poet.name
+        )}
       </p>
       <p :if={@push.state == :unsupported and !@push.native?} class="opacity-70">
-        This browser can't receive push notifications. Telegram works everywhere.
+        {dgettext(
+          "journal",
+          "This browser can't receive push notifications. Telegram works everywhere."
+        )}
       </p>
       <p :if={@push.state == :unsupported and @push.native?} class="opacity-70">
-        Notifications are not available on this device right now. Telegram works everywhere.
+        {dgettext(
+          "journal",
+          "Notifications are not available on this device right now. Telegram works everywhere."
+        )}
       </p>
       <.expect channel={:push} name={@poet.name} id="notification-promise" />
     </div>
@@ -299,45 +362,62 @@ defmodule TravelingPoetWeb.PushNotifications do
       phx-hook="WebPush"
       data-vapid-key={TravelingPoet.WebPush.public_key()}
     >
-      <h2 class="font-semibold mb-2">This device</h2>
+      <h2 class="font-semibold mb-2">{dgettext("journal", "This device")}</h2>
       <div class="text-sm space-y-2">
         <.expect channel={:push} name={@poet && @poet.name} id="push-settings-expect" />
-        <p :if={@push.state == :unknown} class="opacity-60">Checking this device…</p>
+        <p :if={@push.state == :unknown} class="opacity-60">
+          {dgettext("journal", "Checking this device…")}
+        </p>
         <p :if={@push.state == :unsupported and !@push.native?} class="opacity-60">
-          This browser can't receive push notifications.
+          {dgettext("journal", "This browser can't receive push notifications.")}
         </p>
         <p :if={@push.state == :unsupported and @push.native?} class="opacity-60">
-          Notifications are not available on this device right now.
+          {dgettext("journal", "Notifications are not available on this device right now.")}
         </p>
         <p :if={@push.state == :needs_install} class="opacity-80">
-          On iPhone and iPad, notifications work once Poet is on your Home Screen:
-          tap Share → Add to Home Screen, open it from there, and come back to this page.
+          {dgettext(
+            "journal",
+            "On iPhone and iPad, notifications work once Poet is on your Home Screen: tap Share → Add to Home Screen, open it from there, and come back to this page."
+          )}
         </p>
         <p :if={@push.state == :denied and !@push.native?} class="opacity-80">
-          Notifications are blocked for this site. Allow them in your browser or system
-          settings, then reload this page.
+          {dgettext(
+            "journal",
+            "Notifications are blocked for this site. Allow them in your browser or system settings, then reload this page."
+          )}
         </p>
         <p :if={@push.state == :denied and @push.native?} class="opacity-80">
-          Notifications are turned off for Traveling Poet. Turn them on in the Settings app,
-          under Notifications, then come back here.
+          {dgettext(
+            "journal",
+            "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, then come back here."
+          )}
         </p>
         <div :if={@push.state == :available} class="flex items-center gap-3 flex-wrap">
-          <span>Nudge this device when {(@poet && @poet.name) || "your poet"} publishes</span>
+          <span>
+            {dgettext("journal", "Nudge this device when %{poet} publishes",
+              poet: (@poet && @poet.name) || dgettext("journal", "your poet")
+            )}
+          </span>
           <button type="button" data-push-action="subscribe" class="btn btn-secondary btn-sm">
-            Turn on
+            {dgettext("journal", "Turn on")}
           </button>
         </div>
         <div :if={@push.state == :subscribed} class="flex items-center gap-3 flex-wrap">
           <span>
             <.icon name="hero-check-circle-mini" class="size-4 -mt-0.5 text-success" />
-            This device gets a nudge when a new entry is published
+            {dgettext("journal", "This device gets a nudge when a new entry is published")}
           </span>
           <button type="button" data-push-action="unsubscribe" class="btn btn-outline btn-sm">
-            Turn off
+            {dgettext("journal", "Turn off")}
           </button>
         </div>
         <p :if={@push.devices > 0} class="text-xs opacity-60" id="push-device-count">
-          {@push.devices} {if @push.devices == 1, do: "device is", else: "devices are"} subscribed.
+          {dngettext(
+            "journal",
+            "%{count} device is subscribed.",
+            "%{count} devices are subscribed.",
+            @push.devices
+          )}
         </p>
       </div>
     </div>

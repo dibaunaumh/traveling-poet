@@ -34,6 +34,7 @@
 // round, newest first; it outlines where the place sits and never zooms on
 // its own. Any sign of a reader holds it for a while, never for good. Under
 // prefers-reduced-motion the map jumps instead of flying and pages turn slower.
+import {t} from "./strings"
 
 import L, { touchFriendly } from "./leaflet_setup"
 import { Village } from "./village"
@@ -292,7 +293,7 @@ const DiscoverMap = {
         : `${this.filterName()}: ${n} on the map`
       const clear = document.createElement("button")
       clear.type = "button"
-      clear.textContent = "Show everything"
+      clear.textContent = t("map_show_everything", "Show everything")
       clear.dataset.discoverClear = ""
       this.filterEl.append(label, clear)
     }

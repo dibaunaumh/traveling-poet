@@ -31,7 +31,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
     socket =
       if params["purchased"] == "1",
-        do: put_flash(socket, :info, "Credits added. Happy travels!"),
+        do: put_flash(socket, :info, dgettext("settings", "Credits added. Happy travels!")),
         else: socket
 
     # Back from the iOS app's sign-in sheet after connecting Drive or
@@ -49,7 +49,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Settings")
+     |> assign(:page_title, dgettext("settings", "Settings"))
      |> assign(:user, user)
      |> assign(:poet, poet)
      |> assign_push()
@@ -145,13 +145,13 @@ defmodule TravelingPoetWeb.SettingsLive do
     |> assign(:affinity_dismissed, Affinity.dismissed(user))
   end
 
-  defp source_label("tap"), do: "you tapped this"
-  defp source_label("chat"), do: "you said this in chat"
-  defp source_label("settings"), do: "you set this"
-  defp source_label("onboarding"), do: "from your setup"
-  defp source_label("reaction"), do: "from your reaction"
-  defp source_label("marker"), do: "from your markers"
-  defp source_label(_), do: "learned"
+  defp source_label("tap"), do: dgettext("settings", "you tapped this")
+  defp source_label("chat"), do: dgettext("settings", "you said this in chat")
+  defp source_label("settings"), do: dgettext("settings", "you set this")
+  defp source_label("onboarding"), do: dgettext("settings", "from your setup")
+  defp source_label("reaction"), do: dgettext("settings", "from your reaction")
+  defp source_label("marker"), do: dgettext("settings", "from your markers")
+  defp source_label(_), do: dgettext("settings", "learned")
 
   @impl true
   def handle_event("push_" <> _ = event, params, socket),
@@ -298,8 +298,12 @@ defmodule TravelingPoetWeb.SettingsLive do
 
       name ->
         case Accounts.update_user(user, %{name: name}) do
-          {:ok, updated} -> {:noreply, socket |> assign(:user, updated) |> assign_credits()}
-          {:error, _} -> {:noreply, put_flash(socket, :error, "Could not save your name.")}
+          {:ok, updated} ->
+            {:noreply, socket |> assign(:user, updated) |> assign_credits()}
+
+          {:error, _} ->
+            {:noreply,
+             put_flash(socket, :error, dgettext("settings", "Could not save your name."))}
         end
     end
   end
@@ -316,13 +320,31 @@ defmodule TravelingPoetWeb.SettingsLive do
     {:noreply, assign_affinity(socket)}
   end
 
+  # A new language needs a full page load: the page's lang and dir sit on
+  # <html>, which a LiveView patch never touches.
+  @impl true
+  def handle_event("set_locale", %{"locale" => locale}, socket) do
+    case Accounts.set_locale(socket.assigns.user, locale) do
+      {:ok, _} ->
+        {:noreply, redirect(socket, to: ~p"/settings#account")}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("settings", "Could not save that setting."))}
+    end
+  end
+
   @impl true
   def handle_event("toggle_email", params, socket) do
     case Accounts.update_user(socket.assigns.user, %{
            email_notify: params["email_notify"] == "true"
          }) do
-      {:ok, updated} -> {:noreply, assign(socket, :user, updated)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Could not save that setting.")}
+      {:ok, updated} ->
+        {:noreply, assign(socket, :user, updated)}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("settings", "Could not save that setting."))}
     end
   end
 
@@ -336,7 +358,8 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply, socket |> assign(:user, updated) |> assign_affinity()}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not save that setting.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("settings", "Could not save that setting."))}
     end
   end
 
@@ -378,7 +401,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply, assign(socket, :poet, updated)}
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save settings.")}
+        {:noreply, put_flash(socket, :error, dgettext("settings", "Could not save settings."))}
     end
   end
 
@@ -434,7 +457,12 @@ defmodule TravelingPoetWeb.SettingsLive do
       {:ok, _edition} ->
         {:noreply,
          socket
-         |> put_flash(:info, "#{poet.name} is composing your book. It takes a few minutes.")
+         |> put_flash(
+           :info,
+           dgettext("settings", "%{poet} is composing your book. It takes a few minutes.",
+             poet: poet.name
+           )
+         )
          # the charge just changed the balance the page shows
          |> assign(:user, Accounts.get_user!(user.id))
          |> assign_credits()
@@ -459,7 +487,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply,
          socket
          |> assign(:user, user)
-         |> put_flash(:info, "Making your PDF. It takes a minute or two.")
+         |> put_flash(:info, dgettext("settings", "Making your PDF. It takes a minute or two."))
          |> assign_book()}
 
       {:blocked, reason} ->
@@ -484,12 +512,16 @@ defmodule TravelingPoetWeb.SettingsLive do
          put_flash(
            socket,
            :error,
-           "That is not this account's email address. Nothing was deleted."
+           dgettext("settings", "That is not this account's email address. Nothing was deleted.")
          )}
 
       {:error, _} ->
         {:noreply,
-         put_flash(socket, :error, "The account could not be deleted just now. Please try again.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("settings", "The account could not be deleted just now. Please try again.")
+         )}
     end
   end
 
@@ -513,7 +545,8 @@ defmodule TravelingPoetWeb.SettingsLive do
           {:noreply, redirect(socket, to: ~p"/journal/book/drive/connect?#{[pdf: pdf.id]}")}
 
         {:error, _} ->
-          {:noreply, put_flash(socket, :error, "That PDF cannot be saved right now.")}
+          {:noreply,
+           put_flash(socket, :error, dgettext("settings", "That PDF cannot be saved right now."))}
       end
     else
       _ -> {:noreply, socket}
@@ -528,7 +561,10 @@ defmodule TravelingPoetWeb.SettingsLive do
     {:noreply,
      socket
      |> assign(:user, user)
-     |> put_flash(:info, "Google Drive disconnected. Files already saved there stay yours.")
+     |> put_flash(
+       :info,
+       dgettext("settings", "Google Drive disconnected. Files already saved there stay yours.")
+     )
      |> assign_book()}
   end
 
@@ -546,7 +582,10 @@ defmodule TravelingPoetWeb.SettingsLive do
          put_flash(
            socket,
            :error,
-           "Add at least one itinerary stop below before switching to Trip Scout."
+           dgettext(
+             "settings",
+             "Add at least one itinerary stop below before switching to Trip Scout."
+           )
          )}
 
       true ->
@@ -561,7 +600,13 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply,
          socket
          |> assign(:poet, updated)
-         |> put_flash(:info, "Your poet is repacking for the new mission — ready in ~2 minutes.")}
+         |> put_flash(
+           :info,
+           dgettext(
+             "settings",
+             "Your poet is repacking for the new mission — ready in ~2 minutes."
+           )
+         )}
     end
   end
 
@@ -578,10 +623,18 @@ defmodule TravelingPoetWeb.SettingsLive do
              socket
              |> assign(:stop_query, q)
              |> assign(:stop_results, results)
-             |> assign(:stop_error, if(results == [], do: "No places found."))}
+             |> assign(
+               :stop_error,
+               if(results == [], do: dgettext("settings", "No places found."))
+             )}
 
           {:error, reason} ->
-            {:noreply, assign(socket, :stop_error, "Search failed: #{reason}")}
+            {:noreply,
+             assign(
+               socket,
+               :stop_error,
+               dgettext("settings", "Search failed: %{reason}", reason: reason)
+             )}
         end
     end
   end
@@ -608,7 +661,10 @@ defmodule TravelingPoetWeb.SettingsLive do
     {:noreply,
      socket
      |> assign(:poet, poet)
-     |> put_flash(:info, "#{poet.name} is free to move on with the next run.")}
+     |> put_flash(
+       :info,
+       dgettext("settings", "%{poet} is free to move on with the next run.", poet: poet.name)
+     )}
   end
 
   @impl true
@@ -669,46 +725,74 @@ defmodule TravelingPoetWeb.SettingsLive do
     |> assign(:transactions, Credits.list_transactions(user, 10))
   end
 
-  defp runway_text(nil), do: "Unlimited — this account is exempt from credits."
-  defp runway_text(days) when days < 1, do: "Not enough for tomorrow's entry."
+  defp runway_text(nil),
+    do: dgettext("settings", "Unlimited — this account is exempt from credits.")
+
+  defp runway_text(days) when days < 1,
+    do: dgettext("settings", "Not enough for tomorrow's entry.")
 
   defp runway_text(days),
     do:
-      "≈ #{trunc(days)} #{if trunc(days) == 1, do: "day", else: "days"} of travel at your poet's pace."
+      dngettext(
+        "settings",
+        "≈ %{count} day of travel at your poet's pace.",
+        "≈ %{count} days of travel at your poet's pace.",
+        trunc(days)
+      )
 
-  defp tx_label("grant_signup"), do: "Welcome credits"
-  defp tx_label("grant_referral"), do: "Referral bonus"
-  defp tx_label("grant_grandfather"), do: "Early traveler bonus"
-  defp tx_label("grant_admin"), do: "Bonus credits"
-  defp tx_label("purchase"), do: "Purchase"
-  defp tx_label("debit_daily_run"), do: "Daily journey"
-  defp tx_label("debit_book_compose"), do: "Composed book"
-  defp tx_label("purchase_refund"), do: "Purchase refunded"
-  defp tx_label("refund"), do: "Refund"
-  defp tx_label("admin_adjust"), do: "Adjustment"
+  defp tx_label("grant_signup"), do: dgettext("settings", "Welcome credits")
+  defp tx_label("grant_referral"), do: dgettext("settings", "Referral bonus")
+  defp tx_label("grant_grandfather"), do: dgettext("settings", "Early traveler bonus")
+  defp tx_label("grant_admin"), do: dgettext("settings", "Bonus credits")
+  defp tx_label("purchase"), do: dgettext("settings", "Purchase")
+  defp tx_label("debit_daily_run"), do: dgettext("settings", "Daily journey")
+  defp tx_label("debit_book_compose"), do: dgettext("settings", "Composed book")
+  defp tx_label("purchase_refund"), do: dgettext("settings", "Purchase refunded")
+  defp tx_label("refund"), do: dgettext("settings", "Refund")
+  defp tx_label("admin_adjust"), do: dgettext("settings", "Adjustment")
   defp tx_label(other), do: other
 
-  defp blocker_text(:empty, poet), do: "#{poet.name} has no published pages to bind yet."
-  defp blocker_text(:no_sprite, poet), do: "#{poet.name} is still setting out. Try again soon."
-  defp blocker_text(:already_composing, poet), do: "#{poet.name} is already composing your book."
-  defp blocker_text(:daily_cap, _poet), do: "That is enough books for today. Try again tomorrow."
+  defp blocker_text(:empty, poet),
+    do: dgettext("settings", "%{poet} has no published pages to bind yet.", poet: poet.name)
+
+  defp blocker_text(:no_sprite, poet),
+    do: dgettext("settings", "%{poet} is still setting out. Try again soon.", poet: poet.name)
+
+  defp blocker_text(:already_composing, poet),
+    do: dgettext("settings", "%{poet} is already composing your book.", poet: poet.name)
+
+  defp blocker_text(:daily_cap, _poet),
+    do: dgettext("settings", "That is enough books for today. Try again tomorrow.")
 
   defp blocker_text(:insufficient_credits, _poet),
-    do: "Not enough credits for a composed edition. Top up above."
+    do: dgettext("settings", "Not enough credits for a composed edition. Top up above.")
 
   defp blocker_text(:poet_busy, poet),
-    do: "#{poet.name} is in the middle of something. Try again in a few minutes."
+    do:
+      dgettext("settings", "%{poet} is in the middle of something. Try again in a few minutes.",
+        poet: poet.name
+      )
 
-  defp pdf_blocker_text(:pdf_disabled, _poet), do: "PDFs are not available yet."
-  defp pdf_blocker_text(:empty, poet), do: "#{poet.name} has no published pages to print yet."
-  defp pdf_blocker_text(:no_sprite, poet), do: "#{poet.name} is still setting out."
-  defp pdf_blocker_text(:already_rendering, _poet), do: "A PDF is already being made."
+  defp pdf_blocker_text(:pdf_disabled, _poet),
+    do: dgettext("settings", "PDFs are not available yet.")
+
+  defp pdf_blocker_text(:empty, poet),
+    do: dgettext("settings", "%{poet} has no published pages to print yet.", poet: poet.name)
+
+  defp pdf_blocker_text(:no_sprite, poet),
+    do: dgettext("settings", "%{poet} is still setting out.", poet: poet.name)
+
+  defp pdf_blocker_text(:already_rendering, _poet),
+    do: dgettext("settings", "A PDF is already being made.")
 
   defp pdf_blocker_text(:daily_cap, _poet),
-    do: "That is enough PDFs for today. Try again tomorrow."
+    do: dgettext("settings", "That is enough PDFs for today. Try again tomorrow.")
 
   defp pdf_blocker_text(:poet_busy, poet),
-    do: "#{poet.name} is composing your book. Make the PDF once it is done."
+    do:
+      dgettext("settings", "%{poet} is composing your book. Make the PDF once it is done.",
+        poet: poet.name
+      )
 
   attr :pdf, :map, required: true
   attr :connected, :boolean, required: true
@@ -717,7 +801,7 @@ defmodule TravelingPoetWeb.SettingsLive do
   # the grant gone (reconnect), failed (try again), or not yet.
   defp drive_save(assigns) do
     ~H"""
-    <span class="ml-2" id="drive-save">
+    <span class="ms-2" id="drive-save">
       <a
         :if={@pdf.drive_status == "saved" && @pdf.drive_web_link}
         href={@pdf.drive_web_link}
@@ -726,10 +810,13 @@ defmodule TravelingPoetWeb.SettingsLive do
         class="link"
         id="drive-open"
       >
-        Open in Google Drive
+        {dgettext("settings", "Open in Google Drive")}
       </a>
       <span :if={@pdf.drive_status == "saving"} class="opacity-70" id="drive-saving">
-        <span class="loading loading-dots loading-xs align-middle"></span> Saving to Google Drive
+        <span class="loading loading-dots loading-xs align-middle"></span> {dgettext(
+          "settings",
+          "Saving to Google Drive"
+        )}
       </span>
       <a
         :if={@pdf.drive_status == "failed" && @pdf.drive_error == "reconnect"}
@@ -737,7 +824,7 @@ defmodule TravelingPoetWeb.SettingsLive do
         class="link text-warning"
         id="drive-reconnect"
       >
-        Reconnect Google Drive to save it
+        {dgettext("settings", "Reconnect Google Drive to save it")}
       </a>
       <button
         :if={
@@ -751,8 +838,8 @@ defmodule TravelingPoetWeb.SettingsLive do
         id="drive-save-button"
       >
         {if @pdf.drive_status == "failed",
-          do: "Saving to Drive failed. Try again",
-          else: "Save to Google Drive"}
+          do: dgettext("settings", "Saving to Drive failed. Try again"),
+          else: dgettext("settings", "Save to Google Drive")}
       </button>
     </span>
     """
@@ -763,8 +850,46 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   defp size_label("a5"), do: "A5"
   defp size_label("a4"), do: "A4"
-  defp size_label("letter"), do: "Letter"
+  defp size_label("letter"), do: dgettext("settings", "Letter")
   defp size_label(other), do: other
+
+  # "(1.2 MB, 12 pages, Letter, composed, made Sep 12)" under the download link
+  defp pdf_details(pdf) do
+    values = [
+      size: megabytes(pdf.byte_size),
+      pages: pdf.pages,
+      paper: size_label(pdf.page_size),
+      date: TravelingPoet.Locale.format_date(pdf.rendered_at, :short)
+    ]
+
+    if pdf.variant == "composed",
+      do:
+        dgettext(
+          "settings",
+          "(%{size}, %{pages} pages, %{paper}, composed, made %{date})",
+          values
+        ),
+      else: dgettext("settings", "(%{size}, %{pages} pages, %{paper}, made %{date})", values)
+  end
+
+  # What a day costs, in the mode the poet is in
+  defp daily_cost_text(poet) do
+    amount = Credits.format(Credits.daily_run_cost(poet))
+
+    if Poet.mode(poet) == "scout",
+      do:
+        dgettext(
+          "settings",
+          "Each day's journey costs %{amount} credits (Trip Scout); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate.",
+          amount: amount
+        ),
+      else:
+        dgettext(
+          "settings",
+          "Each day's journey costs %{amount} credit (Wanderer); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate.",
+          amount: amount
+        )
+  end
 
   defp signed(milli) when milli >= 0, do: "+" <> Credits.format(milli)
   defp signed(milli), do: "−" <> Credits.format(-milli)
@@ -774,8 +899,13 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp book_status(%{edition: %{status: "failed"}}), do: :failed
   defp book_status(_book), do: :none
 
-  defp credit_word(1000), do: "credit"
-  defp credit_word(_milli), do: "credits"
+  # "3 credits", "1 credit": a credit count is in milli-credits and may be
+  # fractional, so the word follows the amount itself
+  defp credit_amount(1000 = milli),
+    do: dgettext("settings", "%{amount} credit", amount: Credits.format(milli))
+
+  defp credit_amount(milli),
+    do: dgettext("settings", "%{amount} credits", amount: Credits.format(milli))
 
   defp dollars(cents),
     do: "$#{:erlang.float_to_binary(cents / 100, decimals: 2) |> String.replace(~r/\.00$/, "")}"
@@ -784,8 +914,11 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   defp save_reading(socket, items) do
     case Poets.update_poet(socket.assigns.poet, %{currently_reading: %{"items" => items}}) do
-      {:ok, updated} -> assign(socket, :poet, updated)
-      {:error, _} -> put_flash(socket, :error, "Could not save the reading list.")
+      {:ok, updated} ->
+        assign(socket, :poet, updated)
+
+      {:error, _} ->
+        put_flash(socket, :error, dgettext("settings", "Could not save the reading list."))
     end
   end
 
@@ -840,16 +973,23 @@ defmodule TravelingPoetWeb.SettingsLive do
     changeset
     |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
     |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
-    |> then(&"Could not save the topic: #{&1}.")
+    |> then(&dgettext("settings", "Could not save the topic: %{errors}.", errors: &1))
   end
 
   defp cadence_options,
-    do: [{5, "every 5 days"}, {7, "every week"}, {10, "every 10 days"}, {14, "every two weeks"}]
+    do: [
+      {5, dgettext("settings", "every 5 days")},
+      {7, dgettext("settings", "every week")},
+      {10, dgettext("settings", "every 10 days")},
+      {14, dgettext("settings", "every two weeks")}
+    ]
 
   # What to write under each domain, and a short example that fits in the
   # box on a phone.
   defp taste_hint(domain), do: domain |> Topic.hint() |> elem(0)
-  defp taste_placeholder(domain), do: "e.g. " <> (domain |> Topic.hint() |> elem(1))
+
+  defp taste_placeholder(domain),
+    do: dgettext("settings", "e.g. %{example}", example: domain |> Topic.hint() |> elem(1))
 
   defp parse_domain(value) when is_binary(value),
     do: if(value in Topic.domains(), do: value)
@@ -857,12 +997,18 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp parse_domain(_), do: nil
 
   defp kind_options,
-    do: [{"", "not sure"}, {"professional", "work or study"}, {"personal", "passion"}]
+    do: [
+      {"", dgettext("settings", "not sure")},
+      {"professional", dgettext("settings", "work or study")},
+      {"personal", dgettext("settings", "passion")}
+    ]
 
-  defp topic_status_label(%Topic{status: "proposed"}), do: "proposed by your poet"
-  defp topic_status_label(%Topic{status: "paused"}), do: "paused"
-  defp topic_status_label(%Topic{source: "chat"}), do: "from chat"
-  defp topic_status_label(%Topic{source: "ask"}), do: "from your answer"
+  defp topic_status_label(%Topic{status: "proposed"}),
+    do: dgettext("settings", "proposed by your poet")
+
+  defp topic_status_label(%Topic{status: "paused"}), do: dgettext("settings", "paused")
+  defp topic_status_label(%Topic{source: "chat"}), do: dgettext("settings", "from chat")
+  defp topic_status_label(%Topic{source: "ask"}), do: dgettext("settings", "from your answer")
   defp topic_status_label(_), do: nil
 
   # "last excursion Sep 12, next in 3 days" for an active topic; nothing for
@@ -870,27 +1016,34 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp topic_schedule(%Topic{status: "active"} = topic, poet_name) do
     last =
       case Topics.last_excursion_on(topic) do
-        nil -> "no excursion yet"
-        date -> "last excursion " <> Calendar.strftime(date, "%b %-d")
+        nil ->
+          dgettext("settings", "no excursion yet")
+
+        date ->
+          dgettext("settings", "last excursion %{date}",
+            date: TravelingPoet.Locale.format_date(date, :short)
+          )
       end
 
     next =
       case Topics.days_until_due(topic) do
-        :due -> "next on the first day #{poet_name} stays put"
-        1 -> "next in a day"
-        n -> "next in #{n} days"
+        :due ->
+          dgettext("settings", "next on the first day %{poet} stays put", poet: poet_name)
+
+        n ->
+          dngettext("settings", "next in a day", "next in %{count} days", n)
       end
 
-    last <> ", " <> next
+    dgettext("settings", "%{last}, %{next}", last: last, next: next)
   end
 
   defp topic_schedule(_topic, _poet_name), do: nil
 
   defp verbosity_options do
     [
-      {"brief", "Brief — short postcards, a few lines and a poem"},
-      {"balanced", "Balanced — a paragraph or two per section"},
-      {"expansive", "Expansive — full travel-journal essays"}
+      {"brief", dgettext("settings", "Brief — short postcards, a few lines and a poem")},
+      {"balanced", dgettext("settings", "Balanced — a paragraph or two per section")},
+      {"expansive", dgettext("settings", "Expansive — full travel-journal essays")}
     ]
   end
 
@@ -995,7 +1148,7 @@ defmodule TravelingPoetWeb.SettingsLive do
           phx-value-id={@topic.id}
           class="btn btn-primary btn-xs"
         >
-          Keep
+          {dgettext("settings", "Keep")}
         </button>
         <button
           :if={@topic.status == "proposed"}
@@ -1004,7 +1157,7 @@ defmodule TravelingPoetWeb.SettingsLive do
           phx-value-id={@topic.id}
           class="btn btn-ghost btn-xs"
         >
-          Not this
+          {dgettext("settings", "Not this")}
         </button>
         <button
           :if={@topic.status == "active"}
@@ -1013,7 +1166,7 @@ defmodule TravelingPoetWeb.SettingsLive do
           phx-value-id={@topic.id}
           class="btn btn-ghost btn-xs"
         >
-          Pause
+          {dgettext("settings", "Pause")}
         </button>
         <button
           :if={@topic.status == "paused"}
@@ -1022,7 +1175,7 @@ defmodule TravelingPoetWeb.SettingsLive do
           phx-value-id={@topic.id}
           class="btn btn-ghost btn-xs"
         >
-          Resume
+          {dgettext("settings", "Resume")}
         </button>
         <button
           :if={@topic.status != "proposed"}
@@ -1030,7 +1183,7 @@ defmodule TravelingPoetWeb.SettingsLive do
           phx-click="remove_topic"
           phx-value-id={@topic.id}
           class="btn btn-ghost btn-xs"
-          title="Remove"
+          title={dgettext("settings", "Remove")}
         >
           ✕
         </button>
@@ -1043,15 +1196,15 @@ defmodule TravelingPoetWeb.SettingsLive do
   defp nav_sections(poet) do
     [
       {"poet", poet.name},
-      {"journey", "Journey"},
-      {"trips", "Trips"},
-      {"book", "Your book"},
-      {"topics", "Topics"},
-      {"tastes", "Tastes"},
-      {"learned", "Learned"},
-      {"credits", "Credits"},
-      {"notifications", "Notifications"},
-      {"account", "Account"}
+      {"journey", dgettext("settings", "Journey")},
+      {"trips", dgettext("settings", "Trips")},
+      {"book", dgettext("settings", "Your book")},
+      {"topics", dgettext("settings", "Topics")},
+      {"tastes", dgettext("settings", "Tastes")},
+      {"learned", dgettext("settings", "Learned")},
+      {"credits", dgettext("settings", "Credits")},
+      {"notifications", dgettext("settings", "Notifications")},
+      {"account", dgettext("settings", "Account")}
     ]
   end
 
@@ -1066,12 +1219,14 @@ defmodule TravelingPoetWeb.SettingsLive do
     >
       <div class="mx-auto max-w-5xl px-4 py-8">
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-semibold">Settings</h1>
+          <h1 class="text-2xl font-semibold">{dgettext("settings", "Settings")}</h1>
           <div class="flex items-center gap-1">
             <.link id="take-the-tour" navigate={~p"/journal?tour=1"} class="btn btn-ghost btn-sm">
-              Take the tour
+              {dgettext("settings", "Take the tour")}
             </.link>
-            <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">← Journal</.link>
+            <.link navigate={~p"/journal"} class="btn btn-ghost btn-sm">
+              {dgettext("settings", "← Journal")}
+            </.link>
           </div>
         </div>
 
@@ -1079,10 +1234,14 @@ defmodule TravelingPoetWeb.SettingsLive do
           <.settings_nav sections={nav_sections(@poet)} />
 
           <div class="settings-main">
-            <.settings_section id="poet" title={@poet.name} note="Changes save automatically.">
+            <.settings_section
+              id="poet"
+              title={@poet.name}
+              note={dgettext("settings", "Changes save automatically.")}
+            >
               <form id="poet-settings-form" phx-change="save_poet" class="space-y-4">
                 <label class="block">
-                  <span class="text-sm font-medium">Poet's name</span>
+                  <span class="text-sm font-medium">{dgettext("settings", "Poet's name")}</span>
                   <input
                     type="text"
                     name="poet_name"
@@ -1091,13 +1250,17 @@ defmodule TravelingPoetWeb.SettingsLive do
                     class="input input-bordered w-full mt-1"
                   />
                   <span class="text-xs opacity-50">
-                    Shows in the journal right away; the poet's own introduction updates on
-                    the next repack, and the journal link keeps its current address.
+                    {dgettext(
+                      "settings",
+                      "Shows in the journal right away; the poet's own introduction updates on the next repack, and the journal link keeps its current address."
+                    )}
                   </span>
                 </label>
 
                 <label class="block">
-                  <span class="text-sm font-medium">{@poet.name}'s personality</span>
+                  <span class="text-sm font-medium">
+                    {dgettext("settings", "%{poet}'s personality", poet: @poet.name)}
+                  </span>
                   <textarea
                     name="personality"
                     phx-debounce="750"
@@ -1106,22 +1269,26 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </label>
 
                 <label class="block">
-                  <span class="text-sm font-medium">What you want {@poet.name} to look for</span>
+                  <span class="text-sm font-medium">
+                    {dgettext("settings", "What you want %{poet} to look for", poet: @poet.name)}
+                  </span>
                   <input
                     type="text"
                     name="interests"
                     phx-debounce="750"
                     value={Enum.join(@poet.interests || [], ", ")}
-                    placeholder="street food, bridges, hidden gardens"
+                    placeholder={dgettext("settings", "street food, bridges, hidden gardens")}
                     class="input input-bordered w-full mt-1"
                   />
                   <span class="text-xs opacity-50">
-                    Comma separated. Takes effect on tomorrow's entry.
+                    {dgettext("settings", "Comma separated. Takes effect on tomorrow's entry.")}
                   </span>
                 </label>
 
                 <label class="block">
-                  <span class="text-sm font-medium">Days to stay in each place</span>
+                  <span class="text-sm font-medium">
+                    {dgettext("settings", "Days to stay in each place")}
+                  </span>
                   <input
                     type="number"
                     name="stay_duration_days"
@@ -1135,15 +1302,17 @@ defmodule TravelingPoetWeb.SettingsLive do
 
                 <p :if={@poet.hold_until} class="text-sm flex items-center gap-2">
                   <span>
-                    Staying put through {Calendar.strftime(@poet.hold_until, "%B %-d")}, as you asked in chat.
+                    {dgettext("settings", "Staying put through %{date}, as you asked in chat.",
+                      date: TravelingPoet.Locale.format_date(@poet.hold_until, :month_day)
+                    )}
                   </span>
                   <button type="button" phx-click="release_hold" class="btn btn-ghost btn-xs">
-                    Let it move on
+                    {dgettext("settings", "Let it move on")}
                   </button>
                 </p>
 
                 <label class="block">
-                  <span class="text-sm font-medium">Journal chattiness</span>
+                  <span class="text-sm font-medium">{dgettext("settings", "Journal chattiness")}</span>
                   <select name="verbosity" class="select select-bordered w-full mt-1">
                     <option
                       :for={{value, label} <- verbosity_options()}
@@ -1163,9 +1332,13 @@ defmodule TravelingPoetWeb.SettingsLive do
                     checked={@poet.is_public}
                   />
                   <span>
-                    <b>Public journal</b>
+                    <b>{dgettext("settings", "Public journal")}</b>
                     <span class="block text-sm opacity-60">
-                      Show {@poet.name} on the world map; anyone can read the journal
+                      {dgettext(
+                        "settings",
+                        "Show %{poet} on the world map; anyone can read the journal",
+                        poet: @poet.name
+                      )}
                     </span>
                   </span>
                 </label>
@@ -1177,12 +1350,14 @@ defmodule TravelingPoetWeb.SettingsLive do
                     class="toggle"
                     checked={Map.get(@poet.settings || %{}, "telegram_notify", true)}
                   />
-                  <span>Telegram note when a new entry is published</span>
+                  <span>{dgettext("settings", "Telegram note when a new entry is published")}</span>
                 </label>
               </form>
 
               <div class="mt-5">
-                <span class="text-sm font-medium">What {@poet.name} is reading</span>
+                <span class="text-sm font-medium">
+                  {dgettext("settings", "What %{poet} is reading", poet: @poet.name)}
+                </span>
                 <div class="mt-2">
                   <.book_chips
                     books={@reading_list}
@@ -1201,7 +1376,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                       phx-click="remove_book"
                       phx-value-title={book["title"]}
                       class="btn btn-ghost btn-xs"
-                      title="Remove"
+                      title={dgettext("settings", "Remove")}
                     >
                       ✕
                     </button>
@@ -1214,36 +1389,40 @@ defmodule TravelingPoetWeb.SettingsLive do
                   type="text"
                   name="title"
                   class="input input-bordered input-sm flex-1"
-                  placeholder="Add another book for the road…"
+                  placeholder={dgettext("settings", "Add another book for the road…")}
                 />
-                <button type="submit" class="btn btn-sm">Add</button>
+                <button type="submit" class="btn btn-sm">{dgettext("settings", "Add")}</button>
               </form>
             </.settings_section>
 
-            <.settings_section id="journey" title="Journey">
+            <.settings_section id="journey" title={dgettext("settings", "Journey")}>
               <div class="flex gap-2 mb-3">
                 <button
                   phx-click="switch_mode"
                   phx-value-mode="wander"
                   class={["btn btn-sm flex-1", Poet.mode(@poet) == "wander" && "btn-primary"]}
                 >
-                  🧭 Wanderer
+                  🧭 {dgettext("settings", "Wanderer")}
                 </button>
                 <button
                   phx-click="switch_mode"
                   phx-value-mode="scout"
                   class={["btn btn-sm flex-1", Poet.mode(@poet) == "scout" && "btn-primary"]}
                 >
-                  🗺️ Trip Scout
+                  🗺️ {dgettext("settings", "Trip Scout")}
                 </button>
               </div>
               <p class="text-xs opacity-60 mb-4">
-                Switching missions repacks your poet (~2 minutes). Trip Scouts follow the
-                itinerary below, in order, on a more careful model.
+                {dgettext(
+                  "settings",
+                  "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order, on a more careful model."
+                )}
               </p>
 
               <h3 class="text-sm font-medium mb-2">
-                Trip itinerary {if Poet.mode(@poet) != "scout", do: "(used in Trip Scout mode)"}
+                {if Poet.mode(@poet) != "scout",
+                  do: dgettext("settings", "Trip itinerary (used in Trip Scout mode)"),
+                  else: dgettext("settings", "Trip itinerary")}
               </h3>
               <form phx-submit="search_stop" class="flex gap-2 mb-2">
                 <input
@@ -1251,9 +1430,9 @@ defmodule TravelingPoetWeb.SettingsLive do
                   name="query"
                   value={@stop_query}
                   class="input input-bordered input-sm flex-1"
-                  placeholder="Add a place…"
+                  placeholder={dgettext("settings", "Add a place…")}
                 />
-                <button type="submit" class="btn btn-sm">Search</button>
+                <button type="submit" class="btn btn-sm">{dgettext("settings", "Search")}</button>
               </form>
               <p :if={@stop_error} class="text-error text-xs mb-2">{@stop_error}</p>
               <div :if={@stop_results != []} class="space-y-1 mb-2">
@@ -1261,7 +1440,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   :for={{result, idx} <- Enum.with_index(@stop_results)}
                   phx-click="add_stop"
                   phx-value-idx={idx}
-                  class="btn btn-outline btn-xs w-full justify-start text-left normal-case"
+                  class="btn btn-outline btn-xs w-full justify-start text-start normal-case"
                 >
                   + {result.place_name}
                 </button>
@@ -1274,11 +1453,11 @@ defmodule TravelingPoetWeb.SettingsLive do
                   <span>{if stop.visited_at, do: "✓", else: "#{stop.position + 1}."}</span>
                   <span class={["flex-1", stop.visited_at && "opacity-50 line-through"]}>
                     {stop.place_name}
-                    <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ml-1">
-                      asked in chat
+                    <span :if={stop.source == "chat"} class="badge badge-ghost badge-xs ms-1">
+                      {dgettext("settings", "asked in chat")}
                     </span>
-                    <span :if={stop.source == "trip"} class="badge badge-ghost badge-xs ml-1">
-                      for your trip
+                    <span :if={stop.source == "trip"} class="badge badge-ghost badge-xs ms-1">
+                      {dgettext("settings", "for your trip")}
                     </span>
                   </span>
                   <button
@@ -1291,23 +1470,26 @@ defmodule TravelingPoetWeb.SettingsLive do
                   </button>
                 </li>
               </ol>
-              <p :if={@stops == []} class="text-xs opacity-60 mb-2">No stops yet.</p>
+              <p :if={@stops == []} class="text-xs opacity-60 mb-2">
+                {dgettext("settings", "No stops yet.")}
+              </p>
             </.settings_section>
 
             <.settings_section
               :if={@trips.enabled?}
               id="trips"
-              title="Trips"
-              note="Trips on your calendar, scouted before you go."
+              title={dgettext("settings", "Trips")}
+              note={dgettext("settings", "Trips on your calendar, scouted before you go.")}
             >
               <.trip_settings trips={@trips} user={@user} poet={@poet} />
             </.settings_section>
 
-            <.settings_section id="book" title="Your book">
+            <.settings_section id="book" title={dgettext("settings", "Your book")}>
               <p class="text-sm opacity-70 mb-3">
-                The whole journal as one printable notebook: a chapter for every place,
-                a table of contents, every drawing with what it was drawn from, every
-                source written out. Print it or save it as a PDF from your browser. Free.
+                {dgettext(
+                  "settings",
+                  "The whole journal as one printable notebook: a chapter for every place, a table of contents, every drawing with what it was drawn from, every source written out. Print it or save it as a PDF from your browser. Free."
+                )}
               </p>
               <a
                 href={~p"/journal/book"}
@@ -1315,14 +1497,17 @@ defmodule TravelingPoetWeb.SettingsLive do
                 class="btn btn-outline btn-sm"
                 id="open-book"
               >
-                <.icon name="hero-book-open" class="size-4" /> Open the book
+                <.icon name="hero-book-open" class="size-4" /> {dgettext("settings", "Open the book")}
               </a>
 
               <div :if={@book && @book.pdf_enabled && @book.chapters > 0} class="mt-4" id="book-pdf">
-                <h3 class="text-sm font-medium mb-1">A PDF to keep</h3>
+                <h3 class="text-sm font-medium mb-1">{dgettext("settings", "A PDF to keep")}</h3>
                 <p class="text-sm opacity-70 mb-2">
-                  The book as a PDF file, made on {@poet.name}'s own machine, ready to download,
-                  print or share. Free.
+                  {dgettext(
+                    "settings",
+                    "The book as a PDF file, made on %{poet}'s own machine, ready to download, print or share. Free.",
+                    poet: @poet.name
+                  )}
                 </p>
 
                 <div :if={@book.last_ready_pdf} class="text-sm mb-2" id="book-pdf-ready">
@@ -1331,16 +1516,14 @@ defmodule TravelingPoetWeb.SettingsLive do
                     class="link font-medium"
                     id="book-pdf-download"
                   >
-                    <.icon name="hero-arrow-down-tray" class="size-4" /> Download the PDF
+                    <.icon name="hero-arrow-down-tray" class="size-4" /> {dgettext(
+                      "settings",
+                      "Download the PDF"
+                    )}
                   </a>
                   <.drive_save pdf={@book.last_ready_pdf} connected={@book.drive_connected} />
                   <span class="opacity-60 block">
-                    ({megabytes(@book.last_ready_pdf.byte_size)}, {@book.last_ready_pdf.pages} pages, {size_label(
-                      @book.last_ready_pdf.page_size
-                    )}{if @book.last_ready_pdf.variant == "composed", do: ", composed"}, made {Calendar.strftime(
-                      @book.last_ready_pdf.rendered_at,
-                      "%b %-d"
-                    )})
+                    {pdf_details(@book.last_ready_pdf)}
                   </span>
                 </div>
 
@@ -1350,7 +1533,11 @@ defmodule TravelingPoetWeb.SettingsLive do
                   id="book-pdf-rendering"
                 >
                   <span class="loading loading-dots loading-xs align-middle"></span>
-                  Making your PDF. The first one takes a couple of minutes longer while {@poet.name}'s machine gets ready.
+                  {dgettext(
+                    "settings",
+                    "Making your PDF. The first one takes a couple of minutes longer while %{poet}'s machine gets ready.",
+                    poet: @poet.name
+                  )}
                 </p>
 
                 <p
@@ -1358,7 +1545,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   class="text-sm text-warning mb-2"
                   id="book-pdf-failed"
                 >
-                  The last PDF did not come out. You can try again.
+                  {dgettext("settings", "The last PDF did not come out. You can try again.")}
                 </p>
 
                 <form
@@ -1368,18 +1555,18 @@ defmodule TravelingPoetWeb.SettingsLive do
                   class="flex flex-wrap items-end gap-2"
                 >
                   <label class="text-xs">
-                    <span class="block opacity-70 mb-1">Paper</span>
+                    <span class="block opacity-70 mb-1">{dgettext("settings", "Paper")}</span>
                     <select name="page_size" class="select select-sm">
                       <option value="a5">A5</option>
                       <option value="a4">A4</option>
-                      <option value="letter">Letter</option>
+                      <option value="letter">{size_label("letter")}</option>
                     </select>
                   </label>
                   <label :if={@book.has_composed} class="text-xs">
-                    <span class="block opacity-70 mb-1">Edition</span>
+                    <span class="block opacity-70 mb-1">{dgettext("settings", "Edition")}</span>
                     <select name="variant" class="select select-sm">
-                      <option value="composed">Composed</option>
-                      <option value="plain">As written</option>
+                      <option value="composed">{dgettext("settings", "Composed")}</option>
+                      <option value="plain">{dgettext("settings", "As written")}</option>
                     </select>
                   </label>
                   <button
@@ -1388,11 +1575,13 @@ defmodule TravelingPoetWeb.SettingsLive do
                     disabled={@book.pdf_blocker not in [nil, :poet_busy]}
                     id="make-pdf-button"
                   >
-                    {if @book.last_ready_pdf, do: "Make a new PDF", else: "Make the PDF"}
+                    {if @book.last_ready_pdf,
+                      do: dgettext("settings", "Make a new PDF"),
+                      else: dgettext("settings", "Make the PDF")}
                   </button>
                 </form>
                 <p :if={@book.pdf_blocker == :daily_cap} class="text-xs opacity-70 mt-1">
-                  That is enough PDFs for today. Try again tomorrow.
+                  {dgettext("settings", "That is enough PDFs for today. Try again tomorrow.")}
                 </p>
                 <button
                   :if={@book.drive_connected}
@@ -1401,7 +1590,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                   class="link text-xs opacity-60 mt-2 block"
                   id="disconnect-drive"
                 >
-                  Disconnect Google Drive
+                  {dgettext("settings", "Disconnect Google Drive")}
                 </button>
                 <p :if={@book.pdf_blocker == :no_sprite} class="text-xs opacity-70 mt-1">
                   {@poet.name} is still setting out.
@@ -1409,22 +1598,28 @@ defmodule TravelingPoetWeb.SettingsLive do
               </div>
 
               <div :if={@book && @book.chapters > 0} class="mt-4" id="compose-book">
-                <h3 class="text-sm font-medium mb-1">A composed edition</h3>
+                <h3 class="text-sm font-medium mb-1">{dgettext("settings", "A composed edition")}</h3>
                 <p class="text-sm opacity-70 mb-2">
-                  {@poet.name} writes the words around the journal: a dedication to you,
-                  a foreword, an opening for each place, an epilogue, and a few of its own
-                  lines set on pages of their own. The journal itself is not changed.
+                  {dgettext(
+                    "settings",
+                    "%{poet} writes the words around the journal: a dedication to you, a foreword, an opening for each place, an epilogue, and a few of its own lines set on pages of their own. The journal itself is not changed.",
+                    poet: @poet.name
+                  )}
                 </p>
 
                 <p :if={book_status(@book) == :composing} class="text-sm" id="book-composing">
                   <span class="loading loading-dots loading-xs align-middle"></span>
-                  {@poet.name} is composing your book. It takes a few minutes; this page
-                  updates when it is done.
+                  {dgettext(
+                    "settings",
+                    "%{poet} is composing your book. It takes a few minutes; this page updates when it is done.",
+                    poet: @poet.name
+                  )}
                 </p>
 
                 <p :if={book_status(@book) == :ready} class="text-sm mb-2" id="book-ready">
-                  Composed on {Calendar.strftime(@book.edition.composed_at, "%B %-d")}.
-                  It is in the book now.
+                  {dgettext("settings", "Composed on %{date}. It is in the book now.",
+                    date: TravelingPoet.Locale.format_date(@book.edition.composed_at, :month_day)
+                  )}
                 </p>
 
                 <p
@@ -1432,7 +1627,10 @@ defmodule TravelingPoetWeb.SettingsLive do
                   class="text-sm text-warning mb-2"
                   id="book-failed"
                 >
-                  The last composition did not finish, so nothing was charged for it.
+                  {dgettext(
+                    "settings",
+                    "The last composition did not finish, so nothing was charged for it."
+                  )}
                 </p>
 
                 <button
@@ -1443,22 +1641,22 @@ defmodule TravelingPoetWeb.SettingsLive do
                   id="compose-book-button"
                 >
                   {if book_status(@book) == :ready,
-                    do: "Compose it again",
-                    else: "Ask #{@poet.name} to compose it"}
+                    do: dgettext("settings", "Compose it again"),
+                    else: dgettext("settings", "Ask %{poet} to compose it", poet: @poet.name)}
                   <span class="opacity-80">
                     ({if @book.exempt,
-                      do: "free",
-                      else: "#{Credits.format(@book.cost)} #{credit_word(@book.cost)}"})
+                      do: dgettext("settings", "free"),
+                      else: credit_amount(@book.cost)})
                   </span>
                 </button>
                 <p
                   :if={@book.blocker == :insufficient_credits}
                   class="text-xs text-warning mt-1"
                 >
-                  Not enough credits for a composed edition.
+                  {dgettext("settings", "Not enough credits for a composed edition.")}
                 </p>
                 <p :if={@book.blocker == :daily_cap} class="text-xs opacity-70 mt-1">
-                  That is enough books for today. Try again tomorrow.
+                  {dgettext("settings", "That is enough books for today. Try again tomorrow.")}
                 </p>
                 <p :if={@book.blocker == :no_sprite} class="text-xs opacity-70 mt-1">
                   {@poet.name} is still setting out.
@@ -1466,13 +1664,20 @@ defmodule TravelingPoetWeb.SettingsLive do
               </div>
             </.settings_section>
 
-            <.settings_section id="topics" title={"Topics " <> @poet.name <> " follows for you"}>
+            <.settings_section
+              id="topics"
+              title={dgettext("settings", "Topics %{poet} follows for you", poet: @poet.name)}
+            >
               <p class="text-sm opacity-60 mb-3">
-                Beyond places: a field you work in, a passion you keep. Every so often {@poet.name} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell {@poet.name} in chat, or add one here.
+                {dgettext(
+                  "settings",
+                  "Beyond places: a field you work in, a passion you keep. Every so often %{poet} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell %{poet} in chat, or add one here.",
+                  poet: @poet.name
+                )}
               </p>
 
               <p :if={@topics == []} class="text-sm opacity-50 mb-2">
-                None yet.
+                {dgettext("settings", "None yet.")}
               </p>
 
               <ul class="space-y-2">
@@ -1480,7 +1685,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               </ul>
 
               <div :if={@queued_excursions != []} class="mt-3">
-                <h3 class="text-sm font-medium mb-1">Asked for in chat</h3>
+                <h3 class="text-sm font-medium mb-1">{dgettext("settings", "Asked for in chat")}</h3>
                 <ul id="queued-excursions" class="space-y-1">
                   <li
                     :for={x <- @queued_excursions}
@@ -1489,15 +1694,19 @@ defmodule TravelingPoetWeb.SettingsLive do
                   >
                     <span class="flex-1">
                       {x.requested_destination}
-                      <span class="opacity-60">for {x.topic.label}</span>
+                      <span class="opacity-60">
+                        {dgettext("settings", "for %{topic}", topic: x.topic.label)}
+                      </span>
                     </span>
-                    <span class="text-xs opacity-60">on the next day {@poet.name} stays put</span>
+                    <span class="text-xs opacity-60">
+                      {dgettext("settings", "on the next day %{poet} stays put", poet: @poet.name)}
+                    </span>
                     <button
                       type="button"
                       phx-click="remove_excursion"
                       phx-value-id={x.id}
                       class="btn btn-ghost btn-xs"
-                      title="Remove"
+                      title={dgettext("settings", "Remove")}
                     >
                       ✕
                     </button>
@@ -1510,25 +1719,34 @@ defmodule TravelingPoetWeb.SettingsLive do
                   type="text"
                   name="label"
                   class="input input-bordered input-sm w-full"
-                  placeholder="Add a topic, like kit airplanes or embodied minds"
+                  placeholder={
+                    dgettext("settings", "Add a topic, like kit airplanes or embodied minds")
+                  }
                 />
                 <div class="flex gap-2">
                   <select name="kind" class="select select-bordered select-sm flex-1">
                     <option :for={{value, label} <- kind_options()} value={value}>{label}</option>
                   </select>
-                  <button type="submit" class="btn btn-sm">Add</button>
+                  <button type="submit" class="btn btn-sm">{dgettext("settings", "Add")}</button>
                 </div>
               </form>
             </.settings_section>
 
-            <.settings_section id="tastes" title={"Tastes " <> @poet.name <> " looks for"}>
+            <.settings_section
+              id="tastes"
+              title={dgettext("settings", "Tastes %{poet} looks for", poet: @poet.name)}
+            >
               <p class="text-sm opacity-60 mb-3">
-                Tell {@poet.name} what you love in each of these, in your own words. On a taste's day, {@poet.name} goes looking for new things that fit it and brings back a few, each with why it chose them.
+                {dgettext(
+                  "settings",
+                  "Tell %{poet} what you love in each of these, in your own words. On a taste's day, %{poet} goes looking for new things that fit it and brings back a few, each with why it chose them.",
+                  poet: @poet.name
+                )}
               </p>
 
               <div class="space-y-4">
                 <div :for={domain <- Topic.domains()} id={"tastes-#{domain}"}>
-                  <h3 class="text-sm font-medium">{Topic.domain_name(domain)}</h3>
+                  <h3 class="text-sm font-medium">{Topic.domain_label(domain)}</h3>
                   <p class="text-xs opacity-60 mb-1">{taste_hint(domain)}</p>
                   <ul :if={@tastes[domain]} class="space-y-2 mb-2">
                     <.topic_row
@@ -1545,19 +1763,30 @@ defmodule TravelingPoetWeb.SettingsLive do
                       class="input input-bordered input-sm flex-1 min-w-0"
                       placeholder={taste_placeholder(domain)}
                     />
-                    <button type="submit" class="btn btn-sm">Add</button>
+                    <button type="submit" class="btn btn-sm">{dgettext("settings", "Add")}</button>
                   </form>
                 </div>
               </div>
             </.settings_section>
 
-            <.settings_section id="learned" title={"What " <> @poet.name <> " has learned about you"}>
+            <.settings_section
+              id="learned"
+              title={dgettext("settings", "What %{poet} has learned about you", poet: @poet.name)}
+            >
               <p class="text-sm opacity-60 mb-3">
-                Picked up from what you tap under an entry and what you say in chat. {@poet.name} applies these on its own — remove anything that isn't right.
+                {dgettext(
+                  "settings",
+                  "Picked up from what you tap under an entry and what you say in chat. %{poet} applies these on its own — remove anything that isn't right.",
+                  poet: @poet.name
+                )}
               </p>
 
               <p :if={@learned == []} class="text-sm opacity-50">
-                Nothing yet. Answer a question under an entry, or just tell {@poet.name} in chat what you'd rather read about.
+                {dgettext(
+                  "settings",
+                  "Nothing yet. Answer a question under an entry, or just tell %{poet} in chat what you'd rather read about.",
+                  poet: @poet.name
+                )}
               </p>
 
               <ul class="space-y-2">
@@ -1567,11 +1796,13 @@ defmodule TravelingPoetWeb.SettingsLive do
                 >
                   <div class="flex-1">
                     <div class="text-sm">
-                      <span :if={pref.polarity == "avoid"} class="opacity-60">less: </span>{pref.label}
+                      <span :if={pref.polarity == "avoid"} class="opacity-60">{dgettext("settings", "less:")} </span>{pref.label}
                     </div>
                     <div class="text-xs opacity-50">
                       {source_label(pref.source)}
-                      <span :if={pref.weight > 1}>· mentioned {pref.weight}×</span>
+                      <span :if={pref.weight > 1}>
+                        · {dgettext("settings", "mentioned %{n}×", n: pref.weight)}
+                      </span>
                       <span :if={pref.evidence["quote"]} class="italic">
                         · &ldquo;{pref.evidence["quote"]}&rdquo;
                       </span>
@@ -1581,7 +1812,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                     phx-click="dismiss_preference"
                     phx-value-id={pref.id}
                     class="btn btn-ghost btn-xs"
-                    title="Remove"
+                    title={dgettext("settings", "Remove")}
                   >
                     ✕
                   </button>
@@ -1589,12 +1820,18 @@ defmodule TravelingPoetWeb.SettingsLive do
               </ul>
 
               <div id="lingering" class="mt-5 border-t border-base-200 pt-4">
-                <h3 class="font-medium mb-1">Subjects you linger on</h3>
+                <h3 class="font-medium mb-1">{dgettext("settings", "Subjects you linger on")}</h3>
                 <p class="text-sm opacity-60 mb-3">
-                  From the topics and tastes you keep, the passages you mark, the entries you react to and the paragraphs you read through. Recent signals count most.
+                  {dgettext(
+                    "settings",
+                    "From the topics and tastes you keep, the passages you mark, the entries you react to and the paragraphs you read through. Recent signals count most."
+                  )}
                 </p>
                 <p :if={@affinity == []} class="text-sm opacity-50">
-                  Nothing yet. Read your journal, mark what catches you, and this fills in.
+                  {dgettext(
+                    "settings",
+                    "Nothing yet. Read your journal, mark what catches you, and this fills in."
+                  )}
                 </p>
                 <.taste_map :if={@affinity != []} profile={@affinity} />
                 <ul :if={@affinity_top != []} class="mt-3 space-y-1" id="lingering-list">
@@ -1606,7 +1843,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                       phx-click="dismiss_subject"
                       phx-value-path={s.path}
                       class="btn btn-ghost btn-xs"
-                      title="Not really me"
+                      title={dgettext("settings", "Not really me")}
                     >
                       ✕
                     </button>
@@ -1614,7 +1851,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </ul>
                 <details :if={@affinity_dismissed != []} class="mt-2" id="lingering-removed">
                   <summary class="text-xs opacity-50 cursor-pointer">
-                    Removed ({length(@affinity_dismissed)})
+                    {dgettext("settings", "Removed (%{n})", n: length(@affinity_dismissed))}
                   </summary>
                   <ul class="mt-2 space-y-1">
                     <li
@@ -1627,7 +1864,7 @@ defmodule TravelingPoetWeb.SettingsLive do
                         phx-value-path={s.path}
                         class="btn btn-ghost btn-xs"
                       >
-                        restore
+                        {dgettext("settings", "restore")}
                       </button>
                     </li>
                   </ul>
@@ -1645,9 +1882,13 @@ defmodule TravelingPoetWeb.SettingsLive do
                     checked={@user.reading_signals}
                   />
                   <span>
-                    <b>Learn from how I read</b>
+                    <b>{dgettext("settings", "Learn from how I read")}</b>
                     <span class="block text-sm opacity-60">
-                      Notes how long you spend on each paragraph of your own journal, so {@poet.name} learns which subjects you linger on. Only on your journal, only for you. Turning it off forgets what was noted.
+                      {dgettext(
+                        "settings",
+                        "Notes how long you spend on each paragraph of your own journal, so %{poet} learns which subjects you linger on. Only on your journal, only for you. Turning it off forgets what was noted.",
+                        poet: @poet.name
+                      )}
                     </span>
                   </span>
                 </label>
@@ -1655,7 +1896,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
               <details :if={@dismissed != []} class="mt-3">
                 <summary class="text-xs opacity-50 cursor-pointer">
-                  Removed ({length(@dismissed)})
+                  {dgettext("settings", "Removed (%{n})", n: length(@dismissed))}
                 </summary>
                 <ul class="mt-2 space-y-1">
                   <li :for={pref <- @dismissed} class="flex items-center gap-2 text-sm opacity-60">
@@ -1665,29 +1906,26 @@ defmodule TravelingPoetWeb.SettingsLive do
                       phx-value-id={pref.id}
                       class="btn btn-ghost btn-xs"
                     >
-                      restore
+                      {dgettext("settings", "restore")}
                     </button>
                   </li>
                 </ul>
               </details>
             </.settings_section>
 
-            <.settings_section id="credits" title="Credits">
+            <.settings_section id="credits" title={dgettext("settings", "Credits")}>
               <div class="flex items-baseline gap-3">
                 <span class="text-3xl font-semibold" id="credits-balance">
                   {Credits.format(@balance)}
                 </span>
-                <span class="text-sm opacity-60">credits</span>
+                <span class="text-sm opacity-60">{dgettext("settings", "credits")}</span>
               </div>
               <p class={["text-sm mt-1", @credits_low && "text-warning"]}>{runway_text(@runway)}</p>
               <p :if={@credits_exhausted} class="text-sm text-error mt-1">
-                Your poet is resting until you top up.
+                {dgettext("settings", "Your poet is resting until you top up.")}
               </p>
               <p class="text-xs opacity-60 mt-2 mb-3">
-                Each day's journey costs {Credits.format(Credits.daily_run_cost(@poet))}
-                {if Poet.mode(@poet) == "scout", do: "credits (Trip Scout)", else: "credit (Wanderer)"};
-                chatting and drawings are included. Days spent scouting one of your own
-                trips cost the Trip Scout rate.
+                {daily_cost_text(@poet)}
               </p>
 
               <%!-- Card checkout, never inside the iOS app: Apple requires its own
@@ -1706,7 +1944,9 @@ defmodule TravelingPoetWeb.SettingsLive do
                   />
                   <input type="hidden" name="pack" value={pack.id} />
                   <button type="submit" class="btn btn-outline btn-sm w-full flex-col h-auto py-2">
-                    <span class="font-semibold">{pack.credits} credits</span>
+                    <span class="font-semibold">
+                      {dgettext("settings", "%{n} credits", n: pack.credits)}
+                    </span>
                     <span class="text-xs opacity-70">{dollars(pack.cents)}</span>
                   </button>
                 </form>
@@ -1728,16 +1968,18 @@ defmodule TravelingPoetWeb.SettingsLive do
                 <p class="text-xs opacity-60 mt-2" data-role="status" aria-live="polite"></p>
               </div>
               <p :if={@payments_mock and !@native_app} class="text-xs text-warning mb-3">
-                Payments are in test mode — purchases are mocked and free.
+                {dgettext("settings", "Payments are in test mode — purchases are mocked and free.")}
               </p>
 
               <details :if={@transactions != []} class="text-sm">
-                <summary class="cursor-pointer opacity-70">Recent activity</summary>
+                <summary class="cursor-pointer opacity-70">
+                  {dgettext("settings", "Recent activity")}
+                </summary>
                 <ul class="mt-2 space-y-1">
                   <li :for={tx <- @transactions} class="flex justify-between gap-2">
                     <span>{tx_label(tx.kind)}</span>
                     <span class="opacity-60 text-xs">
-                      {Calendar.strftime(tx.inserted_at, "%b %-d")}
+                      {TravelingPoet.Locale.format_date(tx.inserted_at, :short)}
                     </span>
                     <span class={["tabular-nums", tx.amount < 0 && "opacity-70"]}>
                       {signed(tx.amount)}
@@ -1747,7 +1989,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               </details>
             </.settings_section>
 
-            <.settings_section id="notifications" title="Notifications">
+            <.settings_section id="notifications" title={dgettext("settings", "Notifications")}>
               <form id="email-notify-form" phx-change="toggle_email" class="mb-4">
                 <input type="hidden" name="email_notify" value="false" />
                 <label class="flex items-center gap-3">
@@ -1759,9 +2001,14 @@ defmodule TravelingPoetWeb.SettingsLive do
                     checked={@user.email_notify}
                   />
                   <span>
-                    <b>Email me each new page</b>
+                    <b>{dgettext("settings", "Email me each new page")}</b>
                     <span class="block text-sm opacity-60">
-                      One email a day, only when {@poet.name} publishes a new page, with its drawing. To {@user.email}.
+                      {dgettext(
+                        "settings",
+                        "One email a day, only when %{poet} publishes a new page, with its drawing. To %{email}.",
+                        poet: @poet.name,
+                        email: @user.email
+                      )}
                     </span>
                   </span>
                 </label>
@@ -1772,10 +2019,10 @@ defmodule TravelingPoetWeb.SettingsLive do
               <.telegram_settings telegram={@telegram} user={@user} poet={@poet} />
             </.settings_section>
 
-            <.settings_section id="account" title="Account">
+            <.settings_section id="account" title={dgettext("settings", "Account")}>
               <form id="user-settings-form" phx-change="save_user" class="mb-4">
                 <label class="block">
-                  <span class="text-sm font-medium">Your name</span>
+                  <span class="text-sm font-medium">{dgettext("settings", "Your name")}</span>
                   <input
                     type="text"
                     name="name"
@@ -1783,33 +2030,75 @@ defmodule TravelingPoetWeb.SettingsLive do
                     value={@user.name}
                     class="input input-bordered w-full mt-1"
                   />
-                  <span class="text-xs opacity-50">How {@poet.name} addresses you.</span>
+                  <span class="text-xs opacity-50">
+                    {dgettext("settings", "How %{poet} addresses you.", poet: @poet.name)}
+                  </span>
                 </label>
               </form>
 
-              <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm mt-4">Sign out</a>
+              <form id="locale-form" phx-change="set_locale" class="mb-4">
+                <label class="block">
+                  <span class="text-sm font-medium">{dgettext("settings", "Language")}</span>
+                  <select name="locale" class="select select-bordered w-full mt-1">
+                    <option
+                      :for={locale <- TravelingPoet.Locale.supported()}
+                      value={locale}
+                      lang={locale}
+                      selected={@user.locale == locale}
+                    >
+                      {TravelingPoet.Locale.native_name(locale)}
+                    </option>
+                  </select>
+                  <span class="text-xs opacity-50">
+                    {dgettext(
+                      "settings",
+                      "The app's language, and the one %{poet} writes in from its next page.",
+                      poet: @poet.name
+                    )}
+                  </span>
+                </label>
+              </form>
+
+              <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm mt-4">
+                {dgettext("settings", "Sign out")}
+              </a>
 
               <p class="text-xs opacity-60 mt-4">
-                <.link navigate={~p"/privacy"} class="link">Privacy policy</.link>
-                · <.link navigate={~p"/terms"} class="link">Terms of service</.link>
-                · <.link navigate={~p"/support"} class="link">Support</.link>
+                <.link navigate={~p"/privacy"} class="link">
+                  {dgettext("settings", "Privacy policy")}
+                </.link>
+                ·
+                <.link navigate={~p"/terms"} class="link">
+                  {dgettext("settings", "Terms of service")}
+                </.link>
+                ·
+                <.link navigate={~p"/support"} class="link">{dgettext("settings", "Support")}</.link>
               </p>
 
               <details id="delete-account" class="mt-6 border-t border-base-300 pt-4">
-                <summary class="cursor-pointer text-sm text-error">Delete account</summary>
+                <summary class="cursor-pointer text-sm text-error">
+                  {dgettext("settings", "Delete account")}
+                </summary>
                 <div class="mt-3 text-sm space-y-3">
                   <p>
-                    This deletes your account and everything in it, now and for good: {if @poet,
-                      do: @poet.name,
-                      else: "your poet"}, every journal entry and
-                    drawing, the trip guide, your chat, your credits, and the connections
-                    to Google, Apple and Telegram. A public journal stops being readable.
-                    Nothing can be restored afterwards, and unused credits are not refunded.
+                    {dgettext(
+                      "settings",
+                      "This deletes your account and everything in it, now and for good: %{poet}, every journal entry and drawing, the trip guide, your chat, your credits, and the connections to Google, Apple and Telegram. A public journal stops being readable. Nothing can be restored afterwards, and unused credits are not refunded.",
+                      poet: if(@poet, do: @poet.name, else: dgettext("settings", "your poet"))
+                    )}
                   </p>
                   <form id="delete-account-form" phx-submit="delete_account" class="space-y-2">
                     <label class="block">
                       <span class="text-sm">
-                        To confirm, type the email address of this account, <b>{@user.email}</b>
+                        <.rich text={
+                          dgettext(
+                            "settings",
+                            "To confirm, type the email address of this account, %{email}",
+                            email: marker(:email)
+                          )
+                        }>
+                          <:part name="email"><b>{@user.email}</b></:part>
+                        </.rich>
                       </span>
                       <input
                         type="email"
@@ -1824,9 +2113,9 @@ defmodule TravelingPoetWeb.SettingsLive do
                     <button
                       type="submit"
                       class="btn btn-error btn-sm"
-                      phx-disable-with="Deleting..."
+                      phx-disable-with={dgettext("settings", "Deleting...")}
                     >
-                      Delete my account for good
+                      {dgettext("settings", "Delete my account for good")}
                     </button>
                   </form>
                 </div>
@@ -1837,7 +2126,13 @@ defmodule TravelingPoetWeb.SettingsLive do
 
         <div :if={is_nil(@poet)} class="max-w-xl">
           <p class="opacity-70">
-            No poet yet — <.link navigate={~p"/onboarding"} class="link">set one up</.link>.
+            <.rich text={dgettext("settings", "No poet yet — %{link}.", link: marker(:link))}>
+              <:part name="link">
+                <.link navigate={~p"/onboarding"} class="link">
+                  {dgettext("settings", "set one up")}
+                </.link>
+              </:part>
+            </.rich>
           </p>
         </div>
       </div>

@@ -1,0 +1,322 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} of %{poet}'s places within a ten-minute walk"
+msgstr "%{count} מהמקומות של %{poet} במרחק עשר דקות הליכה"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} of %{poet}'s places within a ten-minute walk, in %{area}"
+msgstr "%{count} מהמקומות של %{poet} במרחק עשר דקות הליכה, ב-%{area}"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place to eat"
+msgid_plural "%{count} places to eat"
+msgstr[0] "מקום אוכל אחד"
+msgstr[1] "%{count} מקומות אוכל"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} shop"
+msgid_plural "%{count} shops"
+msgstr[0] "חנות אחת"
+msgstr[1] "%{count} חנויות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} sight"
+msgid_plural "%{count} sights"
+msgstr[0] "אתר אחד"
+msgstr[1] "%{count} אתרים"
+
+#, elixir-autogen, elixir-format
+msgid "%{finds} worth your time."
+msgstr "שווה לכם לבדוק: %{finds}."
+
+#, elixir-autogen, elixir-format
+msgid "%{n} min"
+msgstr "%{n} דק׳"
+
+#, elixir-autogen, elixir-format
+msgid "%{n} sec"
+msgstr "%{n} שנ׳"
+
+#, elixir-autogen, elixir-format
+msgid "%{per_night} a night, %{total} in all"
+msgstr "%{per_night} ללילה, %{total} בסך הכול"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick"
+msgstr "הבחירה של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{rating} guest rating"
+msgstr "דירוג אורחים %{rating}"
+
+#, elixir-autogen, elixir-format
+msgid "%{rating} guest rating, %{reviews} reviews"
+msgstr "דירוג אורחים %{rating}, ביקורות: %{reviews}"
+
+#, elixir-autogen, elixir-format
+msgid "%{source} ↗"
+msgstr "%{source} ↖"
+
+#, elixir-autogen, elixir-format
+msgid "%{stops} on the map."
+msgstr "%{stops} על המפה."
+
+#, elixir-autogen, elixir-format
+msgid "%{stops}, %{mapped} on the map."
+msgstr "%{stops}, %{mapped} מהן על המפה."
+
+#, elixir-autogen, elixir-format
+msgid "%{topic}: %{destinations}"
+msgstr "%{topic}: %{destinations}"
+
+#, elixir-autogen, elixir-format
+msgid "%{topic}: no excursions yet"
+msgstr "%{topic}: עדיין אין גיחות"
+
+#, elixir-autogen, elixir-format
+msgid ", then "
+msgstr ", ואז "
+
+#, elixir-autogen, elixir-format
+msgid "A day off the road"
+msgstr "יום מחוץ למסלול"
+
+#, elixir-autogen, elixir-format
+msgid "A quiet page. The drawing says it all today."
+msgstr "עמוד שקט. היום הציור אומר הכול."
+
+#, elixir-autogen, elixir-format
+msgid "All %{count} %{places} in %{where} →"
+msgstr "כל המקומות ב-%{where} (%{count}) ←"
+
+#, elixir-autogen, elixir-format
+msgid "All %{count} %{places} in the guide →"
+msgstr "כל המקומות במדריך (%{count}) ←"
+
+#, elixir-autogen, elixir-format
+msgid "Chat"
+msgstr "צ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Check in"
+msgstr "כניסה"
+
+#, elixir-autogen, elixir-format
+msgid "Check out"
+msgstr "יציאה"
+
+#, elixir-autogen, elixir-format
+msgid "Check-out has to come after check-in."
+msgstr "תאריך היציאה צריך להיות אחרי תאריך הכניסה."
+
+#, elixir-autogen, elixir-format
+msgid "Could not reach our booking partner just now. Try again in a moment."
+msgstr "לא הצלחנו להגיע לשותף ההזמנות שלנו כרגע. נסו שוב בעוד רגע."
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr "יום %{n}"
+
+#, elixir-autogen, elixir-format
+msgid "Drawn from %{sources}"
+msgstr "צויר לפי %{sources}"
+
+#, elixir-autogen, elixir-format
+msgid "Each ring is about a ten-minute walk across."
+msgstr "כל עיגול הוא בערך עשר דקות הליכה מקצה לקצה."
+
+#, elixir-autogen, elixir-format
+msgid "Everything from excursions into %{topic} →"
+msgstr "כל המציאות מגיחות בנושא %{topic} ←"
+
+#, elixir-autogen, elixir-format
+msgid "Everything from excursions into this topic →"
+msgstr "כל המציאות מגיחות בנושא הזה ←"
+
+#, elixir-autogen, elixir-format
+msgid "Excursion: %{topic}"
+msgstr "גיחה: %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "Find hotels"
+msgstr "חיפוש מלונות"
+
+#, elixir-autogen, elixir-format
+msgid "For you:"
+msgstr "בשבילכם:"
+
+#, elixir-autogen, elixir-format
+msgid "Guests"
+msgstr "אורחים"
+
+#, elixir-autogen, elixir-format
+msgid "Hide the chat"
+msgstr "הסתרת הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "Hotel search is not switched on yet."
+msgstr "חיפוש המלונות עוד לא פעיל."
+
+#, elixir-autogen, elixir-format
+msgid "Hotels for your dates"
+msgstr "מלונות לתאריכים שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr "יומן"
+
+#, elixir-autogen, elixir-format
+msgid "Listen"
+msgstr "האזנה"
+
+#, elixir-autogen, elixir-format
+msgid "Listen, %{length}"
+msgstr "האזנה, %{length}"
+
+#, elixir-autogen, elixir-format
+msgid "Listen, about %{length}"
+msgstr "האזנה, בערך %{length}"
+
+#, elixir-autogen, elixir-format
+msgid "Looking..."
+msgstr "מחפשים..."
+
+#, elixir-autogen, elixir-format
+msgid "No excursions yet."
+msgstr "עדיין אין גיחות."
+
+#, elixir-autogen, elixir-format
+msgid "No finds logged for this excursion."
+msgstr "לא נרשמו מציאות בגיחה הזאת."
+
+#, elixir-autogen, elixir-format
+msgid "No places logged for this day. The guide has the rest of the trip."
+msgstr "לא נרשמו מקומות ביום הזה. שאר הטיול נמצא במדריך."
+
+#, elixir-autogen, elixir-format
+msgid "No rooms found for those dates."
+msgstr "לא נמצאו חדרים בתאריכים האלה."
+
+#, elixir-autogen, elixir-format
+msgid "Nothing to take home today."
+msgstr "היום אין מה לקחת הביתה."
+
+#, elixir-autogen, elixir-format
+msgid "Nowhere in particular today."
+msgstr "שום מקום מיוחד היום."
+
+#, elixir-autogen, elixir-format
+msgid "Open %{name}"
+msgstr "פתיחת %{name}"
+
+#, elixir-autogen, elixir-format
+msgid "Open %{name}'s page"
+msgstr "לעמוד של %{name}"
+
+#, elixir-autogen, elixir-format
+msgid "Open the guide →"
+msgstr "פתחו את המדריך ←"
+
+#, elixir-autogen, elixir-format
+msgid "Pages of this entry"
+msgstr "הכפולות של העמוד הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Play"
+msgstr "ניגון"
+
+#, elixir-autogen, elixir-format
+msgid "Prices from our booking partner, for your dates. Booking through these links supports Traveling Poet."
+msgstr "המחירים משותף ההזמנות שלנו, לתאריכים שלכם. הזמנה דרך הקישורים האלה תומכת ב-Traveling Poet."
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, a few seconds"
+msgstr "מקריאים את העמוד, כמה שניות"
+
+#, elixir-autogen, elixir-format
+msgid "See rooms and book ↗"
+msgstr "לחדרים ולהזמנה ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Show the chat"
+msgstr "הצגת הצ'אט"
+
+#, elixir-autogen, elixir-format
+msgid "The catch:"
+msgstr "החיסרון:"
+
+#, elixir-autogen, elixir-format
+msgid "The journey so far"
+msgstr "המסע עד עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} brought back"
+msgstr "המציאות של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Where %{poet} would send you"
+msgstr "ההמלצות של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr "איפה לישון"
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay in %{city}"
+msgstr "איפה לישון ב-%{city}"
+
+#, elixir-autogen, elixir-format
+msgid "Within a ten-minute walk: %{places}"
+msgstr "במרחק עשר דקות הליכה: %{places}"
+
+#, elixir-autogen, elixir-format
+msgid "Written from %{place}."
+msgstr "נכתב ב-%{place}."
+
+#, elixir-autogen, elixir-format
+msgid "You asked for this one in chat."
+msgstr "את הגיחה הזאת ביקשתם בצ'אט."
+
+#, elixir-autogen, elixir-format
+msgid "an excursion"
+msgstr "גיחה"
+
+#, elixir-autogen, elixir-format
+msgid "illustration"
+msgstr "ציור"
+
+#, elixir-autogen, elixir-format
+msgid "later →"
+msgstr "מאוחר יותר ←"
+
+#, elixir-autogen, elixir-format
+msgid "see the real place"
+msgstr "למקום האמיתי"
+
+#, elixir-autogen, elixir-format
+msgid "the real place"
+msgstr "המקום האמיתי"
+
+#, elixir-autogen, elixir-format
+msgid "topic"
+msgstr "נושא"
+
+#, elixir-autogen, elixir-format
+msgid "← earlier"
+msgstr "→ מוקדם יותר"
+
+#, elixir-autogen, elixir-format
+msgid "this topic"
+msgstr "הנושא הזה"

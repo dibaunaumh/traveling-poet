@@ -1,0 +1,192 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{date} around %{time} UTC"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{dates}. Should %{poet} scout it first? Tap to decide."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} finished composing your book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has a question for you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s own words are bound into your journal now. Open it to read."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{question}\n\n(%{poet}. Just reply here.)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "(…the poet trailed off mid-thought. Ask again to pick up the thread.)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A new journal entry is waiting."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A new page from %{poet} each day."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A trip to %{trip} is on your calendar"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Couldn't reach your poet just now — try again in a minute."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet} in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}, an excursion into %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}: %{hook}\n%{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Hello! To pair this chat with your traveling poet, use the pairing link from the app's onboarding or settings page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Now %{dates}. %{poet} sets out on %{departure}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Or listen, about %{count} minutes: %{url}"
+msgid_plural "Or listen, about %{count} minutes: %{url}"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Read today's page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read today's page: %{url}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Stop these emails"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Stop these emails: %{url}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tap to download it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That pairing link has expired or was already used — please generate a fresh one from the app."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This chat isn't paired yet — grab a pairing link from the app to meet your poet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your book with %{poet} is ready as a PDF"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first? Decide here: %{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is out of credits — top up in Settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is resting until tomorrow (daily limit reached)."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is still packing — check the app."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your traveling poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your trip to %{trip} is now %{dates}; %{poet} will set out on %{departure}. %{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your trip to %{trip} moved"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a new entry from %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a new entry from the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "an excursion into %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "or listen, about %{count} minutes"
+msgid_plural "or listen, about %{count} minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "…the poet seems lost in thought. Try again in a bit?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "⏳ %{poet} has about %{credits} credits left — a few days of travel. Top up: %{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "✒️ Paired! %{poet} can now write to you here, and anything you send lands in your chat with them."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "💤 %{poet} has run out of credits and is resting. Top up: %{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "📄 The PDF of your book with %{poet} is ready to download.\n%{link}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "📖 %{poet} has finished composing your book.\n%{link}"
+msgstr ""

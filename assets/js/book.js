@@ -12,6 +12,7 @@
 //   never whatever a browser extension injected;
 // - a failure leaves the flowing document readable and says so in the
 //   toolbar, instead of a blank page.
+import {t} from "./strings"
 import "./book_config.js"
 import "../vendor/pagedjs/paged.polyfill.js"
 
@@ -110,13 +111,13 @@ const layOut = async () => {
     const flow = await previewer.preview(source.content, styles.sheets, document.body)
     document.body.dataset.bookRendered = "true"
     document.body.dataset.bookPages = String(flow.total)
-    done(`${flow.total} pages`)
+    done(t("book_pages", "{count} pages", {count: flow.total}))
   } catch (e) {
     console.error("book: pagination failed, printing the flowing page instead", e)
     if (styles) styles.restore()
     if (!document.getElementById("book")) document.body.prepend(book)
     document.body.dataset.bookRendered = "failed"
-    done("Page numbers unavailable")
+    done(t("book_no_pages", "Page numbers unavailable"))
   }
 }
 

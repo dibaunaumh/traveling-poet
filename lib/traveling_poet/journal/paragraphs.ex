@@ -55,7 +55,16 @@ defmodule TravelingPoet.Journal.Paragraphs do
     do:
       :crypto.hash(:sha256, normalize(text)) |> Base.encode16(case: :lower) |> binary_part(0, 16)
 
-  defp normalize(text), do: text |> String.replace(~r/\s+/u, " ") |> String.trim()
+  # Invisible direction marks (LRM, RLM, embeddings and overrides) are
+  # dropped first: a Hebrew page may carry them in its source or gain them on
+  # the way to the screen, and the browser's key (reading_time_hook.js) must
+  # come out the same (card-101).
+  defp normalize(text) do
+    text
+    |> String.replace(~r/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u, "")
+    |> String.replace(~r/\s+/u, " ")
+    |> String.trim()
+  end
 
   # What a reader sees of a node: text and code as written, a line break as
   # a space, an image as nothing (it renders as an <img>, not as text).

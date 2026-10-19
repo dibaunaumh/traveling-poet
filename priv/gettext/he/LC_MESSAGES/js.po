@@ -1,0 +1,156 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} pages"
+msgstr "%{count} עמודים"
+
+#, elixir-autogen, elixir-format
+msgid "%{elapsed} of %{total}"
+msgstr "%{elapsed} מתוך %{total}"
+
+#, elixir-autogen, elixir-format
+msgid "%{label} (tap for options)"
+msgstr "%{label} (הקישו לאפשרויות)"
+
+#, elixir-autogen, elixir-format
+msgid "%{label} (this passage has since changed). Tap for options."
+msgstr "%{label} (הקטע הזה השתנה מאז). הקישו לאפשרויות."
+
+#, elixir-autogen, elixir-format
+msgid "%{label}. Tap for options."
+msgstr "%{label}. הקישו לאפשרויות."
+
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "ביטול"
+
+#, elixir-autogen, elixir-format
+msgid "Copied"
+msgstr "הועתק"
+
+#, elixir-autogen, elixir-format
+msgid "Copy link"
+msgstr "העתקת קישור"
+
+#, elixir-autogen, elixir-format
+msgid "Could not copy"
+msgstr "לא הצלחנו להעתיק"
+
+#, elixir-autogen, elixir-format
+msgid "Edit"
+msgstr "עריכה"
+
+#, elixir-autogen, elixir-format
+msgid "Page numbers unavailable"
+msgstr "מספרי העמודים לא זמינים"
+
+#, elixir-autogen, elixir-format
+msgid "Pause"
+msgstr "השהיה"
+
+#, elixir-autogen, elixir-format
+msgid "Play"
+msgstr "ניגון"
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, a few seconds"
+msgstr "העמוד מוקרא, עוד כמה שניות"
+
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr "הסרה"
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr "שמירה"
+
+#, elixir-autogen, elixir-format
+msgid "Tell your poet"
+msgstr "ספרו למשורר"
+
+#, elixir-autogen, elixir-format
+msgid "The recording would not play. Try again in a moment."
+msgstr "לא הצלחנו לנגן את ההקלטה. נסו שוב עוד רגע."
+
+#, elixir-autogen, elixir-format
+msgid "What would you change, or want more of?"
+msgstr "מה הייתם משנים, או רוצים יותר ממנו?"
+
+#, elixir-autogen, elixir-format
+msgid "Write it"
+msgstr "כתבו"
+
+#, elixir-autogen, elixir-format
+msgid "no note yet"
+msgstr "עדיין אין הערה"
+
+#, elixir-autogen, elixir-format
+msgid "sent to your poet"
+msgstr "נשלח למשורר"
+
+#, elixir-autogen, elixir-format
+msgid "waiting to be sent"
+msgstr "ממתין לשליחה"
+
+#, elixir-autogen, elixir-format
+msgid "%{month} %{day}"
+msgstr "%{day} ב%{month}"
+
+#, elixir-autogen, elixir-format
+msgid "All subjects"
+msgstr "כל הנושאים"
+
+#, elixir-autogen, elixir-format
+msgid "Credit packs are not available right now."
+msgstr "חבילות הקרדיטים לא זמינות כרגע."
+
+#, elixir-autogen, elixir-format
+msgid "Find"
+msgstr "מציאה"
+
+#, elixir-autogen, elixir-format
+msgid "How to lay it out"
+msgstr "איך לסדר"
+
+#, elixir-autogen, elixir-format
+msgid "Nothing here yet."
+msgstr "עדיין אין כאן כלום."
+
+#, elixir-autogen, elixir-format
+msgid "Shelf"
+msgstr "מדף"
+
+#, elixir-autogen, elixir-format
+msgid "Show everything"
+msgstr "להציג הכול"
+
+#, elixir-autogen, elixir-format
+msgid "Subjects"
+msgstr "נושאים"
+
+#, elixir-autogen, elixir-format
+msgid "Tiles"
+msgstr "אריחים"
+
+#, elixir-autogen, elixir-format
+msgid "View details ↗"
+msgstr "לפרטים ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr "המשורר שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "found by %{count} poets"
+msgstr "%{count} משוררים מצאו"

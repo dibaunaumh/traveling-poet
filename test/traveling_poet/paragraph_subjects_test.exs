@@ -27,6 +27,13 @@ defmodule TravelingPoet.ParagraphSubjectsTest do
     assert Paragraphs.of_markdown("Day 4.\n\n" <> @two) |> length() == 1
   end
 
+  test "a key ignores invisible direction marks, as the browser's does" do
+    hebrew = "הגשר הישן מעל הנהר, ו-Pont Neuf ממול"
+
+    assert Paragraphs.key("\u200F" <> hebrew <> "\u200E") == Paragraphs.key(hebrew)
+    assert Paragraphs.key("\u2067" <> hebrew <> "\u2069") == Paragraphs.key(hebrew)
+  end
+
   test "prose sections only, in reading order; a poem is left out" do
     sections = [
       %{kind: "poem", position: 0, body: @two <> " (a stanza)"},

@@ -1,0 +1,812 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save that setting."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Language"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The app's language, and the one %{poet} writes in from its next page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "last excursion %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "no excursion yet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{amount} credit"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{amount} credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{last}, %{next}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{n} credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has no published pages to bind yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has no published pages to print yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is already composing your book."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is composing your book. It takes a few minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is composing your book. It takes a few minutes; this page updates when it is done."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is composing your book. Make the PDF once it is done."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is free to move on with the next run."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is in the middle of something. Try again in a few minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is still setting out."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is still setting out. Try again soon."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} writes the words around the journal: a dedication to you, a foreword, an opening for each place, an epilogue, and a few of its own lines set on pages of their own. The journal itself is not changed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s personality"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{topic} (%{subject}): away"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{topic} (%{subject}): toward"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "(%{size}, %{pages} pages, %{paper}, composed, made %{date})"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "(%{size}, %{pages} pages, %{paper}, made %{date})"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A PDF is already being made."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A PDF to keep"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A composed edition"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Account"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add a place…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add a topic, like kit airplanes or embodied minds"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add another book for the road…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add at least one itinerary stop below before switching to Trip Scout."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Adjustment"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "As written"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Ask %{poet} to compose it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Asked for in chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Balanced — a paragraph or two per section"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Beyond places: a field you work in, a passion you keep. Every so often %{poet} takes a day off the road for an excursion into one of these, a conference, a festival, a lab, a company, and writes back about it. Tell %{poet} in chat, or add one here."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Bonus credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Brief — short postcards, a few lines and a poem"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Changes save automatically."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Comma separated. Takes effect on tomorrow's entry."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Compose it again"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Composed"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Composed book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Composed on %{date}. It is in the book now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save the reading list."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save the topic: %{errors}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save your name."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Credits added. Happy travels!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Daily journey"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Days to stay in each place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Delete account"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Delete my account for good"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Deleting..."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Disconnect Google Drive"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Download the PDF"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Each day's journey costs %{amount} credit (Wanderer); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Each day's journey costs %{amount} credits (Trip Scout); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Early traveler bonus"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Edition"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Email me each new page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Expansive — full travel-journal essays"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From the topics and tastes you keep, the passages you mark, the entries you react to and the paragraphs you read through. Recent signals count most."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google Drive disconnected. Files already saved there stay yours."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "How %{poet} addresses you."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journal chattiness"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journey"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Keep"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Learn from how I read"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Learned"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Let it move on"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Letter"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Make a new PDF"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Make the PDF"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Making your PDF. It takes a minute or two."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Making your PDF. The first one takes a couple of minutes longer while %{poet}'s machine gets ready."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No places found."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No poet yet — %{link}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No stops yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "None yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not enough credits for a composed edition."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not enough credits for a composed edition. Top up above."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not enough for tomorrow's entry."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not really me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not this"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notes how long you spend on each paragraph of your own journal, so %{poet} learns which subjects you linger on. Only on your journal, only for you. Turning it off forgets what was noted."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing yet. Answer a question under an entry, or just tell %{poet} in chat what you'd rather read about."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing yet. Read your journal, mark what catches you, and this fills in."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One email a day, only when %{poet} publishes a new page, with its drawing. To %{email}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open in Google Drive"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open the book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "PDFs are not available yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Paper"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pause"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Payments are in test mode — purchases are mocked and free."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Picked up from what you tap under an entry and what you say in chat. %{poet} applies these on its own — remove anything that isn't right."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Poet's name"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Privacy policy"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Public journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Purchase"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Purchase refunded"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Recent activity"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reconnect Google Drive to save it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Referral bonus"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Refund"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Removed (%{n})"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Resume"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save to Google Drive"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Saving to Drive failed. Try again"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Saving to Google Drive"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Search failed: %{reason}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Settings"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Show %{poet} on the world map; anyone can read the journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Shows in the journal right away; the poet's own introduction updates on the next repack, and the journal link keeps its current address."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Staying put through %{date}, as you asked in chat."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Subjects you linger on"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Support"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order, on a more careful model."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Take the tour"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tastes"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tastes %{poet} looks for"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram note when a new entry is published"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell %{poet} what you love in each of these, in your own words. On a taste's day, %{poet} goes looking for new things that fit it and brings back a few, each with why it chose them."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Terms of service"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That PDF cannot be saved right now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That is enough PDFs for today. Try again tomorrow."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That is enough books for today. Try again tomorrow."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That is not this account's email address. Nothing was deleted."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The account could not be deleted just now. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The book as a PDF file, made on %{poet}'s own machine, ready to download, print or share. Free."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The last PDF did not come out. You can try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The last composition did not finish, so nothing was charged for it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The whole journal as one printable notebook: a chapter for every place, a table of contents, every drawing with what it was drawn from, every source written out. Print it or save it as a PDF from your browser. Free."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This deletes your account and everything in it, now and for good: %{poet}, every journal entry and drawing, the trip guide, your chat, your credits, and the connections to Google, Apple and Telegram. A public journal stops being readable. Nothing can be restored afterwards, and unused credits are not refunded."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "To confirm, type the email address of this account, %{email}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Topics"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Topics %{poet} follows for you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trip Scout"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trip itinerary"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trip itinerary (used in Trip Scout mode)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trips"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trips on your calendar, scouted before you go."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Unlimited — this account is exempt from credits."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Wanderer"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Welcome credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} has learned about you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} is reading"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What you want %{poet} to look for"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your name"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is repacking for the new mission — ready in ~2 minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is resting until you top up."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your subjects on the map of everything the poets write about"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "asked in chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "credits"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "e.g. %{example}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "every 10 days"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "every 5 days"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "every two weeks"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "every week"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "for %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "for your trip"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "free"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from your answer"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from your markers"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from your reaction"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from your setup"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "leaning away"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "leaning toward"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "learned"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "less:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "mentioned %{n}×"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "next in a day"
+msgid_plural "next in %{count} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "next on the first day %{poet} stays put"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "not sure"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "on the next day %{poet} stays put"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "passion"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "paused"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "proposed by your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "restore"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "set one up"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "street food, bridges, hidden gardens"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "work or study"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "you said this in chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "you set this"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "you tapped this"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "← Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "≈ %{count} day of travel at your poet's pace."
+msgid_plural "≈ %{count} days of travel at your poet's pace."
+msgstr[0] ""
+msgstr[1] ""

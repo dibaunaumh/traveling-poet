@@ -13,6 +13,8 @@ defmodule TravelingPoet.WebPush do
   the whole feature reports itself as unconfigured and the UI stays hidden.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Ecto.Query
   require Logger
 
@@ -168,7 +170,7 @@ defmodule TravelingPoet.WebPush do
   @doc "What the device shows when the poet asks something. Pure, for tests."
   def question_payload(poet, ask) do
     %{
-      title: "#{poet.name} has a question for you",
+      title: dgettext("notify", "%{poet} has a question for you", poet: poet.name),
       body: ask.question,
       url: "/journal?chat=1",
       tag: "ask-#{ask.id}",
@@ -179,11 +181,13 @@ defmodule TravelingPoet.WebPush do
   @doc "What the device shows when a planned trip moved. Pure, for tests."
   def trip_changed_payload(poet, trip) do
     %{
-      title: "Your trip to #{trip.name} moved",
+      title: dgettext("notify", "Your trip to %{trip} moved", trip: trip.name),
       body:
-        "Now #{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}. " <>
-          "#{poet.name} sets out on " <>
-          "#{TravelingPoet.Trips.date_range(trip.scout_from, trip.scout_from)}.",
+        dgettext("notify", "Now %{dates}. %{poet} sets out on %{departure}.",
+          dates: TravelingPoet.Trips.date_range(trip.start_date, trip.end_date),
+          poet: poet.name,
+          departure: TravelingPoet.Trips.date_range(trip.scout_from, trip.scout_from)
+        ),
       url: "/settings#trips",
       tag: "trip-#{trip.id}",
       icon: "/images/icon-192.png"
@@ -193,10 +197,12 @@ defmodule TravelingPoet.WebPush do
   @doc "What the device shows when a trip was found on the calendar. Pure, for tests."
   def trip_suggested_payload(poet, trip) do
     %{
-      title: "A trip to #{trip.name} is on your calendar",
+      title: dgettext("notify", "A trip to %{trip} is on your calendar", trip: trip.name),
       body:
-        "#{TravelingPoet.Trips.date_range(trip.start_date, trip.end_date)}. " <>
-          "Should #{poet.name} scout it first? Tap to decide.",
+        dgettext("notify", "%{dates}. Should %{poet} scout it first? Tap to decide.",
+          dates: TravelingPoet.Trips.date_range(trip.start_date, trip.end_date),
+          poet: poet.name
+        ),
       url: "/settings#trips",
       tag: "trip-#{trip.id}",
       icon: "/images/icon-192.png"
@@ -206,8 +212,8 @@ defmodule TravelingPoet.WebPush do
   @doc "What the device shows when a PDF of the book is ready. Pure, for tests."
   def book_pdf_payload(poet, pdf_id) do
     %{
-      title: "Your book with #{poet.name} is ready as a PDF",
-      body: "Tap to download it.",
+      title: dgettext("notify", "Your book with %{poet} is ready as a PDF", poet: poet.name),
+      body: dgettext("notify", "Tap to download it."),
       url: "/journal/book/pdf/#{pdf_id}",
       tag: "book-pdf-#{pdf_id}",
       icon: "/images/icon-192.png"
@@ -221,6 +227,9 @@ defmodule TravelingPoet.WebPush do
   # (`TravelingPoet.Apns`): the app is a web view, which has no Web Push, so
   # the same note takes Apple's road there. One set of payload builders, two
   # transports.
+  #
+  # Nothing set a language for a background sender, so the payload is built
+  # in the owner's own (`users.locale`).
   defp notify_user(user_id, build_payload) do
     subs = if configured?(), do: list_subscriptions(%{id: user_id}), else: []
     devices = TravelingPoet.Apns.list_devices(user_id)
@@ -228,7 +237,7 @@ defmodule TravelingPoet.WebPush do
     if subs == [] and devices == [] do
       {0, 0}
     else
-      payload = build_payload.()
+      payload = TravelingPoet.Locale.with_locale(locale_of(user_id), build_payload)
 
       web =
         Enum.reduce(subs, {0, 0}, fn sub, {sent, pruned} ->
@@ -244,6 +253,13 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  defp locale_of(user_id) do
+    case TravelingPoet.Accounts.get_user(user_id) do
+      %{locale: locale} -> locale
+      _ -> nil
+    end
+  end
+
   @doc """
   What the device shows when a composed edition is ready, pure so it can be
   tested. Opens the book itself; the tag is per edition, so a second
@@ -251,8 +267,13 @@ defmodule TravelingPoet.WebPush do
   """
   def book_ready_payload(poet, edition_id) do
     %{
-      title: "#{poet.name} finished composing your book",
-      body: "#{poet.name}'s own words are bound into your journal now. Open it to read.",
+      title: dgettext("notify", "%{poet} finished composing your book", poet: poet.name),
+      body:
+        dgettext(
+          "notify",
+          "%{poet}'s own words are bound into your journal now. Open it to read.",
+          poet: poet.name
+        ),
       url: "/journal/book",
       tag: "book-#{edition_id}",
       icon: "/images/icon-192.png"
@@ -271,11 +292,26 @@ defmodule TravelingPoet.WebPush do
     %{
       title:
         cond do
-          excursion -> "Day #{day} · #{poet.name}, an excursion into #{excursion}"
-          where -> "Day #{day} · #{poet.name} in #{where}"
-          true -> "Day #{day} · #{poet.name}"
+          excursion ->
+            dgettext("notify", "Day %{day} · %{poet}, an excursion into %{topic}",
+              day: day,
+              poet: poet.name,
+              topic: excursion
+            )
+
+          where ->
+            dgettext("notify", "Day %{day} · %{poet} in %{place}",
+              day: day,
+              poet: poet.name,
+              place: where
+            )
+
+          true ->
+            dgettext("notify", "Day %{day} · %{poet}", day: day, poet: poet.name)
         end,
-      body: present(entry.teaser) || present(entry.title) || "A new journal entry is waiting.",
+      body:
+        present(entry.teaser) || present(entry.title) ||
+          dgettext("notify", "A new journal entry is waiting."),
       url: "/journal/#{entry.entry_date}",
       tag: "entry-#{entry.id}",
       icon: "/images/icon-192.png"

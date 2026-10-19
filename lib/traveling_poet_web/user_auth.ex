@@ -5,6 +5,8 @@ defmodule TravelingPoetWeb.UserAuth do
 
   use TravelingPoetWeb, :verified_routes
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Plug.Conn
   import Phoenix.Controller
 
@@ -77,7 +79,7 @@ defmodule TravelingPoetWeb.UserAuth do
       conn
     else
       conn
-      |> put_flash(:error, "You must log in to access this page.")
+      |> put_flash(:error, gettext("You must log in to access this page."))
       |> redirect(to: ~p"/")
       |> halt()
     end
@@ -133,7 +135,7 @@ defmodule TravelingPoetWeb.UserAuth do
   defp ensure_authenticated_redirect(socket) do
     socket =
       socket
-      |> Phoenix.LiveView.put_flash(:error, "You must log in to access this page.")
+      |> Phoenix.LiveView.put_flash(:error, gettext("You must log in to access this page."))
       |> Phoenix.LiveView.redirect(to: ~p"/")
 
     {:halt, socket}
@@ -154,12 +156,32 @@ defmodule TravelingPoetWeb.UserAuth do
         credits_low?(socket.assigns[:current_user])
       end)
 
+    socket = put_locale(socket, session)
+
     # The iOS app, by its User-Agent (see Plugs.NativeApp). On the first
     # render this comes from the plug's assign; over the socket, from the
     # `:user_agent` connect_info.
     Phoenix.Component.assign_new(socket, :native_app, fn ->
       socket |> Phoenix.LiveView.get_connect_info(:user_agent) |> NativeApp.native?()
     end)
+  end
+
+  # A LiveView is its own process, so the plug's Gettext locale does not
+  # reach it: set it again, from the reader's own setting, else from what
+  # Plugs.Locale left in the session for a visitor.
+  defp put_locale(socket, session) do
+    locale =
+      case socket.assigns[:current_user] do
+        %{locale: locale} when is_binary(locale) -> TravelingPoet.Locale.normalize(locale)
+        _ -> TravelingPoet.Locale.normalize(session["locale"])
+      end || TravelingPoet.Locale.default()
+
+    Gettext.put_locale(TravelingPoetWeb.Gettext, locale)
+
+    Phoenix.Component.assign(socket,
+      locale: locale,
+      dir: TravelingPoet.Locale.dir(locale)
+    )
   end
 
   @doc "Whether the signed-in user is running low on credits (nil-safe)."

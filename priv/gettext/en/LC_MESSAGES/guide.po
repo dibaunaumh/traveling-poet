@@ -1,0 +1,1001 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{from} to %{to}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "until %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} artwork"
+msgid_plural "%{count} artworks"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} event"
+msgid_plural "%{count} events"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} find"
+msgid_plural "%{count} finds"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} idea"
+msgid_plural "%{count} ideas"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place"
+msgid_plural "%{count} places"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} product"
+msgid_plural "%{count} products"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} work"
+msgid_plural "%{count} works"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{kind} at %{destination}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{kind} in %{city}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} did not get back. Try again in a while."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} goes back out for a few more around %{place}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has not written about this stop yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} hasn't mapped out this trip's guide yet — it fills in as the journal grows."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is done looking around."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is in the middle of something. Try again in a few minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is looking around %{place}. New places land here in a minute or two."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is out of credits. Top up in Settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is resting until tomorrow (daily limit reached)."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} sets out for %{trip} now; there is not enough time for a full stay at every stop before you go."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will scout %{trip} for your trip, setting out on %{date}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s own rating — not a review score"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick: %{rating} of 5"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s trip guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}: %{reply}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}’s guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}’s pick: %{rating} of 5"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{things}, in order"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid ", then "
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "All"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "All destinations"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Also brought back %{things}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Also found by %{poets}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Anyone with this link sees these places:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Art, music, books, films"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Artwork"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Artworks"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Asking %{poet}…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Attraction"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Book ahead"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Cafe"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Call it off"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Change your home city"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Check now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Checking your calendar."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connect Google Calendar"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connect your Google Calendar and %{poet} will notice the trips on it and offer to scout them before you go. Only your primary calendar is read, and only the dates and places of trips are kept, never what an event says."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connected, last checked %{ago}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Connected."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Data"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n} in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Days"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Disconnect Google Calendar"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Discover"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Dish"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Download the places file"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Draw the route on the map"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Earlier:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Event"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Events"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Events and venues"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Every excursion into %{topic}, and what it brought back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Every poet's notes on it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Everything"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Everything the poets have found, in Discover →"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Excursion"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Excursion %{n} into %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Excursion of %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Film or series"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Find"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Finds you saved"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Food"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Found by %{poets}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Found on your calendar"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From %{poet}'s journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From the page %{poet} wrote there"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From your journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google Calendar disconnected. Trips already planned stay planned."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google will ask you to allow reading your calendar, alongside anything you have already allowed, such as Google Drive."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Google would not let the poet read your calendar. Try reconnecting."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Grey dots are poets whose journals are private."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Here is where %{poet} sets out from. Yours will be the first poet on the road."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Home"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "How to look"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Ideas"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "In %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Itinerary"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Its stops are on the itinerary above."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Keep"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Kept. %{poet} still goes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Landmark"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Latest page:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "List"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Map"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "More about %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "More places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Music"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No excursions into %{topic} yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No longer on your calendar. Still going?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No places found."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No poets on the road yet. The first ones are still lacing their boots."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No upcoming trips found yet. Trips need a place and at least two days, or a booking Gmail put on your calendar."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not found"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not this trip"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved under this filter"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved yet. Tap Save on a place or find, here, in any public guide, or in Discover."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing under this filter."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One place couldn't be put on the map — it's still in the list."
+msgid_plural "%{count} places couldn't be put on the map — they're still in the list."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Open %{hours}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open %{my_maps}, create a map, and choose Import with that file."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open %{poet}’s journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open in %{poet}’s guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open in Google Maps"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open in Google Maps ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Other"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Outdoors"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pages"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Paper"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Person"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pick a pin to see the place you saved."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pick a pin to see what %{poet} said about it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pick your home city first."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places and finds you saved, from any poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places, food and events for %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places, food and events from %{poet}'s travels"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Plan my days"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Planned"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Poets"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Previous page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Product"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Products"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Put these places in Google Maps"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read the entry"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read the page it came from"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read this page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reconnect"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Related"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Restaurant"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Route"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Routes"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save to your guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Saved"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Saved on Traveling Poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Saved. Tap to remove"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Scout this trip"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Search failed: %{reason}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See this subject in the village"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Session"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Share this list with friends"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Shop"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Show on the map"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sights"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Still gathering recommendations"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Stop sharing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Subjects"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Talk"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Talks and papers"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That journal doesn't exist or isn't public."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The connection to your calendar has lapsed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The last check failed; it will be tried again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The trip to %{trip} is called off."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trip guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Venue"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "View details ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Viewpoint"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Village"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Walk it in Google Maps ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} brought back from excursions into %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What the poets wrote"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What to show"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where do you set out from? A trip is time spent far from here."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Works"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "World"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar was checked a few minutes ago. Try again later."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your home city"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your saved places fit in %{count} day, so the rest are free."
+msgid_plural "Your saved places fit in %{count} days, so the rest are free."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Your saved places, grouped by part of town and in walking order: coffee first, dinner last."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a later edition of"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a traveling poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "about"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "artwork"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "at"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "attraction"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "brought back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "brought back from %{destination}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "cafe"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "commemorates"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "dates updated"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "dish"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "encounter"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "ended"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "event"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "found."
+msgid_plural "found."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "here:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "idea"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "includes"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "just now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "landmark"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "made"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "made by"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "now in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "on the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "on the road,"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "other"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "part of"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "person"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "planned"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "product"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "read the entry"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "recommends"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "remembered by"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "restaurant"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "returned as"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "scouting from %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "scouting now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "shop"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the subject of"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "updated"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "viewpoint"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "work"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "written,"
+msgid_plural "written,"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} d ago"
+msgid_plural "%{count} d ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} h ago"
+msgid_plural "%{count} h ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} min ago"
+msgid_plural "%{count} min ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgctxt "save button"
+msgid "Saved"
+msgstr ""

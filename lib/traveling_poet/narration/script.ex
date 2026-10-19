@@ -35,8 +35,17 @@ defmodule TravelingPoet.Narration.Script do
     :crypto.hash(:sha256, text) |> Base.encode16(case: :lower)
   end
 
-  @doc "Reading time at a narrator's pace, in seconds (about 14 characters a second on the 2026-10-15 samples)."
-  def estimated_seconds(text) when is_binary(text), do: max(div(String.length(text), 14), 1)
+  @doc """
+  Reading time at a narrator's pace, in seconds: about 14 characters a
+  second in English (the 2026-10-15 samples) and 11 in Hebrew, whose
+  unvoweled letters each carry more sound (the 2026-10-18 samples).
+  """
+  def estimated_seconds(text, language \\ "en")
+
+  def estimated_seconds(text, "he") when is_binary(text), do: max(div(String.length(text), 11), 1)
+
+  def estimated_seconds(text, _language) when is_binary(text),
+    do: max(div(String.length(text), 14), 1)
 
   defp title_line(entry) do
     case present(entry.title) do

@@ -35,7 +35,8 @@ defmodule TravelingPoetWeb.AppleAuthController do
     with true <- Apple.configured?() || {:error, :not_configured},
          {:ok, identity} <- IdentityToken.verify(token, raw_nonce),
          new? = is_nil(Accounts.get_user_by_apple_id(identity.sub)),
-         {:ok, user} <- Accounts.find_or_create_from_oauth(:apple, user_info(identity, params)) do
+         {:ok, user} <-
+           Accounts.find_or_create_from_oauth(:apple, user_info(conn, identity, params)) do
       user = keep_refresh_token(user, params["authorization_code"])
 
       Analytics.record(%{
@@ -50,7 +51,7 @@ defmodule TravelingPoetWeb.AppleAuthController do
         Logger.warning("Sign in with Apple refused: #{refusal(reason)}")
 
         conn
-        |> put_flash(:error, "That sign-in did not go through. Please try again.")
+        |> put_flash(:error, gettext("That sign-in did not go through. Please try again."))
         |> redirect(to: ~p"/")
     end
   end
@@ -64,8 +65,10 @@ defmodule TravelingPoetWeb.AppleAuthController do
   # A "Hide My Email" relay address is unique to this app, so it can never be
   # the address of an existing account; saying so keeps it from ever being
   # used to link one.
-  defp user_info(identity, params) do
+  defp user_info(conn, identity, params) do
     %{
+      # Kept only when the account is new (Plugs.Locale picked it)
+      "locale" => conn.assigns[:locale],
       "sub" => identity.sub,
       "email" => identity.email,
       "email_verified" => identity.email_verified and not identity.private_relay,

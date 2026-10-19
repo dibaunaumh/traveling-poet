@@ -13,8 +13,10 @@ defmodule TravelingPoet.Books.Manuscript do
   the pages already read.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   alias TravelingPoet.Books.{Index, Sources, Urls}
-  alias TravelingPoet.{Guide, Journal}
+  alias TravelingPoet.{Guide, Journal, Locale}
 
   defmodule Day do
     @moduledoc false
@@ -166,7 +168,7 @@ defmodule TravelingPoet.Books.Manuscript do
     %Chapter{
       number: n,
       stay: stay,
-      title: stay.place_name || "On the road",
+      title: stay.place_name || dgettext("book", "On the road"),
       from: first.date,
       to: List.last(days).date,
       anchor: chapter_anchor(n),
@@ -181,18 +183,24 @@ defmodule TravelingPoet.Books.Manuscript do
 
   # Only the dates: the wordmark above the title already says what it is,
   # and a cover subtitle that wraps crowds the drawing off the page.
-  defp subtitle(nil, _finish), do: "A journal"
+  defp subtitle(nil, _finish), do: dgettext("journal", "A journal")
 
   defp subtitle(%Date{} = start, %Date{} = finish) do
     cond do
       start.year == finish.year and start.month == finish.month ->
-        Calendar.strftime(start, "%B %Y")
+        Locale.format_date(start, :month_year)
 
       start.year == finish.year ->
-        "#{Calendar.strftime(start, "%B")} to #{Calendar.strftime(finish, "%B %Y")}"
+        dgettext("journal", "%{from} to %{to}",
+          from: Locale.format_date(start, :month),
+          to: Locale.format_date(finish, :month_year)
+        )
 
       true ->
-        "#{Calendar.strftime(start, "%B %Y")} to #{Calendar.strftime(finish, "%B %Y")}"
+        dgettext("journal", "%{from} to %{to}",
+          from: Locale.format_date(start, :month_year),
+          to: Locale.format_date(finish, :month_year)
+        )
     end
   end
 

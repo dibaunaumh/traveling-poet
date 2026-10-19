@@ -11,11 +11,16 @@ defmodule TravelingPoetWeb.RouteComponents do
   use TravelingPoetWeb, :html
 
   attr :diagram, :map, required: true, doc: "from Topics.Route.build/4"
-  attr :title, :string, default: "The journey so far"
-  attr :empty, :string, default: "No excursions yet."
+  attr :title, :string, default: nil, doc: "defaults to \"The journey so far\""
+  attr :empty, :string, default: nil, doc: "defaults to \"No excursions yet.\""
   attr :rest, :global
 
   def excursion_route(assigns) do
+    assigns =
+      assigns
+      |> update(:title, &(&1 || dgettext("notebook", "The journey so far")))
+      |> update(:empty, &(&1 || dgettext("notebook", "No excursions yet.")))
+
     ~H"""
     <figure class="route-figure" {@rest}>
       <svg
@@ -48,7 +53,7 @@ defmodule TravelingPoetWeb.RouteComponents do
             y={@diagram.root.y + 18}
             class="route-root-kicker"
           >
-            topic
+            {dgettext("notebook", "topic")}
           </text>
         </g>
 
@@ -123,10 +128,13 @@ defmodule TravelingPoetWeb.RouteComponents do
   defp route_label(diagram) do
     case diagram.destinations do
       [] ->
-        "#{diagram.root.label}: no excursions yet"
+        dgettext("notebook", "%{topic}: no excursions yet", topic: diagram.root.label)
 
       destinations ->
-        "#{diagram.root.label}: " <> Enum.map_join(destinations, ", then ", & &1.label)
+        dgettext("notebook", "%{topic}: %{destinations}",
+          topic: diagram.root.label,
+          destinations: Enum.map_join(destinations, dgettext("notebook", ", then "), & &1.label)
+        )
     end
   end
 end

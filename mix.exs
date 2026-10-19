@@ -11,7 +11,10 @@ defmodule TravelingPoet.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      # No file:line comments in priv/gettext: they would churn with every
+      # edit and trip precommit's gettext.extract --check-up-to-date
+      gettext: [write_reference_comments: false]
     ]
   end
 
@@ -102,7 +105,15 @@ defmodule TravelingPoet.MixProject do
         "esbuild traveling_poet --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      # gettext.extract --check-up-to-date fails when a string changed in the
+      # code but not in priv/gettext (TranslationsTest then checks the Hebrew)
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "gettext.extract --check-up-to-date",
+        "test"
+      ]
     ]
   end
 end

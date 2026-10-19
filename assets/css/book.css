@@ -95,13 +95,13 @@ body.book .notebook-day {
   font-weight: 600;
   font-size: 1.25rem;
   color: #8c7454;
-  margin-right: 0.5rem;
+  margin-inline-end: 0.5rem;
   white-space: nowrap;
 }
 
 body.book .notebook-day::after {
   content: "\00b7";
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
   opacity: 0.6;
 }
 
@@ -130,12 +130,12 @@ body.book .prose blockquote {
 
 body.book .prose ul,
 body.book .prose ol {
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 
 body.book .prose blockquote {
-  padding-left: 1rem;
-  border-left: 2px solid rgba(140, 120, 90, 0.4);
+  padding-inline-start: 1rem;
+  border-inline-start: 2px solid rgba(140, 120, 90, 0.4);
   color: #6b5b40;
 }
 
@@ -197,20 +197,20 @@ body.book .taped-photo::after {
   width: 5.5rem;
   height: 1.6rem;
   background: rgba(255, 244, 200, 0.6);
-  border-left: 1px dashed rgba(160, 140, 90, 0.3);
-  border-right: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-start: 1px dashed rgba(160, 140, 90, 0.3);
+  border-inline-end: 1px dashed rgba(160, 140, 90, 0.3);
   box-shadow: 0 1px 2px rgba(60, 45, 20, 0.15);
 }
 
 body.book .taped-photo::before {
   top: -0.8rem;
-  left: -1.5rem;
+  inset-inline-start: -1.5rem;
   transform: rotate(-38deg);
 }
 
 body.book .taped-photo::after {
   top: -0.8rem;
-  right: -1.5rem;
+  inset-inline-end: -1.5rem;
   transform: rotate(38deg);
 }
 
@@ -501,7 +501,7 @@ body.book .book-author-temperament {
 body.book .book-author-facts {
   margin: 1.5rem auto 0;
   max-width: 26em;
-  text-align: left;
+  text-align: start;
   font-size: 11pt;
   line-height: 1.5;
 }
@@ -519,7 +519,7 @@ body.book .book-author-facts dt {
   font-weight: 600;
   font-size: 13pt;
   color: #8c7454;
-  text-align: right;
+  text-align: end;
 }
 
 body.book .book-author-facts dd {
@@ -566,14 +566,14 @@ body.book .book-prose-page .book-matter p:first-child::first-letter {
   font-weight: 700;
   font-size: 2.6em;
   line-height: 1;
-  float: left;
-  margin: 0.1rem 0.4rem 0 0;
+  float: inline-start;
+  margin-block: 0.1rem 0; margin-inline: 0 0.4rem;
   color: #2f2a1e;
 }
 
 body.book .book-signature {
   margin-top: 1.5rem;
-  text-align: right;
+  text-align: end;
   font-family: "Caveat", cursive;
   font-weight: 600;
   font-size: 16pt;
@@ -636,7 +636,7 @@ body.book .book-toc .toc-chapter > a {
 }
 
 body.book .book-toc .toc-days {
-  margin: 0.25rem 0 0 1.25rem;
+  margin-block: 0.25rem 0; margin-inline: 1.25rem 0;
 }
 
 body.book .book-toc a {
@@ -696,7 +696,7 @@ body.book .book-chapter .book-chapter-dates {
 body.book .book-opener {
   margin: 2.5rem auto 0;
   max-width: 34em;
-  text-align: left;
+  text-align: start;
   font-family: "Patrick Hand", cursive;
   font-size: 12.5pt;
   line-height: 2rem;
@@ -730,7 +730,7 @@ body.book .book-day .prose img {
   max-width: 55%;
   max-height: 60mm;
   height: auto;
-  margin: 0.5rem 0 0.5rem auto;
+  margin-block: 0.5rem 0.5rem; margin-inline: auto 0;
   mix-blend-mode: multiply;
 }
 
@@ -831,7 +831,7 @@ body.book .book-poem-body {
   font-size: 17pt;
   line-height: 2rem;
   color: #43395f;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
   white-space: pre-line;
 }
 
@@ -844,7 +844,7 @@ body.book .book-poem-foot {
   font-family: "Caveat", cursive;
   font-size: 11pt;
   color: #8c7454;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 
 /* ---- Sources under a day ---- */
@@ -868,7 +868,7 @@ body.book .book-sources h3 {
 
 body.book .book-sources ol {
   margin: 0;
-  padding-left: 1.4rem;
+  padding-inline-start: 1.4rem;
 }
 
 body.book .book-sources li {
@@ -921,7 +921,7 @@ body.book .book-stop .stop-cat {
   font-weight: 300;
   font-size: 10pt;
   color: var(--stamp-c, #0f766e);
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
 }
 
 body.book .book-stop .stop-address,
@@ -1010,7 +1010,7 @@ body.book .book-colophon p {
    declaration containing env(), while var() it keeps. */
 body.book .book-toolbar {
   top: calc(0.75rem + var(--book-inset-top, 0px));
-  right: calc(0.75rem + var(--book-inset-right, 0px));
+  inset-inline-end: calc(0.75rem + var(--book-inset-right, 0px));
   z-index: 10;
   display: flex;
   flex-wrap: wrap;
@@ -1073,7 +1073,7 @@ body.book .book-status-busy::after {
   body.book .book-toolbar {
     top: auto;
     bottom: calc(0.75rem + var(--book-inset-bottom, 0px));
-    left: calc(0.75rem + var(--book-inset-left, 0px));
+    inset-inline-start: calc(0.75rem + var(--book-inset-left, 0px));
     justify-content: flex-start;
   }
 

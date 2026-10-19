@@ -6,7 +6,11 @@
   <main>
     <img
       src={~p"/images/hero-notebook.jpg"}
-      alt="An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+      alt={
+        gettext(
+          "An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+        )
+      }
       class="app-welcome-art"
       width="1344"
       height="768"
@@ -15,12 +19,17 @@
 
     <h1 class="wordmark app-welcome-mark">Traveling <em>Poet</em></h1>
     <p class="app-welcome-line">
-      Send someone ahead of you. Your poet travels through real places and writes you an
-      illustrated journal page every morning.
+      {gettext(
+        "Send someone ahead of you. Your poet travels through real places and writes you an illustrated journal page every morning."
+      )}
     </p>
 
     <p :if={@start_place} id="welcome-place" class="app-welcome-place">
-      Your poet sets out from <b>{@start_place}</b>. Sign in and it goes.
+      <.rich text={
+        gettext("Your poet sets out from %{place}. Sign in and it goes.", place: marker(:place))
+      }>
+        <:part name="place"><b>{@start_place}</b></:part>
+      </.rich>
     </p>
 
     <div class="app-welcome-signin" id="welcome-signin">
@@ -40,13 +49,13 @@
             d="M14.03 10.6c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.63 1.11 8.8.73 1.06 1.61 2.25 2.75 2.21 1.1-.04 1.52-.71 2.86-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.15.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.34-3.55ZM11.84 4.12c.61-.74 1.02-1.77.91-2.79-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.7-.93 2.7.98.08 1.98-.5 2.59-1.23Z"
           />
         </svg>
-        Sign in with Apple
+        {gettext("Sign in with Apple")}
       </button>
       <%!-- A plain link to the web flow. Inside the app native.js takes the
             tap and runs it in the system sign-in sheet, the only place Google
             allows it. --%>
       <a href={~p"/auth/google"} class="home-btn app-welcome-btn" data-track="cta-signin-app">
-        Continue with Google
+        {gettext("Continue with Google")}
       </a>
     </div>
 
@@ -58,7 +67,7 @@
       role="search"
     >
       <label for="welcome-place-input" class="home-hero-ask-label">
-        New here? Where should your poet set out from?
+        {gettext("New here? Where should your poet set out from?")}
       </label>
       <div class="home-hero-ask-row">
         <input
@@ -67,23 +76,26 @@
           name="place"
           maxlength="120"
           autocomplete="off"
-          placeholder="Lisbon, Kyoto, Oaxaca…"
+          placeholder={gettext("Lisbon, Kyoto, Oaxaca…")}
         />
-        <button type="submit" class="home-hero-cta">Next</button>
+        <button type="submit" class="home-hero-cta">{gettext("Next")}</button>
       </div>
     </form>
 
     <%!-- Real pages before any sign-in: what the poets found, all of it. --%>
     <a href={~p"/discover"} class="app-welcome-sample" data-track="cta-discover-app">
-      Look around first
+      {gettext("Look around first")}
     </a>
   </main>
 
   <footer class="app-welcome-foot">
-    <a href={~p"/privacy"}>Privacy</a>
-    <a href={~p"/terms"}>Terms</a>
-    <a href={~p"/support"}>Support</a>
-    <a :if={@review_login?} href={~p"/auth/review"} id="reviewer-sign-in">Reviewer sign-in</a>
+    <a href={~p"/privacy"}>{gettext("Privacy")}</a>
+    <a href={~p"/terms"}>{gettext("Terms")}</a>
+    <a href={~p"/support"}>{gettext("Support")}</a>
+    <a :if={@review_login?} href={~p"/auth/review"} id="reviewer-sign-in">
+      {gettext("Reviewer sign-in")}
+    </a>
+    <Layouts.language_switch />
   </footer>
 </div>
 <Layouts.flash_group flash={@flash} />

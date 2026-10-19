@@ -5,7 +5,9 @@
     </div>
     <div class="flex-none flex gap-2">
       <a :if={!@signed_out?} href="/journal" class="home-btn home-btn-sm">
-        {if @my_poet, do: "#{@my_poet.name}'s journal", else: "My poet's journal"}
+        {if @my_poet,
+          do: gettext("%{poet}'s journal", poet: @my_poet.name),
+          else: gettext("My poet's journal")}
       </a>
       <a
         :if={@signed_out?}
@@ -13,7 +15,7 @@
         class="home-btn home-btn-sm"
         data-track="cta-signin-header"
       >
-        Sign in with Google
+        {gettext("Sign in with Google")}
       </a>
     </div>
   </header>
@@ -23,18 +25,22 @@
     <section class="home-hero" aria-labelledby="hero-title">
       <img
         src={~p"/images/hero-notebook.jpg"}
-        alt="An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+        alt={
+          gettext(
+            "An open sketchbook on a riverside step: a footbridge, a tram and plane trees in grey-green watercolor"
+          )
+        }
         class="home-hero-art"
         width="1344"
         height="768"
         fetchpriority="high"
       />
       <div class="home-hero-copy">
-        <h1 id="hero-title">Send someone ahead of you.</h1>
+        <h1 id="hero-title">{gettext("Send someone ahead of you.")}</h1>
         <p>
-          Your traveling poet learns what fascinates you, then goes. It scouts a trip
-          you&rsquo;ve planned, or wanders the world and writes you an illustrated journal
-          page every morning.
+          {gettext(
+            "Your traveling poet learns what fascinates you, then goes. It scouts a trip you’ve planned, or wanders the world and writes you an illustrated journal page every morning."
+          )}
         </p>
         <form
           :if={@signed_out? || is_nil(@my_poet)}
@@ -44,7 +50,9 @@
           role="search"
           data-track="cta-hero-place"
         >
-          <label for="hero-place" class="home-hero-ask-label">Where should your poet set out from?</label>
+          <label for="hero-place" class="home-hero-ask-label">
+            {gettext("Where should your poet set out from?")}
+          </label>
           <div class="home-hero-ask-row">
             <input
               id="hero-place"
@@ -52,9 +60,9 @@
               name="place"
               maxlength="120"
               autocomplete="off"
-              placeholder="Lisbon, Kyoto, Oaxaca…"
+              placeholder={gettext("Lisbon, Kyoto, Oaxaca…")}
             />
-            <button type="submit" class="home-hero-cta">Send out your poet</button>
+            <button type="submit" class="home-hero-cta">{gettext("Send out your poet")}</button>
           </div>
         </form>
         <div class="home-hero-actions">
@@ -64,9 +72,11 @@
             class="home-hero-cta"
             data-track="open-journal"
           >
-            Open your journal
+            {gettext("Open your journal")}
           </a>
-          <a href="#how-it-works" class="home-hero-more" data-track="how-it-works">See how it works &darr;</a>
+          <a href="#how-it-works" class="home-hero-more" data-track="how-it-works">
+            {gettext("See how it works ↓")}
+          </a>
         </div>
       </div>
     </section>
@@ -74,29 +84,33 @@
     <!-- Poets on the road: a compact Discover (DiscoverLive, embedded), the
          same map, tour and overviews as /discover -->
     <section class="py-8 border-t border-base-200" id="road">
-      <h2 class="text-2xl font-bold text-center mb-3">Poets on the road right now</h2>
+      <h2 class="text-2xl font-bold text-center mb-3">
+        {gettext("Poets on the road right now")}
+      </h2>
       <p class="text-center text-sm opacity-60 mb-6">
-        Their newest pages, turning on their own. Pick anything on the map to read it.
+        {gettext("Their newest pages, turning on their own. Pick anything on the map to read it.")}
       </p>
       {live_render(@conn, TravelingPoetWeb.DiscoverLive, session: %{"compact" => true})}
     </section>
 
     <!-- Two ways to travel, then how it works, then why it isn't another travel app -->
     <section id="how-it-works" class="py-14 border-t border-base-200">
-      <h2 class="home-lede">Two ways to travel. Both end up in the same notebook.</h2>
+      <h2 class="home-lede">
+        {gettext("Two ways to travel. Both end up in the same notebook.")}
+      </h2>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
         <div class="home-mode">
-          <h3>Trips coming up?</h3>
+          <h3>{gettext("Trips coming up?")}</h3>
           <p>
-            Give your poet the itinerary, or connect your Google Calendar and it notices the
-            trips on it and offers to scout them. It sets out in time to visit each stop
-            just before you do: food stalls, overlooked museums, the view nobody mentions.
-            It reports back in order, so you land knowing where to go.
+            {gettext(
+              "Give your poet the itinerary, or connect your Google Calendar and it notices the trips on it and offers to scout them. It sets out in time to visit each stop just before you do: food stalls, overlooked museums, the view nobody mentions. It reports back in order, so you land knowing where to go."
+            )}
           </p>
           <blockquote class="home-example">
-            &ldquo;Seville &rarr; Ronda &rarr; M&aacute;laga, ten days in September.&rdquo;
-            Or just the flights on your calendar.
+            {gettext(
+              "“Seville → Ronda → Málaga, ten days in September.” Or just the flights on your calendar."
+            )}
           </blockquote>
           <a
             :if={@signed_out? || is_nil(@my_poet)}
@@ -104,21 +118,20 @@
             class="home-btn"
             data-track="cta-scout"
           >
-            Scout a trip
+            {gettext("Scout a trip")}
           </a>
         </div>
         <div class="home-mode">
-          <h3>Traveling from home?</h3>
+          <h3>{gettext("Traveling from home?")}</h3>
           <p>
-            Your poet wanders and writes. Each morning a new illustrated page arrives from
-            somewhere real: what it saw, what&rsquo;s on this month, what to carry home, who
-            to help while you&rsquo;re there. And every so often it takes a day off the road
-            for an excursion into something you follow, a conference, a festival, a lab, a
-            journal, and writes back what is new there.
+            {gettext(
+              "Your poet wanders and writes. Each morning a new illustrated page arrives from somewhere real: what it saw, what’s on this month, what to carry home, who to help while you’re there. And every so often it takes a day off the road for an excursion into something you follow, a conference, a festival, a lab, a journal, and writes back what is new there."
+            )}
           </p>
           <blockquote class="home-example">
-            &ldquo;Cities with layers. Old bookshops. Skip the beaches.&rdquo; And a day a
-            week on jazz.
+            {gettext(
+              "“Cities with layers. Old bookshops. Skip the beaches.” And a day a week on jazz."
+            )}
           </blockquote>
           <a
             :if={@signed_out? || is_nil(@my_poet)}
@@ -126,7 +139,7 @@
             class="home-btn home-btn-quiet"
             data-track="cta-wander"
           >
-            Start wandering
+            {gettext("Start wandering")}
           </a>
         </div>
       </div>
@@ -134,27 +147,29 @@
       <ol class="home-steps">
         <li>
           <span class="home-step-n" aria-hidden="true">1</span>
-          <h3>Teach your poet what you love</h3>
+          <h3>{gettext("Teach your poet what you love")}</h3>
           <p>
-            Architecture or street food, history or hidden gardens. Your poet learns your
-            kind of discovery, and remembers it. Say &ldquo;vegetarian&rdquo; once and it
-            shows up in every city.
+            {gettext(
+              "Architecture or street food, history or hidden gardens. Your poet learns your kind of discovery, and remembers it. Say “vegetarian” once and it shows up in every city."
+            )}
           </p>
         </li>
         <li>
           <span class="home-step-n" aria-hidden="true">2</span>
-          <h3>It travels and journals daily</h3>
+          <h3>{gettext("It travels and journals daily")}</h3>
           <p>
-            A narrative, a poem, a watercolor, and the practical notes with dates. Grounded
-            in real places, written with warmth. Ask it questions any time.
+            {gettext(
+              "A narrative, a poem, a watercolor, and the practical notes with dates. Grounded in real places, written with warmth. Ask it questions any time."
+            )}
           </p>
         </li>
         <li>
           <span class="home-step-n" aria-hidden="true">3</span>
-          <h3>Pages become a notebook</h3>
+          <h3>{gettext("Pages become a notebook")}</h3>
           <p>
-            Days accumulate into a journal you can read back, share, or hand to the friend
-            who&rsquo;s going next month.
+            {gettext(
+              "Days accumulate into a journal you can read back, share, or hand to the friend who’s going next month."
+            )}
           </p>
         </li>
       </ol>
@@ -162,39 +177,45 @@
 
     <!-- Why it isn't another travel app: four claims as one strip -->
     <section class="home-trust" aria-labelledby="trust-title">
-      <h2 id="trust-title" class="home-lede">Why this isn&rsquo;t another travel app.</h2>
+      <h2 id="trust-title" class="home-lede">{gettext("Why this isn’t another travel app.")}</h2>
       <ul class="home-trust-strip">
         <li>
-          <h3>It&rsquo;s proactive</h3>
+          <h3>{gettext("It’s proactive")}</h3>
           <p>
-            You don&rsquo;t search. Your poet finds things you&rsquo;d never think to look for.
+            {gettext("You don’t search. Your poet finds things you’d never think to look for.")}
           </p>
         </li>
         <li>
-          <h3>It&rsquo;s grounded</h3>
-          <p>Real places, real maps, sourced images. No restaurants that don&rsquo;t exist.</p>
-        </li>
-        <li>
-          <h3>It learns you</h3>
+          <h3>{gettext("It’s grounded")}</h3>
           <p>
-            Every page, every question, every &ldquo;tell me more&rdquo; sharpens what it finds.
+            {gettext("Real places, real maps, sourced images. No restaurants that don’t exist.")}
           </p>
         </li>
         <li>
-          <h3>It scouts ahead</h3>
-          <p>The only tool that pre-visits your itinerary before you buy a ticket.</p>
+          <h3>{gettext("It learns you")}</h3>
+          <p>
+            {gettext("Every page, every question, every “tell me more” sharpens what it finds.")}
+          </p>
+        </li>
+        <li>
+          <h3>{gettext("It scouts ahead")}</h3>
+          <p>
+            {gettext("The only tool that pre-visits your itinerary before you buy a ticket.")}
+          </p>
         </li>
       </ul>
     </section>
 
     <!-- Closing -->
     <section :if={@signed_out? || is_nil(@my_poet)} class="home-closing">
-      <p class="home-lede">Somewhere in the world, a page is being written for you.</p>
+      <p class="home-lede">
+        {gettext("Somewhere in the world, a page is being written for you.")}
+      </p>
       <a href={~p"/start"} class="home-btn home-btn-lg" data-track="cta-closing">
-        Send out your poet
+        {gettext("Send out your poet")}
       </a>
       <p class="home-closing-note">
-        Your first days of travel are on us. Sign in with Google to send it off.
+        {gettext("Your first days of travel are on us. Sign in with Google to send it off.")}
       </p>
     </section>
   </main>
@@ -202,10 +223,11 @@
   <footer class="home-footer">
     <div class="home-footer-inner">
       <span class="wordmark wordmark-sm">Traveling <em>Poet</em></span>
-      <span>Trips scouted, not sold. No ads, no affiliate links.</span>
+      <span>{gettext("Trips scouted, not sold. No ads, no affiliate links.")}</span>
       <span class="home-footer-links">
-        <.link navigate={~p"/privacy"} data-track="footer-privacy">Privacy</.link>
-        <.link navigate={~p"/terms"} data-track="footer-terms">Terms</.link>
+        <.link navigate={~p"/privacy"} data-track="footer-privacy">{gettext("Privacy")}</.link>
+        <.link navigate={~p"/terms"} data-track="footer-terms">{gettext("Terms")}</.link>
+        <Layouts.language_switch :if={@signed_out?} />
       </span>
       <span class="opacity-60">&copy; {Date.utc_today().year}</span>
     </div>

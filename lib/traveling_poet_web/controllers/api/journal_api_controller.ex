@@ -29,6 +29,12 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         |> Map.take(["title", "teaser", "place_name", "lat", "lng", "weather", "sources"])
         |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
         |> trim_teaser()
+        # The poet writes in its reader's language (card-101); the page
+        # keeps the one it was written in, whatever the reader picks later
+        |> Map.put(
+          :language,
+          TravelingPoet.Locale.normalize(conn.assigns.agent_user.locale) || "en"
+        )
 
       {attrs, dropped} = prune_sources(attrs)
 

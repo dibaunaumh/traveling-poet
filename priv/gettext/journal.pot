@@ -1,0 +1,766 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{from} to %{to}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Entry"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Finds"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Today"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where to stay"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} device is subscribed."
+msgid_plural "%{count} devices are subscribed."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} minute so far."
+msgid_plural "%{count} minutes so far."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} could not finish the first entry after %{tries} tries. The daily run will try again tomorrow."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is about to open the notebook. %{so_far}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is awake and about to open the notebook. The first page usually takes 5 to 12 minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is mid-thought, probably writing to you right now. Give it a moment and resend."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is resting — out of credits. %{top_up}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is starting the first page again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is still being set up."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing the first entry. A message sent now waits until the page is done."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing the first entry. This usually takes 5 to 12 minutes; the drawing comes last. You can read along in the chat."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is writing your first page. %{so_far}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} published a new journal entry!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} revised this entry."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will write to you there when the first entry is out."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} — Traveling Poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s journal from %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s journey through this topic"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{title}, by %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{who}'s saved places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A friend"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add Traveling Poet to your Home Screen."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Agent error: %{reason}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Ask for a place, a detour, a drawing. Or just say hello."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Attach a file"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Attachment is missing — please pick a file again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Beautiful"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Boring"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Checking this device for notifications."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Checking this device…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Close chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Copy link"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not create a pairing link."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not reach your poet. Please try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save this device's subscription."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not turn notifications on for this device."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day}: %{title}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Drawing needed"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Email"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Feedback marker"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "File is too large (max 25 MB)."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "File type is not accepted."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Generate pairing link"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Get a notification on this device when %{poet} publishes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Get it the moment it lands"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Get the first entry on Telegram."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Got it — %{poet} will keep that in mind."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Held"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Held until %{poet} finishes the page. It goes out on its own."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Hide chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Highlight text or tap a paragraph to mark it %{marker}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I wanted somewhere to go from here"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I wanted to know more here"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I wanted to see this"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "In the meantime"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Installing the writing desk"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Interesting"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Just started."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Link needed"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Make it public in Settings"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Mark what you want to change"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "More details"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}, from %{place}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}, from somewhere new."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next page: %{time}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No published entries yet — check back soon."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not creative enough"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved here yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are blocked for this site. Allow them in your browser or system settings to get a nudge when %{poet} publishes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are blocked for this site. Allow them in your browser or system settings, then reload this page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are not available on this device right now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are not available on this device right now. Telegram works everywhere."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, then come back here."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Notifications are turned off for Traveling Poet. Turn them on in the Settings app, under Notifications, to hear when %{poet} publishes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nudge this device when %{poet} publishes"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "On iPhone and iPad, notifications work once Poet is on your Home Screen: tap Share → Add to Home Screen, open it from there, and come back to this page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "On iPhone or iPad, notifications work once the app is on your Home Screen: tap Share, then Add to Home Screen, open it from there, and turn on notifications."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One a day, when %{name} publishes a new page, and now and then a question from %{name}, never more than once a week. Never marketing."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One email a day, only when %{name} publishes a new page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One message a day, when %{name} publishes a new page, now and then a question from %{name}, never more than once a week, and a note if your credits run low. Never marketing."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Only one attachment per message."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open Telegram and press Start:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Opening the door"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Other feedback"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Other poets are already out on the road. Here are their newest pages and the places they found. Yours, %{poet}, is the red dot."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Packing notebook, pens and maps"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pair Telegram"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Paired"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Paired as @%{username}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Post on X"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Put the marker down"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Remove attachment"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Renting a room"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Report this journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Select a marker & highlight text to provide feedback to the poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sending"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Setting up %{poet}'s room. %{so_far}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Setting up %{poet}'s travel desk"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Share this page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Share..."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Shared from %{wordmark}, where an AI poet travels ahead and writes about the places worth going."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sign in to react."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something else I want to tell you about this"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram is paired as @%{username}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram is paired."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram isn't configured on this server."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram paired."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Telegram unpaired."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell your poet:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That could not be saved."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That journal doesn't exist or isn't public."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That shared list no longer exists."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The first attempt did not produce a page. %{poet} will try again within %{minutes} minutes. Nothing is lost."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The first entry"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The notepad opens the moment they are reachable."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The page could not be read just now. Try again in a moment."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The whole journal as a printable book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This browser can't receive push notifications."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This browser can't receive push notifications. Telegram works everywhere."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This device"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This device gets a nudge when a new entry is published"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This device will get a nudge when the first entry is out."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This held my attention"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This moved me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This one is taking longer than usual. Nothing is lost; the poet is still at it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This page updates by itself once you are paired."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This passage lost me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This reads like anyone could have written it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This usually takes 2 to 20 minutes. You can close this page; %{poet} keeps working and this page updates on its own."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "To get it the moment it lands, use Share, then Add to Home Screen, and turn on notifications from there."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Toggle chat"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Top up"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Turn off"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Turn on"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Turn on notifications"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Unpair"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Upload error: %{error}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Upload failed: no file consumed"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Upload still in progress — please wait a moment and try again."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "While you wait"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Working on it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Write to %{poet}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Write to %{poet}…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Write your own"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You can close this page; %{poet} keeps working and this page updates on its own."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You'll get a notification on this device when %{poet} publishes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You'll get a nudge on this device when %{poet} publishes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your journal is private, so this page has no link others can open."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is out of credits — top up in Settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is resting until tomorrow (daily limit reached)."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet isn't ready yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Yours started %{count} minute ago."
+msgid_plural "Yours started %{count} minutes ago."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "a traveling poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "awake"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "checking…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "inspiring"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "love"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "not now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "not_for_me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "preparing to set out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "private feedback — shapes what your poet seeks out next"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "ready"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "reconnecting…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "setting up"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "undo"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "waking up…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "want_more"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "what your poet has learned"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "your poet"
+msgstr ""

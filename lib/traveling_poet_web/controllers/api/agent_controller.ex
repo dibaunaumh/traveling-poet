@@ -54,7 +54,12 @@ defmodule TravelingPoetWeb.Api.AgentController do
             mode: Poet.mode(poet),
             # brief | balanced | expansive — how long journal prose should run;
             # user-editable in settings, so honor the CURRENT value each run
-            verbosity: Map.get(poet.settings || %{}, "verbosity", "balanced")
+            verbosity: Map.get(poet.settings || %{}, "verbosity", "balanced"),
+            # The language everything the companion reads is written in
+            # (card-101): their own setting, which they can change any day,
+            # so the current value wins over IDENTITY.md and earlier chats
+            language: TravelingPoet.Locale.normalize(user.locale) || "en",
+            language_name: TravelingPoet.Locale.name(user.locale)
           },
           location: %{
             lat: poet.current_lat,

@@ -12,6 +12,7 @@ defmodule TravelingPoetWeb.Router do
     plug :put_secure_browser_headers
     plug TravelingPoetWeb.Plugs.NativeApp
     plug :fetch_current_user
+    plug TravelingPoetWeb.Plugs.Locale
   end
 
   # Agent-facing API: sprite -> app, bearer-token auth, no session/CSRF.

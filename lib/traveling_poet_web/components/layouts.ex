@@ -56,36 +56,44 @@ defmodule TravelingPoetWeb.Layouts do
         <%!-- Wide: every destination in a row. --%>
         <ul class="hidden sm:flex px-1 space-x-2 items-center">
           <li :if={@current_user}>
-            <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>Journal</.link>
+            <.link navigate={~p"/journal"} class={nav_class(@active_tab == :journal)}>{gettext(
+              "Journal"
+            )}</.link>
           </li>
           <li>
             <.link navigate={~p"/discover"} class={nav_class(@active_tab == :discover)}>
-              Discover
+              {gettext("Discover")}
             </.link>
           </li>
           <li :if={@current_user}>
-            <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>Guide</.link>
+            <.link navigate={~p"/guide"} class={nav_class(@active_tab == :guide)}>{gettext("Guide")}</.link>
           </li>
           <li :if={@current_user && @credits_low}>
             <.link
               navigate={~p"/settings"}
               class="badge badge-warning badge-sm gap-1"
-              title="Running low on credits"
+              title={gettext("Running low on credits")}
             >
               <.icon name="hero-sparkles" class="size-3" />
-              {TravelingPoet.Credits.format(@current_user.credits_balance || 0)} credits
+              {gettext("%{credits} credits",
+                credits: TravelingPoet.Credits.format(@current_user.credits_balance || 0)
+              )}
             </.link>
           </li>
           <li :if={@current_user}>
             <.link navigate={~p"/settings"} class={nav_class(@active_tab == :settings)}>
-              Settings
+              {gettext("Settings")}
             </.link>
           </li>
           <li :if={@current_user}>
-            <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">Sign out</a>
+            <a href={~p"/auth/logout"} class="btn btn-ghost btn-sm">{gettext("Sign out")}</a>
+          </li>
+          <%!-- a visitor's way to the other language (a reader's is in Settings) --%>
+          <li :if={is_nil(@current_user)}>
+            <.language_switch id="language-switch-header" class="btn btn-ghost btn-sm" />
           </li>
           <li :if={is_nil(@current_user)}>
-            <a href={~p"/auth/google"} class="btn btn-primary btn-sm">Sign in</a>
+            <a href={~p"/auth/google"} class="btn btn-primary btn-sm">{gettext("Sign in")}</a>
           </li>
           <li>
             <.theme_toggle />
@@ -99,52 +107,57 @@ defmodule TravelingPoetWeb.Layouts do
             :if={@current_user && @credits_low}
             navigate={~p"/settings"}
             class="badge badge-warning badge-sm gap-1"
-            title="Running low on credits"
+            title={gettext("Running low on credits")}
           >
             <.icon name="hero-sparkles" class="size-3" />
             {TravelingPoet.Credits.format(@current_user.credits_balance || 0)}
           </.link>
           <.theme_toggle />
+          <.language_switch
+            :if={is_nil(@current_user)}
+            id="language-switch-header-narrow"
+            class="btn btn-ghost btn-sm"
+          />
           <.link
             :if={is_nil(@current_user)}
             navigate={~p"/discover"}
             class={nav_class(@active_tab == :discover)}
           >
-            Discover
+            {gettext("Discover")}
           </.link>
           <a
             :if={is_nil(@current_user)}
             href={~p"/auth/google"}
             class="btn btn-primary btn-sm"
           >
-            Sign in
+            {gettext("Sign in")}
           </a>
           <details :if={@current_user} class="dropdown dropdown-end" id="nav-menu">
-            <summary class="btn btn-ghost btn-sm" aria-label="Menu" aria-haspopup="menu">
+            <summary class="btn btn-ghost btn-sm" aria-label={gettext("Menu")} aria-haspopup="menu">
               <.icon name="hero-bars-3" class="size-5" />
             </summary>
             <ul class="menu dropdown-content bg-base-100 rounded-box z-10 mt-1 w-40 p-2 shadow">
               <li>
                 <.link navigate={~p"/journal"} class={@active_tab == :journal && "font-semibold"}>
-                  Journal
+                  {gettext("Journal")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/discover"} class={@active_tab == :discover && "font-semibold"}>
-                  Discover
+                  {gettext("Discover")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/guide"} class={@active_tab == :guide && "font-semibold"}>
-                  Guide
+                  {gettext("Guide")}
                 </.link>
               </li>
               <li>
                 <.link navigate={~p"/settings"} class={@active_tab == :settings && "font-semibold"}>
-                  Settings
+                  {gettext("Settings")}
                 </.link>
               </li>
-              <li><a href={~p"/auth/logout"}>Sign out</a></li>
+              <li><a href={~p"/auth/logout"}>{gettext("Sign out")}</a></li>
             </ul>
           </details>
         </div>
@@ -173,34 +186,66 @@ defmodule TravelingPoetWeb.Layouts do
 
   defp shell_tabbar(assigns) do
     ~H"""
-    <nav id="shell-tabbar" class="shell-tabbar" aria-label="Main">
+    <nav id="shell-tabbar" class="shell-tabbar" aria-label={gettext("Main")}>
       <.link navigate={~p"/journal"} aria-current={@active_tab == :journal && "page"}>
         <.icon name="hero-book-open" class="size-6" />
-        <span>Journal</span>
+        <span>{gettext("Journal")}</span>
       </.link>
       <.link navigate={~p"/discover"} aria-current={@active_tab == :discover && "page"}>
         <.icon name="hero-globe-europe-africa" class="size-6" />
-        <span>Discover</span>
+        <span>{gettext("Discover")}</span>
       </.link>
       <.link navigate={~p"/guide"} aria-current={@active_tab == :guide && "page"}>
         <.icon name="hero-map" class="size-6" />
-        <span>Guide</span>
+        <span>{gettext("Guide")}</span>
       </.link>
       <%!-- Chat is not a page: on the journal it opens the chat over it,
             from anywhere else it goes to the journal with the chat open. --%>
       <button :if={@active_tab == :journal} type="button" phx-click="toggle_mobile_chat">
         <.icon name="hero-chat-bubble-left-right" class="size-6" />
-        <span>Chat</span>
+        <span>{gettext("Chat")}</span>
       </button>
       <.link :if={@active_tab != :journal} navigate={~p"/journal?chat=1"}>
         <.icon name="hero-chat-bubble-left-right" class="size-6" />
-        <span>Chat</span>
+        <span>{gettext("Chat")}</span>
       </.link>
       <.link navigate={~p"/settings"} aria-current={@active_tab == :settings && "page"}>
         <.icon name="hero-cog-6-tooth" class="size-6" />
-        <span>Settings</span>
+        <span>{gettext("Settings")}</span>
       </.link>
     </nav>
+    """
+  end
+
+  @doc """
+  A quiet link to the interface in the other language, for a visitor who
+  is not signed in (a reader picks theirs in Settings). `Plugs.Locale`
+  honours `?lang=` and remembers it in the session.
+  """
+  attr :class, :any, default: nil
+  attr :id, :string, default: "language-switch"
+
+  def language_switch(assigns) do
+    other = if TravelingPoet.Locale.current() == "he", do: "en", else: "he"
+
+    assigns =
+      assigns
+      |> assign(:other, other)
+      |> assign(:name, TravelingPoet.Locale.native_name(other))
+      |> assign(:dir, TravelingPoet.Locale.dir(other))
+
+    ~H"""
+    <a
+      href={"?lang=#{@other}"}
+      lang={@other}
+      hreflang={@other}
+      dir={@dir}
+      class={@class}
+      id={@id}
+      data-track="language-switch"
+    >
+      {@name}
+    </a>
     """
   end
 
@@ -254,7 +299,7 @@ defmodule TravelingPoetWeb.Layouts do
   def theme_toggle(assigns) do
     ~H"""
     <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
+      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 start-0 [[data-theme=light]_&]:start-1/3 [[data-theme=dark]_&]:start-2/3 [[data-theme-source=system]_&]:!start-0 transition-[inset-inline-start]" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"

@@ -41,8 +41,8 @@
   <.prose_page
     :if={@matter && @matter.foreword}
     id="book-foreword"
-    kicker="Before the road"
-    title="Foreword"
+    kicker={dgettext("book", "Before the road")}
+    title={dgettext("book", "Foreword")}
     text={@matter.foreword}
     signature={@poet.name}
   />
@@ -59,8 +59,8 @@
   <.prose_page
     :if={@matter && @matter.epilogue}
     id="book-epilogue"
-    kicker="After the road"
-    title="Epilogue"
+    kicker={dgettext("book", "After the road")}
+    title={dgettext("book", "Epilogue")}
     text={@matter.epilogue}
     signature={@poet.name}
   />

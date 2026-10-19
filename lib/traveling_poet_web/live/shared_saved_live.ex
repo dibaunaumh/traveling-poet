@@ -23,7 +23,7 @@ defmodule TravelingPoetWeb.SharedSavedLive do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "That shared list no longer exists.")
+         |> put_flash(:error, dgettext("journal", "That shared list no longer exists."))
          |> push_navigate(to: ~p"/")}
 
       owner ->
@@ -35,7 +35,7 @@ defmodule TravelingPoetWeb.SharedSavedLive do
         {:ok,
          socket
          |> assign(token: token, who: who, places: places, poets: poets, plan_days: 3)
-         |> assign(:page_title, "#{who}'s saved places")
+         |> assign(:page_title, dgettext("journal", "%{who}'s saved places", who: who))
          |> assign_plan()}
     end
   end
@@ -57,21 +57,31 @@ defmodule TravelingPoetWeb.SharedSavedLive do
   defp first_name(%{name: name}) when is_binary(name) and name != "",
     do: name |> String.split() |> hd()
 
-  defp first_name(_), do: "A friend"
+  defp first_name(_), do: dgettext("journal", "A friend")
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <header class="mb-4">
-        <h1 class="text-2xl font-semibold">{@who}'s saved places</h1>
+        <h1 class="text-2xl font-semibold">
+          {dgettext("journal", "%{who}'s saved places", who: @who)}
+        </h1>
         <p class="text-sm opacity-70">
-          Shared from Traveling <em>Poet</em>, where an AI poet travels ahead and writes about the places worth going.
+          <.rich text={
+            dgettext(
+              "journal",
+              "Shared from %{wordmark}, where an AI poet travels ahead and writes about the places worth going.",
+              wordmark: marker(:wordmark)
+            )
+          }>
+            <:part name="wordmark">Traveling <em>Poet</em></:part>
+          </.rich>
         </p>
       </header>
 
       <p :if={@places == []} id="shared-empty" class="text-sm opacity-60 py-10 text-center">
-        Nothing saved here yet.
+        {dgettext("journal", "Nothing saved here yet.")}
       </p>
 
       <div :if={@places != []}>
@@ -81,7 +91,7 @@ defmodule TravelingPoetWeb.SharedSavedLive do
           <.place_card
             :for={place <- @places}
             place={place}
-            poet={@poets[place.poet_id] || %{name: "the poet"}}
+            poet={@poets[place.poet_id] || %{name: dgettext("journal", "the poet")}}
           />
         </div>
       </div>

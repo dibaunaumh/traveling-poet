@@ -18,6 +18,7 @@ defmodule TravelingPoet.Topics.Topic do
   """
 
   use Ecto.Schema
+  use Gettext, backend: TravelingPoetWeb.Gettext
   import Ecto.Changeset
 
   @kinds ~w(professional personal)
@@ -39,21 +40,6 @@ defmodule TravelingPoet.Topics.Topic do
   # where it goes next (`Topics.focus/1`). Books, film and gifts are not
   # found by walking a town; they keep their own taste days.
   @place_domains ~w(food music photography art outdoors mountains kids)
-  # What to type for a taste in each domain, and an example: shared by the
-  # onboarding passions and the Settings tastes.
-  @hints %{
-    "food" => {"What you love to eat and drink", "street food, natural wine"},
-    "photography" => {"What you love to photograph", "street scenes at dusk, wildlife"},
-    "art" => {"Art and buildings you seek out", "Bauhaus, contemporary painting"},
-    "mountains" => {"Peaks and climbing you love", "alpine routes, via ferratas"},
-    "kids" => {"What your kids love doing", "science museums, playgrounds, zoos"},
-    "music" => {"Artists, albums or styles you love", "Mogwai, Japanese city pop"},
-    "books" => {"Authors or books you love", "Le Guin, nature writing"},
-    "film_tv" => {"Films, shows or directors you love", "Agnes Varda, Slow Horses"},
-    "outdoors" => {"What you love doing outside", "coastal walks, wild swimming"},
-    "gifts" => {"Gadgets or gifts that delight you", "notebooks, kitchen tools"}
-  }
-
   @statuses ~w(proposed active paused)
   # "settings": typed in by the companion. "chat": proposed by the poet from
   # what the companion said. "ask": the companion's answer to a question the
@@ -88,10 +74,82 @@ defmodule TravelingPoet.Topics.Topic do
   def kinds, do: @kinds
   def domains, do: @domains
   def place_domains, do: @place_domains
+
+  @doc """
+  The domain's English name. The poet reads it too (`Asks`, `Poets`,
+  `Preferences.Prompts`), so it stays English: a reader is shown
+  `domain_label/1`.
+  """
   def domain_name(domain), do: Map.get(@domain_names, domain)
 
-  @doc "`{hint, example}` for a domain's input: what to type, and a sample."
-  def hint(domain), do: Map.fetch!(@hints, domain)
+  @doc "The domain's name in the reader's language, for the interface only."
+  def domain_label("food"), do: dgettext("onboarding", "Food & drink")
+  def domain_label("music"), do: dgettext("onboarding", "Music")
+  def domain_label("photography"), do: dgettext("onboarding", "Photography")
+  def domain_label("art"), do: dgettext("onboarding", "Art & architecture")
+  def domain_label("outdoors"), do: dgettext("onboarding", "Outdoors")
+  def domain_label("mountains"), do: dgettext("onboarding", "Mountains & climbing")
+  def domain_label("books"), do: dgettext("onboarding", "Books")
+  def domain_label("film_tv"), do: dgettext("onboarding", "Film & TV")
+  def domain_label("kids"), do: dgettext("onboarding", "Kids' attractions")
+  def domain_label("gifts"), do: dgettext("onboarding", "Gadgets & gifts")
+  def domain_label(_), do: nil
+
+  @doc """
+  `{hint, example}` for a domain's input: what to type, and a sample, in the
+  reader's language. Shared by the onboarding passions and the Settings
+  tastes; never sent to the poet.
+  """
+  def hint("food"),
+    do:
+      {dgettext("onboarding", "What you love to eat and drink"),
+       dgettext("onboarding", "street food, natural wine")}
+
+  def hint("photography"),
+    do:
+      {dgettext("onboarding", "What you love to photograph"),
+       dgettext("onboarding", "street scenes at dusk, wildlife")}
+
+  def hint("art"),
+    do:
+      {dgettext("onboarding", "Art and buildings you seek out"),
+       dgettext("onboarding", "Bauhaus, contemporary painting")}
+
+  def hint("mountains"),
+    do:
+      {dgettext("onboarding", "Peaks and climbing you love"),
+       dgettext("onboarding", "alpine routes, via ferratas")}
+
+  def hint("kids"),
+    do:
+      {dgettext("onboarding", "What your kids love doing"),
+       dgettext("onboarding", "science museums, playgrounds, zoos")}
+
+  def hint("music"),
+    do:
+      {dgettext("onboarding", "Artists, albums or styles you love"),
+       dgettext("onboarding", "Mogwai, Japanese city pop")}
+
+  def hint("books"),
+    do:
+      {dgettext("onboarding", "Authors or books you love"),
+       dgettext("onboarding", "Le Guin, nature writing")}
+
+  def hint("film_tv"),
+    do:
+      {dgettext("onboarding", "Films, shows or directors you love"),
+       dgettext("onboarding", "Agnes Varda, Slow Horses")}
+
+  def hint("outdoors"),
+    do:
+      {dgettext("onboarding", "What you love doing outside"),
+       dgettext("onboarding", "coastal walks, wild swimming")}
+
+  def hint("gifts"),
+    do:
+      {dgettext("onboarding", "Gadgets or gifts that delight you"),
+       dgettext("onboarding", "notebooks, kitchen tools")}
+
   def statuses, do: @statuses
   def sources, do: @sources
   def cadence_range, do: @cadence_range

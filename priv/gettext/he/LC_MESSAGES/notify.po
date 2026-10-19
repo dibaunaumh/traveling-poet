@@ -1,0 +1,192 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{date} around %{time} UTC"
+msgstr "%{date} בסביבות %{time} UTC"
+
+#, elixir-autogen, elixir-format
+msgid "%{dates}. Should %{poet} scout it first? Tap to decide."
+msgstr "%{dates}. לשלוח את %{poet} לסייר שם קודם? הקישו כדי להחליט."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} finished composing your book"
+msgstr "הספר שלכם עם %{poet} מוכן"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has a question for you"
+msgstr "ל-%{poet} יש שאלה אליכם"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s own words are bound into your journal now. Open it to read."
+msgstr "המילים של %{poet} כרוכות עכשיו ביומן שלכם. פתחו אותו לקריאה."
+
+#, elixir-autogen, elixir-format
+msgid "%{question}\n\n(%{poet}. Just reply here.)"
+msgstr "%{question}\n\n(%{poet}. אפשר פשוט לענות כאן.)"
+
+#, elixir-autogen, elixir-format
+msgid "(…the poet trailed off mid-thought. Ask again to pick up the thread.)"
+msgstr "(…המחשבה נקטעה באמצע. שאלו שוב כדי להמשיך מאותה נקודה.)"
+
+#, elixir-autogen, elixir-format
+msgid "A new journal entry is waiting."
+msgstr "עמוד חדש ביומן מחכה לכם."
+
+#, elixir-autogen, elixir-format
+msgid "A new page from %{poet} each day."
+msgstr "עמוד חדש מ-%{poet} בכל יום."
+
+#, elixir-autogen, elixir-format
+msgid "A trip to %{trip} is on your calendar"
+msgstr "בלוח השנה שלכם יש טיול ל-%{trip}"
+
+#, elixir-autogen, elixir-format
+msgid "Couldn't reach your poet just now — try again in a minute."
+msgstr "לא הצלחנו ליצור קשר כרגע. נסו שוב בעוד דקה."
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}"
+msgstr "יום %{day} · %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet} in %{place}"
+msgstr "יום %{day} · %{poet} ב-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}, an excursion into %{topic}"
+msgstr "יום %{day} · %{poet}, גיחה אל %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · %{poet}: %{hook}\n%{link}"
+msgstr "יום %{day} · %{poet}: %{hook}\n%{link}"
+
+#, elixir-autogen, elixir-format
+msgid "Hello! To pair this chat with your traveling poet, use the pairing link from the app's onboarding or settings page."
+msgstr "שלום! כדי לחבר את הצ'אט הזה למשורר הנודד שלכם, השתמשו בקישור החיבור מעמוד ההרשמה או מעמוד ההגדרות באפליקציה."
+
+#, elixir-autogen, elixir-format
+msgid "Now %{dates}. %{poet} sets out on %{departure}."
+msgstr "עכשיו %{dates}. היציאה לדרך של %{poet} ב-%{departure}."
+
+#, elixir-autogen, elixir-format
+msgid "Or listen, about %{count} minutes: %{url}"
+msgid_plural "Or listen, about %{count} minutes: %{url}"
+msgstr[0] "אפשר גם להאזין, בערך דקה אחת: %{url}"
+msgstr[1] "אפשר גם להאזין, בערך %{count} דקות: %{url}"
+
+#, elixir-autogen, elixir-format
+msgid "Read today's page"
+msgstr "לקריאת העמוד של היום"
+
+#, elixir-autogen, elixir-format
+msgid "Read today's page: %{url}"
+msgstr "לקריאת העמוד של היום: %{url}"
+
+#, elixir-autogen, elixir-format
+msgid "Stop these emails"
+msgstr "להפסקת המיילים האלה"
+
+#, elixir-autogen, elixir-format
+msgid "Stop these emails: %{url}"
+msgstr "להפסקת המיילים האלה: %{url}"
+
+#, elixir-autogen, elixir-format
+msgid "Tap to download it."
+msgstr "הקישו כדי להוריד."
+
+#, elixir-autogen, elixir-format
+msgid "That pairing link has expired or was already used — please generate a fresh one from the app."
+msgstr "קישור החיבור הזה כבר לא בתוקף, או שכבר השתמשו בו. צרו קישור חדש באפליקציה."
+
+#, elixir-autogen, elixir-format
+msgid "This chat isn't paired yet — grab a pairing link from the app to meet your poet."
+msgstr "הצ'אט הזה עוד לא מחובר. קחו קישור חיבור מהאפליקציה כדי לפגוש את המשורר שלכם."
+
+#, elixir-autogen, elixir-format
+msgid "Your book with %{poet} is ready as a PDF"
+msgstr "הספר שלכם עם %{poet} מוכן כקובץ PDF"
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first? Decide here: %{link}"
+msgstr "בלוח השנה שלכם יש טיול ל-%{trip}, %{dates}. לשלוח את %{poet} לסייר שם קודם? החליטו כאן: %{link}"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr "המשורר שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is out of credits — top up in Settings."
+msgstr "נגמרו הקרדיטים של המשורר שלכם. אפשר להטעין בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is resting until tomorrow (daily limit reached)."
+msgstr "המשורר שלכם במנוחה עד מחר (הגעתם למגבלה היומית)."
+
+#, elixir-autogen, elixir-format
+msgid "Your poet is still packing — check the app."
+msgstr "המשורר שלכם עוד באמצע האריזות. הציצו באפליקציה."
+
+#, elixir-autogen, elixir-format
+msgid "Your traveling poet"
+msgstr "המשורר הנודד שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Your trip to %{trip} is now %{dates}; %{poet} will set out on %{departure}. %{link}"
+msgstr "הטיול שלכם ל-%{trip} עבר ל-%{dates}. היציאה לדרך של %{poet} ב-%{departure}. %{link}"
+
+#, elixir-autogen, elixir-format
+msgid "Your trip to %{trip} moved"
+msgstr "התאריכים של הטיול שלכם ל-%{trip} השתנו"
+
+#, elixir-autogen, elixir-format
+msgid "a new entry from %{place}"
+msgstr "עמוד חדש מ-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "a new entry from the road"
+msgstr "עמוד חדש מהדרך"
+
+#, elixir-autogen, elixir-format
+msgid "an excursion into %{topic}"
+msgstr "גיחה אל %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "or listen, about %{count} minutes"
+msgid_plural "or listen, about %{count} minutes"
+msgstr[0] "או להאזין, בערך דקה אחת"
+msgstr[1] "או להאזין, בערך %{count} דקות"
+
+#, elixir-autogen, elixir-format
+msgid "…the poet seems lost in thought. Try again in a bit?"
+msgstr "…נראה שהמחשבות נדדו רחוק. לנסות שוב עוד מעט?"
+
+#, elixir-autogen, elixir-format
+msgid "⏳ %{poet} has about %{credits} credits left — a few days of travel. Top up: %{link}"
+msgstr "ל-%{poet} נשארו בערך %{credits} קרדיטים, עוד כמה ימי מסע. להטענה: %{link}"
+
+#, elixir-autogen, elixir-format
+msgid "✒️ Paired! %{poet} can now write to you here, and anything you send lands in your chat with them."
+msgstr "החיבור הצליח! מעכשיו יגיעו לכאן מילים מ-%{poet}, וכל מה שתשלחו כאן ייכנס לשיחה ביניכם."
+
+#, elixir-autogen, elixir-format
+msgid "💤 %{poet} has run out of credits and is resting. Top up: %{link}"
+msgstr "נגמרו הקרדיטים של %{poet}, ועכשיו זה זמן מנוחה. להטענה: %{link}"
+
+#, elixir-autogen, elixir-format
+msgid "📄 The PDF of your book with %{poet} is ready to download.\n%{link}"
+msgstr "קובץ ה-PDF של הספר שלכם עם %{poet} מוכן להורדה.\n%{link}"
+
+#, elixir-autogen, elixir-format
+msgid "📖 %{poet} has finished composing your book.\n%{link}"
+msgstr "הספר שלכם עם %{poet} מוכן.\n%{link}"

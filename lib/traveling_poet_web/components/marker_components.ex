@@ -10,6 +10,7 @@ defmodule TravelingPoetWeb.MarkerComponents do
   """
 
   use Phoenix.Component
+  use Gettext, backend: TravelingPoetWeb.Gettext
 
   import TravelingPoetWeb.CoreComponents, only: [icon: 1]
 
@@ -43,36 +44,45 @@ defmodule TravelingPoetWeb.MarkerComponents do
     ~H"""
     <div class="marker-menu-wrap">
       <span :if={@active} class="marker-menu-hint">
-        Highlight text or tap a paragraph to mark it {Marker.label(@active)}.
+        {dgettext("journal", "Highlight text or tap a paragraph to mark it %{marker}.",
+          marker: label(@active)
+        )}
       </span>
       <details id="marker-menu" class="dropdown dropdown-end marker-menu">
         <summary
           class={["marker-menu-btn", @active && "marker-#{@active}", @active && "is-active"]}
-          title={if @active, do: Marker.spec(@active).meaning, else: "Mark what you want to change"}
-          aria-label="Feedback marker"
+          title={
+            if @active,
+              do: meaning(@active),
+              else: dgettext("journal", "Mark what you want to change")
+          }
+          aria-label={dgettext("journal", "Feedback marker")}
         >
           <.icon name={if @active, do: icons()[@active], else: idle_icon()} class="size-4" />
-          <span :if={@active}>{Marker.label(@active)}</span>
+          <span :if={@active}>{label(@active)}</span>
         </summary>
         <ul class="dropdown-content marker-menu-list">
           <li class="marker-menu-title">
-            Select a marker &amp; highlight text to provide feedback to the poet
+            {dgettext(
+              "journal",
+              "Select a marker & highlight text to provide feedback to the poet"
+            )}
           </li>
-          <li :for={{kind, spec} <- @specs}>
+          <li :for={{kind, _spec} <- @specs}>
             <button
               type="button"
               phx-click={pick(kind)}
               class={["marker-menu-item", "marker-#{kind}", @active == kind && "is-active"]}
-              title={spec.meaning}
+              title={meaning(kind)}
             >
               <.icon name={icons()[kind]} class="size-4" />
-              <span>{spec.label}</span>
+              <span>{label(kind)}</span>
             </button>
           </li>
           <li :if={@active}>
             <button type="button" phx-click={pick("none")} class="marker-menu-item marker-menu-off">
               <.icon name="hero-x-mark-mini" class="size-4" />
-              <span>Put the marker down</span>
+              <span>{dgettext("journal", "Put the marker down")}</span>
             </button>
           </li>
         </ul>
@@ -80,6 +90,35 @@ defmodule TravelingPoetWeb.MarkerComponents do
     </div>
     """
   end
+
+  # A marker's name and meaning for the reader. `Marker.spec/1` keeps the
+  # English, which the digest to the poet also reads; these are the same
+  # words in the reader's language.
+  @doc "A marker's name in the reader's language (the poet reads `Marker.label/1`)."
+  def kind_label(kind), do: label(kind) || kind
+
+  defp label("interesting"), do: dgettext("journal", "Interesting")
+  defp label("boring"), do: dgettext("journal", "Boring")
+  defp label("more_details"), do: dgettext("journal", "More details")
+  defp label("drawing_needed"), do: dgettext("journal", "Drawing needed")
+  defp label("link_needed"), do: dgettext("journal", "Link needed")
+  defp label("beautiful"), do: dgettext("journal", "Beautiful")
+  defp label("not_creative"), do: dgettext("journal", "Not creative enough")
+  defp label("other"), do: dgettext("journal", "Other feedback")
+  defp label(kind), do: Marker.label(kind)
+
+  defp meaning("interesting"), do: dgettext("journal", "This held my attention")
+  defp meaning("boring"), do: dgettext("journal", "This passage lost me")
+  defp meaning("more_details"), do: dgettext("journal", "I wanted to know more here")
+  defp meaning("drawing_needed"), do: dgettext("journal", "I wanted to see this")
+  defp meaning("link_needed"), do: dgettext("journal", "I wanted somewhere to go from here")
+  defp meaning("beautiful"), do: dgettext("journal", "This moved me")
+
+  defp meaning("not_creative"),
+    do: dgettext("journal", "This reads like anyone could have written it")
+
+  defp meaning("other"), do: dgettext("journal", "Something else I want to tell you about this")
+  defp meaning(kind), do: (Marker.spec(kind) || %{meaning: kind}).meaning
 
   # Push the choice and close the menu; <details> does not close itself.
   defp pick(kind) do

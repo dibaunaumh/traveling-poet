@@ -87,6 +87,8 @@ defmodule TravelingPoetWeb do
       import Phoenix.HTML
       # Core UI components
       import TravelingPoetWeb.CoreComponents
+      # Translated sentences with links inside (rich/1, marker/1)
+      import TravelingPoetWeb.I18n
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -74,6 +74,7 @@ defmodule TravelingPoet.NarrationTest do
       assert Script.for_entry(%{title: nil, sections: []}) == nil
       assert Script.hash("a") != Script.hash("b")
       assert Script.estimated_seconds(String.duplicate("x", 1400)) == 100
+      assert Script.estimated_seconds(String.duplicate("א", 1100), "he") == 100
     end
   end
 
@@ -125,6 +126,36 @@ defmodule TravelingPoet.NarrationTest do
       assert Usage.today_count(user.id, "narration") == 1
       assert_received {:narration_ready, entry_id}
       assert entry_id == entry.id
+    end
+
+    test "a Hebrew page is read by the Hebrew voice, in Hebrew (dec-009)", %{entry: entry} do
+      stub_speech(mp3(60))
+      {:ok, entry} = entry |> Ecto.Changeset.change(language: "he") |> TravelingPoet.Repo.update()
+
+      assert {:ok, media} = Narration.generate(entry)
+
+      assert_received {:speech_request, body}
+      assert body["model"] == "test/narration-model-he"
+      assert body["voice"] == "test-voice-he"
+      assert body["instructions"] =~ "page in Hebrew"
+      assert media.prompt == "test/narration-model-he test-voice-he"
+    end
+
+    test "with no Hebrew voice set, a Hebrew page falls back to the default one", %{
+      entry: entry
+    } do
+      Application.put_env(:traveling_poet, :narration_model_he, nil)
+      Application.put_env(:traveling_poet, :narration_voice_he, "")
+
+      on_exit(fn ->
+        Application.put_env(:traveling_poet, :narration_model_he, "test/narration-model-he")
+        Application.put_env(:traveling_poet, :narration_voice_he, "test-voice-he")
+      end)
+
+      assert Narration.model("he") == "test/narration-model"
+      assert Narration.voice("he") == "test-voice"
+      assert Narration.model("en") == "test/narration-model"
+      assert entry.language == "en"
     end
 
     test "the same words narrate once; changed words replace the old reading", %{entry: entry} do

@@ -1,7 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-native={assigns[:native_app] && "ios"}>
+<html
+  lang={assigns[:locale] || "en"}
+  dir={assigns[:dir] || "ltr"}
+  data-native={assigns[:native_app] && "ios"}
+>
   <head>
     <meta charset="utf-8" />
+    <%!-- the words the page's scripts write, in the reader's language (assets/js/strings.js) --%>
+    <script>
+      window.tpStrings = <%= raw(TravelingPoetWeb.I18n.js_strings_json()) %>
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title default="Traveling Poet" phx-no-format>{assigns[:page_title]}</.live_title>

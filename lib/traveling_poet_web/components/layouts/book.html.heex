@@ -1,7 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html> <%!-- A book reads in its pages' language, not the interface's --%>
+<html
+  lang={assigns[:book_language] || "en"}
+  dir={TravelingPoet.Locale.dir(assigns[:book_language])}
+>
   <head>
     <meta charset="utf-8" />
+    <%!-- the words the page's scripts write, in the reader's language (assets/js/strings.js) --%>
+    <script>
+      window.tpStrings = <%= raw(TravelingPoetWeb.I18n.js_strings_json()) %>
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <title>{assigns[:page_title] || "Traveling Poet"}</title>

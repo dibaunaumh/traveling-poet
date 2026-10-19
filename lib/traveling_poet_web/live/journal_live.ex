@@ -90,7 +90,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
         socket =
           socket
-          |> assign(:page_title, "#{poet.name}'s Journal")
+          |> assign(:page_title, dgettext("journal", "%{poet}'s Journal", poet: poet.name))
           |> assign(:user, user)
           |> assign(:poet, poet)
           |> assign_push()
@@ -261,7 +261,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
     socket
     |> assign(:markers, markers)
-    |> assign(:markers_json, Jason.encode!(Markers.payload(markers)))
+    |> assign(:markers_json, Jason.encode!(markers_for_reader(markers)))
   end
 
   # Only the owner, and only on the live mount — the dead render would double
@@ -573,7 +573,7 @@ defmodule TravelingPoetWeb.JournalLive do
       !(user.sprite_url && user.gateway_token) ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Your poet isn't ready yet."
+          stream_error: dgettext("journal", "Your poet isn't ready yet.")
         )
 
         {:noreply, socket}
@@ -581,7 +581,7 @@ defmodule TravelingPoetWeb.JournalLive do
       Credits.exhausted?(user, socket.assigns.poet) ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Your poet is out of credits — top up in Settings."
+          stream_error: dgettext("journal", "Your poet is out of credits — top up in Settings.")
         )
 
         {:noreply, socket}
@@ -589,7 +589,11 @@ defmodule TravelingPoetWeb.JournalLive do
       not Usage.within_budget?(user, "chat_turn") ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Your poet is resting until tomorrow (daily limit reached)."
+          stream_error:
+            dgettext(
+              "journal",
+              "Your poet is resting until tomorrow (daily limit reached)."
+            )
         )
 
         {:noreply, socket}
@@ -625,7 +629,7 @@ defmodule TravelingPoetWeb.JournalLive do
     else
       send_update(ChatSidebarComponent,
         id: "chat-sidebar",
-        stream_error: "Could not reach your poet. Please try again."
+        stream_error: dgettext("journal", "Could not reach your poet. Please try again.")
       )
     end
 
@@ -756,7 +760,7 @@ defmodule TravelingPoetWeb.JournalLive do
        socket
        |> assign(:poet, poet)
        |> assign_journal(poet, current.entry_date)
-       |> put_flash(:info, "#{poet.name} revised this entry.")}
+       |> put_flash(:info, dgettext("journal", "%{poet} revised this entry.", poet: poet.name))}
     else
       {:noreply,
        socket
@@ -765,7 +769,10 @@ defmodule TravelingPoetWeb.JournalLive do
        |> assign(:first_entry, :done)
        |> assign(:tour_ready, socket.assigns.tour_open)
        |> resend_held()
-       |> put_flash(:info, "#{poet.name} published a new journal entry!")}
+       |> put_flash(
+         :info,
+         dgettext("journal", "%{poet} published a new journal entry!", poet: poet.name)
+       )}
     end
   end
 
@@ -791,7 +798,7 @@ defmodule TravelingPoetWeb.JournalLive do
       {:noreply,
        socket
        |> assign_journal(poet, current.entry_date)
-       |> put_flash(:info, "#{poet.name} revised this entry.")}
+       |> put_flash(:info, dgettext("journal", "%{poet} revised this entry.", poet: poet.name))}
     else
       {:noreply, assign_journal(socket, poet, current && current.entry_date)}
     end
@@ -874,18 +881,39 @@ defmodule TravelingPoetWeb.JournalLive do
     so_far = minutes_so_far(setup_minutes(poet))
 
     cond do
-      !awaiting_first_entry?(assigns) -> nil
-      provisioning?(assigns) -> "Setting up #{poet.name}'s room. #{so_far}"
-      first_entry == :in_flight -> "#{poet.name} is writing your first page. #{so_far}"
-      first_entry == :retry_pending -> "#{poet.name} is starting the first page again."
-      first_entry == :exhausted -> nil
-      true -> "#{poet.name} is about to open the notebook. #{so_far}"
+      !awaiting_first_entry?(assigns) ->
+        nil
+
+      provisioning?(assigns) ->
+        dgettext("journal", "Setting up %{poet}'s room. %{so_far}",
+          poet: poet.name,
+          so_far: so_far
+        )
+
+      first_entry == :in_flight ->
+        dgettext("journal", "%{poet} is writing your first page. %{so_far}",
+          poet: poet.name,
+          so_far: so_far
+        )
+
+      first_entry == :retry_pending ->
+        dgettext("journal", "%{poet} is starting the first page again.", poet: poet.name)
+
+      first_entry == :exhausted ->
+        nil
+
+      true ->
+        dgettext("journal", "%{poet} is about to open the notebook. %{so_far}",
+          poet: poet.name,
+          so_far: so_far
+        )
     end
   end
 
-  defp minutes_so_far(0), do: "Just started."
-  defp minutes_so_far(1), do: "1 minute so far."
-  defp minutes_so_far(n), do: "#{n} minutes so far."
+  defp minutes_so_far(0), do: dgettext("journal", "Just started.")
+
+  defp minutes_so_far(n),
+    do: dngettext("journal", "%{count} minute so far.", "%{count} minutes so far.", n)
 
   # Whole minutes since the poet was created. The waiting cards re-render every
   # @setup_refresh_ms, so this ticks along on its own and the wait shows its own
@@ -903,24 +931,29 @@ defmodule TravelingPoetWeb.JournalLive do
 
   # The provisioning chain as four things a reader can picture. Each stage
   # covers a run of `Provisioner.steps/0`, in order.
-  @setup_stages [
-    {"Renting a room", [:create_sprite, :make_public]},
-    {"Installing the writing desk", [:install_openclaw]},
-    {"Packing notebook, pens and maps",
-     [:write_config, :prepare_state, :write_env, :write_workspace, :write_tpoet_plugin]},
-    {"Opening the door", [:ensure_gateway_service, :pair_device, :get_sprite_url]}
-  ]
+  # A function, not a module attribute, so each label is translated for the
+  # reader looking at it.
+  defp setup_stages do
+    [
+      {dgettext("journal", "Renting a room"), [:create_sprite, :make_public]},
+      {dgettext("journal", "Installing the writing desk"), [:install_openclaw]},
+      {dgettext("journal", "Packing notebook, pens and maps"),
+       [:write_config, :prepare_state, :write_env, :write_workspace, :write_tpoet_plugin]},
+      {dgettext("journal", "Opening the door"),
+       [:ensure_gateway_service, :pair_device, :get_sprite_url]}
+    ]
+  end
 
   # `nil` means no step broadcast has reached this tab (fresh mount, dropped
   # socket): every stage shows as pending under one "working" row rather than
   # pointing at a stage that may be long finished.
-  defp stage_states(nil), do: Enum.map(@setup_stages, fn {label, _} -> {label, :pending} end)
+  defp stage_states(nil), do: Enum.map(setup_stages(), fn {label, _} -> {label, :pending} end)
 
   defp stage_states(step) do
     steps = TravelingPoet.Provisioner.steps()
     at = Enum.find_index(steps, &(&1 == step)) || 0
 
-    Enum.map(@setup_stages, fn {label, stage_steps} ->
+    Enum.map(setup_stages(), fn {label, stage_steps} ->
       first = Enum.find_index(steps, &(&1 == hd(stage_steps)))
       last = Enum.find_index(steps, &(&1 == List.last(stage_steps)))
 
@@ -943,7 +976,9 @@ defmodule TravelingPoetWeb.JournalLive do
 
     ~H"""
     <article id="setup-card" class="notebook-page mt-6">
-      <h2 class="notebook-title">Setting up {@poet.name}'s travel desk</h2>
+      <h2 class="notebook-title">
+        {dgettext("journal", "Setting up %{poet}'s travel desk", poet: @poet.name)}
+      </h2>
       <ol class="mt-4 space-y-2 text-sm">
         <li
           :for={{label, state} <- @stages}
@@ -954,12 +989,15 @@ defmodule TravelingPoetWeb.JournalLive do
         </li>
         <li :if={is_nil(@provision_step)} class="flex items-center gap-3">
           <.stage_mark state={:active} />
-          <span>Working on it</span>
+          <span>{dgettext("journal", "Working on it")}</span>
         </li>
       </ol>
       <p class="text-sm opacity-70 mt-4">
-        This usually takes 2 to 20 minutes. You can close this page; {@poet.name} keeps working
-        and this page updates on its own.
+        {dgettext(
+          "journal",
+          "This usually takes 2 to 20 minutes. You can close this page; %{poet} keeps working and this page updates on its own.",
+          poet: @poet.name
+        )}
       </p>
       <.elapsed_note poet={@poet} />
     </article>
@@ -985,9 +1023,17 @@ defmodule TravelingPoetWeb.JournalLive do
 
     ~H"""
     <p :if={@minutes >= 1} class="text-sm opacity-60 mt-2">
-      Yours started {@minutes} {if @minutes == 1, do: "minute", else: "minutes"} ago.
+      {dngettext(
+        "journal",
+        "Yours started %{count} minute ago.",
+        "Yours started %{count} minutes ago.",
+        @minutes
+      )}
       <span :if={@minutes >= 20}>
-        This one is taking longer than usual. Nothing is lost; the poet is still at it.
+        {dgettext(
+          "journal",
+          "This one is taking longer than usual. Nothing is lost; the poet is still at it."
+        )}
       </span>
     </p>
     """
@@ -1002,32 +1048,51 @@ defmodule TravelingPoetWeb.JournalLive do
     ~H"""
     <article id="first-entry-placeholder" class="notebook-page mt-6">
       <h2 class="notebook-title">
-        The first entry
-        <span class="notebook-date ml-2">
-          {Calendar.strftime(Date.utc_today(), "%B %-d, %Y")}
+        {dgettext("journal", "The first entry")}
+        <span class="notebook-date ms-2">
+          {TravelingPoet.Locale.format_date(Date.utc_today(), :long)}
         </span>
       </h2>
       <div class="mt-3 text-sm space-y-2">
         <p :if={@first_entry in [:starting, :waiting_for_sprite, :done]}>
-          {@poet.name} is awake and about to open the notebook. The first page usually takes
-          5 to 12 minutes.
+          {dgettext(
+            "journal",
+            "%{poet} is awake and about to open the notebook. The first page usually takes 5 to 12 minutes.",
+            poet: @poet.name
+          )}
         </p>
         <p :if={@first_entry == :in_flight} class="flex items-start gap-2">
           <span class="loading loading-dots loading-sm opacity-50 mt-1"></span>
           <span>
-            {@poet.name} is writing the first entry. This usually takes 5 to 12 minutes; the
-            drawing comes last. You can read along in the chat.
+            {dgettext(
+              "journal",
+              "%{poet} is writing the first entry. This usually takes 5 to 12 minutes; the drawing comes last. You can read along in the chat.",
+              poet: @poet.name
+            )}
           </span>
         </p>
         <p :if={@first_entry == :retry_pending}>
-          The first attempt did not produce a page. {@poet.name} will try again within {FirstEntry.retry_after_minutes()} minutes. Nothing is lost.
+          {dgettext(
+            "journal",
+            "The first attempt did not produce a page. %{poet} will try again within %{minutes} minutes. Nothing is lost.",
+            poet: @poet.name,
+            minutes: FirstEntry.retry_after_minutes()
+          )}
         </p>
         <p :if={@first_entry == :exhausted}>
-          {@poet.name} could not finish the first entry after {FirstEntry.max_attempts()} tries.
-          The daily run will try again tomorrow.
+          {dgettext(
+            "journal",
+            "%{poet} could not finish the first entry after %{tries} tries. The daily run will try again tomorrow.",
+            poet: @poet.name,
+            tries: FirstEntry.max_attempts()
+          )}
         </p>
         <p class="opacity-70">
-          You can close this page; {@poet.name} keeps working and this page updates on its own.
+          {dgettext(
+            "journal",
+            "You can close this page; %{poet} keeps working and this page updates on its own.",
+            poet: @poet.name
+          )}
         </p>
       </div>
       <.elapsed_note poet={@poet} />
@@ -1043,7 +1108,7 @@ defmodule TravelingPoetWeb.JournalLive do
   defp waiting_tips(assigns) do
     ~H"""
     <section id="waiting-tips" class="mt-6 rounded-xl border border-base-300 p-4 space-y-4">
-      <h3 class="font-semibold">While you wait</h3>
+      <h3 class="font-semibold">{dgettext("journal", "While you wait")}</h3>
       <.telegram_tip telegram={@telegram} user={@user} poet={@poet} />
       <.push_tip push={@push} poet={@poet} />
     </section>
@@ -1068,10 +1133,18 @@ defmodule TravelingPoetWeb.JournalLive do
             id="credits-exhausted-banner"
           >
             <.icon name="hero-moon" class="size-5" />
-            <span>
-              {@poet.name} is resting — out of credits.
-              <.link navigate={~p"/settings"} class="link font-semibold">Top up</.link>
-            </span>
+            <.rich text={
+              dgettext("journal", "%{poet} is resting — out of credits. %{top_up}",
+                poet: @poet.name,
+                top_up: marker(:top_up)
+              )
+            }>
+              <:part name="top_up">
+                <.link navigate={~p"/settings"} class="link font-semibold">
+                  {dgettext("journal", "Top up")}
+                </.link>
+              </:part>
+            </.rich>
           </div>
           <div class="flex items-center gap-3 mb-3">
             <img
@@ -1088,7 +1161,7 @@ defmodule TravelingPoetWeb.JournalLive do
                   {@poet.current_place_name}
                 </span>
                 <span :if={@sprite_status == :not_provisioned} class="text-warning">
-                  preparing to set out
+                  {dgettext("journal", "preparing to set out")}
                 </span>
               </p>
             </div>
@@ -1096,22 +1169,24 @@ defmodule TravelingPoetWeb.JournalLive do
               :if={@entries != []}
               href={~p"/journal/book"}
               target="_blank"
-              class="ml-auto btn btn-ghost btn-sm"
-              title="The whole journal as a printable book"
+              class="ms-auto btn btn-ghost btn-sm"
+              title={dgettext("journal", "The whole journal as a printable book")}
             >
-              <.icon name="hero-book-open" class="size-4" /> Book
+              <.icon name="hero-book-open" class="size-4" /> {dgettext("journal", "Book")}
             </a>
             <button
               :if={!provisioning?(assigns)}
               phx-click="toggle_chat"
               class={[
                 "hidden xl:inline-flex btn btn-ghost btn-sm",
-                @entries == [] && "ml-auto"
+                @entries == [] && "ms-auto"
               ]}
-              aria-label="Toggle chat"
+              aria-label={dgettext("journal", "Toggle chat")}
             >
               <.icon name="hero-chat-bubble-left-right" class="size-4" />
-              {if @sidebar_open, do: "Hide chat", else: "Chat"}
+              {if @sidebar_open,
+                do: dgettext("journal", "Hide chat"),
+                else: dgettext("journal", "Chat")}
             </button>
           </div>
 
@@ -1125,7 +1200,7 @@ defmodule TravelingPoetWeb.JournalLive do
           <.excursion_route
             :if={!awaiting_first_entry?(assigns) and not is_nil(@route) and !finds_spread?(assigns)}
             diagram={@route}
-            title={"#{@poet.name}'s journey through this topic"}
+            title={dgettext("journal", "%{poet}'s journey through this topic", poet: @poet.name)}
           />
 
           <div
@@ -1161,10 +1236,13 @@ defmodule TravelingPoetWeb.JournalLive do
                 the home page and /discover show, with this reader's poet as the
                 red dot. A nested LiveView, so it follows publishes on its own. --%>
           <section :if={awaiting_first_entry?(assigns)} id="meanwhile" class="mt-8">
-            <h3 class="font-semibold">In the meantime</h3>
+            <h3 class="font-semibold">{dgettext("journal", "In the meantime")}</h3>
             <p class="text-sm opacity-70 mb-3">
-              Other poets are already out on the road. Here are their newest pages and the places
-              they found. Yours, {@poet.name}, is the red dot.
+              {dgettext(
+                "journal",
+                "Other poets are already out on the road. Here are their newest pages and the places they found. Yours, %{poet}, is the red dot.",
+                poet: @poet.name
+              )}
             </p>
             {live_render(@socket, TravelingPoetWeb.DiscoverLive,
               id: "meanwhile-discover",
@@ -1350,17 +1428,21 @@ defmodule TravelingPoetWeb.JournalLive do
                         {option["label"]}
                       </button>
                       <button phx-click="prompt_dismiss" class="btn btn-ghost btn-xs opacity-50">
-                        not now
+                        {dgettext("journal", "not now")}
                       </button>
                     </div>
                   </div>
                   <div :if={@prompt_answer} class="flex items-center gap-2 text-sm">
                     <span>
-                      Got it — {@poet.name} will keep that in mind.
+                      {dgettext("journal", "Got it — %{poet} will keep that in mind.",
+                        poet: @poet.name
+                      )}
                     </span>
-                    <button phx-click="prompt_undo" class="btn btn-ghost btn-xs">undo</button>
+                    <button phx-click="prompt_undo" class="btn btn-ghost btn-xs">
+                      {dgettext("journal", "undo")}
+                    </button>
                     <.link navigate={~p"/settings"} class="link text-xs opacity-60">
-                      what your poet has learned
+                      {dgettext("journal", "what your poet has learned")}
                     </.link>
                   </div>
                 </div>
@@ -1369,7 +1451,9 @@ defmodule TravelingPoetWeb.JournalLive do
                   <div class="flex flex-wrap items-center gap-2">
                     <%!-- A line of its own: beside the buttons it pushed the last
                           one onto a second row on a narrow page --%>
-                    <span class="text-sm opacity-60 basis-full">Tell your poet:</span>
+                    <span class="text-sm opacity-60 basis-full">
+                      {dgettext("journal", "Tell your poet:")}
+                    </span>
                     <button
                       :for={{kind, emoji} <- reaction_kinds()}
                       phx-click="react"
@@ -1378,13 +1462,13 @@ defmodule TravelingPoetWeb.JournalLive do
                         "btn btn-sm",
                         if(MapSet.member?(@my_reactions, kind), do: "btn-primary", else: "btn-ghost")
                       ]}
-                      title={kind}
+                      title={reaction_title(kind)}
                     >
                       {emoji}
                     </button>
                   </div>
                   <p class="text-xs opacity-40 mt-1">
-                    private feedback — shapes what your poet seeks out next
+                    {dgettext("journal", "private feedback — shapes what your poet seeks out next")}
                   </p>
                 </div>
               </:right_footer>
@@ -1420,8 +1504,8 @@ defmodule TravelingPoetWeb.JournalLive do
           :if={!provisioning?(assigns) and !@mobile_chat_open}
           id="chat-fab"
           phx-click="toggle_mobile_chat"
-          class="chat-fab xl:hidden fixed right-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
-          aria-label="Open chat"
+          class="chat-fab xl:hidden fixed end-5 z-40 btn btn-primary btn-circle btn-lg shadow-lg"
+          aria-label={dgettext("journal", "Open chat")}
         >
           <.icon name="hero-chat-bubble-left-right" class="size-6" />
         </button>
@@ -1433,6 +1517,13 @@ defmodule TravelingPoetWeb.JournalLive do
   defp reaction_kinds do
     [{"love", "❤️"}, {"inspiring", "✨"}, {"want_more", "➕"}, {"not_for_me", "🤷"}]
   end
+
+  # The tooltip on each reaction: the kind as the English page has always
+  # shown it, in the reader's language.
+  defp reaction_title("love"), do: dgettext("journal", "love")
+  defp reaction_title("inspiring"), do: dgettext("journal", "inspiring")
+  defp reaction_title("want_more"), do: dgettext("journal", "want_more")
+  defp reaction_title("not_for_me"), do: dgettext("journal", "not_for_me")
 
   # `entry` focuses the map on the day you are actually reading. Without it the
   # map only ever knew the poet's path and where it is NOW, so paging back
@@ -1510,10 +1601,15 @@ defmodule TravelingPoetWeb.JournalLive do
   # auto-fired /onboard right after provisioning) with a bare "Chat error".
   # Translate it into something a user can act on.
   defp friendly_error(reason, socket) when is_binary(reason) do
-    poet_name = (socket.assigns[:poet] && socket.assigns.poet.name) || "Your poet"
+    poet_name =
+      (socket.assigns[:poet] && socket.assigns.poet.name) || dgettext("journal", "Your poet")
 
     if busy_rejection?(reason) do
-      "#{poet_name} is mid-thought, probably writing to you right now. Give it a moment and resend."
+      dgettext(
+        "journal",
+        "%{poet} is mid-thought, probably writing to you right now. Give it a moment and resend.",
+        poet: poet_name
+      )
     else
       reason
     end
@@ -1550,7 +1646,7 @@ defmodule TravelingPoetWeb.JournalLive do
     else
       send_update(ChatSidebarComponent,
         id: "chat-sidebar",
-        stream_error: "Your poet isn't ready yet."
+        stream_error: dgettext("journal", "Your poet isn't ready yet.")
       )
 
       socket
@@ -1622,7 +1718,7 @@ defmodule TravelingPoetWeb.JournalLive do
       entries == [] ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Attachment is missing — please pick a file again."
+          stream_error: dgettext("journal", "Attachment is missing — please pick a file again.")
         )
 
         {:noreply, socket}
@@ -1630,7 +1726,11 @@ defmodule TravelingPoetWeb.JournalLive do
       Enum.any?(entries, &(not &1.done?)) ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Upload still in progress — please wait a moment and try again."
+          stream_error:
+            dgettext(
+              "journal",
+              "Upload still in progress — please wait a moment and try again."
+            )
         )
 
         {:noreply, socket}
@@ -1674,7 +1774,7 @@ defmodule TravelingPoetWeb.JournalLive do
       nil ->
         send_update(ChatSidebarComponent,
           id: "chat-sidebar",
-          stream_error: "Upload failed: no file consumed"
+          stream_error: dgettext("journal", "Upload failed: no file consumed")
         )
 
         {:noreply, socket}
@@ -1747,5 +1847,14 @@ defmodule TravelingPoetWeb.JournalLive do
   defp share_url(poet, entry),
     do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}")
 
-  defp share_title(poet, entry), do: "#{entry_title(entry)}, by #{poet.name}"
+  defp share_title(poet, entry),
+    do: dgettext("journal", "%{title}, by %{poet}", title: entry_title(entry), poet: poet.name)
+
+  # The payload's labels are the poet's English (Marker.label/1); the margin
+  # pins and popovers show the reader's
+  defp markers_for_reader(markers) do
+    markers
+    |> Markers.payload()
+    |> Enum.map(&Map.put(&1, :label, TravelingPoetWeb.MarkerComponents.kind_label(&1.kind)))
+  end
 end

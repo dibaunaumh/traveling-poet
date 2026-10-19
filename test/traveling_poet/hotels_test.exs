@@ -108,6 +108,20 @@ defmodule TravelingPoet.HotelsTest do
              "https://hotels.example/hotels/lp1?checkin=2026-11-10&checkout=2026-11-13&adults=2"
   end
 
+  test "a template that asks for the language gets the reader's (card-101)" do
+    Application.put_env(
+      :traveling_poet,
+      :liteapi_booking_url,
+      "https://x.nuitee.link/hotels/{hotel_id}?language={language}"
+    )
+
+    on_exit(fn -> Application.delete_env(:traveling_poet, :liteapi_booking_url) end)
+
+    assert TravelingPoet.Locale.with_locale("he", fn ->
+             Hotels.booking_url(%{id: "lp1"}, ~D[2026-11-10], ~D[2026-11-13], 2)
+           end) == "https://x.nuitee.link/hotels/lp1?language=he"
+  end
+
   # LiteAPI's white-label hotel page has no `adults` parameter: guests travel
   # as `occupancies`, a base64 JSON array of rooms. The first live template
   # (2026-10-17) needed it, and a Book link that drops the guest count prices

@@ -1,0 +1,1001 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{from} to %{to}"
+msgstr "%{from} עד %{to}"
+
+#, elixir-autogen, elixir-format
+msgid "from %{date}"
+msgstr "מ-%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "until %{date}"
+msgstr "עד %{date}"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} artwork"
+msgid_plural "%{count} artworks"
+msgstr[0] "יצירת אמנות אחת"
+msgstr[1] "%{count} יצירות אמנות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} event"
+msgid_plural "%{count} events"
+msgstr[0] "אירוע אחד"
+msgstr[1] "%{count} אירועים"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} find"
+msgid_plural "%{count} finds"
+msgstr[0] "מציאה אחת"
+msgstr[1] "%{count} מציאות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} idea"
+msgid_plural "%{count} ideas"
+msgstr[0] "רעיון אחד"
+msgstr[1] "%{count} רעיונות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place"
+msgid_plural "%{count} places"
+msgstr[0] "מקום אחד"
+msgstr[1] "%{count} מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} product"
+msgid_plural "%{count} products"
+msgstr[0] "מוצר אחד"
+msgstr[1] "%{count} מוצרים"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} work"
+msgid_plural "%{count} works"
+msgstr[0] "יצירה אחת"
+msgstr[1] "%{count} יצירות"
+
+#, elixir-autogen, elixir-format
+msgid "%{kind} at %{destination}"
+msgstr "%{kind}, מתוך %{destination}"
+
+#, elixir-autogen, elixir-format
+msgid "%{kind} in %{city}"
+msgstr "%{kind} ב-%{city}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} did not get back. Try again in a while."
+msgstr "אין תשובה מ-%{poet}. נסו שוב בעוד זמן מה."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} goes back out for a few more around %{place}."
+msgstr "סיבוב נוסף של %{poet} ב-%{place}, בשביל עוד כמה מקומות."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} has not written about this stop yet."
+msgstr "עדיין אין עמוד של %{poet} על התחנה הזאת."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} hasn't mapped out this trip's guide yet — it fills in as the journal grows."
+msgstr "המדריך של %{poet} לטיול הזה עדיין ריק. הוא יתמלא ככל שהיומן יגדל."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is done looking around."
+msgstr "הסיבוב של %{poet} הסתיים."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is in the middle of something. Try again in a few minutes."
+msgstr "%{poet} באמצע משהו. נסו שוב בעוד כמה דקות."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is looking around %{place}. New places land here in a minute or two."
+msgstr "%{poet} בסיבוב ב-%{place}. מקומות חדשים יופיעו כאן בעוד דקה או שתיים."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is out of credits. Top up in Settings."
+msgstr "ל-%{poet} נגמרו הקרדיטים. אפשר להטעין בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is resting until tomorrow (daily limit reached)."
+msgstr "%{poet} במנוחה עד מחר (המכסה היומית נוצלה)."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} sets out for %{trip} now; there is not enough time for a full stay at every stop before you go."
+msgstr "%{poet} כבר בדרך ל-%{trip}. אין מספיק זמן לשהייה מלאה בכל תחנה לפני שתצאו."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will scout %{trip} for your trip, setting out on %{date}."
+msgstr "הסיור של %{poet} ב-%{trip} לקראת הטיול שלכם יתחיל ב-%{date}."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s own rating — not a review score"
+msgstr "הדירוג האישי של %{poet}, לא ציון ביקורות"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick"
+msgstr "הבחירה של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s pick: %{rating} of 5"
+msgstr "הבחירה של %{poet}: %{rating} מתוך 5"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}'s trip guide"
+msgstr "מדריך הטיול של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}: %{reply}"
+msgstr "%{poet}: %{reply}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}’s guide"
+msgstr "המדריך של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}’s pick: %{rating} of 5"
+msgstr "הבחירה של %{poet}: %{rating} מתוך 5"
+
+#, elixir-autogen, elixir-format
+msgid "%{things}, in order"
+msgstr "%{things}, לפי הסדר"
+
+#, elixir-autogen, elixir-format
+msgid ", then "
+msgstr ", ואז "
+
+#, elixir-autogen, elixir-format
+msgid "All"
+msgstr "הכול"
+
+#, elixir-autogen, elixir-format
+msgid "All destinations"
+msgstr "כל היעדים"
+
+#, elixir-autogen, elixir-format
+msgid "Also brought back %{things}."
+msgstr "ועוד מהדרך: %{things}."
+
+#, elixir-autogen, elixir-format
+msgid "Also found by %{poets}"
+msgstr "נמצא גם אצל %{poets}"
+
+#, elixir-autogen, elixir-format
+msgid "Anyone with this link sees these places:"
+msgstr "בקישור הזה כל אחד יכול לראות את המקומות:"
+
+#, elixir-autogen, elixir-format
+msgid "Art, music, books, films"
+msgstr "אמנות, מוזיקה, ספרים, סרטים"
+
+#, elixir-autogen, elixir-format
+msgid "Artwork"
+msgstr "יצירת אמנות"
+
+#, elixir-autogen, elixir-format
+msgid "Artworks"
+msgstr "יצירות אמנות"
+
+#, elixir-autogen, elixir-format
+msgid "Asking %{poet}…"
+msgstr "שואלים את %{poet}…"
+
+#, elixir-autogen, elixir-format
+msgid "Attraction"
+msgstr "אטרקציה"
+
+#, elixir-autogen, elixir-format
+msgid "Book"
+msgstr "ספר"
+
+#, elixir-autogen, elixir-format
+msgid "Book ahead"
+msgstr "כדאי להזמין מראש"
+
+#, elixir-autogen, elixir-format
+msgid "Cafe"
+msgstr "בית קפה"
+
+#, elixir-autogen, elixir-format
+msgid "Call it off"
+msgstr "ביטול הטיול"
+
+#, elixir-autogen, elixir-format
+msgid "Change your home city"
+msgstr "שינוי עיר הבית"
+
+#, elixir-autogen, elixir-format
+msgid "Check now"
+msgstr "בדיקה עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "Checking your calendar."
+msgstr "בודקים את לוח השנה שלכם."
+
+#, elixir-autogen, elixir-format
+msgid "Connect Google Calendar"
+msgstr "חיבור Google Calendar"
+
+#, elixir-autogen, elixir-format
+msgid "Connect your Google Calendar and %{poet} will notice the trips on it and offer to scout them before you go. Only your primary calendar is read, and only the dates and places of trips are kept, never what an event says."
+msgstr "חברו את Google Calendar, והטיולים שבו יגיעו אל %{poet}, עם הצעה לסייר בהם לפני שתצאו. רק לוח השנה הראשי שלכם נקרא, ונשמרים רק התאריכים והמקומות של הטיולים, אף פעם לא מה שכתוב באירוע."
+
+#, elixir-autogen, elixir-format
+msgid "Connected, last checked %{ago}."
+msgstr "מחובר, נבדק לאחרונה %{ago}."
+
+#, elixir-autogen, elixir-format
+msgid "Connected."
+msgstr "מחובר."
+
+#, elixir-autogen, elixir-format
+msgid "Data"
+msgstr "נתונים"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr "יום %{n}"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n} in %{place}"
+msgstr "יום %{n} ב-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Days"
+msgstr "ימים"
+
+#, elixir-autogen, elixir-format
+msgid "Disconnect Google Calendar"
+msgstr "ניתוק Google Calendar"
+
+#, elixir-autogen, elixir-format
+msgid "Discover"
+msgstr "גילוי"
+
+#, elixir-autogen, elixir-format
+msgid "Dish"
+msgstr "מנה"
+
+#, elixir-autogen, elixir-format
+msgid "Download the places file"
+msgstr "הורידו את קובץ המקומות"
+
+#, elixir-autogen, elixir-format
+msgid "Draw the route on the map"
+msgstr "ציור הדרך על המפה"
+
+#, elixir-autogen, elixir-format
+msgid "Earlier:"
+msgstr "מהדורות קודמות:"
+
+#, elixir-autogen, elixir-format
+msgid "Event"
+msgstr "אירוע"
+
+#, elixir-autogen, elixir-format
+msgid "Events"
+msgstr "אירועים"
+
+#, elixir-autogen, elixir-format
+msgid "Events and venues"
+msgstr "אירועים ומקומות בילוי"
+
+#, elixir-autogen, elixir-format
+msgid "Every excursion into %{topic}, and what it brought back"
+msgstr "כל הגיחות אל %{topic}, ומה שחזר מהן"
+
+#, elixir-autogen, elixir-format
+msgid "Every poet's notes on it"
+msgstr "מה שכל המשוררים כתבו עליו"
+
+#, elixir-autogen, elixir-format
+msgid "Everything"
+msgstr "הכול"
+
+#, elixir-autogen, elixir-format
+msgid "Everything the poets have found, in Discover →"
+msgstr "כל מה שהמשוררים מצאו מחכה בגילוי ←"
+
+#, elixir-autogen, elixir-format
+msgid "Excursion"
+msgstr "גיחה"
+
+#, elixir-autogen, elixir-format
+msgid "Excursion %{n} into %{topic}"
+msgstr "גיחה %{n} אל %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "Excursion of %{date}"
+msgstr "הגיחה מ-%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "Film or series"
+msgstr "סרט או סדרה"
+
+#, elixir-autogen, elixir-format
+msgid "Find"
+msgstr "מציאה"
+
+#, elixir-autogen, elixir-format
+msgid "Finds you saved"
+msgstr "מציאות ששמרתם"
+
+#, elixir-autogen, elixir-format
+msgid "Food"
+msgstr "אוכל"
+
+#, elixir-autogen, elixir-format
+msgid "Found by %{poets}"
+msgstr "מציאה של %{poets}"
+
+#, elixir-autogen, elixir-format
+msgid "Found on your calendar"
+msgstr "טיולים מלוח השנה שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "From %{poet}'s journal"
+msgstr "מהיומן של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "From the page %{poet} wrote there"
+msgstr "מהעמוד של %{poet} מאותו מקום"
+
+#, elixir-autogen, elixir-format
+msgid "From your journal"
+msgstr "מהיומן שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Google Calendar disconnected. Trips already planned stay planned."
+msgstr "Google Calendar נותק. טיולים שכבר תוכננו נשארים בתוכנית."
+
+#, elixir-autogen, elixir-format
+msgid "Google will ask you to allow reading your calendar, alongside anything you have already allowed, such as Google Drive."
+msgstr "Google יבקש מכם לאשר קריאה של לוח השנה, לצד כל מה שכבר אישרתם, כמו Google Drive."
+
+#, elixir-autogen, elixir-format
+msgid "Google would not let the poet read your calendar. Try reconnecting."
+msgstr "Google לא אפשר לקרוא את לוח השנה שלכם. נסו להתחבר מחדש."
+
+#, elixir-autogen, elixir-format
+msgid "Grey dots are poets whose journals are private."
+msgstr "נקודות אפורות הן משוררים שהיומנים שלהם פרטיים."
+
+#, elixir-autogen, elixir-format
+msgid "Here is where %{poet} sets out from. Yours will be the first poet on the road."
+msgstr "כאן מתחילה הדרך של %{poet}, הראשונה על המפה."
+
+#, elixir-autogen, elixir-format
+msgid "Home"
+msgstr "בית"
+
+#, elixir-autogen, elixir-format
+msgid "How to look"
+msgstr "איך להסתכל"
+
+#, elixir-autogen, elixir-format
+msgid "Ideas"
+msgstr "רעיונות"
+
+#, elixir-autogen, elixir-format
+msgid "In %{place}"
+msgstr "ב-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Itinerary"
+msgstr "מסלול"
+
+#, elixir-autogen, elixir-format
+msgid "Its stops are on the itinerary above."
+msgstr "התחנות שלו מופיעות במסלול למעלה."
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr "יומן"
+
+#, elixir-autogen, elixir-format
+msgid "Keep"
+msgstr "משאירים"
+
+#, elixir-autogen, elixir-format
+msgid "Kept. %{poet} still goes."
+msgstr "נשאר בתוכנית. %{poet} עדיין בדרך."
+
+#, elixir-autogen, elixir-format
+msgid "Landmark"
+msgstr "ציון דרך"
+
+#, elixir-autogen, elixir-format
+msgid "Latest page:"
+msgstr "העמוד האחרון:"
+
+#, elixir-autogen, elixir-format
+msgid "List"
+msgstr "רשימה"
+
+#, elixir-autogen, elixir-format
+msgid "Map"
+msgstr "מפה"
+
+#, elixir-autogen, elixir-format
+msgid "More about %{poet}"
+msgstr "עוד על %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "More places"
+msgstr "עוד מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "Music"
+msgstr "מוזיקה"
+
+#, elixir-autogen, elixir-format
+msgid "Next page"
+msgstr "העמוד הבא"
+
+#, elixir-autogen, elixir-format
+msgid "No excursions into %{topic} yet."
+msgstr "עדיין אין גיחות אל %{topic}."
+
+#, elixir-autogen, elixir-format
+msgid "No longer on your calendar. Still going?"
+msgstr "כבר לא בלוח השנה שלכם. עדיין נוסעים?"
+
+#, elixir-autogen, elixir-format
+msgid "No places found."
+msgstr "לא נמצאו מקומות."
+
+#, elixir-autogen, elixir-format
+msgid "No poets on the road yet. The first ones are still lacing their boots."
+msgstr "עדיין אין משוררים בדרכים. הראשונים עוד שורכים את הנעליים."
+
+#, elixir-autogen, elixir-format
+msgid "No upcoming trips found yet. Trips need a place and at least two days, or a booking Gmail put on your calendar."
+msgstr "עדיין לא נמצאו טיולים קרובים. טיול צריך מקום ולפחות יומיים, או הזמנה ש-Gmail הוסיף ללוח השנה שלכם."
+
+#, elixir-autogen, elixir-format
+msgid "Not found"
+msgstr "לא נמצא"
+
+#, elixir-autogen, elixir-format
+msgid "Not this trip"
+msgstr "לא הטיול הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved under this filter"
+msgstr "אין שמורים בסינון הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Nothing saved yet. Tap Save on a place or find, here, in any public guide, or in Discover."
+msgstr "עדיין לא שמרתם כלום. הקישו על שמירה ליד מקום או מציאה, כאן, בכל מדריך ציבורי או בגילוי."
+
+#, elixir-autogen, elixir-format
+msgid "Nothing under this filter."
+msgstr "אין כלום בסינון הזה."
+
+#, elixir-autogen, elixir-format
+msgid "One place couldn't be put on the map — it's still in the list."
+msgid_plural "%{count} places couldn't be put on the map — they're still in the list."
+msgstr[0] "מקום אחד לא נכנס למפה, אבל הוא עדיין ברשימה."
+msgstr[1] "%{count} מקומות לא נכנסו למפה, אבל הם עדיין ברשימה."
+
+#, elixir-autogen, elixir-format
+msgid "Open %{hours}"
+msgstr "פתוח %{hours}"
+
+#, elixir-autogen, elixir-format
+msgid "Open %{my_maps}, create a map, and choose Import with that file."
+msgstr "פתחו את %{my_maps}, צרו מפה ובחרו ייבוא עם הקובץ הזה."
+
+#, elixir-autogen, elixir-format
+msgid "Open %{poet}’s journal"
+msgstr "ליומן של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Open in %{poet}’s guide"
+msgstr "פתיחה במדריך של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Open in Google Maps"
+msgstr "פתיחה ב-Google Maps"
+
+#, elixir-autogen, elixir-format
+msgid "Open in Google Maps ↗"
+msgstr "פתיחה ב-Google Maps ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Open it"
+msgstr "פתיחה"
+
+#, elixir-autogen, elixir-format
+msgid "Open ↗"
+msgstr "פתיחה ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Other"
+msgstr "אחר"
+
+#, elixir-autogen, elixir-format
+msgid "Outdoors"
+msgstr "בטבע"
+
+#, elixir-autogen, elixir-format
+msgid "Pages"
+msgstr "עמודים"
+
+#, elixir-autogen, elixir-format
+msgid "Paper"
+msgstr "מאמר"
+
+#, elixir-autogen, elixir-format
+msgid "Person"
+msgstr "אדם"
+
+#, elixir-autogen, elixir-format
+msgid "Pick a pin to see the place you saved."
+msgstr "בחרו סיכה כדי לראות את המקום ששמרתם."
+
+#, elixir-autogen, elixir-format
+msgid "Pick a pin to see what %{poet} said about it."
+msgstr "בחרו סיכה כדי לקרוא את דברי %{poet} על המקום."
+
+#, elixir-autogen, elixir-format
+msgid "Pick your home city first."
+msgstr "קודם בחרו את עיר הבית."
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr "מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "Places and finds you saved, from any poet"
+msgstr "מקומות ומציאות ששמרתם, מכל המשוררים"
+
+#, elixir-autogen, elixir-format
+msgid "Places, food and events for %{place}"
+msgstr "מקומות, אוכל ואירועים ב-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Places, food and events from %{poet}'s travels"
+msgstr "מקומות, אוכל ואירועים מהמסעות של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Plan my days"
+msgstr "תכנון הימים שלי"
+
+#, elixir-autogen, elixir-format
+msgid "Planned"
+msgstr "מתוכננים"
+
+#, elixir-autogen, elixir-format
+msgid "Poets"
+msgstr "משוררים"
+
+#, elixir-autogen, elixir-format
+msgid "Previous page"
+msgstr "העמוד הקודם"
+
+#, elixir-autogen, elixir-format
+msgid "Product"
+msgstr "מוצר"
+
+#, elixir-autogen, elixir-format
+msgid "Products"
+msgstr "מוצרים"
+
+#, elixir-autogen, elixir-format
+msgid "Put these places in Google Maps"
+msgstr "העברת המקומות ל-Google Maps"
+
+#, elixir-autogen, elixir-format
+msgid "Read the entry"
+msgstr "לקריאת העמוד"
+
+#, elixir-autogen, elixir-format
+msgid "Read the page it came from"
+msgstr "לעמוד שממנו זה הגיע"
+
+#, elixir-autogen, elixir-format
+msgid "Read this page"
+msgstr "לקריאת העמוד"
+
+#, elixir-autogen, elixir-format
+msgid "Reconnect"
+msgstr "התחברות מחדש"
+
+#, elixir-autogen, elixir-format
+msgid "Related"
+msgstr "קשורים"
+
+#, elixir-autogen, elixir-format
+msgid "Restaurant"
+msgstr "מסעדה"
+
+#, elixir-autogen, elixir-format
+msgid "Route"
+msgstr "הדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Routes"
+msgstr "דרכים"
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr "שמירה"
+
+#, elixir-autogen, elixir-format
+msgid "Save to your guide"
+msgstr "שמירה במדריך שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Saved"
+msgstr "שמורים"
+
+#, elixir-autogen, elixir-format
+msgid "Saved on Traveling Poet"
+msgstr "שמורים ב-Traveling Poet"
+
+#, elixir-autogen, elixir-format
+msgid "Saved. Tap to remove"
+msgstr "נשמר. הקישו להסרה"
+
+#, elixir-autogen, elixir-format
+msgid "Scout this trip"
+msgstr "סיור בטיול הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Search"
+msgstr "חיפוש"
+
+#, elixir-autogen, elixir-format
+msgid "Search failed: %{reason}"
+msgstr "החיפוש נכשל: %{reason}"
+
+#, elixir-autogen, elixir-format
+msgid "See this subject in the village"
+msgstr "הנושא הזה בכפר"
+
+#, elixir-autogen, elixir-format
+msgid "Session"
+msgstr "מפגש"
+
+#, elixir-autogen, elixir-format
+msgid "Share this list with friends"
+msgstr "שתפו את הרשימה עם חברים"
+
+#, elixir-autogen, elixir-format
+msgid "Shop"
+msgstr "חנות"
+
+#, elixir-autogen, elixir-format
+msgid "Show on the map"
+msgstr "מה להציג על המפה"
+
+#, elixir-autogen, elixir-format
+msgid "Sights"
+msgstr "אתרים"
+
+#, elixir-autogen, elixir-format
+msgid "Still gathering recommendations"
+msgstr "ההמלצות עוד נאספות"
+
+#, elixir-autogen, elixir-format
+msgid "Stop sharing"
+msgstr "הפסקת השיתוף"
+
+#, elixir-autogen, elixir-format
+msgid "Subjects"
+msgstr "נושאים"
+
+#, elixir-autogen, elixir-format
+msgid "Talk"
+msgstr "הרצאה"
+
+#, elixir-autogen, elixir-format
+msgid "Talks and papers"
+msgstr "הרצאות ומאמרים"
+
+#, elixir-autogen, elixir-format
+msgid "That journal doesn't exist or isn't public."
+msgstr "היומן הזה לא קיים או שאינו ציבורי."
+
+#, elixir-autogen, elixir-format
+msgid "The connection to your calendar has lapsed."
+msgstr "החיבור ללוח השנה שלכם פג."
+
+#, elixir-autogen, elixir-format
+msgid "The last check failed; it will be tried again."
+msgstr "הבדיקה האחרונה נכשלה. ננסה שוב."
+
+#, elixir-autogen, elixir-format
+msgid "The map appears in the Google Maps app under Saved, then Maps. Use Share there to send it to friends."
+msgstr "המפה תופיע באפליקציית Google Maps תחת שמורים, ואז מפות. משם אפשר לשתף אותה עם חברים."
+
+#, elixir-autogen, elixir-format
+msgid "The trip to %{trip} is called off."
+msgstr "הטיול ל-%{trip} בוטל."
+
+#, elixir-autogen, elixir-format
+msgid "Trip guide"
+msgstr "מדריך טיול"
+
+#, elixir-autogen, elixir-format
+msgid "Venue"
+msgstr "מקום אירועים"
+
+#, elixir-autogen, elixir-format
+msgid "View details ↗"
+msgstr "לפרטים ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Viewpoint"
+msgstr "נקודת תצפית"
+
+#, elixir-autogen, elixir-format
+msgid "Village"
+msgstr "הכפר"
+
+#, elixir-autogen, elixir-format
+msgid "Walk it in Google Maps ↗"
+msgstr "המסלול ברגל ב-Google Maps ↖"
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} brought back from excursions into %{topic}"
+msgstr "המציאות של %{poet} מגיחות אל %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "What the poets wrote"
+msgstr "מה שהמשוררים כתבו"
+
+#, elixir-autogen, elixir-format
+msgid "What to show"
+msgstr "מה להציג"
+
+#, elixir-autogen, elixir-format
+msgid "Where do you set out from? A trip is time spent far from here."
+msgstr "מאיפה אתם יוצאים לדרך? טיול הוא זמן שמבלים רחוק מכאן."
+
+#, elixir-autogen, elixir-format
+msgid "Works"
+msgstr "יצירות"
+
+#, elixir-autogen, elixir-format
+msgid "World"
+msgstr "עולם"
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has a trip to %{trip}, %{dates}. Should %{poet} scout it first?"
+msgstr "בלוח השנה שלכם יש טיול ל-%{trip}, %{dates}. לשלוח את %{poet} לסייר שם קודם?"
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar was checked a few minutes ago. Try again later."
+msgstr "לוח השנה שלכם נבדק לפני כמה דקות. נסו שוב מאוחר יותר."
+
+#, elixir-autogen, elixir-format
+msgid "Your home city"
+msgstr "עיר הבית שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Your saved places fit in %{count} day, so the rest are free."
+msgid_plural "Your saved places fit in %{count} days, so the rest are free."
+msgstr[0] "המקומות ששמרתם נכנסים ביום אחד, אז שאר הימים פנויים."
+msgstr[1] "המקומות ששמרתם נכנסים ב-%{count} ימים, אז שאר הימים פנויים."
+
+#, elixir-autogen, elixir-format
+msgid "Your saved places, grouped by part of town and in walking order: coffee first, dinner last."
+msgstr "המקומות ששמרתם, לפי אזורים בעיר ובסדר הליכה: קפה בהתחלה, ארוחת ערב בסוף."
+
+#, elixir-autogen, elixir-format
+msgid "a later edition of"
+msgstr "מהדורה מאוחרת של"
+
+#, elixir-autogen, elixir-format
+msgid "a traveling poet"
+msgstr "משורר בדרכים"
+
+#, elixir-autogen, elixir-format
+msgid "about"
+msgstr "על"
+
+#, elixir-autogen, elixir-format
+msgid "artwork"
+msgstr "יצירת אמנות"
+
+#, elixir-autogen, elixir-format
+msgid "at"
+msgstr "מיקום:"
+
+#, elixir-autogen, elixir-format
+msgid "attraction"
+msgstr "אטרקציה"
+
+#, elixir-autogen, elixir-format
+msgid "brought back"
+msgstr "מציאה מהדרך"
+
+#, elixir-autogen, elixir-format
+msgid "brought back from %{destination}"
+msgstr "מציאה מ-%{destination}"
+
+#, elixir-autogen, elixir-format
+msgid "cafe"
+msgstr "בית קפה"
+
+#, elixir-autogen, elixir-format
+msgid "commemorates"
+msgstr "לזכר"
+
+#, elixir-autogen, elixir-format
+msgid "dates updated"
+msgstr "התאריכים עודכנו"
+
+#, elixir-autogen, elixir-format
+msgid "dish"
+msgstr "מנה"
+
+#, elixir-autogen, elixir-format
+msgid "encounter"
+msgstr "מפגש"
+
+#, elixir-autogen, elixir-format
+msgid "ended"
+msgstr "הסתיים"
+
+#, elixir-autogen, elixir-format
+msgid "event"
+msgstr "אירוע"
+
+#, elixir-autogen, elixir-format
+msgid "found."
+msgid_plural "found."
+msgstr[0] "נמצא."
+msgstr[1] "נמצאו."
+
+#, elixir-autogen, elixir-format
+msgid "here:"
+msgstr "כאן:"
+
+#, elixir-autogen, elixir-format
+msgid "idea"
+msgstr "רעיון"
+
+#, elixir-autogen, elixir-format
+msgid "includes"
+msgstr "כולל"
+
+#, elixir-autogen, elixir-format
+msgid "just now"
+msgstr "ממש עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "landmark"
+msgstr "ציון דרך"
+
+#, elixir-autogen, elixir-format
+msgid "made"
+msgstr "יצירות:"
+
+#, elixir-autogen, elixir-format
+msgid "made by"
+msgstr "מאת"
+
+#, elixir-autogen, elixir-format
+msgid "now in %{place}"
+msgstr "עכשיו ב-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "on the road"
+msgstr "בדרכים"
+
+#, elixir-autogen, elixir-format
+msgid "on the road,"
+msgstr "בדרכים,"
+
+#, elixir-autogen, elixir-format
+msgid "other"
+msgstr "אחר"
+
+#, elixir-autogen, elixir-format
+msgid "part of"
+msgstr "חלק מתוך"
+
+#, elixir-autogen, elixir-format
+msgid "person"
+msgstr "אדם"
+
+#, elixir-autogen, elixir-format
+msgid "place"
+msgstr "מקום"
+
+#, elixir-autogen, elixir-format
+msgid "planned"
+msgstr "מתוכנן"
+
+#, elixir-autogen, elixir-format
+msgid "product"
+msgstr "מוצר"
+
+#, elixir-autogen, elixir-format
+msgid "read the entry"
+msgstr "לקריאת העמוד"
+
+#, elixir-autogen, elixir-format
+msgid "recommends"
+msgstr "המלצה"
+
+#, elixir-autogen, elixir-format
+msgid "remembered by"
+msgstr "הנצחה:"
+
+#, elixir-autogen, elixir-format
+msgid "restaurant"
+msgstr "מסעדה"
+
+#, elixir-autogen, elixir-format
+msgid "returned as"
+msgstr "גלגול מאוחר:"
+
+#, elixir-autogen, elixir-format
+msgid "scouting from %{date}"
+msgstr "סיור מ-%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "scouting now"
+msgstr "בסיור עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "shop"
+msgstr "חנות"
+
+#, elixir-autogen, elixir-format
+msgid "the subject of"
+msgstr "הנושא של"
+
+#, elixir-autogen, elixir-format
+msgid "updated"
+msgstr "עודכן"
+
+#, elixir-autogen, elixir-format
+msgid "viewpoint"
+msgstr "נקודת תצפית"
+
+#, elixir-autogen, elixir-format
+msgid "work"
+msgstr "יצירה"
+
+#, elixir-autogen, elixir-format
+msgid "written,"
+msgid_plural "written,"
+msgstr[0] "נכתב,"
+msgstr[1] "נכתבו,"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} d ago"
+msgid_plural "%{count} d ago"
+msgstr[0] "לפני יום"
+msgstr[1] "לפני %{count} ימים"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} h ago"
+msgid_plural "%{count} h ago"
+msgstr[0] "לפני שעה"
+msgstr[1] "לפני %{count} שעות"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} min ago"
+msgid_plural "%{count} min ago"
+msgstr[0] "לפני דקה"
+msgstr[1] "לפני %{count} דקות"
+
+#, elixir-autogen, elixir-format
+msgctxt "save button"
+msgid "Saved"
+msgstr "נשמר"
