@@ -4,102 +4,125 @@
   {
    "slug": "art",
    "name": "Art",
+   "name_he": "אמנות",
    "children": [
     {
      "slug": "modern-and-contemporary-art",
      "name": "Modern & contemporary art",
+     "name_he": "אמנות מודרנית ועכשווית",
      "children": [
       {
        "slug": "contemporary-art",
-       "name": "Contemporary art"
+       "name": "Contemporary art",
+       "name_he": "אמנות עכשווית"
       },
       {
        "slug": "modern-art",
-       "name": "Modern art"
+       "name": "Modern art",
+       "name_he": "אמנות מודרנית"
       },
       {
        "slug": "digital-and-immersive-art",
-       "name": "Digital & immersive art"
+       "name": "Digital & immersive art",
+       "name_he": "אמנות דיגיטלית ואימרסיבית"
       },
       {
        "slug": "photography",
-       "name": "Photography"
+       "name": "Photography",
+       "name_he": "צילום"
       }
      ]
     },
     {
      "slug": "historic-and-classical-art",
      "name": "Historic & classical art",
+     "name_he": "אמנות היסטורית וקלאסית",
      "children": [
       {
        "slug": "european-old-masters",
-       "name": "European old masters"
+       "name": "European old masters",
+       "name_he": "האמנים הגדולים של אירופה"
       },
       {
        "slug": "asian-classical-art-and-buddhist-sculpture",
-       "name": "Asian classical art & Buddhist sculpture"
+       "name": "Asian classical art & Buddhist sculpture",
+       "name_he": "אמנות אסייתית קלאסית ופיסול בודהיסטי"
       },
       {
        "slug": "prints-and-ukiyo-e",
-       "name": "Prints & ukiyo-e"
+       "name": "Prints & ukiyo-e",
+       "name_he": "הדפסים ואוקיו-אה"
       },
       {
        "slug": "encyclopedic-art-museums",
-       "name": "Encyclopedic art museums"
+       "name": "Encyclopedic art museums",
+       "name_he": "מוזיאוני אמנות גדולים"
       }
      ]
     },
     {
      "slug": "regional-folk-and-outsider-art",
      "name": "Regional, folk & outsider art",
+     "name_he": "אמנות אזורית, עממית ואאוטסיידר",
      "children": [
       {
        "slug": "american-and-regional-art",
-       "name": "American & regional art"
+       "name": "American & regional art",
+       "name_he": "אמנות אמריקאית ואזורית"
       },
       {
        "slug": "folk-and-outsider-art",
-       "name": "Folk & outsider art"
+       "name": "Folk & outsider art",
+       "name_he": "אמנות עממית ואאוטסיידר"
       },
       {
        "slug": "indigenous-art",
-       "name": "Indigenous art"
+       "name": "Indigenous art",
+       "name_he": "אמנות ילידית"
       },
       {
        "slug": "black-and-diaspora-art",
-       "name": "Black & diaspora art"
+       "name": "Black & diaspora art",
+       "name_he": "אמנות שחורה ואמנות הפזורה"
       }
      ]
     },
     {
      "slug": "galleries-and-art-districts",
      "name": "Galleries & art districts",
+     "name_he": "גלריות ורובעי אמנות",
      "children": [
       {
        "slug": "contemporary-galleries",
-       "name": "Contemporary galleries"
+       "name": "Contemporary galleries",
+       "name_he": "גלריות עכשוויות"
       },
       {
        "slug": "artist-run-and-cooperative-galleries",
-       "name": "Artist-run & cooperative galleries"
+       "name": "Artist-run & cooperative galleries",
+       "name_he": "גלריות של אמנים וגלריות שיתופיות"
       },
       {
        "slug": "studio-buildings-and-art-districts",
-       "name": "Studio buildings & art districts"
+       "name": "Studio buildings & art districts",
+       "name_he": "בנייני סטודיו ורובעי אמנות"
       }
      ]
     },
     {
      "slug": "public-art",
      "name": "Public art",
+     "name_he": "אמנות במרחב הציבורי",
      "children": [
       {
        "slug": "murals-and-street-art",
-       "name": "Murals & street art"
+       "name": "Murals & street art",
+       "name_he": "ציורי קיר ואמנות רחוב"
       },
       {
        "slug": "sculpture-and-sculpture-gardens",
-       "name": "Sculpture & sculpture gardens"
+       "name": "Sculpture & sculpture gardens",
+       "name_he": "פיסול וגני פסלים"
       }
      ]
     }
@@ -108,104 +131,127 @@
   {
    "slug": "crafts-and-design",
    "name": "Crafts & design",
+   "name_he": "מלאכות יד ועיצוב",
    "children": [
     {
      "slug": "textiles",
      "name": "Textiles",
+     "name_he": "טקסטיל",
      "children": [
       {
        "slug": "weaving-and-silk",
-       "name": "Weaving & silk"
+       "name": "Weaving & silk",
+       "name_he": "אריגה ומשי"
       },
       {
        "slug": "printed-and-dyed-textiles",
-       "name": "Printed & dyed textiles"
+       "name": "Printed & dyed textiles",
+       "name_he": "הדפסה וצביעת בדים"
       },
       {
        "slug": "textile-heritage-and-ethnography",
-       "name": "Textile heritage & ethnography"
+       "name": "Textile heritage & ethnography",
+       "name_he": "מורשת הטקסטיל ואתנוגרפיה"
       }
      ]
     },
     {
      "slug": "ceramics-and-tiles",
      "name": "Ceramics & tiles",
+     "name_he": "קרמיקה ואריחים",
      "children": [
       {
        "slug": "pottery",
-       "name": "Pottery"
+       "name": "Pottery",
+       "name_he": "קדרות"
       },
       {
        "slug": "tiles-and-azulejos",
-       "name": "Tiles & azulejos"
+       "name": "Tiles & azulejos",
+       "name_he": "אריחים ואסולז'וס"
       }
      ]
     },
     {
      "slug": "glass-and-metal",
      "name": "Glass & metal",
+     "name_he": "זכוכית ומתכת",
      "children": [
       {
        "slug": "glass",
-       "name": "Glass"
+       "name": "Glass",
+       "name_he": "זכוכית"
       },
       {
        "slug": "bronze-and-metalwork",
-       "name": "Bronze & metalwork"
+       "name": "Bronze & metalwork",
+       "name_he": "ברונזה ועבודות מתכת"
       }
      ]
     },
     {
      "slug": "wood-lacquer-paper-and-ink",
      "name": "Wood, lacquer, paper & ink",
+     "name_he": "עץ, לכה, נייר ודיו",
      "children": [
       {
        "slug": "woodwork-and-bamboo",
-       "name": "Woodwork & bamboo"
+       "name": "Woodwork & bamboo",
+       "name_he": "עבודות עץ ובמבוק"
       },
       {
        "slug": "lacquer-and-gold-leaf",
-       "name": "Lacquer & gold leaf"
+       "name": "Lacquer & gold leaf",
+       "name_he": "לכה ועלי זהב"
       },
       {
        "slug": "paper-ink-and-printmaking",
-       "name": "Paper, ink & printmaking"
+       "name": "Paper, ink & printmaking",
+       "name_he": "נייר, דיו והדפס"
       },
       {
        "slug": "stone-carving",
-       "name": "Stone carving"
+       "name": "Stone carving",
+       "name_he": "גילוף באבן"
       }
      ]
     },
     {
      "slug": "craft-guilds-and-centres",
      "name": "Craft guilds & centres",
+     "name_he": "גילדות ומרכזי מלאכה",
      "children": [
       {
        "slug": "regional-craft-traditions",
-       "name": "Regional craft traditions"
+       "name": "Regional craft traditions",
+       "name_he": "מסורות מלאכה מקומיות"
       }
      ]
     },
     {
      "slug": "design-and-fashion",
      "name": "Design & fashion",
+     "name_he": "עיצוב ואופנה",
      "children": [
       {
        "slug": "decorative-arts-and-fashion",
-       "name": "Decorative arts & fashion"
+       "name": "Decorative arts & fashion",
+       "name_he": "אמנות שימושית ואופנה"
       },
       {
        "slug": "stationery-and-paper-goods",
-       "name": "Stationery & paper goods"
+       "name": "Stationery & paper goods",
+       "name_he": "כלי כתיבה ומוצרי נייר"
       },
       {
        "slug": "gadgets-and-everyday-objects",
-       "name": "Gadgets & everyday objects"
+       "name": "Gadgets & everyday objects",
+       "name_he": "גאדג'טים וחפצים יומיומיים"
       },
       {
        "slug": "jewellery",
-       "name": "Jewellery"
+       "name": "Jewellery",
+       "name_he": "תכשיטים"
       }
      ]
     }
@@ -214,112 +260,138 @@
   {
    "slug": "music-and-performance",
    "name": "Music & performance",
+   "name_he": "מוזיקה ומופעים",
    "children": [
     {
      "slug": "music",
      "name": "Music",
+     "name_he": "מוזיקה",
      "children": [
       {
        "slug": "jazz",
-       "name": "Jazz"
+       "name": "Jazz",
+       "name_he": "ג'אז"
       },
       {
        "slug": "blues-soul-and-gospel",
-       "name": "Blues, soul & gospel"
+       "name": "Blues, soul & gospel",
+       "name_he": "בלוז, סול וגוספל"
       },
       {
        "slug": "folk-country-and-bluegrass",
-       "name": "Folk, country & bluegrass"
+       "name": "Folk, country & bluegrass",
+       "name_he": "פולק, קאנטרי ובלוגראס"
       },
       {
        "slug": "rock-pop-and-indie",
-       "name": "Rock, pop & indie"
+       "name": "Rock, pop & indie",
+       "name_he": "רוק, פופ ואינדי"
       },
       {
        "slug": "classical-and-opera",
-       "name": "Classical & opera"
+       "name": "Classical & opera",
+       "name_he": "מוזיקה קלאסית ואופרה"
       },
       {
        "slug": "flamenco",
-       "name": "Flamenco"
+       "name": "Flamenco",
+       "name_he": "פלמנקו"
       },
       {
        "slug": "traditional-and-world-music",
-       "name": "Traditional & world music"
+       "name": "Traditional & world music",
+       "name_he": "מוזיקה מסורתית ומוזיקת עולם"
       },
       {
        "slug": "electronic-and-ambient",
-       "name": "Electronic & ambient"
+       "name": "Electronic & ambient",
+       "name_he": "אלקטרונית ואמביינט"
       },
       {
        "slug": "experimental-and-sound-art",
-       "name": "Experimental & sound art"
+       "name": "Experimental & sound art",
+       "name_he": "מוזיקה ניסיונית ואמנות סאונד"
       },
       {
        "slug": "hip-hop-and-randb",
-       "name": "Hip hop & R&B"
+       "name": "Hip hop & R&B",
+       "name_he": "היפ הופ ו-R&B"
       }
      ]
     },
     {
      "slug": "theatre-and-dance",
      "name": "Theatre & dance",
+     "name_he": "תיאטרון ומחול",
      "children": [
       {
        "slug": "theatre",
-       "name": "Theatre"
+       "name": "Theatre",
+       "name_he": "תיאטרון"
       },
       {
        "slug": "dance",
-       "name": "Dance"
+       "name": "Dance",
+       "name_he": "מחול"
       },
       {
        "slug": "traditional-performance-and-puppetry",
-       "name": "Traditional performance & puppetry"
+       "name": "Traditional performance & puppetry",
+       "name_he": "מופעים מסורתיים ותיאטרון בובות"
       },
       {
        "slug": "comedy",
-       "name": "Comedy"
+       "name": "Comedy",
+       "name_he": "קומדיה"
       }
      ]
     },
     {
      "slug": "film",
      "name": "Film & TV",
+     "name_he": "קולנוע וטלוויזיה",
      "children": [
       {
        "slug": "cinemas-and-film-festivals",
-       "name": "Cinemas & film festivals"
+       "name": "Cinemas & film festivals",
+       "name_he": "בתי קולנוע ופסטיבלי סרטים"
       },
       {
        "slug": "film-history",
-       "name": "Film history"
+       "name": "Film history",
+       "name_he": "תולדות הקולנוע"
       },
       {
        "slug": "feature-films",
-       "name": "Feature films"
+       "name": "Feature films",
+       "name_he": "סרטים עלילתיים"
       },
       {
        "slug": "documentary",
-       "name": "Documentary"
+       "name": "Documentary",
+       "name_he": "קולנוע תיעודי"
       },
       {
        "slug": "animation",
-       "name": "Animation"
+       "name": "Animation",
+       "name_he": "אנימציה"
       },
       {
        "slug": "tv-and-series",
-       "name": "TV & series"
+       "name": "TV & series",
+       "name_he": "טלוויזיה וסדרות"
       }
      ]
     },
     {
      "slug": "historic-venues",
      "name": "Historic venues",
+     "name_he": "אולמות היסטוריים",
      "children": [
       {
        "slug": "theatres-and-music-halls",
-       "name": "Theatres & music halls"
+       "name": "Theatres & music halls",
+       "name_he": "תיאטראות ואולמות מוזיקה"
       }
      ]
     }
@@ -328,96 +400,118 @@
   {
    "slug": "literature-and-ideas",
    "name": "Literature & ideas",
+   "name_he": "ספרות ורעיונות",
    "children": [
     {
      "slug": "writers",
      "name": "Writers",
+     "name_he": "סופרים",
      "children": [
       {
        "slug": "writers-houses-and-museums",
-       "name": "Writers' houses & museums"
+       "name": "Writers' houses & museums",
+       "name_he": "בתי סופרים ומוזיאונים"
       },
       {
        "slug": "writers-graves-and-memorials",
-       "name": "Writers' graves & memorials"
+       "name": "Writers' graves & memorials",
+       "name_he": "קברי סופרים ואתרי הנצחה"
       }
      ]
     },
     {
      "slug": "books-and-libraries",
      "name": "Books & libraries",
+     "name_he": "ספרים וספריות",
      "children": [
       {
        "slug": "bookshops",
-       "name": "Bookshops"
+       "name": "Bookshops",
+       "name_he": "חנויות ספרים"
       },
       {
        "slug": "libraries-and-literary-archives",
-       "name": "Libraries & literary archives"
+       "name": "Libraries & literary archives",
+       "name_he": "ספריות וארכיונים ספרותיים"
       },
       {
        "slug": "fiction",
-       "name": "Fiction"
+       "name": "Fiction",
+       "name_he": "ספרות יפה"
       },
       {
        "slug": "poetry",
-       "name": "Poetry"
+       "name": "Poetry",
+       "name_he": "שירה"
       },
       {
        "slug": "nonfiction-and-essays",
-       "name": "Nonfiction & essays"
+       "name": "Nonfiction & essays",
+       "name_he": "עיון ומסות"
       },
       {
        "slug": "science-fiction-and-fantasy",
-       "name": "Science fiction & fantasy"
+       "name": "Science fiction & fantasy",
+       "name_he": "מדע בדיוני ופנטזיה"
       },
       {
        "slug": "comics-and-graphic-novels",
-       "name": "Comics & graphic novels"
+       "name": "Comics & graphic novels",
+       "name_he": "קומיקס ורומנים גרפיים"
       }
      ]
     },
     {
      "slug": "learning-and-ideas",
      "name": "Learning & ideas",
+     "name_he": "לימוד ורעיונות",
      "children": [
       {
        "slug": "universities-and-campuses",
-       "name": "Universities & campuses"
+       "name": "Universities & campuses",
+       "name_he": "אוניברסיטאות וקמפוסים"
       },
       {
        "slug": "talks-hackathons-and-tech-events",
-       "name": "Talks, hackathons & tech events"
+       "name": "Talks, hackathons & tech events",
+       "name_he": "הרצאות, האקתונים ואירועי טכנולוגיה"
       }
      ]
     },
     {
      "slug": "fields-of-thought",
      "name": "Fields of thought",
+     "name_he": "תחומי מחשבה",
      "children": [
       {
        "slug": "ai-and-computing",
-       "name": "AI & computing"
+       "name": "AI & computing",
+       "name_he": "בינה מלאכותית ומחשוב"
       },
       {
        "slug": "mind-and-cognitive-science",
-       "name": "Mind & cognitive science"
+       "name": "Mind & cognitive science",
+       "name_he": "התודעה ומדעי הקוגניציה"
       },
       {
        "slug": "life-sciences-and-genomics",
-       "name": "Life sciences & genomics"
+       "name": "Life sciences & genomics",
+       "name_he": "מדעי החיים וגנומיקה"
       },
       {
        "slug": "data-and-visualization",
-       "name": "Data & visualization"
+       "name": "Data & visualization",
+       "name_he": "נתונים והדמיה"
       },
       {
        "slug": "organizations-and-society",
-       "name": "Organizations & society"
+       "name": "Organizations & society",
+       "name_he": "ארגונים וחברה"
       },
       {
        "slug": "philosophy-and-ethics",
-       "name": "Philosophy & ethics"
+       "name": "Philosophy & ethics",
+       "name_he": "פילוסופיה ואתיקה"
       }
      ]
     }
@@ -426,94 +520,115 @@
   {
    "slug": "history-and-heritage",
    "name": "History & heritage",
+   "name_he": "היסטוריה ומורשת",
    "children": [
     {
      "slug": "ancient-and-archaeological",
      "name": "Ancient & archaeological",
+     "name_he": "עתיקות וארכאולוגיה",
      "children": [
       {
        "slug": "roman-and-ancient-sites",
-       "name": "Roman & ancient sites"
+       "name": "Roman & ancient sites",
+       "name_he": "אתרים רומיים ועתיקים"
       },
       {
        "slug": "archaeology-museums",
-       "name": "Archaeology museums"
+       "name": "Archaeology museums",
+       "name_he": "מוזיאונים לארכאולוגיה"
       }
      ]
     },
     {
      "slug": "palaces-castles-and-forts",
      "name": "Palaces, castles & forts",
+     "name_he": "ארמונות, טירות ומבצרים",
      "children": [
       {
        "slug": "royal-palaces",
-       "name": "Royal palaces"
+       "name": "Royal palaces",
+       "name_he": "ארמונות מלכותיים"
       },
       {
        "slug": "castles-and-fortresses",
-       "name": "Castles & fortresses"
+       "name": "Castles & fortresses",
+       "name_he": "טירות ומבצרים"
       },
       {
        "slug": "estates-and-mansions",
-       "name": "Estates & mansions"
+       "name": "Estates & mansions",
+       "name_he": "אחוזות ובתי פאר"
       }
      ]
     },
     {
      "slug": "historic-towns-and-streets",
      "name": "Historic towns & streets",
+     "name_he": "עיירות ורחובות היסטוריים",
      "children": [
       {
        "slug": "old-towns-and-historic-districts",
-       "name": "Old towns & historic districts"
+       "name": "Old towns & historic districts",
+       "name_he": "עיר עתיקה ורבעים היסטוריים"
       },
       {
        "slug": "merchant-and-samurai-houses",
-       "name": "Merchant & samurai houses"
+       "name": "Merchant & samurai houses",
+       "name_he": "בתי סוחרים וסמוראים"
       },
       {
        "slug": "traditional-villages-and-farmhouses",
-       "name": "Traditional villages & farmhouses"
+       "name": "Traditional villages & farmhouses",
+       "name_he": "כפרים מסורתיים ובתי חווה"
       },
       {
        "slug": "chinatowns-and-immigrant-quarters",
-       "name": "Chinatowns & immigrant quarters"
+       "name": "Chinatowns & immigrant quarters",
+       "name_he": "צ'יינה טאון ורובעי מהגרים"
       }
      ]
     },
     {
      "slug": "history-museums",
      "name": "History museums",
+     "name_he": "מוזיאונים להיסטוריה",
      "children": [
       {
        "slug": "national-and-regional-history",
-       "name": "National & regional history"
+       "name": "National & regional history",
+       "name_he": "היסטוריה לאומית ואזורית"
       },
       {
        "slug": "local-history",
-       "name": "Local history"
+       "name": "Local history",
+       "name_he": "היסטוריה מקומית"
       },
       {
        "slug": "open-air-and-living-history",
-       "name": "Open-air & living history"
+       "name": "Open-air & living history",
+       "name_he": "מוזיאונים פתוחים והיסטוריה חיה"
       }
      ]
     },
     {
      "slug": "struggle-and-memory",
      "name": "Struggle & memory",
+     "name_he": "מאבק וזיכרון",
      "children": [
       {
        "slug": "black-history-and-civil-rights",
-       "name": "Black history & civil rights"
+       "name": "Black history & civil rights",
+       "name_he": "ההיסטוריה השחורה וזכויות האזרח"
       },
       {
        "slug": "war-and-conflict",
-       "name": "War & conflict"
+       "name": "War & conflict",
+       "name_he": "מלחמה וסכסוך"
       },
       {
        "slug": "cemeteries-and-memorials",
-       "name": "Cemeteries & memorials"
+       "name": "Cemeteries & memorials",
+       "name_he": "בתי קברות ואתרי הנצחה"
       }
      ]
     }
@@ -522,78 +637,95 @@
   {
    "slug": "faith-and-spirit",
    "name": "Faith & spirit",
+   "name_he": "אמונה ורוח",
    "children": [
     {
      "slug": "buddhism",
      "name": "Buddhism",
+     "name_he": "בודהיזם",
      "children": [
       {
        "slug": "buddhist-temples",
-       "name": "Buddhist temples"
+       "name": "Buddhist temples",
+       "name_he": "מקדשים בודהיסטיים"
       },
       {
        "slug": "zen-temples-and-gardens",
-       "name": "Zen temples & gardens"
+       "name": "Zen temples & gardens",
+       "name_he": "מקדשי זן וגנים"
       },
       {
        "slug": "stupas-pagodas-and-great-buddhas",
-       "name": "Stupas, pagodas & great Buddhas"
+       "name": "Stupas, pagodas & great Buddhas",
+       "name_he": "סטופות, פגודות ובודהות גדולים"
       }
      ]
     },
     {
      "slug": "shinto",
      "name": "Shinto",
+     "name_he": "שינטו",
      "children": [
       {
        "slug": "shinto-shrines",
-       "name": "Shinto shrines"
+       "name": "Shinto shrines",
+       "name_he": "מקדשי שינטו"
       }
      ]
     },
     {
      "slug": "christianity",
      "name": "Christianity",
+     "name_he": "נצרות",
      "children": [
       {
        "slug": "cathedrals-and-churches",
-       "name": "Cathedrals & churches"
+       "name": "Cathedrals & churches",
+       "name_he": "קתדרלות וכנסיות"
       },
       {
        "slug": "missions-and-oratories",
-       "name": "Missions & oratories"
+       "name": "Missions & oratories",
+       "name_he": "מיסיונות וכנסיות קטנות"
       }
      ]
     },
     {
      "slug": "judaism-and-islam",
      "name": "Judaism & Islam",
+     "name_he": "יהדות ואסלאם",
      "children": [
       {
        "slug": "synagogues",
-       "name": "Synagogues"
+       "name": "Synagogues",
+       "name_he": "בתי כנסת"
       },
       {
        "slug": "mosques-and-islamic-heritage",
-       "name": "Mosques & Islamic heritage"
+       "name": "Mosques & Islamic heritage",
+       "name_he": "מסגדים ומורשת אסלאמית"
       }
      ]
     },
     {
      "slug": "folk-and-other-traditions",
      "name": "Folk & other traditions",
+     "name_he": "מסורות עממיות ואחרות",
      "children": [
       {
        "slug": "chinese-temples-and-shrines",
-       "name": "Chinese temples & shrines"
+       "name": "Chinese temples & shrines",
+       "name_he": "מקדשים סיניים"
       },
       {
        "slug": "sacred-groves-and-natural-shrines",
-       "name": "Sacred groves & natural shrines"
+       "name": "Sacred groves & natural shrines",
+       "name_he": "חורשות קדושות ומקדשים בטבע"
       },
       {
        "slug": "rituals-lanterns-and-pilgrimages",
-       "name": "Rituals, lanterns & pilgrimages"
+       "name": "Rituals, lanterns & pilgrimages",
+       "name_he": "טקסים, פנסים ועליות לרגל"
       }
      ]
     }
@@ -602,68 +734,83 @@
   {
    "slug": "architecture-and-cityscape",
    "name": "Architecture & cityscape",
+   "name_he": "אדריכלות ונוף עירוני",
    "children": [
     {
      "slug": "landmark-buildings",
      "name": "Landmark buildings",
+     "name_he": "מבנים מוכרים",
      "children": [
       {
        "slug": "art-deco-and-modernist-buildings",
-       "name": "Art Deco & modernist buildings"
+       "name": "Art Deco & modernist buildings",
+       "name_he": "בנייני ארט דקו ומודרניזם"
       },
       {
        "slug": "civic-buildings",
-       "name": "Civic buildings"
+       "name": "Civic buildings",
+       "name_he": "מבני ציבור"
       },
       {
        "slug": "museum-architecture",
-       "name": "Museum architecture"
+       "name": "Museum architecture",
+       "name_he": "אדריכלות של מוזיאונים"
       },
       {
        "slug": "towers-and-observation-decks",
-       "name": "Towers & observation decks"
+       "name": "Towers & observation decks",
+       "name_he": "מגדלים ותצפיות"
       },
       {
        "slug": "stations-and-terminals",
-       "name": "Stations & terminals"
+       "name": "Stations & terminals",
+       "name_he": "תחנות ומסופים"
       }
      ]
     },
     {
      "slug": "bridges",
      "name": "Bridges",
+     "name_he": "גשרים",
      "children": [
       {
        "slug": "historic-and-iconic-bridges",
-       "name": "Historic & iconic bridges"
+       "name": "Historic & iconic bridges",
+       "name_he": "גשרים היסטוריים ואייקוניים"
       },
       {
        "slug": "living-root-bridges",
-       "name": "Living root bridges"
+       "name": "Living root bridges",
+       "name_he": "גשרי שורשים חיים"
       }
      ]
     },
     {
      "slug": "historic-hotels",
      "name": "Historic hotels",
+     "name_he": "מלונות היסטוריים",
      "children": [
       {
        "slug": "grand-and-landmark-hotels",
-       "name": "Grand & landmark hotels"
+       "name": "Grand & landmark hotels",
+       "name_he": "מלונות גדולים ומוכרים"
       }
      ]
     },
     {
      "slug": "city-spaces",
      "name": "City spaces",
+     "name_he": "מרחבים עירוניים",
      "children": [
       {
        "slug": "squares-and-promenades",
-       "name": "Squares & promenades"
+       "name": "Squares & promenades",
+       "name_he": "כיכרות וטיילות"
       },
       {
        "slug": "waterfronts-and-boardwalks",
-       "name": "Waterfronts & boardwalks"
+       "name": "Waterfronts & boardwalks",
+       "name_he": "חזיתות ים ומזחים"
       }
      ]
     }
@@ -672,92 +819,113 @@
   {
    "slug": "nature-and-outdoors",
    "name": "Nature & outdoors",
+   "name_he": "טבע ושטח",
    "children": [
     {
      "slug": "parks-and-gardens",
      "name": "Parks & gardens",
+     "name_he": "פארקים וגנים",
      "children": [
       {
        "slug": "japanese-gardens",
-       "name": "Japanese gardens"
+       "name": "Japanese gardens",
+       "name_he": "גנים יפניים"
       },
       {
        "slug": "botanical-gardens",
-       "name": "Botanical gardens"
+       "name": "Botanical gardens",
+       "name_he": "גנים בוטניים"
       },
       {
        "slug": "city-parks",
-       "name": "City parks"
+       "name": "City parks",
+       "name_he": "פארקים עירוניים"
       }
      ]
     },
     {
      "slug": "mountains-and-trails",
      "name": "Mountains & trails",
+     "name_he": "הרים ושבילים",
      "children": [
       {
        "slug": "hiking-trails",
-       "name": "Hiking trails"
+       "name": "Hiking trails",
+       "name_he": "שבילי הליכה"
       },
       {
        "slug": "summits-and-lookouts",
-       "name": "Summits & lookouts"
+       "name": "Summits & lookouts",
+       "name_he": "פסגות ונקודות תצפית"
       },
       {
        "slug": "mountain-roads-and-passes",
-       "name": "Mountain roads & passes"
+       "name": "Mountain roads & passes",
+       "name_he": "דרכי הרים ומעברים"
       },
       {
        "slug": "cycling-routes",
-       "name": "Cycling routes"
+       "name": "Cycling routes",
+       "name_he": "מסלולי אופניים"
       },
       {
        "slug": "climbing",
-       "name": "Climbing"
+       "name": "Climbing",
+       "name_he": "טיפוס"
       }
      ]
     },
     {
      "slug": "water",
      "name": "Water",
+     "name_he": "מים",
      "children": [
       {
        "slug": "beaches-and-coast",
-       "name": "Beaches & coast"
+       "name": "Beaches & coast",
+       "name_he": "חופים וקו החוף"
       },
       {
        "slug": "rivers-and-lakes",
-       "name": "Rivers & lakes"
+       "name": "Rivers & lakes",
+       "name_he": "נהרות ואגמים"
       },
       {
        "slug": "waterfalls",
-       "name": "Waterfalls"
+       "name": "Waterfalls",
+       "name_he": "מפלים"
       },
       {
        "slug": "swimming-holes-and-hot-springs",
-       "name": "Swimming holes & hot springs"
+       "name": "Swimming holes & hot springs",
+       "name_he": "בריכות טבעיות ומעיינות חמים"
       }
      ]
     },
     {
      "slug": "wild-places",
      "name": "Wild places",
+     "name_he": "מקומות פראיים",
      "children": [
       {
        "slug": "forests",
-       "name": "Forests"
+       "name": "Forests",
+       "name_he": "יערות"
       },
       {
        "slug": "caves",
-       "name": "Caves"
+       "name": "Caves",
+       "name_he": "מערות"
       },
       {
        "slug": "national-and-state-parks",
-       "name": "National & state parks"
+       "name": "National & state parks",
+       "name_he": "פארקים לאומיים"
       },
       {
        "slug": "wetlands-and-wildlife",
-       "name": "Wetlands & wildlife"
+       "name": "Wetlands & wildlife",
+       "name_he": "אזורי ביצות וחיות בר"
       }
      ]
     }
@@ -766,164 +934,201 @@
   {
    "slug": "food-and-drink",
    "name": "Food & drink",
+   "name_he": "אוכל ושתייה",
    "children": [
     {
      "slug": "markets-and-food-halls",
      "name": "Markets & food halls",
+     "name_he": "שווקים ואולמות אוכל",
      "children": [
       {
        "slug": "food-markets-and-halls",
-       "name": "Food markets & halls"
+       "name": "Food markets & halls",
+       "name_he": "שווקי אוכל ואולמות אוכל"
       },
       {
        "slug": "street-food-and-night-markets",
-       "name": "Street food & night markets"
+       "name": "Street food & night markets",
+       "name_he": "אוכל רחוב ושווקי לילה"
       },
       {
        "slug": "farmers-markets",
-       "name": "Farmers markets"
+       "name": "Farmers markets",
+       "name_he": "שווקי איכרים"
       },
       {
        "slug": "farms-and-orchards",
-       "name": "Farms & orchards"
+       "name": "Farms & orchards",
+       "name_he": "חוות ומטעים"
       }
      ]
     },
     {
      "slug": "cuisines",
      "name": "Cuisines",
+     "name_he": "מטבחים",
      "children": [
       {
        "slug": "japanese",
-       "name": "Japanese"
+       "name": "Japanese",
+       "name_he": "יפני"
       },
       {
        "slug": "chinese-and-east-asian",
-       "name": "Chinese & East Asian"
+       "name": "Chinese & East Asian",
+       "name_he": "סיני ומזרח אסייתי"
       },
       {
        "slug": "thai-lao-and-vietnamese",
-       "name": "Thai, Lao & Vietnamese"
+       "name": "Thai, Lao & Vietnamese",
+       "name_he": "תאילנדי, לאי ווייטנאמי"
       },
       {
        "slug": "mexican-and-latin-american",
-       "name": "Mexican & Latin American"
+       "name": "Mexican & Latin American",
+       "name_he": "מקסיקני ודרום אמריקאי"
       },
       {
        "slug": "spanish-and-mediterranean",
-       "name": "Spanish & Mediterranean"
+       "name": "Spanish & Mediterranean",
+       "name_he": "ספרדי וים תיכוני"
       },
       {
        "slug": "european",
-       "name": "European"
+       "name": "European",
+       "name_he": "אירופאי"
       },
       {
        "slug": "middle-eastern-and-north-african",
-       "name": "Middle Eastern & North African"
+       "name": "Middle Eastern & North African",
+       "name_he": "מזרח תיכוני וצפון אפריקאי"
       },
       {
        "slug": "american-regional",
-       "name": "American regional"
+       "name": "American regional",
+       "name_he": "אמריקאי אזורי"
       },
       {
        "slug": "barbecue",
-       "name": "Barbecue"
+       "name": "Barbecue",
+       "name_he": "ברביקיו"
       },
       {
        "slug": "indigenous-cuisine",
-       "name": "Indigenous cuisine"
+       "name": "Indigenous cuisine",
+       "name_he": "מטבח ילידי"
       }
      ]
     },
     {
      "slug": "plant-based",
      "name": "Plant-based",
+     "name_he": "מהצומח",
      "children": [
       {
        "slug": "vegetarian-and-vegan",
-       "name": "Vegetarian & vegan"
+       "name": "Vegetarian & vegan",
+       "name_he": "צמחוני וטבעוני"
       },
       {
        "slug": "temple-cuisine",
-       "name": "Temple cuisine"
+       "name": "Temple cuisine",
+       "name_he": "מטבח של מקדשים"
       }
      ]
     },
     {
      "slug": "seafood",
      "name": "Seafood",
+     "name_he": "פירות ים",
      "children": [
       {
        "slug": "seafood-and-fish",
-       "name": "Seafood & fish"
+       "name": "Seafood & fish",
+       "name_he": "פירות ים ודגים"
       }
      ]
     },
     {
      "slug": "bakeries-and-sweets",
      "name": "Bakeries & sweets",
+     "name_he": "מאפיות ומתוקים",
      "children": [
       {
        "slug": "bakeries-and-pastry",
-       "name": "Bakeries & pastry"
+       "name": "Bakeries & pastry",
+       "name_he": "מאפיות ומאפים"
       },
       {
        "slug": "sweets-and-ice-cream",
-       "name": "Sweets & ice cream"
+       "name": "Sweets & ice cream",
+       "name_he": "ממתקים וגלידה"
       },
       {
        "slug": "chocolate",
-       "name": "Chocolate"
+       "name": "Chocolate",
+       "name_he": "שוקולד"
       }
      ]
     },
     {
      "slug": "coffee-and-tea",
      "name": "Coffee & tea",
+     "name_he": "קפה ותה",
      "children": [
       {
        "slug": "coffee",
-       "name": "Coffee"
+       "name": "Coffee",
+       "name_he": "קפה"
       },
       {
        "slug": "tea-houses",
-       "name": "Tea houses"
+       "name": "Tea houses",
+       "name_he": "בתי תה"
       }
      ]
     },
     {
      "slug": "beer-wine-and-spirits",
      "name": "Beer, wine & spirits",
+     "name_he": "בירה, יין ומשקאות חריפים",
      "children": [
       {
        "slug": "breweries",
-       "name": "Breweries"
+       "name": "Breweries",
+       "name_he": "מבשלות בירה"
       },
       {
        "slug": "wineries-and-tasting-rooms",
-       "name": "Wineries & tasting rooms"
+       "name": "Wineries & tasting rooms",
+       "name_he": "יקבים וחדרי טעימות"
       },
       {
        "slug": "sake-breweries",
-       "name": "Sake breweries"
+       "name": "Sake breweries",
+       "name_he": "מבשלות סאקה"
       },
       {
        "slug": "bourbon-and-distilleries",
-       "name": "Bourbon & distilleries"
+       "name": "Bourbon & distilleries",
+       "name_he": "בורבון ומזקקות"
       },
       {
        "slug": "bars-and-cocktail-lounges",
-       "name": "Bars & cocktail lounges"
+       "name": "Bars & cocktail lounges",
+       "name_he": "ברים וקוקטיילים"
       }
      ]
     },
     {
      "slug": "food-festivals",
      "name": "Food festivals",
+     "name_he": "פסטיבלי אוכל",
      "children": [
       {
        "slug": "food-and-wine-festivals",
-       "name": "Food & wine festivals"
+       "name": "Food & wine festivals",
+       "name_he": "פסטיבלי אוכל ויין"
       }
      ]
     }
@@ -932,50 +1137,61 @@
   {
    "slug": "markets-and-shopping",
    "name": "Markets & shopping",
+   "name_he": "שווקים וקניות",
    "children": [
     {
      "slug": "markets",
      "name": "Markets",
+     "name_he": "שווקים",
      "children": [
       {
        "slug": "flea-and-general-markets",
-       "name": "Flea & general markets"
+       "name": "Flea & general markets",
+       "name_he": "שווקי פשפשים ושווקים כלליים"
       },
       {
        "slug": "night-and-walking-street-markets",
-       "name": "Night & walking-street markets"
+       "name": "Night & walking-street markets",
+       "name_he": "שווקי לילה ומדרחובים"
       },
       {
        "slug": "flower-markets",
-       "name": "Flower markets"
+       "name": "Flower markets",
+       "name_he": "שווקי פרחים"
       }
      ]
     },
     {
      "slug": "shops",
      "name": "Shops",
+     "name_he": "חנויות",
      "children": [
       {
        "slug": "specialty-food-shops",
-       "name": "Specialty food shops"
+       "name": "Specialty food shops",
+       "name_he": "חנויות מעדנים"
       },
       {
        "slug": "craft-and-souvenir-shops",
-       "name": "Craft & souvenir shops"
+       "name": "Craft & souvenir shops",
+       "name_he": "חנויות מלאכה ומזכרות"
       },
       {
        "slug": "record-and-curiosity-shops",
-       "name": "Record & curiosity shops"
+       "name": "Record & curiosity shops",
+       "name_he": "חנויות תקליטים וחנויות קוריוזים"
       }
      ]
     },
     {
      "slug": "shopping-streets",
      "name": "Shopping streets",
+     "name_he": "רחובות קניות",
      "children": [
       {
        "slug": "shopping-streets-and-arcades",
-       "name": "Shopping streets & arcades"
+       "name": "Shopping streets & arcades",
+       "name_he": "רחובות קניות ומעברים מקורים"
       }
      ]
     }
@@ -984,48 +1200,59 @@
   {
    "slug": "festivals-and-community",
    "name": "Festivals & community",
+   "name_he": "פסטיבלים וקהילה",
    "children": [
     {
      "slug": "festivals",
      "name": "Festivals",
+     "name_he": "פסטיבלים",
      "children": [
       {
        "slug": "neighbourhood-and-street-festivals",
-       "name": "Neighbourhood & street festivals"
+       "name": "Neighbourhood & street festivals",
+       "name_he": "פסטיבלי שכונה ורחוב"
       },
       {
        "slug": "heritage-and-cultural-festivals",
-       "name": "Heritage & cultural festivals"
+       "name": "Heritage & cultural festivals",
+       "name_he": "פסטיבלי מורשת ותרבות"
       },
       {
        "slug": "seasonal-and-religious-festivals",
-       "name": "Seasonal & religious festivals"
+       "name": "Seasonal & religious festivals",
+       "name_he": "חגים עונתיים ודתיים"
       },
       {
        "slug": "fairs-and-carnivals",
-       "name": "Fairs & carnivals"
+       "name": "Fairs & carnivals",
+       "name_he": "ירידים וקרנבלים"
       },
       {
        "slug": "parades",
-       "name": "Parades"
+       "name": "Parades",
+       "name_he": "תהלוכות"
       },
       {
        "slug": "illuminations",
-       "name": "Illuminations"
+       "name": "Illuminations",
+       "name_he": "מופעי אורות"
       }
      ]
     },
     {
      "slug": "community",
      "name": "Community",
+     "name_he": "קהילה",
      "children": [
       {
        "slug": "cultural-and-community-centres",
-       "name": "Cultural & community centres"
+       "name": "Cultural & community centres",
+       "name_he": "מרכזי תרבות וקהילה"
       },
       {
        "slug": "giving-and-volunteering",
-       "name": "Giving & volunteering"
+       "name": "Giving & volunteering",
+       "name_he": "נתינה והתנדבות"
       }
      ]
     }
@@ -1034,84 +1261,103 @@
   {
    "slug": "science-industry-and-play",
    "name": "Science, industry & play",
+   "name_he": "מדע, תעשייה ומשחק",
    "children": [
     {
      "slug": "industry-and-trade",
      "name": "Industry & trade",
+     "name_he": "תעשייה ומסחר",
      "children": [
       {
        "slug": "industrial-heritage",
-       "name": "Industrial heritage"
+       "name": "Industrial heritage",
+       "name_he": "מורשת תעשייתית"
       },
       {
        "slug": "signature-products",
-       "name": "Signature products"
+       "name": "Signature products",
+       "name_he": "מוצרים מקומיים מזוהים"
       },
       {
        "slug": "transport-and-maritime",
-       "name": "Transport & maritime"
+       "name": "Transport & maritime",
+       "name_he": "תחבורה וים"
       },
       {
        "slug": "post-and-communication",
-       "name": "Post & communication"
+       "name": "Post & communication",
+       "name_he": "דואר ותקשורת"
       }
      ]
     },
     {
      "slug": "science-and-medicine",
      "name": "Science & medicine",
+     "name_he": "מדע ורפואה",
      "children": [
       {
        "slug": "natural-history",
-       "name": "Natural history"
+       "name": "Natural history",
+       "name_he": "תולדות הטבע"
       },
       {
        "slug": "medicine-and-anatomy",
-       "name": "Medicine & anatomy"
+       "name": "Medicine & anatomy",
+       "name_he": "רפואה ואנטומיה"
       },
       {
        "slug": "flight-and-space",
-       "name": "Flight & space"
+       "name": "Flight & space",
+       "name_he": "תעופה וחלל"
       }
      ]
     },
     {
      "slug": "family-and-play",
      "name": "Family & play",
+     "name_he": "משפחה ומשחק",
      "children": [
       {
        "slug": "play-spaces-and-kids-museums",
-       "name": "Play spaces & kids' museums"
+       "name": "Play spaces & kids' museums",
+       "name_he": "מרחבי משחק ומוזיאוני ילדים"
       },
       {
        "slug": "zoos-and-aquariums",
-       "name": "Zoos & aquariums"
+       "name": "Zoos & aquariums",
+       "name_he": "גני חיות ואקווריומים"
       },
       {
        "slug": "amusement-districts",
-       "name": "Amusement districts"
+       "name": "Amusement districts",
+       "name_he": "רובעי בילוי"
       }
      ]
     },
     {
      "slug": "sports",
      "name": "Sports",
+     "name_he": "ספורט",
      "children": [
       {
        "slug": "ballparks-and-stadiums",
-       "name": "Ballparks & stadiums"
+       "name": "Ballparks & stadiums",
+       "name_he": "מגרשים ואצטדיונים"
       },
       {
        "slug": "traditional-sports",
-       "name": "Traditional sports"
+       "name": "Traditional sports",
+       "name_he": "ספורט מסורתי"
       },
       {
        "slug": "water-and-adventure-sports",
-       "name": "Water & adventure sports"
+       "name": "Water & adventure sports",
+       "name_he": "ספורט ימי והרפתקאות"
       },
       {
        "slug": "bowling-and-old-time-games",
-       "name": "Bowling & old-time games"
+       "name": "Bowling & old-time games",
+       "name_he": "באולינג ומשחקים של פעם"
       }
      ]
     }

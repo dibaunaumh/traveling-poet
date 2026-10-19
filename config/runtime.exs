@@ -73,6 +73,15 @@ config :traveling_poet,
     ),
   narration_voice:
     if(config_env() == :test, do: "test-voice", else: System.get_env("NARRATION_VOICE")),
+  # Hebrew pages (card-101, dec-009): Grok Voice "leo" in prod; unset falls
+  # back to the voice above, which reads Hebrew with an English accent
+  narration_model_he:
+    if(config_env() == :test,
+      do: "test/narration-model-he",
+      else: System.get_env("NARRATION_MODEL_HE")
+    ),
+  narration_voice_he:
+    if(config_env() == :test, do: "test-voice-he", else: System.get_env("NARRATION_VOICE_HE")),
   # Used only by the eval Mix tasks (Evals.ImageJudge). Pinned in test like
   # the slugs above.
   eval_judge_model:
@@ -128,7 +137,9 @@ config :traveling_poet,
   # test: requests go to the Req.Test stub. LITEAPI_BOOKING_URL is the
   # white-label booking site's hotel URL template; no Book link until set.
   liteapi_key: if(config_env() == :test, do: nil, else: System.get_env("LITEAPI_KEY")),
-  liteapi_booking_url: System.get_env("LITEAPI_BOOKING_URL"),
+  # nil in test like the key: a local .env template leaked into hotels_test
+  liteapi_booking_url:
+    if(config_env() == :test, do: nil, else: System.get_env("LITEAPI_BOOKING_URL")),
   liteapi_currency: System.get_env("LITEAPI_CURRENCY", "EUR"),
   web_push_notifier: config_env() != :test,
   # Sign in with Apple (the iOS app), and later APNs and the App Store, all

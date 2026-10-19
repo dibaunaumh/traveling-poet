@@ -18,6 +18,10 @@ defmodule TravelingPoet.Guide.PlaceTopics do
   existing `category` (restaurant, attraction, ...) is too coarse for "the
   textile museums": "attraction" covers museums, temples and parks alike.
 
+  Each node also carries its Hebrew name, `name_he` (card-101). The English
+  names are what the classifier and the poet read (`names/1`); a reader sees
+  `labels/2` and `tree/1` in their own language.
+
   Read at compile time, like everything under `priv/data`: editing the JSON
   needs `mix compile --force`.
   """
@@ -30,6 +34,12 @@ defmodule TravelingPoet.Guide.PlaceTopics do
              {"#{a["slug"]}/#{b["slug"]}/#{c["slug"]}", [a["name"], b["name"], c["name"]]}
            end)
           |> Map.new()
+
+  @leaves_he (for a <- @tree, b <- a["children"], c <- b["children"] do
+                {"#{a["slug"]}/#{b["slug"]}/#{c["slug"]}",
+                 [a["name_he"], b["name_he"], c["name_he"]]}
+              end)
+             |> Map.new()
 
   # "subtopic/topic" -> the whole path, for the suffixes that name exactly
   # one leaf.
@@ -48,6 +58,37 @@ defmodule TravelingPoet.Guide.PlaceTopics do
 
   @doc "The whole tree as stored: `[%{\"slug\", \"name\", \"children\"}]`."
   def tree, do: @tree
+
+  @doc """
+  The tree for a reader: each node's `"name"` in `locale` (the process's own
+  by default), English where a translation is missing.
+  """
+  def tree(locale) do
+    case TravelingPoet.Locale.normalize(locale) do
+      "he" -> localize(@tree, "name_he")
+      _ -> @tree
+    end
+  end
+
+  defp localize(nodes, key) do
+    Enum.map(nodes, fn node ->
+      node
+      |> Map.put("name", node[key] || node["name"])
+      |> Map.update("children", nil, &(&1 && localize(&1, key)))
+      |> Map.reject(fn {k, v} -> k == "children" and is_nil(v) end)
+    end)
+  end
+
+  @doc """
+  The names along a path for a reader, in `locale` (the process's own by
+  default); `names/1` stays English for the classifier and the poet.
+  """
+  def labels(path, locale \\ nil) do
+    case TravelingPoet.Locale.normalize(locale) || TravelingPoet.Locale.current() do
+      "he" -> Map.get(@leaves_he, path)
+      _ -> names(path)
+    end
+  end
 
   @doc "Every third-level path, e.g. `art/modern-and-contemporary-art/contemporary-art`."
   def paths, do: @leaves |> Map.keys() |> Enum.sort()

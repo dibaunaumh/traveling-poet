@@ -9,6 +9,10 @@ defmodule TravelingPoet.Narration do
   sandbox, and the fleet key is the one bill. The 2026-10-15 eval (evt in
   Alice.In) found 35 speech models behind the key; the model and voice are
   config (`NARRATION_MODEL`, `NARRATION_VOICE`), nil model = feature off.
+  A page is read in its own language (`entry.language`): a Hebrew page takes
+  `NARRATION_MODEL_HE` / `NARRATION_VOICE_HE` (dec-009: Grok Voice "leo";
+  the English voice reads Hebrew with an accent), each falling back to the
+  default when unset.
 
   `generate/1` is the whole unit of work: script, hash check, speech call,
   upload, media row, old row gone, usage recorded. On demand only (dec-004,
@@ -35,11 +39,26 @@ defmodule TravelingPoet.Narration do
   def model, do: Application.get_env(:traveling_poet, :narration_model)
   def voice, do: Application.get_env(:traveling_poet, :narration_voice)
 
+  @doc "The speech model for a page in `language`."
+  def model("he"),
+    do: present(Application.get_env(:traveling_poet, :narration_model_he)) || model()
+
+  def model(_language), do: model()
+
+  @doc "The voice for a page in `language`."
+  def voice("he"),
+    do: present(Application.get_env(:traveling_poet, :narration_voice_he)) || voice()
+
+  def voice(_language), do: voice()
+
+  defp present(value) when value in [nil, ""], do: nil
+  defp present(value), do: value
+
   @doc "A page's reading time before it is read, from the script."
   def estimated_seconds(%Entry{} = entry) do
     case Script.for_entry(preload(entry)) do
       nil -> nil
-      text -> Script.estimated_seconds(text)
+      text -> Script.estimated_seconds(text, entry.language)
     end
   end
 
@@ -70,8 +89,16 @@ defmodule TravelingPoet.Narration do
 
   defp narrate(entry, poet, user, text, current) do
     hash = Script.hash(text)
+    language = entry.language
+    model = model(language)
+    voice = voice(language)
 
-    with {:ok, %{bytes: bytes, ms: ms}} <- request(text, instructions: instructions(poet)),
+    with {:ok, %{bytes: bytes, ms: ms}} <-
+           request(text,
+             instructions: instructions(poet, language),
+             model: model,
+             voice: voice
+           ),
          key = "media/narration-#{entry.id}-#{String.slice(hash, 0, 8)}.mp3",
          {:ok, _} <- storage().upload_content(key, bytes, "audio/mpeg"),
          {:ok, media} <-
@@ -83,9 +110,10 @@ defmodule TravelingPoet.Narration do
              byte_size: byte_size(bytes),
              kind: "narration",
              alt_text: "#{poet.name} reads this page",
-             prompt: "#{model()} #{voice()}",
+             prompt: "#{model} #{voice}",
              content_hash: hash,
-             duration_seconds: Mp3.duration_seconds(bytes) || Script.estimated_seconds(text)
+             duration_seconds:
+               Mp3.duration_seconds(bytes) || Script.estimated_seconds(text, language)
            }) do
       if current, do: delete(current)
 
@@ -93,8 +121,8 @@ defmodule TravelingPoet.Narration do
         metadata: %{
           "media_id" => media.id,
           "entry_id" => entry.id,
-          "model" => model(),
-          "voice" => voice(),
+          "model" => model,
+          "voice" => voice,
           "chars" => String.length(text),
           "ms" => ms
         }
@@ -226,16 +254,19 @@ defmodule TravelingPoet.Narration do
   end
 
   @doc "How the narrator should read: the poet's temperament, at a diarist's pace. Providers without an instructions field ignore it."
-  def instructions(poet) do
+  def instructions(poet, language \\ "en") do
     temperament =
       case poet.personality do
         p when is_binary(p) and p != "" -> " The writer's temperament: #{String.trim(p)}."
         _ -> ""
       end
 
-    "Read this travel journal page in the writer's own voice: unhurried, warm, " <>
+    "Read this travel journal page#{in_language(language)} in the writer's own voice: unhurried, warm, " <>
       "a little wry, never breathless or salesy. Pause between sections." <> temperament
   end
+
+  defp in_language("en"), do: ""
+  defp in_language(language), do: " in " <> TravelingPoet.Locale.name(language)
 
   defp put_present(map, _key, value) when value in [nil, ""], do: map
   defp put_present(map, key, value), do: Map.put(map, key, value)

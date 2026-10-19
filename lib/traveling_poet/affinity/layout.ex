@@ -20,13 +20,17 @@ defmodule TravelingPoet.Affinity.Layout do
 
   @doc """
   `%{regions: [%{path, name, x, y, w, h}], points: %{path => {x, y}}}`:
-  the 12 subjects as regions, every third-level topic as a point.
+  the 12 subjects as regions, every third-level topic as a point. The
+  region names are in the process's language (card-101), one cached layout
+  per language.
   """
   def layout do
-    case :persistent_term.get({__MODULE__, :layout}, nil) do
+    locale = TravelingPoet.Locale.current()
+
+    case :persistent_term.get({__MODULE__, :layout, locale}, nil) do
       nil ->
-        computed = compute()
-        :persistent_term.put({__MODULE__, :layout}, computed)
+        computed = compute(locale)
+        :persistent_term.put({__MODULE__, :layout, locale}, computed)
         computed
 
       computed ->
@@ -34,8 +38,8 @@ defmodule TravelingPoet.Affinity.Layout do
     end
   end
 
-  defp compute do
-    tree = PlaceTopics.tree()
+  defp compute(locale) do
+    tree = PlaceTopics.tree(locale)
     rect = {0.0, 0.0, @width * 1.0, @height * 1.0}
 
     subjects =
