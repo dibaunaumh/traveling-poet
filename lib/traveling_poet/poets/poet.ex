@@ -85,11 +85,18 @@ defmodule TravelingPoet.Poets.Poet do
     end
   end
 
+  # Letters of any script: a Hebrew name kept only its dashes under
+  # [^a-z0-9], so the slug came out empty and the suffix retry handed out
+  # "-2", "-3" (2026-10-19), with 99 the last one it tries.
   def slugify(name) do
     name
     |> String.downcase()
-    |> String.replace(~r/[^a-z0-9]+/u, "-")
+    |> String.replace(~r/[^\p{L}\p{N}]+/u, "-")
     |> String.trim("-")
+    |> case do
+      "" -> "poet"
+      slug -> slug
+    end
   end
 
   @doc "Days the poet has spent at the current location."

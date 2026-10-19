@@ -175,6 +175,21 @@ defmodule TravelingPoet.NarrationTest do
       assert Repo.get(Journal.Media, first.id) == nil
     end
 
+    test "a forced re-read of the same words keeps the new recording's file", %{entry: entry} do
+      stub_speech(mp3(60))
+      {:ok, first} = Narration.generate(entry)
+      assert_received {:narration_upload, key, _}
+
+      {:ok, second} = Narration.generate(entry, force: true)
+      assert_received {:narration_upload, ^key, _}
+      assert second.s3_key == key
+
+      # the old row goes, the object both rows named stays
+      refute_received {:narration_delete, _}
+      assert Repo.get(Journal.Media, first.id) == nil
+      assert Narration.narration_for(entry.id).id == second.id
+    end
+
     test "no setting gates a reading; the poet's daily cap does", %{
       entry: entry,
       poet: poet,

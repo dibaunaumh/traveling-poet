@@ -28,4 +28,14 @@ defmodule TravelingPoet.PoetNamesTest do
   test "shuffling never shows the same name twice in a row" do
     for _ <- 1..50, do: refute(Presets.random_name("Wren") == "Wren")
   end
+
+  describe "slugs" do
+    test "keep the letters of any script, so a Hebrew name has an address" do
+      assert TravelingPoet.Poets.Poet.slugify("Ferris Lune") == "ferris-lune"
+      assert TravelingPoet.Poets.Poet.slugify("נועם צוף") == "נועם-צוף"
+      assert TravelingPoet.Poets.Poet.slugify("Señora Tinta!") == "señora-tinta"
+      assert TravelingPoet.Poets.Poet.slugify("!!!") == "poet"
+    end
+  end
+
 end
