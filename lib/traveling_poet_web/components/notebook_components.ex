@@ -40,13 +40,13 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
     ~H"""
     <.dynamic_tag tag_name={@tag} class="notebook-title">
-      <span :if={@day} class="notebook-day">Day {@day}</span>
+      <span :if={@day} class="notebook-day">{dgettext("notebook", "Day %{n}", n: @day)}</span>
       <span {page_lang(@entry)}>{entry_title(@entry)}</span>
       <span :if={@show_date} class="notebook-date ms-2">
         {TravelingPoet.Locale.format_date(@entry.entry_date, :long)}
       </span>
       <span :if={@excursion_label} class="notebook-excursion">
-        Excursion: {@excursion_label}
+        {dgettext("notebook", "Excursion: %{topic}", topic: @excursion_label)}
       </span>
     </.dynamic_tag>
     """
@@ -54,7 +54,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   def entry_title(entry) do
     Blank.clean(entry.title) || excursion_destination(entry) || excursion_label(entry) ||
-      entry.place_name || "Journal"
+      entry.place_name || dgettext("notebook", "Journal")
   end
 
   @doc "The topic of an excursion entry, nil for a day at a place."
@@ -147,7 +147,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           spot_media={@spot_media}
         />
         <p :if={@spread.left == []} class="prose text-sm opacity-60">
-          A quiet page. The drawing says it all today.
+          {dgettext("notebook", "A quiet page. The drawing says it all today.")}
         </p>
         {render_slot(@left_footer)}
       </div>
@@ -208,7 +208,12 @@ defmodule TravelingPoetWeb.NotebookComponents do
       data-state={if(@pending, do: "generating", else: "idle")}
       data-label={@label}
     >
-      <button type="button" class="narration-play" aria-label="Play" aria-controls="listen-audio">
+      <button
+        type="button"
+        class="narration-play"
+        aria-label={dgettext("notebook", "Play")}
+        aria-controls="listen-audio"
+      >
         <svg class="narration-icon-play" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M4.5 2.8v10.4L13 8z" />
         </svg>
@@ -233,19 +238,26 @@ defmodule TravelingPoetWeb.NotebookComponents do
     """
   end
 
-  defp narration_label(_narration, true, _estimate), do: "Reading this page, a few seconds"
-  defp narration_label(nil, _pending, nil), do: "Listen"
-  defp narration_label(nil, _pending, seconds), do: "Listen, about " <> narration_length(seconds)
-  defp narration_label(%{duration_seconds: nil}, _pending, _estimate), do: "Listen"
+  defp narration_label(_narration, true, _estimate),
+    do: dgettext("notebook", "Reading this page, a few seconds")
+
+  defp narration_label(nil, _pending, nil), do: dgettext("notebook", "Listen")
+
+  defp narration_label(nil, _pending, seconds),
+    do: dgettext("notebook", "Listen, about %{length}", length: narration_length(seconds))
+
+  defp narration_label(%{duration_seconds: nil}, _pending, _estimate),
+    do: dgettext("notebook", "Listen")
 
   defp narration_label(%{duration_seconds: s}, _pending, _estimate),
-    do: "Listen, " <> narration_length(s)
+    do: dgettext("notebook", "Listen, %{length}", length: narration_length(s))
 
   @doc "\"5 min\" or \"40 sec\"."
-  def narration_length(seconds) when is_integer(seconds) and seconds < 60, do: "#{seconds} sec"
+  def narration_length(seconds) when is_integer(seconds) and seconds < 60,
+    do: dgettext("notebook", "%{n} sec", n: seconds)
 
   def narration_length(seconds) when is_integer(seconds),
-    do: "#{max(div(seconds + 30, 60), 1)} min"
+    do: dgettext("notebook", "%{n} min", n: max(div(seconds + 30, 60), 1))
 
   attr :item, :any, required: true
   attr :entry, :map, required: true
@@ -331,17 +343,22 @@ defmodule TravelingPoetWeb.NotebookComponents do
           {render_slot(@map)}
         </figure>
         <p class="notebook-caption">
-          <span :if={@stops == []}>Nowhere in particular today.</span>
+          <span :if={@stops == []}>{dgettext("notebook", "Nowhere in particular today.")}</span>
           <span :if={@stops != [] and @mapped == length(@stops)}>
-            {stop_count(@stops)} on the map.
+            {dgettext("notebook", "%{stops} on the map.", stops: stop_count(@stops))}
           </span>
           <span :if={@stops != [] and @mapped < length(@stops)}>
-            {stop_count(@stops)}, {@mapped} on the map.
+            {dgettext("notebook", "%{stops}, %{mapped} on the map.",
+              stops: stop_count(@stops),
+              mapped: @mapped
+            )}
           </span>
         </p>
       </div>
       <div class="notebook-page spread-page spread-right">
-        <h3 class="notebook-section-title mb-3">Where {@poet.name} would send you</h3>
+        <h3 class="notebook-section-title mb-3">
+          {dgettext("notebook", "Where %{poet} would send you", poet: @poet.name)}
+        </h3>
         <ol :if={@stops != []} class="stops">
           <li :for={{place, n} <- Enum.with_index(@stops, 1)} id={"stop-#{place.id}"} class="stop">
             <.place_stamp place={place} n={n} />
@@ -370,15 +387,14 @@ defmodule TravelingPoetWeb.NotebookComponents do
           </li>
         </ol>
         <p :if={@stops == []} class="prose text-sm opacity-60">
-          No places logged for this day. The guide has the rest of the trip.
+          {dgettext("notebook", "No places logged for this day. The guide has the rest of the trip.")}
         </p>
         <div class="spread-actions">
           <a href={@guide_url} class="link">
             <span :if={@stay_count > 0}>
-              All {@stay_count} {ngettext("place", "places", @stay_count)} in {@entry.place_name ||
-                "the guide"} &rarr;
+              {all_places_link(@stay_count, @entry.place_name)}
             </span>
-            <span :if={@stay_count == 0}>Open the guide &rarr;</span>
+            <span :if={@stay_count == 0}>{dgettext("notebook", "Open the guide →")}</span>
           </a>
         </div>
       </div>
@@ -387,6 +403,21 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   defp stop_count(stops), do: "#{length(stops)} #{ngettext("stop", "stops", length(stops))}"
+
+  defp all_places_link(count, nil),
+    do:
+      dgettext("notebook", "All %{count} %{places} in the guide →",
+        count: count,
+        places: ngettext("place", "places", count)
+      )
+
+  defp all_places_link(count, where),
+    do:
+      dgettext("notebook", "All %{count} %{places} in %{where} →",
+        count: count,
+        places: ngettext("place", "places", count),
+        where: where
+      )
 
   attr :entry, :map, required: true
   attr :day, :integer, default: nil
@@ -420,12 +451,14 @@ defmodule TravelingPoetWeb.NotebookComponents do
           {render_slot(@map)}
         </figure>
         <p class="notebook-caption">
-          Each ring is about a ten-minute walk across.
+          {dgettext("notebook", "Each ring is about a ten-minute walk across.")}
         </p>
       </div>
       <div class="notebook-page spread-page spread-right">
         <h3 class="notebook-section-title mb-3">
-          Where to stay{if @city, do: " in #{@city}"}
+          {if @city,
+            do: dgettext("notebook", "Where to stay in %{city}", city: @city),
+            else: dgettext("notebook", "Where to stay")}
         </h3>
         <ol class="stay-areas">
           <li
@@ -435,14 +468,16 @@ defmodule TravelingPoetWeb.NotebookComponents do
           >
             <div class="flex items-baseline justify-between gap-2">
               <div class="stop-name" dir="auto">{area.name}</div>
-              <span :if={area.recommended} class="stay-pick">{@poet.name}'s pick</span>
+              <span :if={area.recommended} class="stay-pick">
+                {dgettext("notebook", "%{poet}'s pick", poet: @poet.name)}
+              </span>
             </div>
             <p :if={area.summary} class="text-sm leading-relaxed">{area.summary}</p>
             <p :if={area.best_for} class="text-sm">
-              <span class="opacity-60">For you:</span> {area.best_for}
+              <span class="opacity-60">{dgettext("notebook", "For you:")}</span> {area.best_for}
             </p>
             <p :if={area.tradeoffs} class="text-sm">
-              <span class="opacity-60">The catch:</span> {area.tradeoffs}
+              <span class="opacity-60">{dgettext("notebook", "The catch:")}</span> {area.tradeoffs}
             </p>
             <p :if={near.total > 0} class="stay-near">{near_line(near)}</p>
           </li>
@@ -460,14 +495,15 @@ defmodule TravelingPoetWeb.NotebookComponents do
   defp near_line(near) do
     parts =
       [
-        {near.food, "place to eat", "places to eat"},
-        {near.shops, "shop", "shops"},
-        {near.sights, "sight", "sights"}
+        {near.food,
+         &dngettext("notebook", "%{count} place to eat", "%{count} places to eat", &1)},
+        {near.shops, &dngettext("notebook", "%{count} shop", "%{count} shops", &1)},
+        {near.sights, &dngettext("notebook", "%{count} sight", "%{count} sights", &1)}
       ]
-      |> Enum.filter(fn {n, _, _} -> n > 0 end)
-      |> Enum.map(fn {n, one, many} -> "#{n} #{if n == 1, do: one, else: many}" end)
+      |> Enum.filter(fn {n, _} -> n > 0 end)
+      |> Enum.map(fn {n, counted} -> counted.(n) end)
 
-    "Within a ten-minute walk: " <> Enum.join(parts, ", ")
+    dgettext("notebook", "Within a ten-minute walk: %{places}", places: Enum.join(parts, ", "))
   end
 
   attr :hotels, :any, required: true, doc: "nil, :loading, {:ok, ranked}, or {:error, reason}"
@@ -483,29 +519,31 @@ defmodule TravelingPoetWeb.NotebookComponents do
   def hotel_search(assigns) do
     ~H"""
     <section id="hotel-search" class="hotel-search">
-      <h4 class="notebook-section-title">Hotels for your dates</h4>
+      <h4 class="notebook-section-title">{dgettext("notebook", "Hotels for your dates")}</h4>
       <form id="hotel-search-form" phx-submit="find_hotels" class="hotel-search-form">
         <label>
-          <span>Check in</span>
+          <span>{dgettext("notebook", "Check in")}</span>
           <input type="date" name="checkin" value={@query["checkin"]} required />
         </label>
         <label>
-          <span>Check out</span>
+          <span>{dgettext("notebook", "Check out")}</span>
           <input type="date" name="checkout" value={@query["checkout"]} required />
         </label>
         <label>
-          <span>Guests</span>
+          <span>{dgettext("notebook", "Guests")}</span>
           <input type="number" name="adults" min="1" max="6" value={@query["adults"] || "2"} />
         </label>
         <button type="submit" class="btn btn-sm btn-neutral" disabled={@hotels == :loading}>
-          {if @hotels == :loading, do: "Looking...", else: "Find hotels"}
+          {if @hotels == :loading,
+            do: dgettext("notebook", "Looking..."),
+            else: dgettext("notebook", "Find hotels")}
         </button>
       </form>
       <p :if={match?({:error, _}, @hotels)} class="text-sm text-error mt-2">
         {hotel_error(@hotels)}
       </p>
       <p :if={match?({:ok, []}, @hotels)} class="text-sm opacity-70 mt-2">
-        No rooms found for those dates.
+        {dgettext("notebook", "No rooms found for those dates.")}
       </p>
       <ol :if={match?({:ok, [_ | _]}, @hotels)} class="hotel-list">
         <li :for={h <- elem(@hotels, 1)} id={"hotel-#{h.id}"} class="hotel">
@@ -513,14 +551,16 @@ defmodule TravelingPoetWeb.NotebookComponents do
           <div class="hotel-body">
             <div class="stop-name" dir="auto">{h.name}</div>
             <div class="hotel-price">
-              {money(h.per_night, h.currency)} a night, {money(h.total, h.currency)} in all
+              {dgettext("notebook", "%{per_night} a night, %{total} in all",
+                per_night: money(h.per_night, h.currency),
+                total: money(h.total, h.currency)
+              )}
             </div>
             <div :if={h.rating} class="text-sm">
-              {h.rating} guest rating<span :if={h.review_count}>, {h.review_count} reviews</span>
+              {guest_rating(h)}
             </div>
             <div :if={h.near > 0} class="stay-near">
-              {h.near} of {@poet.name}'s places within a ten-minute walk{if h.area,
-                do: ", in #{h.area}"}
+              {near_hotel(h, @poet.name)}
             </div>
             <a
               :if={h.book_url}
@@ -529,22 +569,55 @@ defmodule TravelingPoetWeb.NotebookComponents do
               rel="noopener noreferrer sponsored"
               class="link link-primary text-sm"
             >
-              See rooms and book ↗
+              {dgettext("notebook", "See rooms and book ↗")}
             </a>
           </div>
         </li>
       </ol>
       <p :if={match?({:ok, [_ | _]}, @hotels)} class="text-xs opacity-60 mt-2">
-        Prices from our booking partner, for your dates. Booking through these links supports
-        Traveling Poet.
+        {dgettext(
+          "notebook",
+          "Prices from our booking partner, for your dates. Booking through these links supports Traveling Poet."
+        )}
       </p>
     </section>
     """
   end
 
-  defp hotel_error({:error, :bad_dates}), do: "Check-out has to come after check-in."
-  defp hotel_error({:error, :not_configured}), do: "Hotel search is not switched on yet."
-  defp hotel_error(_), do: "Could not reach our booking partner just now. Try again in a moment."
+  defp hotel_error({:error, :bad_dates}),
+    do: dgettext("notebook", "Check-out has to come after check-in.")
+
+  defp hotel_error({:error, :not_configured}),
+    do: dgettext("notebook", "Hotel search is not switched on yet.")
+
+  defp hotel_error(_),
+    do:
+      dgettext("notebook", "Could not reach our booking partner just now. Try again in a moment.")
+
+  defp guest_rating(%{review_count: nil} = h),
+    do: dgettext("notebook", "%{rating} guest rating", rating: h.rating)
+
+  defp guest_rating(h),
+    do:
+      dgettext("notebook", "%{rating} guest rating, %{reviews} reviews",
+        rating: h.rating,
+        reviews: h.review_count
+      )
+
+  defp near_hotel(%{area: area} = h, poet) when is_binary(area) and area != "",
+    do:
+      dgettext("notebook", "%{count} of %{poet}'s places within a ten-minute walk, in %{area}",
+        count: h.near,
+        poet: poet,
+        area: area
+      )
+
+  defp near_hotel(h, poet),
+    do:
+      dgettext("notebook", "%{count} of %{poet}'s places within a ten-minute walk",
+        count: h.near,
+        poet: poet
+      )
 
   defp money(amount, currency) when is_number(amount) do
     whole = amount |> round() |> Integer.to_string()
@@ -609,8 +682,10 @@ defmodule TravelingPoetWeb.NotebookComponents do
           </div>
         </div>
         <figure class="taped-ticket">
-          <div class="ticket-kicker">A day off the road</div>
-          <div class="ticket-topic">{Topics.label_for_entry(@entry) || "an excursion"}</div>
+          <div class="ticket-kicker">{dgettext("notebook", "A day off the road")}</div>
+          <div class="ticket-topic">
+            {Topics.label_for_entry(@entry) || dgettext("notebook", "an excursion")}
+          </div>
           <div :if={@excursion.destination_name} class="ticket-destination">
             <a
               :if={@excursion.destination_url}
@@ -623,19 +698,23 @@ defmodule TravelingPoetWeb.NotebookComponents do
             <span :if={!@excursion.destination_url}>{@excursion.destination_name}</span>
           </div>
           <div :if={@excursion.source == "chat"} class="ticket-note">
-            You asked for this one in chat.
+            {dgettext("notebook", "You asked for this one in chat.")}
           </div>
           <div :if={@poet.current_place_name} class="ticket-note">
-            Written from {@poet.current_place_name}.
+            {dgettext("notebook", "Written from %{place}.", place: @poet.current_place_name)}
           </div>
         </figure>
         <p class="notebook-caption">
-          <span :if={@finds == []}>Nothing to take home today.</span>
-          <span :if={@finds != []}>{find_count(@finds)} worth your time.</span>
+          <span :if={@finds == []}>{dgettext("notebook", "Nothing to take home today.")}</span>
+          <span :if={@finds != []}>
+            {dgettext("notebook", "%{finds} worth your time.", finds: find_count(@finds))}
+          </span>
         </p>
       </div>
       <div class="notebook-page spread-page spread-right">
-        <h3 class="notebook-section-title mb-3">What {@poet.name} brought back</h3>
+        <h3 class="notebook-section-title mb-3">
+          {dgettext("notebook", "What %{poet} brought back", poet: @poet.name)}
+        </h3>
         <ol :if={@finds != []} class="stops">
           <li :for={{find, n} <- Enum.with_index(@finds, 1)} id={"find-#{find.id}"} class="stop">
             <.find_stamp find={find} n={n} />
@@ -666,11 +745,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
           </li>
         </ol>
         <p :if={@finds == []} class="prose text-sm opacity-60">
-          No finds logged for this excursion.
+          {dgettext("notebook", "No finds logged for this excursion.")}
         </p>
         <div :if={@guide_url} class="spread-actions">
           <a href={@guide_url} class="link">
-            Everything from excursions into {Topics.label_for_entry(@entry) || "this topic"} &rarr;
+            {excursions_link(Topics.label_for_entry(@entry))}
           </a>
         </div>
       </div>
@@ -679,6 +758,12 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   defp find_count(finds), do: "#{length(finds)} #{ngettext("find", "finds", length(finds))}"
+
+  defp excursions_link(nil),
+    do: dgettext("notebook", "Everything from excursions into this topic →")
+
+  defp excursions_link(topic),
+    do: dgettext("notebook", "Everything from excursions into %{topic} →", topic: topic)
 
   attr :find, :map, required: true
   attr :n, :integer, required: true
@@ -697,7 +782,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
       rel="noopener noreferrer nofollow"
       class="place-stamp"
       style={"--stamp-c: #{@color}"}
-      title={"Open #{@find.name}"}
+      title={dgettext("notebook", "Open %{name}", name: @find.name)}
     >
       <span class="stamp-n">{@n}</span>
       <span class="stamp-name">{@find.name}</span>
@@ -741,7 +826,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
       rel={@href && "noopener noreferrer nofollow"}
       class="place-stamp"
       style={"--stamp-c: #{@color}"}
-      title={if @href, do: "Open #{@place.name}'s page", else: @place.name}
+      title={
+        if @href,
+          do: dgettext("notebook", "Open %{name}'s page", name: @place.name),
+          else: @place.name
+      }
     >
       <span class="stamp-n">{@n}</span>
       <span class="stamp-name">{@place.name}</span>
@@ -770,7 +859,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   """
   def spread_tabs(assigns) do
     ~H"""
-    <nav class="spread-tabs" role="tablist" aria-label="Pages of this entry">
+    <nav class="spread-tabs" role="tablist" aria-label={dgettext("notebook", "Pages of this entry")}>
       <.link
         :for={s <- @spreads}
         patch={@patch.(s.key)}
@@ -785,11 +874,15 @@ defmodule TravelingPoetWeb.NotebookComponents do
           type="button"
           role="tab"
           aria-selected={to_string(@chat_open)}
-          title={if @chat_open, do: "Hide the chat", else: "Show the chat"}
+          title={
+            if @chat_open,
+              do: dgettext("notebook", "Hide the chat"),
+              else: dgettext("notebook", "Show the chat")
+          }
           class="spread-tab"
           phx-click="toggle_chat"
         >
-          Chat
+          {dgettext("notebook", "Chat")}
         </button>
       </span>
       <span :if={@chat} class="xl:hidden contents">
@@ -800,7 +893,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
           class="spread-tab"
           phx-click="toggle_mobile_chat"
         >
-          Chat
+          {dgettext("notebook", "Chat")}
         </button>
       </span>
     </nav>
@@ -818,12 +911,12 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
     prev =
       if idx && idx > 0,
-        do: [{"← earlier", Date.to_iso8601(Enum.at(dates, idx - 1))}],
+        do: [{dgettext("notebook", "← earlier"), Date.to_iso8601(Enum.at(dates, idx - 1))}],
         else: []
 
     next =
       if idx && idx < length(dates) - 1,
-        do: [{"later →", Date.to_iso8601(Enum.at(dates, idx + 1))}],
+        do: [{dgettext("notebook", "later →"), Date.to_iso8601(Enum.at(dates, idx + 1))}],
         else: []
 
     prev ++ next
@@ -848,7 +941,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
     <figure :if={@media} class="taped-photo my-4">
       <img
         src={~p"/media/#{@media.id}"}
-        alt={@media.alt_text || "illustration"}
+        alt={@media.alt_text || dgettext("notebook", "illustration")}
         class="rounded-xl max-w-full shadow"
         loading={@loading}
       />
@@ -861,7 +954,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
           rel="noopener noreferrer nofollow"
           class="link"
         >
-          {src["label"] || "see the real place"} ↗
+          {dgettext("notebook", "%{source} ↗",
+            source: src["label"] || dgettext("notebook", "see the real place")
+          )}
         </a>
       </figcaption>
     </figure>
@@ -883,16 +978,21 @@ defmodule TravelingPoetWeb.NotebookComponents do
             the drawing links to its reference, and this line names them.
             Outside .prose so the markers' text offsets are untouched. --%>
       <div :if={@spots != []} class="spot-sources">
-        Drawn from
-        <a
-          :for={src <- Enum.flat_map(@spots, &Media.source_items/1)}
-          href={src["url"]}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          class="link"
-        >
-          {src["label"] || "the real place"} ↗
-        </a>
+        <.rich text={dgettext("notebook", "Drawn from %{sources}", sources: marker(:sources))}>
+          <:part name="sources">
+            <a
+              :for={src <- Enum.flat_map(@spots, &Media.source_items/1)}
+              href={src["url"]}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              class="link"
+            >
+              {dgettext("notebook", "%{source} ↗",
+                source: src["label"] || dgettext("notebook", "the real place")
+              )}
+            </a>
+          </:part>
+        </.rich>
       </div>
       <a
         :if={@section.metadata["source_url"]}
@@ -901,7 +1001,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
         rel="noopener noreferrer nofollow"
         class="link text-sm"
       >
-        {@section.metadata["source_label"] || @section.metadata["source_url"]} ↗
+        {dgettext("notebook", "%{source} ↗",
+          source: @section.metadata["source_label"] || @section.metadata["source_url"]
+        )}
       </a>
     </div>
     """
@@ -1091,7 +1193,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
     case Media.source_items(media) do
       [%{"url" => url} | _] = items when is_binary(url) ->
         labels = items |> Enum.map(&(&1["label"] || &1["url"])) |> Enum.join(", ")
-        %MDEx.Link{url: url, title: "Drawn from #{labels}", nodes: [image]}
+        title = dgettext("notebook", "Drawn from %{sources}", sources: labels)
+        %MDEx.Link{url: url, title: title, nodes: [image]}
 
       _ ->
         image

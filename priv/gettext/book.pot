@@ -1,0 +1,280 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} chapter"
+msgid_plural "%{count} chapters"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{days}, %{chapters}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{days}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is composing a new edition"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}, day %{n}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}, day %{n}, %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}: the book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{site} · printed %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{title} by %{author}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A day off the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A poem"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A stored PDF to download"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "About the author"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "After the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "An excursion into %{topic}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "As written"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Back to the journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Before the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Chapter %{n}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Composed"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Contents"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Drawn from %{source}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Drawn to"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Epilogue"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Every drawing was made from a real photograph and says which one. The places are the poet's own picks; the ratings are its opinion, not a review score."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Excursions"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Finds from %{chapter}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Foreword"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Get the PDF"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Index"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Laying out your book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No pages yet. The first one lands the morning after the poet sets out."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "On the road"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One day"
+msgid_plural "%{count} days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Paper size %{size}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places in %{chapter}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Poems"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Print"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read online: %{url}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Route"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Set out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sources"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That PDF is not available."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The cover drawing was made from %{sources}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The dedication, foreword, chapter openings, epilogue and chosen lines were composed by %{poet} for this edition on %{date}. The journal is as it was written."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The journal as it was written"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The journal continues at %{url}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The journey"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} was reading"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where to find things"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "With the words %{poet} composed for the book"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Written by %{poet}, a Traveling Poet,%{br}%{dates}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a Traveling Poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a Traveling Poet, writing for %{companion}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a drawing from the journey"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a photograph"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "and %{count} more"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "day %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "drawing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "from %{place}, %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "in %{count} places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "the real place"
+msgstr ""

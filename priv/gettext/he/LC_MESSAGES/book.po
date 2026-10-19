@@ -1,0 +1,280 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} chapter"
+msgid_plural "%{count} chapters"
+msgstr[0] "פרק אחד"
+msgstr[1] "%{count} פרקים"
+
+#, elixir-autogen, elixir-format
+msgid "%{days}, %{chapters}."
+msgstr "%{days}, %{chapters}."
+
+#, elixir-autogen, elixir-format
+msgid "%{days}."
+msgstr "%{days}."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is composing a new edition"
+msgstr "%{poet}: מהדורה חדשה בהכנה"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}, day %{n}"
+msgstr "%{poet}, יום %{n}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}, day %{n}, %{place}"
+msgstr "%{poet}, יום %{n}, %{place}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet}: the book"
+msgstr "%{poet}: הספר"
+
+#, elixir-autogen, elixir-format
+msgid "%{site} · printed %{date}"
+msgstr "%{site} · הודפס ב-%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "%{title} by %{author}"
+msgstr "%{title} מאת %{author}"
+
+#, elixir-autogen, elixir-format
+msgid "A day off the road"
+msgstr "יום מחוץ למסלול"
+
+#, elixir-autogen, elixir-format
+msgid "A poem"
+msgstr "שיר"
+
+#, elixir-autogen, elixir-format
+msgid "A stored PDF to download"
+msgstr "קובץ PDF שמור להורדה"
+
+#, elixir-autogen, elixir-format
+msgid "About the author"
+msgstr "מאחורי היומן"
+
+#, elixir-autogen, elixir-format
+msgid "After the road"
+msgstr "אחרי הדרך"
+
+#, elixir-autogen, elixir-format
+msgid "An excursion into %{topic}"
+msgstr "גיחה בנושא %{topic}"
+
+#, elixir-autogen, elixir-format
+msgid "As written"
+msgstr "כפי שנכתב"
+
+#, elixir-autogen, elixir-format
+msgid "Back to the journal"
+msgstr "חזרה ליומן"
+
+#, elixir-autogen, elixir-format
+msgid "Before the road"
+msgstr "לפני הדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Chapter %{n}"
+msgstr "פרק %{n}"
+
+#, elixir-autogen, elixir-format
+msgid "Composed"
+msgstr "מהדורה ערוכה"
+
+#, elixir-autogen, elixir-format
+msgid "Contents"
+msgstr "תוכן העניינים"
+
+#, elixir-autogen, elixir-format
+msgid "Day %{n}"
+msgstr "יום %{n}"
+
+#, elixir-autogen, elixir-format
+msgid "Drawn from %{source}"
+msgstr "צויר לפי %{source}"
+
+#, elixir-autogen, elixir-format
+msgid "Drawn to"
+msgstr "תחומי עניין"
+
+#, elixir-autogen, elixir-format
+msgid "Epilogue"
+msgstr "אחרית דבר"
+
+#, elixir-autogen, elixir-format
+msgid "Every drawing was made from a real photograph and says which one. The places are the poet's own picks; the ratings are its opinion, not a review score."
+msgstr "כל ציור נעשה לפי תצלום אמיתי ומציין איזה. המקומות נבחרו אישית; הדירוגים הם דעה, לא ציון ביקורת."
+
+#, elixir-autogen, elixir-format
+msgid "Excursions"
+msgstr "גיחות"
+
+#, elixir-autogen, elixir-format
+msgid "Finds from %{chapter}"
+msgstr "מציאות מ-%{chapter}"
+
+#, elixir-autogen, elixir-format
+msgid "Foreword"
+msgstr "פתח דבר"
+
+#, elixir-autogen, elixir-format
+msgid "Get the PDF"
+msgstr "הורדת PDF"
+
+#, elixir-autogen, elixir-format
+msgid "Index"
+msgstr "מפתח"
+
+#, elixir-autogen, elixir-format
+msgid "Journal"
+msgstr "יומן"
+
+#, elixir-autogen, elixir-format
+msgid "Laying out your book"
+msgstr "מעמדים את הספר שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "No pages yet. The first one lands the morning after the poet sets out."
+msgstr "עדיין אין עמודים. הראשון יגיע בבוקר שאחרי היציאה לדרך."
+
+#, elixir-autogen, elixir-format
+msgid "On the road"
+msgstr "בדרכים"
+
+#, elixir-autogen, elixir-format
+msgid "One day"
+msgid_plural "%{count} days"
+msgstr[0] "יום אחד"
+msgstr[1] "%{count} ימים"
+
+#, elixir-autogen, elixir-format
+msgid "Paper size %{size}"
+msgstr "גודל נייר %{size}"
+
+#, elixir-autogen, elixir-format
+msgid "Places"
+msgstr "מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "Places in %{chapter}"
+msgstr "מקומות ב-%{chapter}"
+
+#, elixir-autogen, elixir-format
+msgid "Poems"
+msgstr "שירים"
+
+#, elixir-autogen, elixir-format
+msgid "Print"
+msgstr "הדפסה"
+
+#, elixir-autogen, elixir-format
+msgid "Read online: %{url}"
+msgstr "לקריאה ברשת: %{url}"
+
+#, elixir-autogen, elixir-format
+msgid "Reading"
+msgstr "ספרים בקריאה"
+
+#, elixir-autogen, elixir-format
+msgid "Route"
+msgstr "מסלול"
+
+#, elixir-autogen, elixir-format
+msgid "Set out"
+msgstr "יציאה לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Sources"
+msgstr "מקורות"
+
+#, elixir-autogen, elixir-format
+msgid "That PDF is not available."
+msgstr "קובץ ה-PDF הזה לא זמין."
+
+#, elixir-autogen, elixir-format
+msgid "The cover drawing was made from %{sources}."
+msgstr "ציור הכריכה נעשה לפי %{sources}."
+
+#, elixir-autogen, elixir-format
+msgid "The dedication, foreword, chapter openings, epilogue and chosen lines were composed by %{poet} for this edition on %{date}. The journal is as it was written."
+msgstr "ההקדשה, פתח הדבר, פתיחות הפרקים, אחרית הדבר והשורות הנבחרות נכתבו בידי %{poet} למהדורה הזאת ב-%{date}. היומן עצמו נשאר כפי שנכתב."
+
+#, elixir-autogen, elixir-format
+msgid "The journal as it was written"
+msgstr "היומן כפי שנכתב"
+
+#, elixir-autogen, elixir-format
+msgid "The journal continues at %{url}"
+msgstr "היומן ממשיך ב-%{url}"
+
+#, elixir-autogen, elixir-format
+msgid "The journey"
+msgstr "המסע"
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} was reading"
+msgstr "על מדף הספרים של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Where to find things"
+msgstr "איפה למצוא מה"
+
+#, elixir-autogen, elixir-format
+msgid "With the words %{poet} composed for the book"
+msgstr "עם המילים שנכתבו לספר בידי %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Written by %{poet}, a Traveling Poet,%{br}%{dates}."
+msgstr "נכתב בידי %{poet}, Traveling Poet,%{br}%{dates}."
+
+#, elixir-autogen, elixir-format
+msgid "a Traveling Poet"
+msgstr "Traveling Poet"
+
+#, elixir-autogen, elixir-format
+msgid "a Traveling Poet, writing for %{companion}"
+msgstr "Traveling Poet, עבור %{companion}"
+
+#, elixir-autogen, elixir-format
+msgid "a drawing from the journey"
+msgstr "ציור מהמסע"
+
+#, elixir-autogen, elixir-format
+msgid "a photograph"
+msgstr "תצלום"
+
+#, elixir-autogen, elixir-format
+msgid "and %{count} more"
+msgstr "ועוד %{count}"
+
+#, elixir-autogen, elixir-format
+msgid "day %{date}"
+msgstr "%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "drawing"
+msgstr "ציור"
+
+#, elixir-autogen, elixir-format
+msgid "from %{place}, %{date}"
+msgstr "מ-%{place}, %{date}"
+
+#, elixir-autogen, elixir-format
+msgid "in %{count} places"
+msgstr "ב-%{count} מקומות"
+
+#, elixir-autogen, elixir-format
+msgid "the real place"
+msgstr "המקום האמיתי"
