@@ -83,6 +83,18 @@ defmodule TravelingPoet.Chat do
     |> Repo.exists?()
   end
 
+  @doc "The saved copy of a reply `create_agent_message_once/1` called a duplicate."
+  def recent_agent_message(user_id, content, minutes \\ 10) do
+    cutoff = NaiveDateTime.add(NaiveDateTime.utc_now(), -minutes * 60, :second)
+
+    ChatMessage
+    |> where(user_id: ^user_id, role: "agent", content: ^content)
+    |> where([m], m.inserted_at >= ^cutoff)
+    |> order_by(desc: :id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
   def get_last_response_id(user_id) do
     ChatMessage
     |> where(user_id: ^user_id)

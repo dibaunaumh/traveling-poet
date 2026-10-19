@@ -24,7 +24,7 @@ defmodule TravelingPoetWeb.JournalLive do
   }
 
   alias TravelingPoet.Journal.Marker
-  alias TravelingPoet.{Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
+  alias TravelingPoet.{ChatTurn, Preferences, SpriteHold, SpriteUploads, SpritesClient, Usage}
   alias TravelingPoet.{Guide, Topics}
   alias TravelingPoet.Journal.{EntryBundle, Paragraphs, Spreads}
   alias TravelingPoet.Reading
@@ -64,6 +64,8 @@ defmodule TravelingPoetWeb.JournalLive do
           if connected?(socket) do
             Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "user:#{user.id}")
             Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "poet:#{poet.id}")
+            # A reply that lands while this page is open needs no notification
+            ChatTurn.reader_present(user.id)
 
             if user.sprite_provisioned do
               Process.send_after(self(), :keepalive, @keepalive_interval_ms)
@@ -622,6 +624,8 @@ defmodule TravelingPoetWeb.JournalLive do
     pid = socket.assigns.gateway_socket_pid
 
     if pid do
+      ChatTurn.watch(socket.assigns.user, socket: pid)
+
       GatewaySocket.send_message(
         pid,
         TravelingPoet.Asks.frame_reply(socket.assigns.user.id, message)
@@ -1688,6 +1692,8 @@ defmodule TravelingPoetWeb.JournalLive do
     pid = socket.assigns.gateway_socket_pid
 
     if pid do
+      # The reply is seen through on the server, so leaving the page does not lose it
+      ChatTurn.watch(user, socket: pid)
       # A reply to the poet's question goes with a note naming it (Asks).
       GatewaySocket.send_message(pid, TravelingPoet.Asks.frame_reply(user.id, message))
     else

@@ -167,6 +167,45 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells every device of the owner that their poet answered a chat message after they left."
+  def notify_poet_reply(user_id, message_id) do
+    with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),
+         %{user_id: ^user_id} = message <-
+           TravelingPoet.Repo.get(TravelingPoet.Chat.ChatMessage, message_id) do
+      notify_user(user_id, fn -> reply_payload(poet, message) end)
+    else
+      _ -> {0, 0}
+    end
+  end
+
+  @doc "What the device shows when the poet's chat reply lands. Pure, for tests."
+  def reply_payload(poet, message) do
+    %{
+      title: dgettext("notify", "%{poet} answered you", poet: poet.name),
+      body: excerpt(message.content),
+      url: "/journal?chat=1",
+      tag: "reply-#{message.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
+  # The start of a markdown reply as plain text, cut on a word
+  @excerpt_max 140
+  defp excerpt(text) do
+    plain =
+      text
+      |> String.replace(~r/[*_#`>\[\]]/u, "")
+      |> String.replace(~r/\s+/u, " ")
+      |> String.trim()
+
+    if String.length(plain) <= @excerpt_max do
+      plain
+    else
+      cut = String.slice(plain, 0, @excerpt_max)
+      String.replace(cut, ~r/\s+\S*$/u, "") <> "…"
+    end
+  end
+
   @doc "What the device shows when the poet asks something. Pure, for tests."
   def question_payload(poet, ask) do
     %{

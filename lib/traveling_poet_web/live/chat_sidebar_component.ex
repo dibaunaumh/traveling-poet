@@ -135,16 +135,19 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     content = socket.assigns.current_response
     user = socket.assigns.user
 
-    # Save the agent message unless it is empty (tool-only turn) or
-    # AgentSession already saved this same reply for a turn it drove.
+    # Save the agent message unless it is empty (tool-only turn). ChatTurn or
+    # AgentSession may have saved this same reply first: show their copy,
+    # or the reply vanishes from the panel the moment it finishes.
     socket =
       with true <- content != "",
-           {:ok, %Chat.ChatMessage{} = msg} <-
+           {:ok, saved} <-
              Chat.create_agent_message_once(%{
                user_id: user.id,
                content: content,
                response_id: response_id
-             }) do
+             }),
+           %Chat.ChatMessage{} = msg <- saved_reply(saved, user.id, content),
+           false <- Enum.any?(socket.assigns.messages, &(&1.id == msg.id)) do
         assign(socket, :messages, socket.assigns.messages ++ [msg])
       else
         _ -> socket
@@ -575,4 +578,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
 
   defp format_size(bytes) when is_integer(bytes),
     do: "#{Float.round(bytes / (1024 * 1024), 1)} MB"
+
+  defp saved_reply(%Chat.ChatMessage{} = msg, _user_id, _content), do: msg
+  defp saved_reply(:duplicate, user_id, content), do: Chat.recent_agent_message(user_id, content)
 end

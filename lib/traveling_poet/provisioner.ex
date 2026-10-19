@@ -284,6 +284,60 @@ defmodule TravelingPoet.Provisioner do
   end
 
   @doc """
+  Repacks a provisioned poet for a new mission (Settings' mode switch), in
+  the background.
+
+  The switch used to re-provision the whole sprite, running doctor and the
+  plugin install against the live gateway. On 2026-10-18 that met a poet
+  whose gateway held the state database ("Doctor could not enter
+  maintenance"), failed, and set the poet to "error", which the daily
+  scheduler skips: a working poet went a day without a page. The mission and
+  its model live in openclaw.json and the persona files, so
+  `upgrade_workspace/1` carries them, with the gateway stopped first. It
+  waits while a turn is running (up to `:tries` × `:wait_ms`, then goes
+  ahead), pages the admins on failure, and never touches the poet's status.
+
+  Options (for tests): `:busy?`, `:upgrade`, `:wait_ms`, `:tries`.
+  """
+  def repack_in_background(user, opts \\ []) do
+    if Application.get_env(:traveling_poet, :provision_in_background, true) do
+      Task.start(fn -> repack(user, opts) end)
+    end
+
+    :ok
+  end
+
+  @repack_wait_ms 2 * 60 * 1000
+  @repack_tries 15
+
+  @doc false
+  def repack(user, opts \\ []) do
+    busy? = Keyword.get(opts, :busy?, &TravelingPoet.Markers.Delivery.busy?/1)
+    upgrade = Keyword.get(opts, :upgrade, &upgrade_workspace/1)
+    wait_ms = Keyword.get(opts, :wait_ms, @repack_wait_ms)
+    tries = Keyword.get(opts, :tries, @repack_tries)
+
+    if tries > 0 and busy?.(user.id) do
+      Process.sleep(wait_ms)
+      repack(user, Keyword.put(opts, :tries, tries - 1))
+    else
+      case upgrade.(user) do
+        {:ok, _} = ok ->
+          ok
+
+        {:error, reason} = err ->
+          Logger.error("Repack failed for user #{user.id}: #{inspect(reason)}")
+
+          TravelingPoet.Alerts.notify_admins(
+            "Repack for a new mission failed for user #{user.id}: #{inspect(reason)}"
+          )
+
+          err
+      end
+    end
+  end
+
+  @doc """
   Re-seed workspace files (skills/AGENTS/scripts) AND the tool plugin on an
   existing sprite.
 
