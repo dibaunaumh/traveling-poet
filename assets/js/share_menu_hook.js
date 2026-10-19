@@ -2,6 +2,7 @@
 // phone's share sheet is offered where the browser has one; "Copy link"
 // writes the page's address to the clipboard and says so for a moment.
 // Everything else in the menu is a plain link.
+import {t} from "./strings"
 const COPIED_MS = 1500
 
 const ShareMenu = {
@@ -22,12 +23,12 @@ const ShareMenu = {
       const label = el.querySelector("[data-copy-label]")
       try {
         await copy(data().url)
-        if (label) label.textContent = "Copied"
+        if (label) label.textContent = t("copied", "Copied")
       } catch (_e) {
-        if (label) label.textContent = "Could not copy"
+        if (label) label.textContent = t("copy_failed", "Could not copy")
       }
       setTimeout(() => {
-        if (label) label.textContent = "Copy link"
+        if (label) label.textContent = t("copy_link", "Copy link")
         close()
       }, COPIED_MS)
     })

@@ -11,6 +11,7 @@
 // `narration_request`, and when the server patches data-src in it loads the
 // recording and plays. data-state "generating" comes from the server while
 // the page is read; a failure resets it to "idle".
+import {t as tr} from "./strings"
 
 const SILENCE =
   "data:audio/wav;base64,UklGRnQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=="
@@ -78,7 +79,7 @@ const NarrationPlayer = {
     if (state === "generating" || this.playWhenReady) return
     this.playWhenReady = true
     this.el.setAttribute("data-state", "generating")
-    this.label.textContent = "Reading this page, a few seconds"
+    this.label.textContent = tr("narration_reading", "Reading this page, a few seconds")
     this.audio.src = SILENCE
     const p = this.audio.play()
     if (p && p.catch) p.catch(() => {})
@@ -105,21 +106,21 @@ const NarrationPlayer = {
     const t = this.audio.currentTime || 0
     if (isFinite(d) && d > 0) {
       this.fill.style.width = `${(t / d) * 100}%`
-      this.time.textContent = `${clock(t)} of ${clock(d)}`
+      this.time.textContent = tr("narration_progress", "{elapsed} of {total}", {elapsed: clock(t), total: clock(d)})
     }
   },
 
   state(s) {
     if (!this.src) return
     this.el.setAttribute("data-state", s)
-    this.button.setAttribute("aria-label", s === "playing" ? "Pause" : "Play")
+    this.button.setAttribute("aria-label", s === "playing" ? tr("pause", "Pause") : tr("play", "Play"))
   },
 
   reset() {
     this.fill.style.width = "0%"
     this.time.textContent = ""
     this.el.setAttribute("data-state", "idle")
-    this.button.setAttribute("aria-label", "Play")
+    this.button.setAttribute("aria-label", tr("play", "Play"))
     this.el.removeAttribute("data-waiting")
   },
 
@@ -127,7 +128,7 @@ const NarrationPlayer = {
     this.playWhenReady = false
     this.reset()
     this.el.setAttribute("data-state", "failed")
-    this.time.textContent = "The recording would not play. Try again in a moment."
+    this.time.textContent = tr("narration_failed", "The recording would not play. Try again in a moment.")
   },
 }
 

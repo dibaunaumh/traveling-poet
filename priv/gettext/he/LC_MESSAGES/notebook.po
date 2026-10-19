@@ -316,3 +316,7 @@ msgstr "נושא"
 #, elixir-autogen, elixir-format
 msgid "← earlier"
 msgstr "→ מוקדם יותר"
+
+#, elixir-autogen, elixir-format
+msgid "this topic"
+msgstr "הנושא הזה"

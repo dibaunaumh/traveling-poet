@@ -24,4 +24,22 @@ defmodule TravelingPoetWeb.I18nTest do
     assert pieces("a #{marker(:x)} b") == ["a ", {:part, "x"}, " b"]
     assert pieces(marker(:x)) == [{:part, "x"}]
   end
+
+  test "the scripts' words come in the reader's language, safe inside a <script>" do
+    he =
+      TravelingPoet.Locale.with_locale("he", fn ->
+        Jason.decode!(TravelingPoetWeb.I18n.js_strings_json())
+      end)
+
+    assert he["copied"] == "הועתק"
+    assert he["marker_pin_title"] == "{label}. הקישו לאפשרויות."
+    assert hd(he["short_months"]) == "ינו׳"
+    assert he["find_kinds"]["other"] == "מציאה"
+
+    en = Jason.decode!(TravelingPoetWeb.I18n.js_strings_json())
+    assert en["copied"] == "Copied"
+    assert en["short_date"] == "{month} {day}"
+    refute TravelingPoetWeb.I18n.js_strings_json() =~ "<"
+  end
+
 end

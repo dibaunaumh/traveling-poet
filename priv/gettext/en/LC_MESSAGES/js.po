@@ -1,0 +1,156 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} pages"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{elapsed} of %{total}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{label} (tap for options)"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{label} (this passage has since changed). Tap for options."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{label}. Tap for options."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Copied"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Copy link"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not copy"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Edit"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Page numbers unavailable"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pause"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Play"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, a few seconds"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Remove"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The recording would not play. Try again in a moment."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What would you change, or want more of?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Write it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "no note yet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "sent to your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "waiting to be sent"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{month} %{day}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "All subjects"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Credit packs are not available right now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Find"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "How to lay it out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Nothing here yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Shelf"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Show everything"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Subjects"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tiles"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "View details ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "found by %{count} poets"
+msgstr ""

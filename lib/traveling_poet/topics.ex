@@ -11,6 +11,8 @@ defmodule TravelingPoet.Topics do
   answering is the companion's deliberate act, not the poet's inference.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Ecto.Query, except: [update: 2, update: 3]
 
   alias TravelingPoet.{Guide, Repo}
@@ -671,7 +673,7 @@ defmodule TravelingPoet.Topics do
   one being read marked. A topic has no coordinates, so this replaces the map.
   """
   def journey_diagram(poet_id, %Excursion{} = current) do
-    label = (current.topic && current.topic.label) || "this topic"
+    label = (current.topic && current.topic.label) || dgettext("notebook", "this topic")
 
     poet_id
     |> list_published_excursions(current.topic_id)
@@ -695,7 +697,9 @@ defmodule TravelingPoet.Topics do
   defp route_node(%Excursion{} = x, current_id) do
     %{
       id: x.id,
-      label: (x.destination_name && String.trim(x.destination_name)) || "an excursion",
+      label:
+        (x.destination_name && String.trim(x.destination_name)) ||
+          dgettext("notebook", "an excursion"),
       date: x.scheduled_for,
       url: x.destination_url,
       current?: x.id == current_id

@@ -316,3 +316,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "← earlier"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "this topic"
+msgstr ""

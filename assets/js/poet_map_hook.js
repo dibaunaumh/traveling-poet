@@ -10,6 +10,7 @@
 // rating,blurb,url,poet}]) renders numbered pins coloured by group; clicking
 // one pushes select_place back to the LiveView. Only geocoded places appear --
 // the rest are still listed in the List and Itinerary views.
+import {t} from "./strings"
 
 import L, { touchFriendly } from "./leaflet_setup"
 
@@ -65,7 +66,7 @@ function placePopup(p) {
     link.href = p.url
     link.target = "_blank"
     link.rel = "noopener noreferrer nofollow"
-    link.textContent = "View details \u2197"
+    link.textContent = t("map_view_details", "View details \u2197")
     body.appendChild(link)
   }
 
@@ -192,7 +193,7 @@ const PoetMap = {
       const m = L.marker([data.current.lat, data.current.lng]).addTo(this.layer)
       const label = document.createElement("div")
       const who = document.createElement("b")
-      who.textContent = data.poet || "Your poet"
+      who.textContent = data.poet || t("map_your_poet", "Your poet")
       label.append(who, document.createElement("br"), data.current.name || "")
       m.bindPopup(label)
     }

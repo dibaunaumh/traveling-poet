@@ -620,10 +620,6 @@ msgid "While you wait, a look around"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Wren, Basho-of-the-Buses, Señora Tinta…"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "You can pair Telegram, rename your poet, and change any of this later in Settings."
 msgstr ""
 

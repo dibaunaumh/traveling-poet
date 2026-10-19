@@ -94,6 +94,9 @@ defmodule TravelingPoetWeb.MarkerComponents do
   # A marker's name and meaning for the reader. `Marker.spec/1` keeps the
   # English, which the digest to the poet also reads; these are the same
   # words in the reader's language.
+  @doc "A marker's name in the reader's language (the poet reads `Marker.label/1`)."
+  def kind_label(kind), do: label(kind) || kind
+
   defp label("interesting"), do: dgettext("journal", "Interesting")
   defp label("boring"), do: dgettext("journal", "Boring")
   defp label("more_details"), do: dgettext("journal", "More details")
