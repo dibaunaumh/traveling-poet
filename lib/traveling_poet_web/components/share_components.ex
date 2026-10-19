@@ -11,6 +11,7 @@ defmodule TravelingPoetWeb.ShareComponents do
   pointed at Settings instead of being handed a link that opens a 404.
   """
   use Phoenix.Component
+  use Gettext, backend: TravelingPoetWeb.Gettext
   use TravelingPoetWeb, :verified_routes
 
   import TravelingPoetWeb.CoreComponents, only: [icon: 1]
@@ -36,22 +37,26 @@ defmodule TravelingPoetWeb.ShareComponents do
       data-title={@title}
       data-text={@post}
     >
-      <summary class="marker-menu-btn" title="Share this page" aria-label="Share this page">
+      <summary
+        class="marker-menu-btn"
+        title={dgettext("journal", "Share this page")}
+        aria-label={dgettext("journal", "Share this page")}
+      >
         <.icon name="hero-share" class="size-4" />
       </summary>
       <ul class="dropdown-content marker-menu-list">
         <%= if @public? do %>
-          <li class="marker-menu-title">Share this page</li>
+          <li class="marker-menu-title">{dgettext("journal", "Share this page")}</li>
           <li hidden data-share-native>
             <button type="button" class="marker-menu-item" data-share>
               <.icon name="hero-arrow-up-tray" class="size-4" />
-              <span>Share...</span>
+              <span>{dgettext("journal", "Share...")}</span>
             </button>
           </li>
           <li>
             <button type="button" class="marker-menu-item" data-copy>
               <.icon name="hero-link" class="size-4" />
-              <span data-copy-label>Copy link</span>
+              <span data-copy-label>{dgettext("journal", "Copy link")}</span>
             </button>
           </li>
           <li>
@@ -63,7 +68,7 @@ defmodule TravelingPoetWeb.ShareComponents do
               phx-click={close(@id)}
             >
               <.icon name="hero-chat-bubble-left-ellipsis" class="size-4" />
-              <span>Post on X</span>
+              <span>{dgettext("journal", "Post on X")}</span>
             </a>
           </li>
           <li>
@@ -85,17 +90,20 @@ defmodule TravelingPoetWeb.ShareComponents do
               phx-click={close(@id)}
             >
               <.icon name="hero-envelope" class="size-4" />
-              <span>Email</span>
+              <span>{dgettext("journal", "Email")}</span>
             </a>
           </li>
         <% else %>
           <li class="marker-menu-title">
-            Your journal is private, so this page has no link others can open.
+            {dgettext(
+              "journal",
+              "Your journal is private, so this page has no link others can open."
+            )}
           </li>
           <li>
             <.link navigate={~p"/settings"} class="marker-menu-item">
               <.icon name="hero-cog-6-tooth" class="size-4" />
-              <span>Make it public in Settings</span>
+              <span>{dgettext("journal", "Make it public in Settings")}</span>
             </.link>
           </li>
         <% end %>

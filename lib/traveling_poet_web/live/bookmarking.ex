@@ -6,6 +6,8 @@ defmodule TravelingPoetWeb.Bookmarking do
   and routes `toggle_bookmark` here.
   """
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView, only: [put_flash: 3]
 
@@ -35,7 +37,7 @@ defmodule TravelingPoetWeb.Bookmarking do
         socket =
           case result do
             {:ok, _} -> socket
-            _ -> put_flash(socket, :error, "That could not be saved.")
+            _ -> put_flash(socket, :error, dgettext("journal", "That could not be saved."))
           end
 
         {:noreply, assign_bookmarks(socket)}
