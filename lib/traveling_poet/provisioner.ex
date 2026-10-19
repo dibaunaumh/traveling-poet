@@ -294,6 +294,14 @@ defmodule TravelingPoet.Provisioner do
   checks, device pairing and service teardown, which is a lot of risk to take
   on eight live sprites just to deliver a skill edit.
 
+  The gateway is stopped BEFORE the plugin is installed, and started after.
+  On OpenClaw 2026.10 `plugins install` into a running gateway hot-reloads
+  it and waits up to 60s for the work it admitted to drain; on the
+  2026-10-19 rollout 16 of 36 poets timed out there ("the previous plugin
+  generation stays active"), and the restart after it never ran. A plugin
+  whose fingerprint on the sprite already matches is left alone
+  (`ensure_plugin/3`), so a skill-only rollout does not touch it.
+
   Note skills are compile-time embedded (`@skill_contents`), so editing a
   SKILL.md needs `mix compile --force` before this will carry the new text.
   """
@@ -304,9 +312,10 @@ defmodule TravelingPoet.Provisioner do
 
     with {:ok, _} <- refresh_config(sprite_name, user, phoenix_url, poet),
          {:ok, _} <- write_workspace(sprite_name, user.agent_name || "poet", user, poet),
-         {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, user.agent_api_token),
-         # a gateway already stopped (an upgrade stops it first) answers 409
-         _ <- SpritesClient.stop_service(sprite_name, "openclaw-gateway"),
+         # nothing running, so nothing for the install to drain; a gateway
+         # already stopped (an upgrade stops it first) answers 409
+         _ <- client().stop_service(sprite_name, "openclaw-gateway"),
+         {:ok, _} <- ensure_plugin(sprite_name, phoenix_url, user.agent_api_token),
          {:ok, _} <- ensure_gateway_service(sprite_name) do
       {:ok, sprite_name}
     end
@@ -314,18 +323,49 @@ defmodule TravelingPoet.Provisioner do
 
   @doc """
   Rolls workspace + plugin changes across every provisioned poet, staggered so
-  the fleet doesn't hammer the sprites API. Returns `{sprite_or_user, result}`
-  per user.
+  the fleet doesn't hammer the sprites API. Returns `{email, result}` per
+  user, the result one of:
+
+    * `:ok`: rewritten, restarted, and the app's own socket got `hello-ok`
+      back (`verify_gateway/1`);
+    * `:skipped_busy`: a run was in progress (`Markers.Delivery.busy?/3`: a
+      daily page, first page, revision or book in the last 15 minutes, a
+      chat turn in the last 5), so its gateway was left alone; run again
+      later for those (card-77);
+    * `{:error, reason}`.
+
+  Options: `:stagger_ms`, `:users` (default every provisioned user),
+  `:force` (ignore busy), and `:workspace`, `:verify`, `:busy?` to swap the
+  steps in tests.
   """
   def upgrade_fleet(opts \\ []) do
     stagger_ms = Keyword.get(opts, :stagger_ms, 3_000)
+    users = Keyword.get_lazy(opts, :users, &TravelingPoet.Accounts.list_provisioned_users/0)
 
-    TravelingPoet.Accounts.list_provisioned_users()
-    |> Enum.map(fn user ->
-      result = upgrade_workspace(user)
-      Process.sleep(stagger_ms)
-      {user.email, elem_or_error(result)}
+    Enum.map(users, fn user ->
+      result = upgrade_one(user, opts)
+      if result != :skipped_busy, do: Process.sleep(stagger_ms)
+      Logger.info("Provisioner: fleet upgrade, user #{user.id}: #{inspect(result)}")
+      {user.email, result}
     end)
+  end
+
+  defp upgrade_one(user, opts) do
+    workspace = Keyword.get(opts, :workspace, &upgrade_workspace/1)
+    verify = Keyword.get(opts, :verify, &verify_gateway/1)
+    busy? = Keyword.get(opts, :busy?, &TravelingPoet.Markers.Delivery.busy?/1)
+
+    if not Keyword.get(opts, :force, false) and busy?.(user.id) do
+      :skipped_busy
+    else
+      with {:ok, _} <- workspace.(user),
+           :ok <- verify.(user) do
+        :ok
+      else
+        {:error, _} = error -> error
+        other -> {:error, other}
+      end
+    end
   end
 
   @doc """
@@ -745,9 +785,6 @@ defmodule TravelingPoet.Provisioner do
     {:ok, :skipped}
   end
 
-  defp elem_or_error({:ok, name}), do: {:ok, name}
-  defp elem_or_error(other), do: other
-
   # -- internal steps --
 
   defp create_sprite(name) do
@@ -1075,7 +1112,7 @@ defmodule TravelingPoet.Provisioner do
       "mkdir -p ~/.openclaw && cat > ~/.openclaw/openclaw.json << 'CONFIGEOF'\n#{config_json}\nCONFIGEOF"
 
     Logger.info("Writing config to #{name}")
-    SpritesClient.exec(name, cmd)
+    client().exec(name, cmd)
   end
 
   @doc false
@@ -1130,7 +1167,7 @@ defmodule TravelingPoet.Provisioner do
     cmd = "cat > ~/.openclaw/.env << 'ENVEOF'\n#{String.trim(env_content)}\nENVEOF"
 
     Logger.info("Writing env to #{name}")
-    SpritesClient.exec(name, cmd)
+    client().exec(name, cmd)
   end
 
   defp write_workspace(sprite_name, agent_name, user, poet) do
@@ -1241,7 +1278,7 @@ defmodule TravelingPoet.Provisioner do
     Logger.info("Writing poet identity and workspace files in #{sprite_name}")
 
     with {:ok, _} <-
-           SpritesClient.exec(
+           client().exec(
              sprite_name,
              "mkdir -p #{agent_dir} #{@workspace}/memory #{@workspace}/uploads && rm -f #{@workspace}/scripts/generate_illustration.py"
            ),
@@ -1863,6 +1900,65 @@ defmodule TravelingPoet.Provisioner do
     end
   end
 
+  @plugin_dir "~/.openclaw/extensions/tpoet-plugin"
+  @plugin_digest "#{@plugin_dir}/.tpoet-digest"
+
+  # The plugin, unless the sprite already runs exactly this one: the digest
+  # of its three files is written next to them after an install succeeds,
+  # so a failed or half-done install (the 2026-10-19 timeouts) is installed
+  # again next time. An empty manifest (2026-10-17, a gateway that would not
+  # start) never counts as installed.
+  @doc false
+  def ensure_plugin(sprite_name, phoenix_url, agent_api_token) do
+    digest = plugin_digest(phoenix_url, agent_api_token)
+
+    if installed_plugin_digest(sprite_name) == digest do
+      {:ok, :unchanged}
+    else
+      with {:ok, _} <- write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token),
+           {:ok, _} <- client().exec(sprite_name, "echo #{digest} > #{@plugin_digest}") do
+        {:ok, :written}
+      end
+    end
+  end
+
+  @doc false
+  def plugin_digest(phoenix_url, agent_api_token) do
+    [
+      tpoet_plugin_source(phoenix_url, agent_api_token),
+      Jason.encode!(tpoet_plugin_manifest(), pretty: true),
+      plugin_package_json()
+    ]
+    |> Enum.join("\0")
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
+  end
+
+  defp installed_plugin_digest(sprite_name) do
+    cmd =
+      "test -s #{@plugin_dir}/openclaw.plugin.json && cat #{@plugin_digest} 2>/dev/null"
+
+    case client().exec(sprite_name, cmd) do
+      {:ok, out} -> out |> extract_text() |> String.trim() |> nil_if_blank()
+      _ -> nil
+    end
+  end
+
+  defp nil_if_blank(""), do: nil
+  defp nil_if_blank(text), do: text
+
+  defp plugin_package_json do
+    Jason.encode!(
+      %{
+        name: "tpoet-plugin",
+        version: "1.0.0",
+        main: "index.js",
+        openclaw: %{extensions: ["./index.js"]}
+      },
+      pretty: true
+    )
+  end
+
   defp write_tpoet_plugin(sprite_name, phoenix_url, agent_api_token) do
     plugin_js = tpoet_plugin_source(phoenix_url, agent_api_token)
 
@@ -1873,22 +1969,12 @@ defmodule TravelingPoet.Provisioner do
     # 2026-10-16). The legacy `activate` export is still accepted.
     plugin_manifest = Jason.encode!(tpoet_plugin_manifest(), pretty: true)
 
-    package_json =
-      Jason.encode!(
-        %{
-          name: "tpoet-plugin",
-          version: "1.0.0",
-          main: "index.js",
-          openclaw: %{extensions: ["./index.js"]}
-        },
-        pretty: true
-      )
-
-    plugin_dir = "~/.openclaw/extensions/tpoet-plugin"
+    package_json = plugin_package_json()
+    plugin_dir = @plugin_dir
 
     Logger.info("Writing tpoet plugin to #{sprite_name}")
 
-    with {:ok, _} <- SpritesClient.exec(sprite_name, "mkdir -p #{plugin_dir}"),
+    with {:ok, _} <- client().exec(sprite_name, "mkdir -p #{plugin_dir}"),
          {:ok, _} <- write_file(sprite_name, "#{plugin_dir}/index.js", plugin_js),
          {:ok, _} <-
            write_file(sprite_name, "#{plugin_dir}/openclaw.plugin.json", plugin_manifest),
@@ -1904,7 +1990,7 @@ defmodule TravelingPoet.Provisioner do
 
   defp install_plugin(sprite_name, plugin_dir, attempts_left) do
     with {:ok, output} <-
-           SpritesClient.exec(
+           client().exec(
              sprite_name,
              "#{openclaw_path(sprite_name)} plugins install --force --accept-capabilities #{plugin_dir} 2>&1"
            ) do
@@ -1966,11 +2052,11 @@ defmodule TravelingPoet.Provisioner do
   defp exit_code(_), do: nil
 
   defp ensure_gateway_service(name) do
-    case SpritesClient.get_service(name, "openclaw-gateway") do
+    case client().get_service(name, "openclaw-gateway") do
       {:ok, _} ->
         Logger.info("Gateway service already exists in #{name}, restarting")
-        SpritesClient.stop_service(name, "openclaw-gateway")
-        SpritesClient.start_service(name, "openclaw-gateway")
+        client().stop_service(name, "openclaw-gateway")
+        client().start_service(name, "openclaw-gateway")
 
       _ ->
         start_gateway_service(name)
@@ -1978,7 +2064,7 @@ defmodule TravelingPoet.Provisioner do
   end
 
   defp openclaw_path(sprite_name) do
-    {:ok, root_output} = SpritesClient.exec(sprite_name, "npm root -g")
+    {:ok, root_output} = client().exec(sprite_name, "npm root -g")
     npm_root = extract_text(root_output) |> String.trim()
     npm_root |> String.replace(~r"/lib/node_modules$", "/bin/openclaw")
   end
@@ -1996,12 +2082,12 @@ defmodule TravelingPoet.Provisioner do
       "--allow-unconfigured"
     ]
 
-    SpritesClient.stop_service(name, "openclaw-gateway")
+    client().stop_service(name, "openclaw-gateway")
     SpritesClient.delete_service(name, "openclaw-gateway")
 
-    with {:ok, _} <- SpritesClient.create_service(name, "openclaw-gateway", openclaw_path, args) do
+    with {:ok, _} <- client().create_service(name, "openclaw-gateway", openclaw_path, args) do
       Logger.info("Starting gateway service in #{name}")
-      SpritesClient.start_service(name, "openclaw-gateway")
+      client().start_service(name, "openclaw-gateway")
     end
   end
 
@@ -2046,7 +2132,7 @@ defmodule TravelingPoet.Provisioner do
       "mkdir -p ~/.openclaw/devices && echo '#{paired_b64}' | base64 -d > ~/.openclaw/devices/paired.json"
 
     Logger.info("Pairing device #{String.slice(device_id, 0..15)}... for #{sprite_name}")
-    SpritesClient.exec(sprite_name, cmd)
+    client().exec(sprite_name, cmd)
   end
 
   # Since OpenClaw 2026.10 paired devices live in the gateway's SQLite state;
@@ -2066,17 +2152,17 @@ defmodule TravelingPoet.Provisioner do
 
   defp write_file(sprite_name, path, content) do
     encoded = Base.encode64(String.trim(content))
-    SpritesClient.exec(sprite_name, "echo '#{encoded}' | base64 -d > #{path}")
+    client().exec(sprite_name, "echo '#{encoded}' | base64 -d > #{path}")
   end
 
   defp write_tree(sprite_name, base_dir, contents) do
-    case SpritesClient.exec(sprite_name, "mkdir -p #{base_dir}") do
+    case client().exec(sprite_name, "mkdir -p #{base_dir}") do
       {:ok, _} ->
         Enum.reduce_while(contents, {:ok, :written}, fn {rel_path, content}, _acc ->
           target = "#{base_dir}/#{rel_path}"
           parent = Path.dirname(target)
 
-          with {:ok, _} <- SpritesClient.exec(sprite_name, "mkdir -p #{parent}"),
+          with {:ok, _} <- client().exec(sprite_name, "mkdir -p #{parent}"),
                {:ok, _} = ok <- write_file(sprite_name, target, content) do
             {:cont, ok}
           else
