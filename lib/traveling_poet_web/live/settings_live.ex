@@ -21,6 +21,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   alias TravelingPoet.Poets.{Poet, Presets}
   alias TravelingPoet.Affinity
+  alias TravelingPoet.ReaderNote
   alias TravelingPoet.Topics
   alias TravelingPoet.Topics.Topic
 
@@ -64,6 +65,8 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign(:stop_error, nil)
      |> assign_topics()
      |> assign_learned()
+     |> assign_note()
+     |> assign(:understanding, false)
      |> assign_book()
      |> assign_trips()}
   end
@@ -120,6 +123,29 @@ defmodule TravelingPoetWeb.SettingsLive do
     end
   end
 
+  # "About you" (card-125): the note, and the lines the poet suggests for it.
+  defp assign_note(socket) do
+    case socket.assigns.poet do
+      nil ->
+        socket |> assign(:note, nil) |> assign(:note_suggestions, [])
+
+      poet ->
+        socket
+        |> assign(:note, ReaderNote.get(poet.id))
+        |> assign(:note_suggestions, ReaderNote.pending(poet.id))
+    end
+  end
+
+  # After a save or an accepted line: read the note and add what it says,
+  # off the LiveView process (one model call), then show what was taken.
+  defp understand_note(socket) do
+    poet_id = socket.assigns.poet.id
+
+    socket
+    |> assign(:understanding, true)
+    |> start_async(:understand_note, fn -> ReaderNote.understand(poet_id) end)
+  end
+
   defp assign_learned(socket) do
     socket = assign_affinity(socket)
 
@@ -144,6 +170,11 @@ defmodule TravelingPoetWeb.SettingsLive do
     |> assign(:affinity_top, Affinity.top(user))
     |> assign(:affinity_dismissed, Affinity.dismissed(user))
   end
+
+  defp understood_any?(understood) when is_map(understood),
+    do: Enum.any?(~w(tastes topics avoids), &(Map.get(understood, &1, []) != []))
+
+  defp understood_any?(_), do: false
 
   defp source_label("tap"), do: dgettext("settings", "you tapped this")
   defp source_label("chat"), do: dgettext("settings", "you said this in chat")
@@ -332,6 +363,39 @@ defmodule TravelingPoetWeb.SettingsLive do
         {:noreply,
          put_flash(socket, :error, dgettext("settings", "Could not save that setting."))}
     end
+  end
+
+  @impl true
+  def handle_event("save_note", %{"text" => text}, socket) do
+    case ReaderNote.save(socket.assigns.poet.id, text) do
+      {:ok, nil} ->
+        {:noreply, assign_note(socket)}
+
+      {:ok, _note} ->
+        {:noreply, socket |> assign_note() |> understand_note()}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("settings", "Could not save that. Keep it under %{n} characters.",
+             n: ReaderNote.Note.max_chars()
+           )
+         )}
+    end
+  end
+
+  def handle_event("accept_note_line", %{"id" => id}, socket) do
+    case ReaderNote.accept(socket.assigns.poet.id, id) do
+      {:ok, _} -> {:noreply, socket |> assign_note() |> understand_note()}
+      _ -> {:noreply, assign_note(socket)}
+    end
+  end
+
+  def handle_event("decline_note_line", %{"id" => id}, socket) do
+    ReaderNote.decline(socket.assigns.poet.id, id)
+    {:noreply, assign_note(socket)}
   end
 
   @impl true
@@ -1192,10 +1256,21 @@ defmodule TravelingPoetWeb.SettingsLive do
     """
   end
 
+  @impl true
+  def handle_async(:understand_note, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:understanding, false)
+     |> assign_note()
+     |> assign_topics()
+     |> assign_learned()}
+  end
+
   # The menu's order is the page's order.
   defp nav_sections(poet) do
     [
       {"poet", poet.name},
+      {"about", dgettext("settings", "About you")},
       {"journey", dgettext("settings", "Journey")},
       {"trips", dgettext("settings", "Trips")},
       {"book", dgettext("settings", "Your book")},
@@ -1393,6 +1468,128 @@ defmodule TravelingPoetWeb.SettingsLive do
                 />
                 <button type="submit" class="btn btn-sm">{dgettext("settings", "Add")}</button>
               </form>
+            </.settings_section>
+
+            <.settings_section id="about" title={dgettext("settings", "About you")}>
+              <p class="text-sm opacity-60 mb-3">
+                <span :if={is_nil(@note)}>
+                  {dgettext(
+                    "settings",
+                    "A few lines about what you love, what you follow and what you would rather skip. %{poet} writes them after its next page, from what it knows of you. Or write them yourself now.",
+                    poet: @poet.name
+                  )}
+                </span>
+                <span :if={@note && @note.written_by == "poet"}>
+                  {dgettext(
+                    "settings",
+                    "%{poet} wrote this from what it knows of you. Change anything: once you save it, these are your words, and %{poet} goes by them.",
+                    poet: @poet.name
+                  )}
+                </span>
+                <span :if={@note && @note.written_by == "reader"}>
+                  {dgettext(
+                    "settings",
+                    "In your words. %{poet} goes by this over anything it has guessed.",
+                    poet: @poet.name
+                  )}
+                </span>
+              </p>
+
+              <form id="reader-note-form" phx-submit="save_note" class="space-y-2">
+                <textarea
+                  id="reader-note-text"
+                  name="text"
+                  rows="5"
+                  dir="auto"
+                  maxlength={ReaderNote.Note.max_chars()}
+                  class="textarea textarea-bordered w-full text-base leading-relaxed"
+                  placeholder={
+                    dgettext(
+                      "settings",
+                      "I travel for specialty coffee and modern local food. I follow kit airplanes. I would rather skip nightlife."
+                    )
+                  }
+                >{@note && @note.text}</textarea>
+                <div class="flex items-center gap-3">
+                  <button type="submit" class="btn btn-sm btn-primary">
+                    {dgettext("settings", "Save")}
+                  </button>
+                  <span :if={@understanding} class="text-xs opacity-60">
+                    {dgettext("settings", "Reading it...")}
+                  </span>
+                </div>
+              </form>
+
+              <div
+                :if={@note && understood_any?(@note.understood)}
+                id="reader-note-understood"
+                class="mt-3 text-sm"
+              >
+                <p class="opacity-60 mb-1">
+                  {dgettext("settings", "What %{poet} took from it:", poet: @poet.name)}
+                </p>
+                <ul class="flex flex-wrap gap-1.5">
+                  <li
+                    :for={t <- @note.understood["tastes"] || []}
+                    class="badge badge-ghost h-auto py-1"
+                  >
+                    {Topic.domain_label(t["domain"])}: {t["label"]}
+                  </li>
+                  <li
+                    :for={t <- @note.understood["topics"] || []}
+                    class="badge badge-ghost h-auto py-1"
+                  >
+                    {dgettext("settings", "Follows: %{label}", label: t["label"])}
+                  </li>
+                  <li
+                    :for={a <- @note.understood["avoids"] || []}
+                    class="badge badge-ghost h-auto py-1"
+                  >
+                    {dgettext("settings", "Skips: %{label}", label: a["label"])}
+                  </li>
+                </ul>
+                <p class="text-xs opacity-50 mt-1">
+                  {dgettext(
+                    "settings",
+                    "Added to your topics, tastes and what %{poet} has learned, below. Taking a line out of the note does not remove them; remove them there.",
+                    poet: @poet.name
+                  )}
+                </p>
+              </div>
+
+              <ul :if={@note_suggestions != []} id="reader-note-suggestions" class="mt-4 space-y-2">
+                <li
+                  :for={s <- @note_suggestions}
+                  id={"note-line-#{s.id}"}
+                  class="p-3 rounded-lg bg-base-200 text-sm"
+                >
+                  <p class="opacity-60">
+                    {if s.kind == "add",
+                      do: dgettext("settings", "%{poet} suggests adding:", poet: @poet.name),
+                      else: dgettext("settings", "%{poet} suggests taking out:", poet: @poet.name)}
+                  </p>
+                  <p class={["my-1", s.kind == "strike" && "line-through"]} dir="auto">{s.text}</p>
+                  <p :if={s.reason} class="text-xs opacity-60" dir="auto">{s.reason}</p>
+                  <div class="flex gap-2 mt-2">
+                    <button
+                      phx-click="accept_note_line"
+                      phx-value-id={s.id}
+                      class="btn btn-xs btn-primary"
+                    >
+                      {if s.kind == "add",
+                        do: dgettext("settings", "Add it"),
+                        else: dgettext("settings", "Take it out")}
+                    </button>
+                    <button
+                      phx-click="decline_note_line"
+                      phx-value-id={s.id}
+                      class="btn btn-xs btn-ghost"
+                    >
+                      {dgettext("settings", "No thanks")}
+                    </button>
+                  </div>
+                </li>
+              </ul>
             </.settings_section>
 
             <.settings_section id="journey" title={dgettext("settings", "Journey")}>

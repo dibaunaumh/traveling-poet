@@ -117,6 +117,11 @@ defmodule TravelingPoetWeb.Api.AgentController do
           learned_profile: Preferences.profile_payload(poet.id),
           # Already tried and rejected. Never propose these again.
           dismissed: Preferences.dismissed_payload(poet.id),
+          # "About you" (card-125): a few plain sentences about your companion
+          # in Settings. written_by "reader" means these are their own words,
+          # and they outrank everything else here about their taste.
+          # needs_draft: there is none yet; write it after publishing.
+          about_you: TravelingPoet.ReaderNote.payload(poet.id),
           engagement: engagement_for(poet),
           # The APP decides when to ask, not the poet: an agent told to ask
           # "sometimes" asks every time.

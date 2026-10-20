@@ -48,7 +48,8 @@ config :traveling_poet, link_check_req_options: [plug: {Req.Test, TravelingPoet.
 config :traveling_poet, illustrations_req_options: [plug: {Req.Test, TravelingPoet.Illustrations}]
 
 config :traveling_poet,
-  place_classifier_req_options: [plug: {Req.Test, TravelingPoet.PlaceClassifier}]
+  place_classifier_req_options: [plug: {Req.Test, TravelingPoet.PlaceClassifier}],
+  reader_note_req_options: [plug: {Req.Test, TravelingPoet.ReaderNote.Extractor}]
 
 config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}]
 # Wikimedia Commons lookups (find_reference_photos) too

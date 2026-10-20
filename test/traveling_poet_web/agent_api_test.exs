@@ -1034,6 +1034,51 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert model == TravelingPoet.Illustrations.model()
   end
 
+  describe "About you (card-125)" do
+    test "the poet drafts the note, reads it back, and only suggests once it is the reader's",
+         %{conn: conn, poet: poet} do
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+      assert body["about_you"]["needs_draft"] == true
+
+      assert %{"ok" => true, "written_by" => "poet"} =
+               conn
+               |> post(~p"/api/agent/reader_note", %{text: "You travel for coffee."})
+               |> json_response(200)
+
+      {:ok, _} = TravelingPoet.ReaderNote.save(poet.id, "I travel for coffee and old maps.")
+
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+      assert body["about_you"]["written_by"] == "reader"
+      assert body["about_you"]["text"] == "I travel for coffee and old maps."
+
+      assert %{"error" => error} =
+               conn
+               |> post(~p"/api/agent/reader_note", %{text: "You travel for tea."})
+               |> json_response(409)
+
+      assert error =~ "suggest_reader_note_line"
+
+      assert %{"ok" => true} =
+               conn
+               |> post(~p"/api/agent/reader_note/suggestions", %{
+                 kind: "add",
+                 text: "You follow kit airplanes.",
+                 reason: "You told me in chat on Tuesday."
+               })
+               |> json_response(200)
+
+      assert %{"error" => "a strike must quote" <> _} =
+               conn
+               |> post(~p"/api/agent/reader_note/suggestions", %{kind: "strike", text: "Opera."})
+               |> json_response(422)
+
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+
+      assert [%{"kind" => "add", "text" => "You follow kit airplanes."}] =
+               body["about_you"]["pending_suggestions"]
+    end
+  end
+
   test "rejects bad dates", %{conn: conn} do
     assert %{"error" => _} =
              conn

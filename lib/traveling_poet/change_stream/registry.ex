@@ -68,11 +68,14 @@ defmodule TravelingPoet.ChangeStream.Registry do
   # domain state. paragraph_reads: how long a reader looks at each paragraph
   # of their own journal, private to them and the app's taste profile;
   # subject_dismissals likewise (what they took off that profile), and
-  # bookmarks and passes (what a reader saved for themselves, and said no to).
+  # bookmarks and passes (what a reader saved for themselves, and said no to),
+  # and the reader's "About you" note with the poet's suggested lines.
   @excluded [
     TravelingPoet.Affinity.Dismissal,
     TravelingPoet.Bookmarks.Bookmark,
     TravelingPoet.Bookmarks.Pass,
+    TravelingPoet.ReaderNote.Note,
+    TravelingPoet.ReaderNote.Suggestion,
     TravelingPoet.Analytics.VisitEvent,
     TravelingPoet.Reading.ParagraphRead,
     Geocoder.CacheEntry,

@@ -1569,6 +1569,32 @@ defmodule TravelingPoet.Provisioner do
           execute: function(_id, raw) { return call("POST", "/api/agent/topics", asParams(raw)); }
         });
         ctx.registerTool({
+          name: "write_reader_note",
+          description: "Write the 'About you' note in your companion's Settings, only while about_you.needs_draft is true in get_poet_context (or while it is still your own draft): 3 to 6 plain sentences to them, in the second person, about what they love, what they follow and what they do not want, drawn ONLY from what they have told you or shown you (learned_profile, topics, focus, their chat). No flattery, no guesses, no list. Once they have saved it, it is theirs: suggest lines instead.",
+          parameters: {
+            type: "object",
+            required: ["text"],
+            properties: {
+              text: { type: "string", description: "The note, in your companion's language, at most 1200 characters" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/reader_note", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "suggest_reader_note_line",
+          description: "Suggest ONE line for your companion's 'About you' note, when something they told or showed you is missing from it ('add') or contradicts a sentence in it ('strike', quoting that sentence word for word). They accept or decline in Settings; a declined line is never offered again. At most one a day, never a line already in about_you.pending_suggestions.",
+          parameters: {
+            type: "object",
+            required: ["kind", "text"],
+            properties: {
+              kind: { type: "string", enum: ["add", "strike"] },
+              text: { type: "string", description: "For add: one short sentence in the second person. For strike: the sentence exactly as it is in the note." },
+              reason: { type: "string", description: "What they said or did that taught you this, in one line; shown to them" }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/reader_note/suggestions", asParams(raw)); }
+        });
+        ctx.registerTool({
           name: "ask_reader",
           description: "Ask your companion what they are into, in chat, with a notification to their phone. Only when ask_reader in get_poet_context is set (the app decides the day; any other day is refused), and only after journal_publish. One question, in your voice, grown from today; never a survey.",
           parameters: {

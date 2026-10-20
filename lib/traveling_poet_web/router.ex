@@ -111,6 +111,8 @@ defmodule TravelingPoetWeb.Router do
     get "/feedback", AgentController, :feedback
     post "/preferences", PreferenceController, :create
     post "/topics", TopicController, :propose
+    post "/reader_note", ReaderNoteController, :draft
+    post "/reader_note/suggestions", ReaderNoteController, :suggest
     post "/excursions", TopicController, :request
     post "/asks", AskController, :create
     post "/location", LocationController, :update

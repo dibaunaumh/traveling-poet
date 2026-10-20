@@ -818,3 +818,71 @@ msgstr "שליחת העמוד כולו"
 #, elixir-autogen, elixir-format
 msgid "The page's words, drawings and places in the email itself, to read without opening the app. Replies and markers stay on the page."
 msgstr "המילים, הציורים והמקומות של העמוד בתוך המייל עצמו, לקריאה בלי לפתוח את האפליקציה. תשובות וסימונים נשארים בעמוד."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} suggests adding:"
+msgstr "%{poet} מציע להוסיף:"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} suggests taking out:"
+msgstr "%{poet} מציע להוציא:"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} wrote this from what it knows of you. Change anything: once you save it, these are your words, and %{poet} goes by them."
+msgstr "%{poet} כתב את זה ממה שהוא יודע עליכם. שנו כל דבר: אחרי שתשמרו, אלה המילים שלכם, ו-%{poet} הולך לפיהן."
+
+#, elixir-autogen, elixir-format
+msgid "A few lines about what you love, what you follow and what you would rather skip. %{poet} writes them after its next page, from what it knows of you. Or write them yourself now."
+msgstr "כמה שורות על מה שאתם אוהבים, במה אתם עוקבים ומה הייתם מעדיפים לדלג עליו. %{poet} יכתוב אותן אחרי העמוד הבא, ממה שהוא יודע עליכם. או כתבו אותן בעצמכם עכשיו."
+
+#, elixir-autogen, elixir-format
+msgid "About you"
+msgstr "עליכם"
+
+#, elixir-autogen, elixir-format
+msgid "Add it"
+msgstr "להוסיף"
+
+#, elixir-autogen, elixir-format
+msgid "Added to your topics, tastes and what %{poet} has learned, below. Taking a line out of the note does not remove them; remove them there."
+msgstr "נוסף לנושאים, לטעמים ולמה ש-%{poet} למד, למטה. הוצאת שורה מהפתק לא מסירה אותם; הסירו אותם שם."
+
+#, elixir-autogen, elixir-format
+msgid "Could not save that. Keep it under %{n} characters."
+msgstr "לא הצלחנו לשמור. עד %{n} תווים."
+
+#, elixir-autogen, elixir-format
+msgid "Follows: %{label}"
+msgstr "עוקב: %{label}"
+
+#, elixir-autogen, elixir-format
+msgid "I travel for specialty coffee and modern local food. I follow kit airplanes. I would rather skip nightlife."
+msgstr "אני מטייל בשביל קפה מיוחד ואוכל מקומי מודרני. אני עוקב אחרי מטוסי קיט. אני מעדיף לדלג על חיי לילה."
+
+#, elixir-autogen, elixir-format
+msgid "In your words. %{poet} goes by this over anything it has guessed."
+msgstr "במילים שלכם. %{poet} הולך לפי זה יותר מכל מה שניחש."
+
+#, elixir-autogen, elixir-format
+msgid "No thanks"
+msgstr "לא תודה"
+
+#, elixir-autogen, elixir-format
+msgid "Reading it..."
+msgstr "קורא..."
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr "שמירה"
+
+#, elixir-autogen, elixir-format
+msgid "Skips: %{label}"
+msgstr "מדלג: %{label}"
+
+#, elixir-autogen, elixir-format
+msgid "Take it out"
+msgstr "להוציא"
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} took from it:"
+msgstr "מה ש-%{poet} הבין מזה:"

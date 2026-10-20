@@ -818,3 +818,71 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "The page's words, drawings and places in the email itself, to read without opening the app. Replies and markers stay on the page."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} suggests adding:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} suggests taking out:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} wrote this from what it knows of you. Change anything: once you save it, these are your words, and %{poet} goes by them."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A few lines about what you love, what you follow and what you would rather skip. %{poet} writes them after its next page, from what it knows of you. Or write them yourself now."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "About you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Add it"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Added to your topics, tastes and what %{poet} has learned, below. Taking a line out of the note does not remove them; remove them there."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not save that. Keep it under %{n} characters."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Follows: %{label}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I travel for specialty coffee and modern local food. I follow kit airplanes. I would rather skip nightlife."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "In your words. %{poet} goes by this over anything it has guessed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No thanks"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading it..."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Skips: %{label}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Take it out"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What %{poet} took from it:"
+msgstr ""
