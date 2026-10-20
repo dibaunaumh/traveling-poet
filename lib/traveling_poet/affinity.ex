@@ -16,6 +16,9 @@ defmodule TravelingPoet.Affinity do
     against; the kinds about the writing, not the subject, count for nothing),
     on the paragraph(s) it marks;
   - a reaction to a page, ±2, over the page's subjects (`PageSubjects`);
+  - "Not for me" on a place or find (`Bookmarks.Pass`), -3 on its subject;
+    the one signal that may come from another poet's page, since it is the
+    reader's own verdict wherever they gave it;
   - reading a paragraph through, +1 (a day's time on it at least half what
     reading it takes at #{17} characters a second); a skim or a skip is 0.
     Only while `users.reading_signals` is on.
@@ -41,6 +44,7 @@ defmodule TravelingPoet.Affinity do
   @topic_weight 4
   @marker_weight 3
   @reaction_weight 2
+  @pass_weight 3
   @read_weight 1
   @chars_per_second 17
   @read_through 0.5
@@ -138,17 +142,26 @@ defmodule TravelingPoet.Affinity do
 
   @doc "Every signal the reader has left on their own journal."
   def signals(%User{} = user) do
-    case Poets.get_poet_by_user(user.id) do
-      nil ->
-        []
+    own =
+      case Poets.get_poet_by_user(user.id) do
+        nil ->
+          []
 
-      poet ->
-        entry_ids = Repo.all(from e in Entry, where: e.poet_id == ^poet.id, select: e.id)
-        subjects = paragraph_subjects(poet.id)
+        poet ->
+          entry_ids = Repo.all(from e in Entry, where: e.poet_id == ^poet.id, select: e.id)
+          subjects = paragraph_subjects(poet.id)
 
-        topic_signals(poet.id) ++
-          read_signals(user, subjects) ++
-          marker_signals(user, entry_ids, subjects) ++ reaction_signals(user, entry_ids)
+          topic_signals(poet.id) ++
+            read_signals(user, subjects) ++
+            marker_signals(user, entry_ids, subjects) ++ reaction_signals(user, entry_ids)
+      end
+
+    own ++ pass_signals(user)
+  end
+
+  defp pass_signals(%User{id: user_id}) do
+    for %{topic: first, second_topic: second, at: at} <- TravelingPoet.Bookmarks.passes(user_id) do
+      %{at: at, weight: -@pass_weight, subjects: shares(first, second)}
     end
   end
 

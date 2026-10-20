@@ -999,3 +999,23 @@ msgstr[1] "לפני %{count} דקות"
 msgctxt "save button"
 msgid "Saved"
 msgstr "נשמר"
+
+#, elixir-autogen, elixir-format
+msgid "Marked not for you. Tap to bring it back"
+msgstr "סומן כלא בשבילכם. הקישו להחזרה"
+
+#, elixir-autogen, elixir-format
+msgid "Not for me"
+msgstr "לא בשבילי"
+
+#, elixir-autogen, elixir-format
+msgid "Not for you."
+msgstr "לא בשבילכם."
+
+#, elixir-autogen, elixir-format
+msgid "Not interested. Tap to fold it away"
+msgstr "לא מעניין. הקישו לקיפול"
+
+#, elixir-autogen, elixir-format
+msgid "Undo"
+msgstr "ביטול"

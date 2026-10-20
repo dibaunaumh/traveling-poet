@@ -99,6 +99,9 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
+  def handle_event("toggle_pass", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
+
   # Any reader of a public page can have it read (TravelingPoetWeb.Listening);
   # the poet's daily cap is the guard.
   def handle_event("narration_request", _params, socket),

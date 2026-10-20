@@ -23,6 +23,51 @@ defmodule TravelingPoet.BookmarksTest do
     refute Bookmarks.saved?(Bookmarks.keys(reader.id), place)
   end
 
+  describe "Not for me (card-123)" do
+    test "folds the place away, drops its bookmark, nudges the reader's poet, and Undo brings it back",
+         %{reader: reader, place: place} do
+      own = poet_fixture(reader)
+
+      {:ok, place} =
+        place
+        |> Ecto.Changeset.change(topic: "crafts-and-design/ceramics-and-tiles/pottery")
+        |> Repo.update()
+
+      {:ok, :saved} = Bookmarks.toggle(reader.id, "place", place.id)
+
+      assert {:ok, :passed} = Bookmarks.toggle_pass(reader.id, "place", place.id)
+      keys = Bookmarks.keys(reader.id)
+      assert Bookmarks.passed?(keys, place)
+      refute Bookmarks.saved?(keys, place)
+      assert Bookmarks.count(reader.id) == 0
+
+      assert [%{label: "Pottery", dimension: "place", polarity: "avoid", source: "tap"}] =
+               TravelingPoet.Preferences.list_active(own.id)
+
+      assert [%{topic: "crafts-and-design/ceramics-and-tiles/pottery"}] =
+               Bookmarks.passes(reader.id)
+
+      assert {:ok, :restored} = Bookmarks.toggle_pass(reader.id, "place", place.id)
+      refute Bookmarks.passed?(Bookmarks.keys(reader.id), place)
+    end
+
+    test "a place with no subject yet nudges by its category", %{reader: reader, place: place} do
+      own = poet_fixture(reader)
+      assert {:ok, :passed} = Bookmarks.toggle_pass(reader.id, "place", place.id)
+
+      assert [%{label: "Restaurant", polarity: "avoid"}] =
+               TravelingPoet.Preferences.list_active(own.id)
+
+      assert Bookmarks.passes(reader.id) == []
+    end
+
+    test "follows the same visibility rule as saving", %{reader: reader, poet: poet, place: place} do
+      {:ok, _} = Poets.update_poet(poet, %{is_public: false})
+      assert {:error, :not_found} = Bookmarks.toggle_pass(reader.id, "place", place.id)
+      assert {:error, :not_found} = Bookmarks.toggle_pass(reader.id, "place", -5)
+    end
+  end
+
   test "a private poet's place is not saveable by anyone else, but is by its own reader",
        %{reader: reader, author: author, poet: poet, place: place} do
     {:ok, _} = Poets.update_poet(poet, %{is_public: false})

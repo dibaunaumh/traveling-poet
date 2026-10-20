@@ -360,18 +360,25 @@ defmodule TravelingPoetWeb.NotebookComponents do
           {dgettext("notebook", "Where %{poet} would send you", poet: @poet.name)}
         </h3>
         <ol :if={@stops != []} class="stops">
-          <li :for={{place, n} <- Enum.with_index(@stops, 1)} id={"stop-#{place.id}"} class="stop">
+          <li
+            :for={{place, n} <- Enum.with_index(@stops, 1)}
+            id={"stop-#{place.id}"}
+            class={["stop", GuideComponents.passed(@bookmarks, place) && "stop-passed"]}
+          >
             <.place_stamp place={place} n={n} />
             <div class="stop-body">
               <div class="flex items-start justify-between gap-2">
                 <div class="stop-name" dir="auto">{place.name}</div>
-                <GuideComponents.save_button
+                <GuideComponents.verdict_buttons
                   :if={@bookmarks}
-                  saved={GuideComponents.saved(@bookmarks, place)}
+                  bookmarks={@bookmarks}
                   kind="place"
                   item={place}
                 />
               </div>
+              <p :if={GuideComponents.passed(@bookmarks, place)} class="stop-passed-note">
+                {dgettext("notebook", "Not for you.")}
+              </p>
               <GuideComponents.event_dates place={place} />
               <GuideComponents.poet_pick :if={place.poet_rating} place={place} poet={@poet} />
               <p :if={place.blurb} class="stop-blurb" {page_lang(@entry)}>{place.blurb}</p>
@@ -716,7 +723,11 @@ defmodule TravelingPoetWeb.NotebookComponents do
           {dgettext("notebook", "What %{poet} brought back", poet: @poet.name)}
         </h3>
         <ol :if={@finds != []} class="stops">
-          <li :for={{find, n} <- Enum.with_index(@finds, 1)} id={"find-#{find.id}"} class="stop">
+          <li
+            :for={{find, n} <- Enum.with_index(@finds, 1)}
+            id={"find-#{find.id}"}
+            class={["stop", GuideComponents.passed(@bookmarks, find) && "stop-passed"]}
+          >
             <.find_stamp find={find} n={n} />
             <div class="stop-body">
               <div class="flex items-start justify-between gap-2">
@@ -725,13 +736,16 @@ defmodule TravelingPoetWeb.NotebookComponents do
                     {find.name}
                   </a>
                 </div>
-                <GuideComponents.save_button
+                <GuideComponents.verdict_buttons
                   :if={@bookmarks}
-                  saved={GuideComponents.saved(@bookmarks, find)}
+                  bookmarks={@bookmarks}
                   kind="find"
                   item={find}
                 />
               </div>
+              <p :if={GuideComponents.passed(@bookmarks, find)} class="stop-passed-note">
+                {dgettext("notebook", "Not for you.")}
+              </p>
               <GuideComponents.poet_pick :if={find.poet_rating} place={find} poet={@poet} />
               <p :if={find.blurb} class="stop-blurb" {page_lang(@entry)}>{find.blurb}</p>
               <img

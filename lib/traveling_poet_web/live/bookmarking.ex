@@ -3,7 +3,7 @@ defmodule TravelingPoetWeb.Bookmarking do
   The LiveView half of bookmarks (`TravelingPoet.Bookmarks`), shared by the
   owner's guide, public guides and Discover. Each assigns `@bookmarks` (the
   reader's saved keys, nil when signed out, which hides every Save button)
-  and routes `toggle_bookmark` here.
+  and routes `toggle_bookmark` and `toggle_pass` here.
   """
 
   use Gettext, backend: TravelingPoetWeb.Gettext
@@ -36,6 +36,23 @@ defmodule TravelingPoetWeb.Bookmarking do
 
         socket =
           case result do
+            {:ok, _} -> socket
+            _ -> put_flash(socket, :error, dgettext("journal", "That could not be saved."))
+          end
+
+        {:noreply, assign_bookmarks(socket)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  # `toggle_pass`: Not for me on a place or find, or Undo (card-123).
+  def handle_event("toggle_pass", %{"kind" => kind, "id" => id}, socket) do
+    case socket.assigns[:current_user] do
+      %{id: user_id} ->
+        socket =
+          case Bookmarks.toggle_pass(user_id, kind, id) do
             {:ok, _} -> socket
             _ -> put_flash(socket, :error, dgettext("journal", "That could not be saved."))
           end

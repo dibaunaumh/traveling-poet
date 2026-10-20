@@ -1394,6 +1394,23 @@ mark.marker.marker-sent {
   color: #2f2a1e;
 }
 
+/* A stop the reader passed on (card-123): folded to its name and the way back */
+.stop-passed .stop-name {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.stop-passed .place-stamp,
+.stop-passed .find-stamp {
+  opacity: 0.4;
+}
+
+.stop-passed-note {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.6;
+}
+
 .stop-blurb {
   margin: 0;
   font-size: 1.05rem;

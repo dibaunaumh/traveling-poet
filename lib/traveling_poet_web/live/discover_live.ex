@@ -35,7 +35,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
   import TravelingPoetWeb.NotebookComponents, only: [section: 1]
 
   import TravelingPoetWeb.GuideComponents,
-    only: [place_card: 1, humanize_category: 1, save_button: 1, saved: 2]
+    only: [place_card: 1, humanize_category: 1, verdict_buttons: 1]
 
   alias TravelingPoet.{Discover, Poets}
   alias TravelingPoet.Guide.PlaceTopics
@@ -97,6 +97,9 @@ defmodule TravelingPoetWeb.DiscoverLive do
 
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
+
+  def handle_event("toggle_pass", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
 
   # The hook's data, asked for once it is connected. See the moduledoc.
   def handle_event("load", _params, socket),
@@ -459,7 +462,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
         place={@selected.place}
         media={@selected.drawing_from == :place && @selected.drawing}
         poet={@selected.poet}
-        saved={saved(@bookmarks, @selected.place)}
+        bookmarks={@bookmarks}
       />
       <div :if={@selected.drawing_from == :entry} class="discover-borrowed">
         <.section section={%{kind: "illustration"}} media={@selected.drawing} loading="eager" />
@@ -542,12 +545,7 @@ defmodule TravelingPoetWeb.DiscoverLive do
       </.byline>
       <div class="flex items-center justify-between gap-2">
         <p class="discover-find-kind">{find_kind(@selected.find.kind)}</p>
-        <.save_button
-          :if={@bookmarks}
-          saved={saved(@bookmarks, @selected.find)}
-          kind="find"
-          item={@selected.find}
-        />
+        <.verdict_buttons :if={@bookmarks} bookmarks={@bookmarks} kind="find" item={@selected.find} />
       </div>
       <h2 class="discover-title">{@selected.find.name}</h2>
       <p :if={@selected.find.blurb} class="discover-teaser">{@selected.find.blurb}</p>
