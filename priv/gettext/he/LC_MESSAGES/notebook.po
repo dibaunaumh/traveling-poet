@@ -242,10 +242,6 @@ msgid "Prices from our booking partner, for your dates. Booking through these li
 msgstr "המחירים משותף ההזמנות שלנו, לתאריכים שלכם. הזמנה דרך הקישורים האלה תומכת ב-Traveling Poet."
 
 #, elixir-autogen, elixir-format
-msgid "Reading this page, a few seconds"
-msgstr "מקריאים את העמוד, כמה שניות"
-
-#, elixir-autogen, elixir-format
 msgid "See rooms and book ↗"
 msgstr "לחדרים ולהזמנה ↖"
 
@@ -320,3 +316,7 @@ msgstr "→ מוקדם יותר"
 #, elixir-autogen, elixir-format
 msgid "this topic"
 msgstr "הנושא הזה"
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, this can take a minute"
+msgstr "מקריאים את העמוד, זה יכול לקחת דקה"

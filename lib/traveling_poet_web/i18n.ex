@@ -96,7 +96,7 @@ defmodule TravelingPoetWeb.I18n do
         dgettext("js", "%{label} (this passage has since changed). Tap for options.",
           label: "{label}"
         ),
-      narration_reading: dgettext("js", "Reading this page, a few seconds"),
+      narration_reading: dgettext("js", "Reading this page, this can take a minute"),
       narration_progress:
         dgettext("js", "%{elapsed} of %{total}", elapsed: "{elapsed}", total: "{total}"),
       narration_failed: dgettext("js", "The recording would not play. Try again in a moment."),

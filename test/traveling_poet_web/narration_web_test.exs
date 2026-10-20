@@ -122,6 +122,64 @@ defmodule TravelingPoetWeb.NarrationWebTest do
     assert html =~ ~s(data-state="idle")
   end
 
+  test "a long page waits longer for its reading, within bounds" do
+    alias TravelingPoetWeb.Listening
+    assert Listening.patience_ms(nil) == 45_000
+    assert Listening.patience_ms(60) == 45_000
+    # Shelly's first page: 273 s of reading took 45.2 s to make
+    assert Listening.patience_ms(273) == 98_000
+    assert Listening.patience_ms(3_000) == 200_000
+  end
+
+  test "a reading that outlasts the wait still arrives, and takes the notice away",
+       %{conn: conn} do
+    user = agent_user_fixture(%{onboarding_completed: true, sprite_url: nil})
+    {_poet, entry} = unnarrated(user)
+    Application.put_env(:traveling_poet, :openrouter_api_key, "test-key")
+    Application.put_env(:traveling_poet, :narration_inline, false)
+    Req.Test.set_req_test_to_shared()
+
+    on_exit(fn ->
+      Application.put_env(:traveling_poet, :openrouter_api_key, nil)
+      Application.put_env(:traveling_poet, :narration_inline, true)
+      Req.Test.set_req_test_to_private()
+    end)
+
+    test_pid = self()
+
+    Req.Test.stub(TravelingPoet.Narration, fn conn ->
+      send(test_pid, {:reading, self()})
+
+      receive do
+        :go -> :ok
+      after
+        5_000 -> :ok
+      end
+
+      conn
+      |> Plug.Conn.put_resp_content_type("audio/mpeg")
+      |> Plug.Conn.send_resp(200, mp3(300))
+    end)
+
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    {:ok, view, _html} = live(conn, ~p"/journal/2026-10-14")
+
+    render_hook(view, "narration_request", %{})
+    assert_receive {:reading, reader}, 2_000
+
+    send(view.pid, {:narration_timeout, entry.id})
+    assert render(view) =~ "The page could not be read just now"
+
+    Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "poet:#{entry.poet_id}")
+    send(reader, :go)
+    assert_receive {:narration_ready, _}, 5_000
+
+    html = render(view)
+    narration = TravelingPoet.Narration.narration_for(entry.id)
+    assert html =~ ~s(data-src="/media/#{narration.id}")
+    refute html =~ "The page could not be read just now"
+  end
+
   test "a public reader's press reads the page too, and the poet's daily cap is the guard",
        %{conn: _conn} do
     user = user_fixture()

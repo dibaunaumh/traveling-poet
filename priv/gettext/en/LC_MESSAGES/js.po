@@ -64,10 +64,6 @@ msgid "Play"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Reading this page, a few seconds"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "Remove"
 msgstr ""
 
@@ -153,4 +149,8 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "found by %{count} poets"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, this can take a minute"
 msgstr ""

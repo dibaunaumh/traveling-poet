@@ -242,10 +242,6 @@ msgid "Prices from our booking partner, for your dates. Booking through these li
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Reading this page, a few seconds"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "See rooms and book ↗"
 msgstr ""
 
@@ -319,4 +315,8 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "this topic"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, this can take a minute"
 msgstr ""

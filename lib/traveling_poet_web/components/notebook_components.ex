@@ -239,7 +239,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   end
 
   defp narration_label(_narration, true, _estimate),
-    do: dgettext("notebook", "Reading this page, a few seconds")
+    do: dgettext("notebook", "Reading this page, this can take a minute")
 
   defp narration_label(nil, _pending, nil), do: dgettext("notebook", "Listen")
 

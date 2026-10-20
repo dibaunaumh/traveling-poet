@@ -64,10 +64,6 @@ msgid "Play"
 msgstr "ניגון"
 
 #, elixir-autogen, elixir-format
-msgid "Reading this page, a few seconds"
-msgstr "העמוד מוקרא, עוד כמה שניות"
-
-#, elixir-autogen, elixir-format
 msgid "Remove"
 msgstr "הסרה"
 
@@ -154,3 +150,7 @@ msgstr "המשורר שלכם"
 #, elixir-autogen, elixir-format
 msgid "found by %{count} poets"
 msgstr "%{count} משוררים מצאו"
+
+#, elixir-autogen, elixir-format
+msgid "Reading this page, this can take a minute"
+msgstr "מקריאים את העמוד, זה יכול לקחת דקה"
