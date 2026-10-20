@@ -999,3 +999,23 @@ msgstr[1] ""
 msgctxt "save button"
 msgid "Saved"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Marked not for you. Tap to bring it back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not for me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not for you."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not interested. Tap to fold it away"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Undo"
+msgstr ""

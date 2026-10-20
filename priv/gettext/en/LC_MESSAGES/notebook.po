@@ -320,3 +320,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Reading this page, this can take a minute"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not for you."
+msgstr ""

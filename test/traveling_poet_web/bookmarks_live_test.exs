@@ -80,6 +80,43 @@ defmodule TravelingPoetWeb.BookmarksLiveTest do
     refute html =~ ~s(id="guide-saved")
   end
 
+  # card-123: a reader could save a place but not say no to one.
+  describe "Not for me" do
+    test "folds a stop on the journal's Places spread, and Undo brings it back",
+         %{conn: conn, reader: reader, cafe: cafe} do
+      {:ok, view, html} = live(signed_in(conn, reader), ~p"/journal/2026-09-27?spread=places")
+      assert html =~ ~s(id="pass-place-#{cafe.id}")
+      refute html =~ "stop-passed"
+
+      html = view |> element("#stop-#{cafe.id} #pass-place-#{cafe.id}") |> render_click()
+      assert html =~ "stop-passed"
+      assert html =~ "Not for you."
+      refute html =~ ~s(id="save-place-#{cafe.id}")
+      assert Bookmarks.passed?(Bookmarks.keys(reader.id), cafe)
+
+      html = view |> element("#stop-#{cafe.id} #pass-place-#{cafe.id}") |> render_click()
+      refute html =~ "stop-passed"
+      assert html =~ ~s(id="save-place-#{cafe.id}")
+      refute Bookmarks.passed?(Bookmarks.keys(reader.id), cafe)
+    end
+
+    test "folds a card in the guide and takes a saved place off Saved",
+         %{conn: conn, reader: reader, cafe: cafe} do
+      {:ok, :saved} = Bookmarks.toggle(reader.id, "place", cafe.id)
+      {:ok, view, _} = live(signed_in(conn, reader), ~p"/guide")
+
+      html = view |> element("#pass-place-#{cafe.id}") |> render_click()
+      assert html =~ "Not for you."
+      refute html =~ "View details"
+      assert Bookmarks.count(reader.id) == 0
+    end
+
+    test "signed out, a public guide offers no Not for me", %{conn: conn, other: other, inn: inn} do
+      {:ok, _view, html} = live(conn, ~p"/p/#{other.slug}/guide")
+      refute html =~ ~s(id="pass-place-#{inn.id}")
+    end
+  end
+
   # Udi on card-70: save from the journal's Places view, not only the guide.
   describe "the journal's Places spread" do
     test "your own journal saves a stop", %{conn: conn, reader: reader, cafe: cafe} do

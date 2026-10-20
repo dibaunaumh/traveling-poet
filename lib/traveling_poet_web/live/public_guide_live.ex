@@ -77,6 +77,9 @@ defmodule TravelingPoetWeb.PublicGuideLive do
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
+  def handle_event("toggle_pass", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
+
   @impl true
   def handle_info({:guide_geocoded, _poet_id}, socket), do: {:noreply, reload(socket)}
   def handle_info({:journal_published, _id}, socket), do: {:noreply, reload(socket)}
