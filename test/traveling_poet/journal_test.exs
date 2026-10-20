@@ -192,6 +192,33 @@ defmodule TravelingPoet.JournalTest do
       assert Enum.map(Journal.unattached_illustrations(entry, []), & &1.id) == [taped.id]
       assert Journal.spot_markdown(spot) == "![a cup](/media/#{spot.id})"
     end
+
+    test "a spot drawn before its page existed is linked by the body that embeds it",
+         %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-10-20]})
+      spot = media_fixture(poet, %{kind: "spot", alt_text: "wool"})
+      assert Journal.spot_media(entry) == []
+
+      # Not this poet's, and a place's own drawing: neither moves onto the page.
+      other = poet_fixture(user_fixture())
+      foreign = media_fixture(other, %{kind: "spot"})
+      place_drawing = media_fixture(poet)
+      place_fixture(poet, entry, %{media_id: place_drawing.id})
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{
+            kind: "description",
+            body:
+              "![wool](/media/#{spot.id})\n\nThe wool sellers.\n\n" <>
+                "![x](/media/#{foreign.id})\n\n![y](/media/#{place_drawing.id})"
+          }
+        ])
+
+      assert Enum.map(Journal.spot_media(entry), & &1.id) == [spot.id]
+      assert is_nil(Repo.get!(Media, foreign.id).journal_entry_id)
+      assert is_nil(Repo.get!(Media, place_drawing.id).journal_entry_id)
+    end
   end
 
   describe "coordinates" do

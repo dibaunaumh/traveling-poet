@@ -6,7 +6,7 @@ defmodule TravelingPoet.Journal do
 
   import Ecto.Query
   alias TravelingPoet.Repo
-  alias TravelingPoet.Journal.{Entry, Section, Media, Reaction}
+  alias TravelingPoet.Journal.{Entry, Section, Media, Reaction, Spots}
 
   ## Entries
 
@@ -38,6 +38,23 @@ defmodule TravelingPoet.Journal do
         entry
         |> Entry.changeset(Map.drop(attrs, [:poet_id, :entry_date, "poet_id", "entry_date"]))
         |> Repo.update()
+    end
+  end
+
+  @doc """
+  The entry row for (poet, date), created as an empty draft when there is
+  none yet. A poet draws before it writes (the skill says so: the drawing
+  comes first, then the page that carries it), so a drawing sent with an
+  entry_date often arrives a minute before `upsert_entry` does; resolved
+  against a missing row it stayed unlinked and the page never showed it
+  (Nam's page of 2026-10-20 had no drawings at all, and 56 spot drawings
+  across the fleet went the same way in a month). The later upsert fills
+  this row in.
+  """
+  def ensure_entry(poet_id, %Date{} = date) do
+    case get_entry(poet_id, date) do
+      nil -> upsert_entry(poet_id, date, %{})
+      entry -> {:ok, entry}
     end
   end
 
@@ -120,15 +137,31 @@ defmodule TravelingPoet.Journal do
 
   # A drawing made before its page existed was never linked to it; the
   # section that shows it links it now, so everything that looks for a
-  # page's drawings by entry (Discover, the book) finds it. Only
-  # this poet's unlinked media: nothing already on another page moves.
+  # page's drawings by entry (Discover, the book) finds it. That covers the
+  # drawing a section carries as `media_id` and the spot drawings a body
+  # embeds as `![alt](/media/:id)`: a spot only renders when
+  # `spot_media_by_entry/1` returns it, so an unlinked one was dropped from
+  # the prose as an image the page could not vouch for. Only this poet's
+  # unlinked media: nothing already on another page moves, and a drawing a
+  # place or find owns stays off the page (it would render as a stray
+  # taped photo).
   defp link_media(entry, sections) do
-    ids = sections |> Enum.map(& &1.media_id) |> Enum.reject(&is_nil/1)
+    ids =
+      (Enum.map(sections, & &1.media_id) ++ MapSet.to_list(Spots.referenced_ids(sections)))
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
 
     if ids != [] do
+      owned_by_place =
+        from(p in TravelingPoet.Guide.Place, where: p.media_id in ^ids, select: p.media_id)
+
+      owned_by_find =
+        from(f in TravelingPoet.Topics.Find, where: f.media_id in ^ids, select: f.media_id)
+
       Repo.update_all(
         from(m in Media,
-          where: m.id in ^ids and m.poet_id == ^entry.poet_id and is_nil(m.journal_entry_id)
+          where: m.id in ^ids and m.poet_id == ^entry.poet_id and is_nil(m.journal_entry_id),
+          where: m.id not in subquery(owned_by_place) and m.id not in subquery(owned_by_find)
         ),
         set: [journal_entry_id: entry.id]
       )

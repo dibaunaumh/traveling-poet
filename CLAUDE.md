@@ -38,7 +38,7 @@ Deploy and prod ops:
 fly ssh console -c fly.dev.toml -C "/app/bin/traveling_poet rpc 'TravelingPoet.Accounts.Purge.purge_by_email(\"x@y.z\")'"
 ```
 
-Releases have no Mix, so anything that must run in prod lives in a plain module callable over `rpc` (e.g. `Guide.Backfill.run/1`, `ChangeStream.Backfill.run/1`, `Accounts.Purge`); the Mix tasks are thin local wrappers. Use `rpc`, not `eval` (`eval` boots a fresh node without the Repo). The `-C` string is re-parsed by a remote shell: write the Elixir expression with no spaces, no semicolons, escape every double quote as `\"`, and use `Map.new([{:k,v}])` instead of map or keyword literals.
+Releases have no Mix, so anything that must run in prod lives in a plain module callable over `rpc` (e.g. `Guide.Backfill.run/1`, `ChangeStream.Backfill.run/1`, `Journal.MediaRepair.run/1`, `Accounts.Purge`); the Mix tasks are thin local wrappers. Use `rpc`, not `eval` (`eval` boots a fresh node without the Repo). The `-C` string is re-parsed by a remote shell: write the Elixir expression with no spaces, no semicolons, escape every double quote as `\"`, and use `Map.new([{:k,v}])` instead of map or keyword literals.
 
 Migrations run automatically on boot (`Ecto.Migrator` in the supervision tree) when `RELEASE_NAME` is set.
 
