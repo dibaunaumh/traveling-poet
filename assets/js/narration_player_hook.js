@@ -10,7 +10,9 @@
 // Safari and the iOS app start audio later without another gesture), pushes
 // `narration_request`, and when the server patches data-src in it loads the
 // recording and plays. data-state "generating" comes from the server while
-// the page is read; a failure resets it to "idle".
+// the page is read; a failure resets it to "idle". A recording that arrives
+// within two minutes of the page giving up still plays: a long page can
+// outlast the wait, and the reader should not have to press again.
 import {t as tr} from "./strings"
 
 const SILENCE =
@@ -26,6 +28,7 @@ const NarrationPlayer = {
     this.label = this.el.querySelector(".narration-label")
     this.src = null
     this.playWhenReady = false
+    this.lateUntil = 0
     this.syncSrc()
 
     this.button.addEventListener("click", () => this.toggle())
@@ -46,6 +49,7 @@ const NarrationPlayer = {
     const state = this.el.getAttribute("data-state")
     if (state === "idle" && this.playWhenReady && !this.src) {
       this.playWhenReady = false
+      this.lateUntil = Date.now() + 120000
       this.label.textContent = this.el.getAttribute("data-label") || "Listen"
     }
   },
@@ -63,6 +67,11 @@ const NarrationPlayer = {
       if (this.playWhenReady) {
         this.playWhenReady = false
         this.play()
+      } else if (Date.now() < this.lateUntil) {
+        // No tap to fall back on: if the browser refuses, the ring just waits.
+        this.lateUntil = 0
+        const p = this.audio.play()
+        if (p && p.catch) p.catch(() => {})
       }
     }
   },
@@ -78,8 +87,9 @@ const NarrationPlayer = {
     const state = this.el.getAttribute("data-state")
     if (state === "generating" || this.playWhenReady) return
     this.playWhenReady = true
+    this.lateUntil = 0
     this.el.setAttribute("data-state", "generating")
-    this.label.textContent = tr("narration_reading", "Reading this page, a few seconds")
+    this.label.textContent = tr("narration_reading", "Reading this page, this can take a minute")
     this.audio.src = SILENCE
     const p = this.audio.play()
     if (p && p.catch) p.catch(() => {})

@@ -10,9 +10,9 @@ defmodule TravelingPoet.Narration do
   Alice.In) found 35 speech models behind the key; the model and voice are
   config (`NARRATION_MODEL`, `NARRATION_VOICE`), nil model = feature off.
   A page is read in its own language (`entry.language`): a Hebrew page takes
-  `NARRATION_MODEL_HE` / `NARRATION_VOICE_HE` (dec-009: Grok Voice "leo";
-  the English voice reads Hebrew with an accent), each falling back to the
-  default when unset.
+  `NARRATION_MODEL_HE` / `NARRATION_VOICE_HE` (dec-010: ElevenLabs v4 Turbo,
+  voice "george"; the English voice reads Hebrew with an accent), each
+  falling back to the default when unset.
 
   `generate/1` is the whole unit of work: script, hash check, speech call,
   upload, media row, old row gone, usage recorded. On demand only (dec-004,
