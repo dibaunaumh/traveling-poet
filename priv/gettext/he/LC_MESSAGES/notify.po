@@ -198,3 +198,15 @@ msgstr "%{answer}\n\n(%{poet}. אפשר פשוט לענות כאן.)"
 #, elixir-autogen, elixir-format
 msgid "%{poet} answered you"
 msgstr "תשובה מ-%{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Open the guide"
+msgstr "לפתיחת המדריך"
+
+#, elixir-autogen, elixir-format
+msgid "Open today's page"
+msgstr "לפתיחת העמוד של היום"
+
+#, elixir-autogen, elixir-format
+msgid "Where to go"
+msgstr "לאן ללכת"

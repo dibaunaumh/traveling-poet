@@ -5,7 +5,9 @@ defmodule TravelingPoet.Email.Notifier do
   once per entry: a revision does not broadcast there). No-op unless
   `Email.configured?/0`.
 
-  Skipped: readers who turned it off (`users.email_notify`), and Apple
+  With `users.email_full_page` the mail carries the whole page (card-124),
+  loaded through `Journal.EntryBundle` like the page itself, its drawings on
+  signed links. Skipped: readers who turned it off (`users.email_notify`), and Apple
   "Hide My Email" relay addresses, which only accept mail from a sender
   registered with Apple.
   """
@@ -44,7 +46,7 @@ defmodule TravelingPoet.Email.Notifier do
       entry = Journal.get_entry!(entry_id)
 
       message =
-        EntryEmail.build(%{
+        %{
           user: user,
           poet: poet,
           entry: entry,
@@ -54,7 +56,9 @@ defmodule TravelingPoet.Email.Notifier do
           listen?: TravelingPoet.Narration.configured?(),
           listen_minutes: listen_minutes(entry),
           unsubscribe_url: url("/email/unsubscribe/#{unsubscribe_token(user)}")
-        })
+        }
+        |> with_page(user)
+        |> EntryEmail.build()
 
       case Email.deliver(message) do
         {:ok, _id} -> Logger.info("email: entry #{entry_id} sent to user #{user.id}")
@@ -64,6 +68,25 @@ defmodule TravelingPoet.Email.Notifier do
       _ -> :skipped
     end
   end
+
+  # The whole page (card-124), loaded the way the page itself is.
+  defp with_page(assigns, %{email_full_page: true}) do
+    bundle = TravelingPoet.Journal.EntryBundle.load(assigns.entry)
+
+    Map.put(assigns, :page, %{
+      sections: bundle.entry.sections,
+      media: bundle.media,
+      extra_media: bundle.extra_media,
+      spot_media: bundle.spot_media,
+      places: bundle.places,
+      guide_url: url("/guide"),
+      media_url: &media_url/1
+    })
+  end
+
+  defp with_page(assigns, _user), do: assigns
+
+  defp media_url(media_id), do: url("/media/#{media_id}?sig=#{media_sig(media_id)}")
 
   @doc false
   def wants_email?(%{email_notify: true, email: email}) when is_binary(email),

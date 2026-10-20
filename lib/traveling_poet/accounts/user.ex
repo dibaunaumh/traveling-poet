@@ -48,6 +48,8 @@ defmodule TravelingPoet.Accounts.User do
     field :reading_signals, :boolean, default: true
     # the daily page email (Email.Notifier); off from Settings or the email's link
     field :email_notify, :boolean, default: true
+    # that email carries the whole page, words and drawings (card-124)
+    field :email_full_page, :boolean, default: false
     # The interface and the poet's writing language, one setting (dec-008;
     # TravelingPoet.Locale)
     field :locale, :string, default: "en"
@@ -99,6 +101,7 @@ defmodule TravelingPoet.Accounts.User do
       :onboarding_completed,
       :reading_signals,
       :email_notify,
+      :email_full_page,
       :locale,
       :onboarding_step,
       :last_seen_at,

@@ -28,6 +28,14 @@ defmodule TravelingPoet.Email.EntryEmail do
   be read aloud (on demand, from the ring on the page; the minutes are an
   estimate from the words).
 
+  With `page` (card-124, `users.email_full_page`), the email carries the
+  whole page instead of the teaser: `%{sections, media, extra_media,
+  spot_media, places, guide_url, media_url}`, as `Journal.EntryBundle`
+  loads it, with `media_url` a function from a media id to a signed absolute
+  URL, so a private journal's drawings show. The prose goes through the
+  page's own renderer (`NotebookComponents.raw_markdown/3`), so the same
+  sanitizing and the same rule on images hold in the mail.
+
   Written in the reader's language (`users.locale`): nothing else sets one
   for a background sender. The page's own words, its title and teaser, carry
   the page's language (`journal_entries.language`), which may differ.
@@ -79,19 +87,104 @@ defmodule TravelingPoet.Email.EntryEmail do
         ""
       end
 
+    # The whole page, when asked for: the drawing, then the sections in the
+    # poet's order and the day's places; the teaser gives way to the prose.
+    body =
+      case a[:page] do
+        nil -> "<p#{teaser_lang}>#{esc(teaser)}</p>\n#{drawing}"
+        page_data -> page_html(page_data, a.entry)
+      end
+
+    read_words =
+      if a[:page],
+        do: dgettext("notify", "Open today's page"),
+        else: dgettext("notify", "Read today's page")
+
     """
     <!doctype html>
     <html lang="#{locale}" dir="#{Locale.dir(locale)}"><body style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.5;color:#222">
     <div lang="#{locale}" dir="#{Locale.dir(locale)}" style="max-width:560px">
     <p>#{esc(heading)}</p>
     #{if title, do: "<p#{page}><b>#{esc(title)}</b></p>", else: ""}
-    <p#{teaser_lang}>#{esc(teaser)}</p>
-    #{drawing}
-    <p><a href="#{esc(a.page_url)}">#{dgettext("notify", "Read today's page")}</a>#{listen}</p>
+    #{body}
+    <p><a href="#{esc(a.page_url)}">#{read_words}</a>#{listen}</p>
     <p style="font-size:13px;color:#777">#{dgettext("notify", "A new page from %{poet} each day.", poet: esc(a.poet.name))} <a href="#{esc(a.unsubscribe_url)}" style="color:#777">#{dgettext("notify", "Stop these emails")}</a></p>
     </div>
     </body></html>
     """
+  end
+
+  @img_style ~s(width="480" style="max-width:100%;height:auto")
+
+  defp page_html(page, entry) do
+    lang = page_lang(entry)
+    url = page.media_url
+
+    drawings =
+      (illustration_media(page) ++ Map.get(page, :extra_media, []))
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.map(fn m ->
+        ~s(<p><img src="#{esc(url.(m.id))}" alt="#{esc(m.alt_text || "")}" #{@img_style}></p>)
+      end)
+
+    sections =
+      page.sections
+      |> Enum.reject(&(&1.kind == "illustration"))
+      |> Enum.map(fn s ->
+        heading =
+          if present(s.title),
+            do: ~s(<p#{lang} style="margin-bottom:0"><b>#{esc(s.title)}</b></p>),
+            else: ""
+
+        prose = prose_html(s.body, Map.get(page, :spot_media, %{}), url)
+
+        style = if s.kind == "poem", do: ~s( style="white-space:pre-line"), else: ""
+        heading <> ~s(<div#{lang}#{style}>#{prose}</div>)
+      end)
+
+    places =
+      case Map.get(page, :places, []) do
+        [] ->
+          ""
+
+        places ->
+          items =
+            Enum.map_join(places, "\n", fn p ->
+              detail = [p.category, p.address] |> Enum.filter(&present/1) |> Enum.join(", ")
+
+              ~s(<li><b>#{esc(p.name)}</b>#{if detail != "", do: " &middot; " <> esc(detail), else: ""}</li>)
+            end)
+
+          ~s(<p style="margin-bottom:0"><b>#{dgettext("notify", "Where to go")}</b></p><ul>#{items}</ul>) <>
+            ~s(<p><a href="#{esc(page.guide_url)}">#{dgettext("notify", "Open the guide")}</a></p>)
+      end
+
+    Enum.join(drawings ++ sections ++ [places], "\n")
+  end
+
+  defp illustration_media(page) do
+    media = Map.get(page, :media, %{})
+
+    page.sections
+    |> Enum.filter(&(&1.kind == "illustration"))
+    |> Enum.map(&Map.get(media, &1.media_id))
+    |> Enum.reject(&is_nil/1)
+  end
+
+  # The page's renderer: sanitized, and only this entry's own spot drawings
+  # come through as images. Their paths are then signed and made absolute,
+  # since a mail app has no session.
+  defp prose_html(body, spot_media, url) do
+    body
+    |> TravelingPoetWeb.NotebookComponents.raw_markdown(spot_media, [])
+    |> case do
+      {:safe, _} = safe -> Phoenix.HTML.safe_to_string(safe)
+      text when is_binary(text) -> esc(text)
+    end
+    |> String.replace(~r{src="/media/(\d+)"}, fn match ->
+      [_, id] = Regex.run(~r{src="/media/(\d+)"}, match)
+      ~s(src="#{esc(url.(String.to_integer(id)))}" #{@img_style})
+    end)
   end
 
   # English said "minutes" for one minute too, and still does
@@ -119,7 +212,7 @@ defmodule TravelingPoet.Email.EntryEmail do
       heading,
       title,
       "",
-      teaser,
+      page_text(a[:page], teaser),
       "",
       dgettext("notify", "Read today's page: %{url}", url: a.page_url),
       if(a[:listen?],
@@ -138,6 +231,33 @@ defmodule TravelingPoet.Email.EntryEmail do
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n")
+  end
+
+  defp page_text(nil, teaser), do: teaser
+
+  defp page_text(page, _teaser) do
+    sections =
+      page.sections
+      |> Enum.reject(&(&1.kind == "illustration"))
+      |> Enum.map(fn s ->
+        [if(present(s.title), do: s.title), s.body]
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join("\n\n")
+      end)
+
+    places =
+      case Map.get(page, :places, []) do
+        [] ->
+          []
+
+        places ->
+          [
+            dgettext("notify", "Where to go") <>
+              "\n" <> Enum.map_join(places, "\n", &("- " <> &1.name))
+          ]
+      end
+
+    Enum.join(sections ++ places, "\n\n")
   end
 
   defp esc(s), do: s |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
