@@ -320,3 +320,7 @@ msgstr "הנושא הזה"
 #, elixir-autogen, elixir-format
 msgid "Reading this page, this can take a minute"
 msgstr "מקריאים את העמוד, זה יכול לקחת דקה"
+
+#, elixir-autogen, elixir-format
+msgid "Not for you."
+msgstr "לא בשבילכם."

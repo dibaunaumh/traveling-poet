@@ -93,6 +93,12 @@ defmodule TravelingPoetWeb.GuideLive do
      socket |> assign(:plan_days, days) |> GuideState.apply_params(current_params(socket))}
   end
 
+  # Passing drops the item's bookmark too, so the Saved view re-reads as well.
+  def handle_event("toggle_pass", params, socket) do
+    {:noreply, socket} = Bookmarking.handle_event("toggle_pass", params, socket)
+    {:noreply, socket |> GuideState.apply_params(current_params(socket))}
+  end
+
   # Saving here, or unsaving from the Saved view, which then drops the card.
   def handle_event("toggle_bookmark", params, socket) do
     {:noreply, socket} = Bookmarking.handle_event("toggle_bookmark", params, socket)
@@ -256,7 +262,7 @@ defmodule TravelingPoetWeb.GuideLive do
               find={find}
               media={@media[find.media_id]}
               poet={@saved_poets[find.poet_id] || @poet}
-              saved={saved(@bookmarks, find)}
+              bookmarks={@bookmarks}
               source={@saved_sources[find.id]}
             />
           </div>

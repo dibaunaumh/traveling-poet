@@ -266,7 +266,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         media={@media[find.media_id]}
         poet={@poet}
         entry_url={@entry_url}
-        saved={saved(@bookmarks, find)}
+        bookmarks={@bookmarks}
       />
     </div>
     """
@@ -277,10 +277,18 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :media, :map, default: nil
   attr :poet, :map, required: true
   attr :entry_url, :any, default: nil
-  attr :saved, :any, default: nil, doc: "true/false shows the Save button; nil hides it"
+  attr :bookmarks, :any, default: nil, doc: "the reader's verdicts; nil hides Save and Not for me"
   attr :source, :any, default: nil, doc: "{label, path} to the page it came from"
 
-  def find_card(assigns) do
+  def find_card(%{bookmarks: bookmarks, find: find} = assigns) do
+    if passed(bookmarks, find) do
+      passed_card(%{id: "find-#{find.id}", kind: "find", item: find})
+    else
+      find_card_full(assigns)
+    end
+  end
+
+  defp find_card_full(assigns) do
     ~H"""
     <div id={"find-#{@find.id}"} class="card bg-base-200 border border-base-300 overflow-hidden">
       <img
@@ -307,7 +315,7 @@ defmodule TravelingPoetWeb.GuideComponents do
               )}
             </span>
           </div>
-          <.save_button :if={is_boolean(@saved)} saved={@saved} kind="find" item={@find} />
+          <.verdict_buttons :if={@bookmarks} bookmarks={@bookmarks} kind="find" item={@find} />
         </div>
         <.poet_pick :if={@find.poet_rating} place={@find} poet={@poet} />
 
@@ -455,7 +463,7 @@ defmodule TravelingPoetWeb.GuideComponents do
           place={@selected}
           media={@media[@selected.media_id]}
           poet={poet_for(@poets, @selected, @poet)}
-          saved={saved(@bookmarks, @selected)}
+          bookmarks={@bookmarks}
           source={@sources[@selected.id]}
         />
         <p :if={is_nil(@selected)} class="text-sm opacity-60 p-4">
@@ -484,7 +492,7 @@ defmodule TravelingPoetWeb.GuideComponents do
         place={place}
         media={@media[place.media_id]}
         poet={poet_for(@poets, place, @poet)}
-        saved={saved(@bookmarks, place)}
+        bookmarks={@bookmarks}
         source={@sources[place.id]}
       />
     </div>
@@ -540,10 +548,33 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :place, :map, required: true
   attr :media, :map, default: nil
   attr :poet, :map, required: true
-  attr :saved, :any, default: nil, doc: "true/false shows the Save button; nil hides it"
+  attr :bookmarks, :any, default: nil, doc: "the reader's verdicts; nil hides Save and Not for me"
   attr :source, :any, default: nil, doc: "{label, path} to the page it came from"
 
-  def place_card(assigns) do
+  def place_card(%{bookmarks: bookmarks, place: place} = assigns) do
+    if passed(bookmarks, place) do
+      passed_card(%{id: "place-#{place.id}", kind: "place", item: place})
+    else
+      place_card_full(assigns)
+    end
+  end
+
+  # A passed item, folded: the name struck through and the way back.
+  defp passed_card(assigns) do
+    ~H"""
+    <div id={@id} class="card bg-base-200 border border-dashed border-base-300 opacity-70">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="font-semibold leading-snug line-through opacity-60">{@item.name}</h3>
+          <.pass_button passed={true} kind={@kind} item={@item} />
+        </div>
+        <p class="text-xs opacity-60">{dgettext("guide", "Not for you.")}</p>
+      </div>
+    </div>
+    """
+  end
+
+  defp place_card_full(assigns) do
     ~H"""
     <div id={"place-#{@place.id}"} class="card bg-base-200 border border-base-300 overflow-hidden">
       <img
@@ -562,7 +593,7 @@ defmodule TravelingPoetWeb.GuideComponents do
 
         <div class="flex items-center justify-between gap-2">
           <div class="text-xs opacity-60">{humanize_category(@place.category)}</div>
-          <.save_button :if={is_boolean(@saved)} saved={@saved} kind="place" item={@place} />
+          <.verdict_buttons :if={@bookmarks} bookmarks={@bookmarks} kind="place" item={@place} />
         </div>
         <.event_dates place={@place} />
         <.hours_line place={@place} />
@@ -799,9 +830,73 @@ defmodule TravelingPoetWeb.GuideComponents do
     """
   end
 
+  attr :passed, :boolean, required: true
+  attr :kind, :string, required: true
+  attr :item, :map, required: true
+
+  @doc """
+  "Not for me" on a place or find, or Undo once it is (card-123). The item
+  folds up wherever the reader sees it; the poet leans away from its subject.
+  """
+  def pass_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      id={"pass-#{@kind}-#{@item.id}"}
+      phx-click="toggle_pass"
+      phx-value-kind={@kind}
+      phx-value-id={@item.id}
+      class={["btn btn-ghost btn-xs gap-1 px-1", @passed && "text-primary"]}
+      aria-pressed={to_string(@passed)}
+      title={
+        if @passed,
+          do: dgettext("guide", "Marked not for you. Tap to bring it back"),
+          else: dgettext("guide", "Not interested. Tap to fold it away")
+      }
+    >
+      <.icon
+        name={if @passed, do: "hero-arrow-uturn-left", else: "hero-hand-thumb-down"}
+        class="size-4"
+      />
+      <span class="text-xs">
+        {if @passed,
+          do: dgettext("guide", "Undo"),
+          else: dgettext("guide", "Not for me")}
+      </span>
+    </button>
+    """
+  end
+
+  attr :bookmarks, :any, required: true, doc: "the reader's verdicts (`Bookmarks.keys/1`)"
+  attr :kind, :string, required: true
+  attr :item, :map, required: true
+
+  @doc """
+  Save and Not for me side by side; once passed, only Undo. A saved copy
+  (negative id, see `Bookmarks.list/1`) has nothing live to pass on.
+  """
+  def verdict_buttons(assigns) do
+    assigns =
+      assign(assigns,
+        saved: saved(assigns.bookmarks, assigns.item),
+        passed: passed(assigns.bookmarks, assigns.item)
+      )
+
+    ~H"""
+    <span class="flex items-center gap-0.5 shrink-0">
+      <.save_button :if={not @passed} saved={@saved} kind={@kind} item={@item} />
+      <.pass_button :if={@item.id > 0} passed={@passed} kind={@kind} item={@item} />
+    </span>
+    """
+  end
+
   @doc "Whether an item is in the reader's saved keys; nil when there is no reader."
   def saved(nil, _item), do: nil
   def saved(keys, item), do: TravelingPoet.Bookmarks.saved?(keys, item)
+
+  @doc "Whether the reader passed on an item; false when there is no reader."
+  def passed(nil, _item), do: false
+  def passed(keys, item), do: TravelingPoet.Bookmarks.passed?(keys, item)
 
   # An event with no dates cannot be planned around, and one whose dates have
   # passed must say so rather than sit in the guide looking current -- the

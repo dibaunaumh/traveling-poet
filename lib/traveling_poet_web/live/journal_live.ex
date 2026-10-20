@@ -360,6 +360,9 @@ defmodule TravelingPoetWeb.JournalLive do
   def handle_event("toggle_bookmark", params, socket),
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
 
+  def handle_event("toggle_pass", params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
+
   # Hotels for the reader's dates on a where-to-stay page (card-92): one
   # search around the area the poet picked, ranked against its places. The
   # partner call can take seconds, so it runs off the LiveView process.

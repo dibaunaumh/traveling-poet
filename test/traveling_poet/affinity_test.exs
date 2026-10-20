@@ -111,6 +111,20 @@ defmodule TravelingPoet.AffinityTest do
       assert_in_delta scores[@craft], -1.0, 0.1
     end
 
+    test "Not for me on a place counts against its subject", %{
+      user: user,
+      entry: entry,
+      poet: poet
+    } do
+      {:ok, _} = Journal.publish_entry(entry)
+      place = place_fixture(poet, entry, %{name: "The kiln shop"})
+      {:ok, place} = place |> Ecto.Changeset.change(topic: @craft) |> Repo.update()
+      {:ok, :passed} = TravelingPoet.Bookmarks.toggle_pass(user.id, "place", place.id)
+
+      scores = Map.new(Affinity.profile(user, DateTime.utc_now()), &{&1.path, &1.score})
+      assert_in_delta scores[@craft], -3.0, 0.01
+    end
+
     test "only the owner's own signals count", %{entry: entry} do
       stranger = user_fixture()
       marker_fixture(stranger, entry, "interesting", "salt works")
