@@ -337,7 +337,8 @@ defmodule TravelingPoetWeb.SettingsLive do
   @impl true
   def handle_event("toggle_email", params, socket) do
     case Accounts.update_user(socket.assigns.user, %{
-           email_notify: params["email_notify"] == "true"
+           email_notify: params["email_notify"] == "true",
+           email_full_page: params["email_full_page"] == "true"
          }) do
       {:ok, updated} ->
         {:noreply, assign(socket, :user, updated)}
@@ -2007,6 +2008,26 @@ defmodule TravelingPoetWeb.SettingsLive do
                         "One email a day, only when %{poet} publishes a new page, with its drawing. To %{email}.",
                         poet: @poet.name,
                         email: @user.email
+                      )}
+                    </span>
+                  </span>
+                </label>
+                <input type="hidden" name="email_full_page" value="false" />
+                <label class={["flex items-center gap-3 mt-3", !@user.email_notify && "opacity-50"]}>
+                  <input
+                    type="checkbox"
+                    name="email_full_page"
+                    value="true"
+                    class="toggle toggle-sm"
+                    checked={@user.email_full_page}
+                    disabled={!@user.email_notify}
+                  />
+                  <span>
+                    <b>{dgettext("settings", "Send the whole page")}</b>
+                    <span class="block text-sm opacity-60">
+                      {dgettext(
+                        "settings",
+                        "The page's words, drawings and places in the email itself, to read without opening the app. Replies and markers stay on the page."
                       )}
                     </span>
                   </span>

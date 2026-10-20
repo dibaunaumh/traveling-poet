@@ -198,3 +198,15 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "%{poet} answered you"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open the guide"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Open today's page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where to go"
+msgstr ""

@@ -810,3 +810,11 @@ msgid "≈ %{count} day of travel at your poet's pace."
 msgid_plural "≈ %{count} days of travel at your poet's pace."
 msgstr[0] ""
 msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Send the whole page"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "The page's words, drawings and places in the email itself, to read without opening the app. Replies and markers stay on the page."
+msgstr ""
