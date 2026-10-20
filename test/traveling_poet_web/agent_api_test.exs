@@ -1041,6 +1041,44 @@ defmodule TravelingPoetWeb.AgentApiTest do
              |> json_response(422)
   end
 
+  # What every poet does: draw first, then write. The drawing used to be
+  # resolved against a page that did not exist yet and stayed unlinked, so
+  # the page never showed it (Nam, 2026-10-20: no drawings at all).
+  test "a drawing sent before the day's entry exists creates the entry it attaches to",
+       %{conn: conn, poet: poet} do
+    Req.Test.stub(TravelingPoet.LinkCheck, &Req.Test.text(&1, "ok"))
+    today = Date.utc_today()
+    assert is_nil(Journal.get_entry(poet.id, today))
+
+    # the upload half needs S3, which no test can reach; the entry is
+    # resolved before any bytes are stored
+    try do
+      post(conn, ~p"/api/agent/media", %{
+        image_base64: Base.encode64(<<137, 80, 78, 71, 13, 10, 26, 10, 1>>),
+        content_type: "image/png",
+        kind: "spot",
+        entry_date: Date.to_iso8601(today),
+        sources: [%{url: "https://example.com/wool", label: "wool"}]
+      })
+    catch
+      :exit, _ -> :no_s3
+    end
+
+    assert %{status: "draft", title: nil} = draft = Journal.get_entry(poet.id, today)
+
+    # the poet's own upsert, a minute later, fills that row in
+    assert %{"ok" => true} =
+             conn
+             |> post(~p"/api/agent/journal_entries", %{
+               entry_date: Date.to_iso8601(today),
+               title: "The woolly rugby scrum"
+             })
+             |> json_response(200)
+
+    assert %{id: id, title: "The woolly rugby scrum"} = Journal.get_entry(poet.id, today)
+    assert id == draft.id
+  end
+
   test "rejects re-uploading byte-identical illustrations", %{conn: conn, poet: poet} do
     bytes = :crypto.strong_rand_bytes(64)
     hash = :crypto.hash(:md5, bytes) |> Base.encode16()

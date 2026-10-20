@@ -27,7 +27,8 @@ defmodule TravelingPoet.Journal.Spots do
     end
   end
 
-  defp referenced_ids(sections) do
+  @doc "The media ids these sections embed as `![alt](/media/:id)`, as a set."
+  def referenced_ids(sections) do
     sections
     |> Enum.flat_map(fn s ->
       Regex.scan(~r{\]\(/media/(\d+)\)}, s.body || "")

@@ -216,9 +216,12 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
 
   defp resolve_entry(_poet, nil), do: {:ok, nil}
 
+  # The entry row is created here when the poet has not written it yet:
+  # the drawing usually comes a minute before `journal_upsert_entry`, and a
+  # drawing resolved against no row was stored unlinked and never shown.
   defp resolve_entry(poet, date_str) do
     case Date.from_iso8601(to_string(date_str)) do
-      {:ok, date} -> {:ok, TravelingPoet.Journal.get_entry(poet.id, date)}
+      {:ok, date} -> Journal.ensure_entry(poet.id, date)
       {:error, _} -> {:error, :bad_date}
     end
   end
