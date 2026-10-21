@@ -217,6 +217,41 @@ defmodule TravelingPoetWeb.Layouts do
     """
   end
 
+  # The iOS app's App Store id (live since 2026-10-14)
+  @app_store_id "6815336805"
+
+  @doc "The App Store id, for Safari's Smart App Banner in the root layout."
+  def app_store_id, do: @app_store_id
+
+  @doc """
+  Apple's "Download on the App Store" badge, linking to the iOS app. The
+  artwork is Apple's own (US-UK black, unaltered, as Apple's marketing
+  guidelines require). Hidden inside the app and on Android (app.css).
+  """
+  attr :class, :any, default: nil
+  attr :track, :string, required: true
+
+  def app_store_badge(assigns) do
+    assigns = assign(assigns, :url, "https://apps.apple.com/app/id#{@app_store_id}")
+
+    ~H"""
+    <a
+      href={@url}
+      class={["app-store-badge", @class]}
+      target="_blank"
+      rel="noopener"
+      data-track={@track}
+    >
+      <img
+        src={~p"/images/app-store-badge.svg"}
+        alt={gettext("Download on the App Store")}
+        width="120"
+        height="40"
+      />
+    </a>
+    """
+  end
+
   @doc """
   A quiet link to the interface in the other language, for a visitor who
   is not signed in (a reader picks theirs in Settings). `Plugs.Locale`

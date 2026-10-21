@@ -578,3 +578,11 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "“Seville → Ronda → Málaga, ten days in September.” Or just the flights on your calendar."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Also on iPhone and iPad."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Download on the App Store"
+msgstr ""

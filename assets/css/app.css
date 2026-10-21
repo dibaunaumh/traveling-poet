@@ -1114,6 +1114,25 @@ mark.marker.marker-sent {
 }
 .home-hero-more:hover { color: var(--hero-ink); text-decoration: underline; }
 
+/* The App Store badge (Layouts.app_store_badge): Apple's artwork, unaltered.
+   The app is iOS only, and inside it the badge has nothing to offer. */
+.app-store-badge { display: inline-block; line-height: 0; }
+.app-store-badge img { height: 40px; width: auto; }
+.app-store-badge:focus-visible { outline: 3px solid var(--hero-accent); outline-offset: 3px; border-radius: 0.5rem; }
+:root[data-native] .app-store-badge,
+:root[data-android] .app-store-badge,
+:root[data-android] .home-hero-app { display: none; }
+
+.home-hero-app {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+  color: var(--hero-ink-2);
+  font-size: 0.9rem;
+}
+.home-footer .app-store-badge img { height: 32px; }
+
 .home-hero-copy small {
   display: block;
   margin-top: 1rem;

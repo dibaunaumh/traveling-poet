@@ -78,6 +78,10 @@
             {gettext("See how it works ↓")}
           </a>
         </div>
+        <p :if={!@native_app} class="home-hero-app">
+          <Layouts.app_store_badge track="app-store-hero" />
+          <span>{gettext("Also on iPhone and iPad.")}</span>
+        </p>
       </div>
     </section>
 
@@ -229,6 +233,7 @@
         <.link navigate={~p"/terms"} data-track="footer-terms">{gettext("Terms")}</.link>
         <Layouts.language_switch :if={@signed_out?} />
       </span>
+      <Layouts.app_store_badge :if={!@native_app} track="app-store-footer" />
       <span class="opacity-60">&copy; {Date.utc_today().year}</span>
     </div>
   </footer>

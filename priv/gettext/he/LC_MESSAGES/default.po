@@ -578,3 +578,11 @@ msgstr "״ערים עם שכבות. חנויות ספרים ישנות. בלי �
 #, elixir-autogen, elixir-format
 msgid "“Seville → Ronda → Málaga, ten days in September.” Or just the flights on your calendar."
 msgstr "״סביליה ← רונדה ← מלגה, עשרה ימים בספטמבר.״ או פשוט הטיסות שבלוח השנה שלכם."
+
+#, elixir-autogen, elixir-format
+msgid "Also on iPhone and iPad."
+msgstr "גם באייפון ובאייפד."
+
+#, elixir-autogen, elixir-format
+msgid "Download on the App Store"
+msgstr "להורדה ב-App Store"

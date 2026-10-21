@@ -24,6 +24,32 @@ defmodule TravelingPoetWeb.PageControllerTest do
     refute html =~ "0 poets exploring"
   end
 
+  test "the web offers the iOS app: Safari's banner and the App Store badge", %{conn: conn} do
+    html = conn |> get(~p"/") |> html_response(200)
+    assert html =~ ~s(<meta name="apple-itunes-app" content="app-id=6815336805")
+    assert html =~ ~s(href="https://apps.apple.com/app/id6815336805")
+    assert html =~ ~s(data-track="app-store-hero")
+    assert html =~ ~s(data-track="app-store-footer")
+    assert html =~ "Also on iPhone and iPad."
+
+    he = build_conn() |> get(~p"/?lang=he") |> html_response(200)
+    assert he =~ ~s(alt="להורדה ב-App Store")
+  end
+
+  test "inside the iOS app nothing offers the app", %{conn: conn} do
+    html =
+      conn
+      |> put_req_header(
+        "user-agent",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 TravelingPoetiOS/1.0.0"
+      )
+      |> get(~p"/privacy")
+      |> html_response(200)
+
+    refute html =~ "apple-itunes-app"
+    refute html =~ "apps.apple.com"
+  end
+
   # "Poets on the road" is a compact Discover (DiscoverLive, embedded): the
   # same data, overviews and privacy rule as /discover.
   test "GET / shows the fleet through the embedded Discover", %{conn: conn} do
