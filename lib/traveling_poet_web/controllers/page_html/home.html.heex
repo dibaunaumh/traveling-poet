@@ -78,10 +78,10 @@
             {gettext("See how it works ↓")}
           </a>
         </div>
-        <p :if={!@native_app} class="home-hero-app">
-          <Layouts.app_store_badge track="app-store-hero" />
+        <div :if={!@native_app} class="home-hero-app">
           <span>{gettext("Also on iPhone and iPad.")}</span>
-        </p>
+          <Layouts.app_store_badge track="app-store-hero" />
+        </div>
       </div>
     </section>
 
