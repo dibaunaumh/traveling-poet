@@ -81,6 +81,10 @@ defmodule TravelingPoetWeb.PublicGuideLive do
     do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
 
   @impl true
+  def handle_async(:google_ids, result, socket),
+    do: TravelingPoetWeb.GoogleMapsSaving.handle_async(result, socket)
+
+  @impl true
   def handle_info({:guide_geocoded, _poet_id}, socket), do: {:noreply, reload(socket)}
   def handle_info({:journal_published, _id}, socket), do: {:noreply, reload(socket)}
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -122,6 +126,12 @@ defmodule TravelingPoetWeb.PublicGuideLive do
       <.empty_state :if={@places == []} poet={@poet} />
 
       <div :if={@places != []}>
+        <.google_maps_save
+          id="guide-google-maps"
+          places={@places}
+          ids={@google_ids}
+          pending={@google_pending}
+        />
         <.map_view
           :if={@view == "map"}
           map_places={@map_places}

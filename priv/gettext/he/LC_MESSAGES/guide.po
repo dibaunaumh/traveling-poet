@@ -592,10 +592,6 @@ msgid "Products"
 msgstr "מוצרים"
 
 #, elixir-autogen, elixir-format
-msgid "Put these places in Google Maps"
-msgstr "העברת המקומות ל-Google Maps"
-
-#, elixir-autogen, elixir-format
 msgid "Read the entry"
 msgstr "לקריאת העמוד"
 
@@ -1019,3 +1015,37 @@ msgstr "לא מעניין. הקישו לקיפול"
 #, elixir-autogen, elixir-format
 msgid "Undo"
 msgstr "ביטול"
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place Google could not find is not included."
+msgid_plural "%{count} places Google could not find are not included."
+msgstr[0] "מקום אחד ש-Google לא מצא לא נכלל."
+msgstr[1] "%{count} מקומות ש-Google לא מצא לא נכללו."
+
+#, elixir-autogen, elixir-format
+msgid "Getting places ready…"
+msgstr "מכינים את המקומות…"
+
+#, elixir-autogen, elixir-format
+msgid "On a computer: make a Google My Maps map of these places"
+msgstr "במחשב: הכנת מפה של המקומות האלה ב-Google My Maps"
+
+#, elixir-autogen, elixir-format
+msgid "Opens these places in Google Maps. Tap Select all, then Save, and keep them in a list for the trip."
+msgstr "פותח את המקומות ב-Google Maps. הקישו על בחירת הכול ואז על שמירה, ושמרו אותם ברשימה לטיול."
+
+#, elixir-autogen, elixir-format
+msgid "Places %{from}-%{to}"
+msgstr "מקומות %{from}-%{to}"
+
+#, elixir-autogen, elixir-format
+msgid "Save %{from}-%{to} in Google Maps ↗"
+msgstr "שמירת %{from}-%{to} ב-Google Maps ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Save in Google Maps ↗"
+msgstr "שמירה ב-Google Maps ↖"
+
+#, elixir-autogen, elixir-format
+msgid "Save to Google Maps"
+msgstr "שמירה ב-Google Maps"

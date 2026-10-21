@@ -16,6 +16,7 @@ defmodule TravelingPoetWeb.SharedSavedLive do
 
   alias TravelingPoet.Bookmarks
   alias TravelingPoet.Guide.DayPlan
+  alias TravelingPoetWeb.GoogleMapsSaving
 
   @impl true
   def mount(%{"token" => token}, _session, socket) do
@@ -36,7 +37,8 @@ defmodule TravelingPoetWeb.SharedSavedLive do
          socket
          |> assign(token: token, who: who, places: places, poets: poets, plan_days: 3)
          |> assign(:page_title, dgettext("journal", "%{who}'s saved places", who: who))
-         |> assign_plan()}
+         |> assign_plan()
+         |> GoogleMapsSaving.assign_ids()}
     end
   end
 
@@ -50,6 +52,10 @@ defmodule TravelingPoetWeb.SharedSavedLive do
 
     {:noreply, socket |> assign(:plan_days, days) |> assign_plan()}
   end
+
+  @impl true
+  def handle_async(:google_ids, result, socket),
+    do: GoogleMapsSaving.handle_async(result, socket)
 
   defp assign_plan(socket),
     do: assign(socket, :day_plan, DayPlan.plan(socket.assigns.places, socket.assigns.plan_days))
@@ -85,8 +91,24 @@ defmodule TravelingPoetWeb.SharedSavedLive do
       </p>
 
       <div :if={@places != []}>
-        <.maps_export id="shared-to-maps" kml_url={~p"/shared/#{@token}/places.kml"} />
-        <.day_plan :if={@day_plan != []} plan={@day_plan} days={@plan_days} />
+        <.google_maps_save
+          id="shared-google-maps"
+          places={@places}
+          ids={@google_ids}
+          pending={@google_pending}
+        />
+        <.maps_export
+          :if={!@native_app}
+          id="shared-to-maps"
+          kml_url={~p"/shared/#{@token}/places.kml"}
+        />
+        <.day_plan
+          :if={@day_plan != []}
+          plan={@day_plan}
+          days={@plan_days}
+          google_ids={@google_ids}
+          google_pending={@google_pending}
+        />
         <div id="shared-places" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <.place_card
             :for={place <- @places}

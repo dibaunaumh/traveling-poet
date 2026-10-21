@@ -137,10 +137,13 @@ defmodule TravelingPoetWeb.GuideState do
   unreachable from BOTH views -- the owner does not get an early look at what
   the poet has not published yet, and the public view cannot leak one.
   """
-  def assign_places(%{assigns: %{saved_view: true}} = socket), do: assign_saved(socket)
-  def assign_places(%{assigns: %{topic: %{} = _topic}} = socket), do: assign_finds(socket)
+  def assign_places(socket),
+    do: socket |> load_places() |> TravelingPoetWeb.GoogleMapsSaving.assign_ids()
 
-  def assign_places(socket) do
+  defp load_places(%{assigns: %{saved_view: true}} = socket), do: assign_saved(socket)
+  defp load_places(%{assigns: %{topic: %{} = _topic}} = socket), do: assign_finds(socket)
+
+  defp load_places(socket) do
     %{poet: poet, stay: stay, filter: filter} = socket.assigns
 
     all =
