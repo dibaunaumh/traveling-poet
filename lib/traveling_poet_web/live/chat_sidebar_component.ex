@@ -140,6 +140,7 @@ defmodule TravelingPoetWeb.ChatSidebarComponent do
     # or the reply vanishes from the panel the moment it finishes.
     socket =
       with true <- content != "",
+           false <- TravelingPoet.AgentSession.housekeeping_reply?(String.trim(content)),
            {:ok, saved} <-
              Chat.create_agent_message_once(%{
                user_id: user.id,
