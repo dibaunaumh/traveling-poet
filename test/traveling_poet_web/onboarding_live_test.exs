@@ -327,6 +327,7 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
         "Lisbon" => [hit("Lisboa, Portugal", "city", "Lisboa")],
         "Porto" => [hit("Porto, Portugal", "city", "Porto")],
         "Texas" => [hit("Texas, United States", "state", nil)],
+        "Thailand" => [hit("Thailand", "country", nil)],
         "Paris, Texas" => [hit("Paris, Lamar County, Texas, United States", "city", "Paris")]
       }
 
@@ -350,6 +351,35 @@ defmodule TravelingPoetWeb.OnboardingLiveTest do
       assert html =~ ~r/2\.<\/span>\s*<span class="flex-1">Porto, Portugal/
       refute html =~ "Couldn’t find"
       refute html =~ ~r/id="journey-continue"[^>]*disabled/s
+    end
+
+    # 2026-10-19: "Thailand" put a poet on the country's centre point, and
+    # three pages said "Written from Thailand".
+    test "a country is a region the poet picks its town in", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=Thailand")
+      render_async(view)
+
+      html = view |> element("#onboarding-poet") |> render_submit()
+      assert html =~ ~r/Setting out from <b[^>]*>Thailand/
+      assert html =~ "Your poet will choose a town there to start from."
+
+      render_click(view, "next", %{})
+      render_click(view, "create_poet", %{})
+      poet = Poets.get_poet_by_user(user.id)
+      assert Poets.start_region(poet) == "Thailand"
+    end
+
+    test "a city is not a region", %{conn: conn} do
+      user = user_fixture()
+      {:ok, view, _html} = live(sign_in(conn, user), ~p"/onboarding?place=Porto")
+      render_async(view)
+
+      html = view |> element("#onboarding-poet") |> render_submit()
+      refute html =~ "region-start-note"
+      render_click(view, "next", %{})
+      render_click(view, "create_poet", %{})
+      assert Poets.start_region(Poets.get_poet_by_user(user.id)) == nil
     end
 
     test "a place qualified by its state stays one place", %{conn: conn} do

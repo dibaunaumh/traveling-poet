@@ -694,3 +694,7 @@ msgstr "…או כל ספר אחר (טקסט חופשי)"
 #, elixir-autogen, elixir-format
 msgid "…or anything else, comma-separated"
 msgstr "…או כל דבר אחר, מופרד בפסיקים"
+
+#, elixir-autogen, elixir-format
+msgid "Your poet will choose a town there to start from."
+msgstr "המשורר שלכם יבחר שם עיר או עיירה לצאת ממנה."

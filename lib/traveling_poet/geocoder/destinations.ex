@@ -31,6 +31,14 @@ defmodule TravelingPoet.Geocoder.Destinations do
   # Parts of a route separated by a comma or a semicolon.
   @separators ~r/\s*[,;]\s*/
 
+  @doc """
+  Whether a geocoder result names a whole country or region rather than a
+  town. A poet cannot stand in "Thailand": its pin would be the country's
+  centre point and its pages would say "Written from Thailand".
+  """
+  def region?(%{kind: kind}) when kind in @qualifiers, do: true
+  def region?(_), do: false
+
   @doc "The parts of a destination string, trimmed, empties dropped."
   def parts(query) when is_binary(query) do
     query

@@ -24,62 +24,84 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   def upsert_entry(conn, %{"entry_date" => date_str} = params) do
     with_poet_and_date(conn, date_str, fn poet, date ->
-      attrs =
-        params
-        |> Map.take(["title", "teaser", "place_name", "lat", "lng", "weather", "sources"])
-        |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
-        |> trim_teaser()
-        # The poet writes in its reader's language (card-101); the page
-        # keeps the one it was written in, whatever the reader picks later
-        |> Map.put(
-          :language,
-          TravelingPoet.Locale.normalize(conn.assigns.agent_user.locale) || "en"
-        )
-
-      {attrs, dropped} = prune_sources(attrs)
-
-      case Journal.upsert_entry(poet.id, date, attrs) do
-        {:ok, entry} ->
-          case Topics.link_entry(entry, params) do
-            {:ok, excursion} ->
-              entry = Journal.complete_coordinates(entry, poet)
-              prompt = maybe_attach_prompt(entry, params["prompt"])
-
-              json(
-                conn,
-                %{
-                  ok: true,
-                  entry_id: entry.id,
-                  entry_date: entry.entry_date,
-                  status: entry.status,
-                  prompt_accepted: prompt,
-                  excursion_linked: not is_nil(excursion)
-                }
-                |> with_dead_note(:dropped_dead_sources, dropped, "were dropped from sources")
-              )
-
-            # The entry is saved; only the excursion id was wrong. Loud, so
-            # the poet fixes the id instead of publishing a place entry on a
-            # day the app sent it off the road.
-            {:error, reason} ->
-              conn
-              |> put_status(422)
-              |> json(%{
-                error:
-                  "entry saved, but #{reason}: pass the excursion_id or topic_id from " <>
-                    "travel.excursion in get_poet_context",
-                entry_id: entry.id
-              })
-          end
-
-        {:error, changeset} ->
-          conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})
+      case Poets.start_region(poet) do
+        nil -> do_upsert_entry(conn, poet, date, params)
+        region -> refuse_region(conn, region)
       end
     end)
   end
 
   def upsert_entry(conn, _params) do
     conn |> put_status(422) |> json(%{error: "entry_date (YYYY-MM-DD) is required"})
+  end
+
+  # A page written "from Thailand" sat on the country's centre point and
+  # named no town (2026-10-19). The poet picks the town first.
+  defp refuse_region(conn, region) do
+    conn
+    |> put_status(422)
+    |> json(%{
+      error: "no town yet",
+      start_region: region,
+      note:
+        "Your companion named #{region}, a whole country or region, not a town. Choose one " <>
+          "real city or town in it that suits them (their focus first), call update_location " <>
+          "there, then write this page from that town."
+    })
+  end
+
+  defp do_upsert_entry(conn, poet, date, params) do
+    attrs =
+      params
+      |> Map.take(["title", "teaser", "place_name", "lat", "lng", "weather", "sources"])
+      |> Map.new(fn {k, v} -> {String.to_existing_atom(k), v} end)
+      |> trim_teaser()
+      # The poet writes in its reader's language (card-101); the page
+      # keeps the one it was written in, whatever the reader picks later
+      |> Map.put(
+        :language,
+        TravelingPoet.Locale.normalize(conn.assigns.agent_user.locale) || "en"
+      )
+
+    {attrs, dropped} = prune_sources(attrs)
+
+    case Journal.upsert_entry(poet.id, date, attrs) do
+      {:ok, entry} ->
+        case Topics.link_entry(entry, params) do
+          {:ok, excursion} ->
+            entry = Journal.complete_coordinates(entry, poet)
+            prompt = maybe_attach_prompt(entry, params["prompt"])
+
+            json(
+              conn,
+              %{
+                ok: true,
+                entry_id: entry.id,
+                entry_date: entry.entry_date,
+                status: entry.status,
+                prompt_accepted: prompt,
+                excursion_linked: not is_nil(excursion)
+              }
+              |> with_dead_note(:dropped_dead_sources, dropped, "were dropped from sources")
+            )
+
+          # The entry is saved; only the excursion id was wrong. Loud, so
+          # the poet fixes the id instead of publishing a place entry on a
+          # day the app sent it off the road.
+          {:error, reason} ->
+            conn
+            |> put_status(422)
+            |> json(%{
+              error:
+                "entry saved, but #{reason}: pass the excursion_id or topic_id from " <>
+                  "travel.excursion in get_poet_context",
+              entry_id: entry.id
+            })
+        end
+
+      {:error, changeset} ->
+        conn |> put_status(422) |> json(%{error: changeset_errors(changeset)})
+    end
   end
 
   # A dead grounding source is dropped, never fatal: the entry is the poet's

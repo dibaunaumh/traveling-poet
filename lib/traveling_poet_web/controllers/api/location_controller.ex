@@ -19,11 +19,18 @@ defmodule TravelingPoetWeb.Api.LocationController do
           country_code: params["country_code"]
         }
 
-        # A stop the companion planned or asked for may be anywhere; the
-        # poet's own choice must be somewhere it has not been.
-        case !is_integer(params["itinerary_stop_id"]) && Poets.earlier_stay(poet.id, target) do
-          %{} = stay -> refuse_return(conn, stay)
-          _ -> move(conn, poet, target, params)
+        cond do
+          # The reader named a country; this is the town the poet chose in it.
+          Poets.start_region(poet) ->
+            move(conn, poet, target, params, &Poets.settle_start/2)
+
+          # A stop the companion planned or asked for may be anywhere; the
+          # poet's own choice must be somewhere it has not been.
+          stay = !is_integer(params["itinerary_stop_id"]) && Poets.earlier_stay(poet.id, target) ->
+            refuse_return(conn, stay)
+
+          true ->
+            move(conn, poet, target, params, &Poets.move_to/2)
         end
     end
   end
@@ -53,8 +60,8 @@ defmodule TravelingPoetWeb.Api.LocationController do
     })
   end
 
-  defp move(conn, poet, target, params) do
-    case Poets.move_to(poet, target) do
+  defp move(conn, poet, target, params, move_fun) do
+    case move_fun.(poet, target) do
       {:ok, updated} ->
         stop_visited = maybe_mark_stop_visited(poet, params["itinerary_stop_id"])
 

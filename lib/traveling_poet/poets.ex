@@ -125,6 +125,64 @@ defmodule TravelingPoet.Poets do
     end)
   end
 
+  @doc """
+  The country or region a poet set out from when its reader named one
+  instead of a town (2026-10-19: "Thailand" put a poet on the country's
+  centre point for its first three pages). Nil once the poet has chosen
+  its town there with `settle_start/2`.
+  """
+  def start_region(%Poet{settings: %{"start_region" => region}})
+      when is_binary(region) and region != "",
+      do: region
+
+  def start_region(_poet), do: nil
+
+  @doc """
+  Puts a poet that set out from a region in the town it chose there.
+  The region's path point is rewritten in place rather than departed: the
+  region was never a stay, so it must not count as one (`earlier_stay/2`,
+  `visited_stays/1`), and the days at the town start now.
+  """
+  def settle_start(%Poet{} = poet, %{lat: lat, lng: lng} = attrs) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    where = %{
+      lat: lat,
+      lng: lng,
+      place_name: attrs[:place_name],
+      country_code: attrs[:country_code]
+    }
+
+    Repo.transaction(fn ->
+      case current_path_point(poet.id) do
+        nil ->
+          %PathPoint{}
+          |> PathPoint.changeset(
+            Map.merge(where, %{poet_id: poet.id, arrived_at: now, position: 0})
+          )
+          |> Repo.insert!()
+
+        point ->
+          point
+          |> PathPoint.changeset(Map.put(where, :arrived_at, now))
+          |> Ecto.Changeset.put_change(:item_id, nil)
+          |> Repo.update!()
+      end
+      |> TravelingPoet.Spaces.Ingest.stay_for()
+
+      poet
+      |> Poet.changeset(%{
+        current_lat: lat,
+        current_lng: lng,
+        current_place_name: attrs[:place_name],
+        current_country_code: attrs[:country_code],
+        arrived_at: now,
+        settings: Map.delete(poet.settings || %{}, "start_region")
+      })
+      |> Repo.update!()
+    end)
+  end
+
   ## Itinerary (Trip Scout mode)
 
   def list_stops(poet_id) do

@@ -191,6 +191,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
         dgettext("onboarding", "Search failed: %{reason}", reason: reason)
       )
 
+  # A reader who types a country ("Thailand") gets a poet that chooses its
+  # own town there on its first page (Poets.start_region/1); until then the
+  # app refuses that page.
+  defp region_start(location) do
+    if Destinations.region?(location),
+      do: %{"start_region" => location.place_name},
+      else: %{}
+  end
+
   defp lookup_failed(query),
     do:
       dgettext(
@@ -443,12 +452,14 @@ defmodule TravelingPoetWeb.OnboardingLive do
       current_place_name: location && location.place_name,
       current_country_code: location && location.country_code,
       arrived_at: DateTime.utc_now() |> DateTime.truncate(:second),
-      settings: %{
-        "stay_duration_days" => 3,
-        "mode" => assigns.mode,
-        "verbosity" => assigns.verbosity,
-        "user_interests" => interests
-      }
+      settings:
+        %{
+          "stay_duration_days" => 3,
+          "mode" => assigns.mode,
+          "verbosity" => assigns.verbosity,
+          "user_interests" => interests
+        }
+        |> Map.merge(region_start(location))
     }
 
     with {:ok, name_ok} <- validate_poet_name(assigns.poet_name),
@@ -1000,6 +1011,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 }>
                   <:part name="place"><b>{@location && @location.place_name}</b></:part>
                 </.rich>
+              </span>
+              <span
+                :if={Destinations.region?(@location)}
+                id="region-start-note"
+                class="basis-full text-xs opacity-70"
+              >
+                {dgettext("onboarding", "Your poet will choose a town there to start from.")}
               </span>
               <button
                 type="button"
