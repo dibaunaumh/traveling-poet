@@ -64,6 +64,14 @@ defmodule TravelingPoet.ProvisionerConfigTest do
     assert config.skills.workshop.autonomous.mode == "off"
   end
 
+  # 2026-10-17 to 10-22: the nightly dreaming sweep's reports reached 22
+  # readers' chats.
+  test "memory-core dreaming is off" do
+    config = Provisioner.openclaw_config("gw-token", "https://poet.travel", "vendor/model-x")
+
+    assert config.plugins.entries["memory-core"].config.dreaming.enabled == false
+  end
+
   # Without `contracts.tools` and startup activation the 2026.10 gateway never
   # loads the plugin ("1 plugin: memory-core") and the poet has no app tools.
   test "the plugin manifest declares every registered tool and loads at startup" do
@@ -91,9 +99,33 @@ defmodule TravelingPoet.ProvisionerConfigTest do
   end
 
   test "heartbeat acknowledgements are not treated as a poet's reply" do
-    assert AgentSession.heartbeat_reply?("HEARTBEAT_OK")
-    assert AgentSession.heartbeat_reply?("NO_REPLY")
-    refute AgentSession.heartbeat_reply?("")
-    refute AgentSession.heartbeat_reply?("I added the link to Liberty Public Market.")
+    assert AgentSession.housekeeping_reply?("HEARTBEAT_OK")
+    assert AgentSession.housekeeping_reply?("NO_REPLY")
+    refute AgentSession.housekeeping_reply?("")
+    refute AgentSession.housekeeping_reply?(nil)
+    refute AgentSession.housekeeping_reply?("I added the link to Liberty Public Market.")
+  end
+
+  # Real replies from the fleet, 2026-10-17 to 10-22.
+  test "a report on a dreaming sweep is not a poet's reply" do
+    for report <- [
+          "This is a system-level memory consolidation (\"dreaming\") cron job: it handles " <>
+            "promoting short-term memory patterns to long-term storage.",
+          "This is an internal OpenClaw memory core system cron " <>
+            "(`__openclaw_memory_core_short_term_promotion_dream__`). No work to perform.",
+          "Memory dreaming run complete. Consolidated the strongest uncaptured signal."
+        ] do
+      assert AgentSession.housekeeping_reply?(report), report
+    end
+  end
+
+  test "a page or postcard that mentions a dream is still a reply" do
+    for prose <- [
+          "**Day 5**: The palace that dreams in colour. A fever dream of yellow and red.",
+          "Venice Beach is Abbot Kinney's bonkers 1905 dream: canals, a gondola, a Ship Cafe.",
+          "Built out of a 1988 dream of a four-tower City of Air that the bubble economy cut."
+        ] do
+      refute AgentSession.housekeeping_reply?(prose), prose
+    end
   end
 end

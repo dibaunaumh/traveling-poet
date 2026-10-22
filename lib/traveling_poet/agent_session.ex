@@ -88,11 +88,12 @@ defmodule TravelingPoet.AgentSession do
       {:gateway_event, {:done, response_id}} ->
         content = String.trim(acc)
 
-        if heartbeat_reply?(content) do
-          # An OpenClaw heartbeat that ran on the main session ahead of our
-          # message; the real reply is still coming. Heartbeats are disabled
-          # in the config we write, but a stale sprite may still run one.
-          Logger.info("AgentSession: ignoring heartbeat reply for user #{user.id}")
+        if housekeeping_reply?(content) do
+          # An OpenClaw heartbeat or dreaming sweep that ran on the main
+          # session ahead of our message; the real reply is still coming. Both
+          # are disabled in the config we write, but a stale sprite may still
+          # run one.
+          Logger.info("AgentSession: ignoring housekeeping reply for user #{user.id}")
           collect_reply(user, "", timeout, persist?, channel)
         else
           finish_reply(user, content, response_id, persist?, channel)
@@ -113,8 +114,31 @@ defmodule TravelingPoet.AgentSession do
     end
   end
 
-  @doc "True for the acknowledgements an OpenClaw heartbeat run emits when it has nothing to do."
-  def heartbeat_reply?(content), do: content in ["HEARTBEAT_OK", "NO_REPLY"]
+  @doc """
+  True for a reply OpenClaw's own background jobs produced rather than an
+  answer to anything we sent: a heartbeat's acknowledgement, or the poet's
+  report on a memory-core "dreaming" sweep (2026-10-17 to 10-22, 46 of them
+  in readers' chats). The dreaming test needs all three words; on the
+  1142 poet messages of 2026-10-22 it matched those 46 and none of the 18
+  pages and postcards that only say "dream".
+  """
+  def housekeeping_reply?(content) when is_binary(content) do
+    content in ["HEARTBEAT_OK", "NO_REPLY"] or dreaming_report?(String.downcase(content))
+  end
+
+  def housekeeping_reply?(_content), do: false
+
+  defp dreaming_report?(text) do
+    String.contains?(text, "dream") and String.contains?(text, "memory") and
+      String.contains?(text, [
+        "consolidat",
+        "promot",
+        "sweep",
+        "long-term",
+        "cron",
+        "recall store"
+      ])
+  end
 
   defp finish_reply(user, content, response_id, persist?, channel) do
     if persist? and content != "" do

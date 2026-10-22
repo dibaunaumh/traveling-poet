@@ -83,6 +83,36 @@ defmodule TravelingPoet.Chat do
     |> Repo.exists?()
   end
 
+  @doc """
+  Removes the poet messages that were OpenClaw housekeeping, not replies
+  (`AgentSession.housekeeping_reply?/1`): the dreaming reports saved to 22
+  readers' chats from 2026-10-17. A dry run unless `commit: true`; returns
+  `%{found: n, deleted: n, users: [user_id]}`.
+  """
+  def purge_housekeeping(opts \\ []) do
+    found =
+      ChatMessage
+      |> where(role: "agent")
+      |> where([m], like(m.content, "%ream%"))
+      |> Repo.all()
+      |> Enum.filter(&TravelingPoet.AgentSession.housekeeping_reply?(String.trim(&1.content)))
+
+    deleted =
+      if Keyword.get(opts, :commit, false) do
+        ids = Enum.map(found, & &1.id)
+        {n, _} = ChatMessage |> where([m], m.id in ^ids) |> Repo.delete_all()
+        n
+      else
+        0
+      end
+
+    %{
+      found: length(found),
+      deleted: deleted,
+      users: found |> Enum.map(& &1.user_id) |> Enum.uniq()
+    }
+  end
+
   @doc "The saved copy of a reply `create_agent_message_once/1` called a duplicate."
   def recent_agent_message(user_id, content, minutes \\ 10) do
     cutoff = NaiveDateTime.add(NaiveDateTime.utc_now(), -minutes * 60, :second)

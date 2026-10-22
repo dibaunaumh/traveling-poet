@@ -1052,6 +1052,13 @@ defmodule TravelingPoet.Provisioner do
   costs a model call and its `HEARTBEAT_OK` races the real reply
   (`AgentSession`). Every cadence in this product lives app-side.
 
+  Dreaming is off too. OpenClaw 2026.10 schedules a nightly memory-core
+  "dreaming" sweep that consolidates the poet's memory. On a paused sprite
+  it ran inside the turns the app drove, and the poet's report on it
+  ("This is a system-level memory consolidation cron job...") landed in 22
+  readers' chats (2026-10-17 to 10-22). What the poet should remember about
+  its reader the app already hands it in the context.
+
   `web_search` is pinned to Perplexity Sonar over the fleet OpenRouter key,
   model `search_model/0`. With nothing configured OpenClaw falls back to
   `perplexity/sonar-pro`; the 2026-09-18 replay of 50 real poet queries
@@ -1089,7 +1096,9 @@ defmodule TravelingPoet.Provisioner do
             config: %{
               webSearch: %{baseUrl: "https://openrouter.ai/api/v1", model: search_model()}
             }
-          }
+          },
+          # Turning it off also removes its cron job from the sprite.
+          "memory-core" => %{config: %{dreaming: %{enabled: false}}}
         }
       },
       # OpenClaw 2026.10 hides tool schemas behind a "tool search" surface by

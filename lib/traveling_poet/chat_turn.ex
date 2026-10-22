@@ -118,7 +118,7 @@ defmodule TravelingPoet.ChatTurn do
     do: {:noreply, %{state | text: text}}
 
   def handle_info({:gateway_event, {:done, response_id}}, state) do
-    if AgentSession.heartbeat_reply?(String.trim(state.text)) do
+    if AgentSession.housekeeping_reply?(String.trim(state.text)) do
       {:noreply, %{state | text: ""}}
     else
       save(state, response_id)
