@@ -936,6 +936,81 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert hd(points).place_name == "Sintra, Portugal"
   end
 
+  # 2026-10-19: a reader typed "Thailand"; the poet stood on the country's
+  # centre point and wrote three pages "from Thailand".
+  describe "a poet that set out from a region" do
+    setup %{poet: poet} do
+      {:ok, poet} =
+        poet
+        |> TravelingPoet.Poets.Poet.changeset(%{
+          current_lat: 14.8971921,
+          current_lng: 100.83273,
+          current_place_name: "Thailand",
+          current_country_code: "TH",
+          settings: Map.put(poet.settings || %{}, "start_region", "Thailand")
+        })
+        |> TravelingPoet.Repo.update()
+
+      TravelingPoet.Poets.move_to(poet, %{
+        lat: 14.8971921,
+        lng: 100.83273,
+        place_name: "Thailand",
+        country_code: "TH"
+      })
+
+      %{poet: TravelingPoet.Poets.get_poet!(poet.id)}
+    end
+
+    test "is told to choose a town, and cannot write a page until it does",
+         %{conn: conn, poet: poet} do
+      body = conn |> get(~p"/api/agent/context") |> json_response(200)
+      assert body["location"]["start_region"] == "Thailand"
+
+      today = Date.to_iso8601(Date.utc_today())
+
+      assert %{"error" => "no town yet", "note" => note} =
+               conn
+               |> post(~p"/api/agent/journal_entries", %{entry_date: today, title: "Setting out"})
+               |> json_response(422)
+
+      assert note =~ "update_location"
+      assert Journal.get_entry(poet.id, Date.utc_today()) == nil
+    end
+
+    test "chooses a town near the centre point, which replaces the region as its first stay",
+         %{conn: conn, poet: poet} do
+      # Lopburi is 25 km from Thailand's centre point; a town within 10 km
+      # of it must not read as "you are there now".
+      assert %{"ok" => true, "place_name" => "Ban Mi, Thailand"} =
+               conn
+               |> post(~p"/api/agent/location", %{
+                 lat: 14.95,
+                 lng: 100.85,
+                 place_name: "Ban Mi, Thailand",
+                 country_code: "TH"
+               })
+               |> json_response(200)
+
+      assert [%{position: 0, place_name: "Ban Mi, Thailand", departed_at: nil}] =
+               TravelingPoet.Poets.list_path_points(poet.id)
+
+      poet = TravelingPoet.Poets.get_poet!(poet.id)
+      assert poet.current_place_name == "Ban Mi, Thailand"
+      assert TravelingPoet.Poets.start_region(poet) == nil
+
+      assert TravelingPoet.Poets.visited_stays(poet.id)
+             |> Enum.map(& &1.place_name)
+             |> Enum.all?(&(&1 != "Thailand"))
+
+      today = Date.to_iso8601(Date.utc_today())
+
+      assert %{"ok" => true} =
+               conn
+               |> post(~p"/api/agent/journal_entries", %{entry_date: today, title: "Setting out"})
+               |> json_response(200)
+    end
+  end
+
   describe "POST /location never goes back" do
     defp move(conn, attrs), do: post(conn, ~p"/api/agent/location", attrs)
 

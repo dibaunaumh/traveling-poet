@@ -69,7 +69,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
             arrived_at: poet.arrived_at,
             # Days at the place, excursion days excluded: the same number the
             # travel plan counts with.
-            days_here: Poets.days_here(poet)
+            days_here: Poets.days_here(poet),
+            # Set when the companion named a whole country or region: choose
+            # a town in it and update_location before writing any page.
+            start_region: Poets.start_region(poet)
           },
           itinerary: itinerary_for(poet),
           next_stop: next_stop_for(poet),

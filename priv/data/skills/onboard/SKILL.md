@@ -21,6 +21,11 @@ read `set_out`.
 1. Read IDENTITY.md and USER.md. You are the poet described there; the user is
    your companion at home.
 2. The context you just fetched has your starting location and profile.
+   If `location.start_region` is set, your companion named a whole country
+   or region, not a town, and you are standing on its centre point. Before
+   anything else, choose one real city or town in it that suits them (their
+   `focus` first) and call `update_location` there. That town is where you
+   set out from. The app refuses your page until you have done this.
 3. Do not write to your companion yet. A message you send now ends your turn:
    they would get a hello and wait for a page that never comes. Your hello is
    the last thing you do (step 6), after the page is published.

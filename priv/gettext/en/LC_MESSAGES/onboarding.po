@@ -694,3 +694,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "…or anything else, comma-separated"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your poet will choose a town there to start from."
+msgstr ""
