@@ -204,11 +204,35 @@ defmodule TravelingPoet.GooglePlaces do
     google_name = get_in(candidate, ["displayName", "text"]) || ""
     google_address = Map.get(candidate, "formattedAddress") || ""
 
-    names? = MapSet.disjoint?(words(place.name), words(google_name)) == false
-    street = street(Map.get(place, :address))
-    address? = street != nil and String.contains?(" #{plain(google_address)} ", " #{street} ")
+    ours = words(place.name)
+    theirs = words(google_name)
 
-    names? or address?
+    names? =
+      not MapSet.disjoint?(ours, theirs) or run_together?(place.name, ours, google_name, theirs)
+
+    address = Map.get(place, :address)
+    street = street(address)
+
+    address? =
+      street != nil and String.contains?(" #{addressy(google_address)} ", " #{street} ")
+
+    # A square or a park whose address is its own name: "Plaza de la
+    # Libertad, Garachico" for a name the poet wrote in Hebrew.
+    named_by_address? =
+      is_binary(address) and google_name != "" and
+        plain(hd(String.split(address, ","))) == plain(google_name)
+
+    names? or address? or named_by_address?
+  end
+
+  # "Mount Phou Si" is "Phousi Hill": a word of one name, five letters or
+  # more, inside the other run together.
+  defp run_together?(our_name, ours, google_name, theirs) do
+    joined_ours = our_name |> plain() |> String.replace(" ", "")
+    joined_theirs = google_name |> plain() |> String.replace(" ", "")
+
+    Enum.any?(theirs, &(String.length(&1) >= 5 and String.contains?(joined_ours, &1))) or
+      Enum.any?(ours, &(String.length(&1) >= 5 and String.contains?(joined_theirs, &1)))
   end
 
   defp words(text) do
@@ -222,11 +246,37 @@ defmodule TravelingPoet.GooglePlaces do
   # The poet's first address part when it has a house number in it
   # ("Szeroka 39"), else nil: a street alone matches half the quarter.
   defp street(address) when is_binary(address) do
-    first = address |> String.split(",") |> hd() |> plain()
+    first = address |> String.split(",") |> hd() |> addressy()
     if first =~ ~r/[a-z]/ and first =~ ~r/\d/, do: first
   end
 
   defp street(_), do: nil
+
+  @street_words %{
+    "street" => "st",
+    "road" => "rd",
+    "avenue" => "ave",
+    "boulevard" => "blvd",
+    "drive" => "dr",
+    "lane" => "ln",
+    "place" => "pl",
+    "square" => "sq",
+    "first" => "1st",
+    "second" => "2nd",
+    "third" => "3rd",
+    "fourth" => "4th",
+    "fifth" => "5th"
+  }
+
+  # An address in plain words with street types and ordinals in one
+  # spelling: "151 3rd Street" and Google's "151 3rd St" agree.
+  defp addressy(text) do
+    text
+    |> plain()
+    |> String.split()
+    |> Enum.map(&Map.get(@street_words, &1, &1))
+    |> Enum.join(" ")
+  end
 
   # Lowercase ASCII words: no accents, no punctuation, no "ul."/"plac" noise
   # left in the way of a containment check.

@@ -162,6 +162,29 @@ defmodule TravelingPoetWeb.GoogleMapsSaveTest do
       assert GooglePlaces.same_place?(%{name: "Café Camelot", address: nil}, %{
                "displayName" => %{"text" => "Camelot Cafe"}
              })
+
+      # An exhibition at its museum, by street and number however spelt.
+      assert GooglePlaces.same_place?(
+               %{name: "Gwen John: Strange Beauties", address: "75 Belford Road, Edinburgh"},
+               %{
+                 "displayName" => %{"text" => "National Galleries Scotland: Modern Two"},
+                 "formattedAddress" => "75 Belford Rd, Edinburgh EH4 3DR, UK"
+               }
+             )
+
+      assert GooglePlaces.same_place?(%{name: "Mount Phou Si", address: nil}, %{
+               "displayName" => %{"text" => "Phousi Hill"}
+             })
+
+      refute GooglePlaces.same_place?(%{name: "Bar Nova", address: nil}, %{
+               "displayName" => %{"text" => "Supernova Club"}
+             })
+
+      # A square the poet named in Hebrew, whose address is its name.
+      assert GooglePlaces.same_place?(
+               %{name: "פלאסה דה לה ליברטד", address: "Plaza de la Libertad, Garachico"},
+               %{"displayName" => %{"text" => "Plaza de la Libertad"}}
+             )
     end
 
     test "a failed search is not cached, and a place without coordinates is never searched" do
