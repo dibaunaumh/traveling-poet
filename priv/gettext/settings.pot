@@ -256,14 +256,6 @@ msgid "Download the PDF"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Each day's journey costs %{amount} credit (Wanderer); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
-msgstr ""
-
-#, elixir-autogen, elixir-format
-msgid "Each day's journey costs %{amount} credits (Trip Scout); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "Early traveler bonus"
 msgstr ""
 
@@ -513,10 +505,6 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "Support"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order, on a more careful model."
 msgstr ""
 
 #, elixir-autogen, elixir-format
@@ -885,4 +873,14 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "What %{poet} took from it:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Each day's journey costs %{amount} credit, wandering or scouting a trip; chatting and drawings are included."
+msgid_plural "Each day's journey costs %{amount} credits, wandering or scouting a trip; chatting and drawings are included."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order."
 msgstr ""

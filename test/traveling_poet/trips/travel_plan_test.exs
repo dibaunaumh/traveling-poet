@@ -174,6 +174,12 @@ defmodule TravelingPoet.Trips.TravelPlanTest do
   end
 
   test "the scheduler starts a planned trip on its day and prices the run as a scout's" do
+    # Both rates are 1 today (dec-013); CREDIT_RATE_SCOUT can still price
+    # scouting apart, and a trip day must then pay it.
+    rates = Application.get_env(:traveling_poet, :credit_rates)
+    Application.put_env(:traveling_poet, :credit_rates, %{"wander" => 1, "scout" => 5})
+    on_exit(fn -> Application.put_env(:traveling_poet, :credit_rates, rates) end)
+
     user = user_fixture(%{credits: 3})
     poet = poet_at_lisbon(user, 5)
     assert DailyJourneyScheduler.eligible(user, poet) == :ok

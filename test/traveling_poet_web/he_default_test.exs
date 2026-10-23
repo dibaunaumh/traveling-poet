@@ -103,7 +103,7 @@ defmodule TravelingPoetWeb.HeDefaultTest do
 
       refute html =~ ~s(id="legal-language-note")
       assert html =~ "Terms of Service"
-      assert html =~ "Last updated 20 September 2026"
+      assert html =~ "Last updated 23 October 2026"
     end
   end
 

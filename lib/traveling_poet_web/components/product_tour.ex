@@ -223,7 +223,7 @@ defmodule TravelingPoetWeb.ProductTour do
         why:
           dgettext(
             "onboarding",
-            "A day on the road uses one credit, a Trip Scout day five. You start with ten free, and can top up any time."
+            "A day on the road uses one credit, wandering or scouting a trip. You start with ten free, and can top up any time."
           ),
         how: dgettext("onboarding", "Settings, Credits.")
       }

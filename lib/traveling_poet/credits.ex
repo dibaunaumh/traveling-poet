@@ -2,8 +2,10 @@ defmodule TravelingPoet.Credits do
   @moduledoc """
   Per-user credit balance + append-only ledger — the monetization foundation.
 
-  Phase 1 bills a flat rate per daily run by mission (wander = 1 credit,
-  scout = 5). The app can't see the sprite→OpenRouter token stream today, so
+  Phase 1 bills a flat rate per daily run: 1 credit, wandering or scouting
+  (dec-013; scouting cost 5 while scouts were meant to run on Sonnet, and
+  they run on the fleet model). The rates stay per mission so a premium
+  tier could price differently. The app can't see the sprite→OpenRouter token stream today, so
   metered billing is a later data change (per-user OpenRouter keys, #1);
   the ledger stores milli-credits so that switch needs no migration.
 
@@ -22,7 +24,7 @@ defmodule TravelingPoet.Credits do
   @milli 1000
 
   # Credits per daily run, by mission.
-  @default_rates %{"wander" => 1, "scout" => 5}
+  @default_rates %{"wander" => 1, "scout" => 1}
 
   # A composed book edition: one long agent turn that reads the whole journey
   # and writes the front and back matter. Priced by the journey's size, capped.

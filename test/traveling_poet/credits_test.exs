@@ -25,14 +25,23 @@ defmodule TravelingPoet.CreditsTest do
   end
 
   test "a debit below zero is refused and leaves no row" do
-    user = user_fixture(%{credits: 2})
+    user = user_fixture()
     poet = poet_fixture(user, %{settings: %{"mode" => "scout"}})
 
-    assert Credits.daily_run_cost(poet) == 5000
     refute Credits.can_run?(user, poet)
     assert {:error, :insufficient_credits} = Credits.debit_daily_run(user, poet, 1)
-    assert Credits.balance(reload(user)) == 2000
-    assert Repo.aggregate(CreditTransaction, :count) == 1
+    assert Credits.balance(reload(user)) == 0
+    assert Repo.aggregate(CreditTransaction, :count) == 0
+  end
+
+  test "a day costs one credit wandering or scouting (dec-013)" do
+    user = user_fixture()
+    assert Credits.daily_run_cost(poet_fixture(user)) == 1000
+
+    assert Credits.daily_run_cost(poet_fixture(user_fixture(), %{settings: %{"mode" => "scout"}})) ==
+             1000
+
+    assert Credits.daily_run_cost(poet_fixture(user_fixture()), scouting: true) == 1000
   end
 
   test "the same reference is applied at most once" do
@@ -75,6 +84,12 @@ defmodule TravelingPoet.CreditsTest do
   end
 
   test "runway follows the mission rate" do
+    # Both missions cost 1 today (dec-013); a scout rate set apart still
+    # shortens the runway.
+    rates = Application.get_env(:traveling_poet, :credit_rates)
+    Application.put_env(:traveling_poet, :credit_rates, %{"wander" => 1, "scout" => 5})
+    on_exit(fn -> Application.put_env(:traveling_poet, :credit_rates, rates) end)
+
     user = user_fixture(%{credits: 10})
     wander = poet_fixture(user)
     assert Credits.runway_days(user, wander) == 10.0

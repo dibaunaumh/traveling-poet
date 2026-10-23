@@ -256,14 +256,6 @@ msgid "Download the PDF"
 msgstr "הורדת ה-PDF"
 
 #, elixir-autogen, elixir-format
-msgid "Each day's journey costs %{amount} credit (Wanderer); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
-msgstr "כל יום מסע עולה %{amount} קרדיט (נדידה), כולל השיחה והציורים. ימים של סיור באחד הטיולים שלכם עולים בתעריף של סייר מסלול."
-
-#, elixir-autogen, elixir-format
-msgid "Each day's journey costs %{amount} credits (Trip Scout); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate."
-msgstr "כל יום מסע עולה %{amount} קרדיטים (סייר מסלול), כולל השיחה והציורים. ימים של סיור באחד הטיולים שלכם עולים בתעריף של סייר מסלול."
-
-#, elixir-autogen, elixir-format
 msgid "Early traveler bonus"
 msgstr "מתנה למטיילים הראשונים"
 
@@ -514,10 +506,6 @@ msgstr "נושאים שאתם מתעכבים עליהם"
 #, elixir-autogen, elixir-format
 msgid "Support"
 msgstr "תמיכה"
-
-#, elixir-autogen, elixir-format
-msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order, on a more careful model."
-msgstr "מעבר בין משימות פירושו אריזה מחדש (כ-2 דקות). סייר מסלול עובר בתחנות המסלול שלמטה לפי הסדר, עם מודל קפדני יותר."
 
 #, elixir-autogen, elixir-format
 msgid "Take the tour"
@@ -886,3 +874,13 @@ msgstr "להוציא"
 #, elixir-autogen, elixir-format
 msgid "What %{poet} took from it:"
 msgstr "מה ש-%{poet} הבין מזה:"
+
+#, elixir-autogen, elixir-format
+msgid "Each day's journey costs %{amount} credit, wandering or scouting a trip; chatting and drawings are included."
+msgid_plural "Each day's journey costs %{amount} credits, wandering or scouting a trip; chatting and drawings are included."
+msgstr[0] "כל יום מסע עולה קרדיט אחד, בנדידה או בסיור של טיול, כולל השיחה והציורים."
+msgstr[1] "כל יום מסע עולה %{amount} קרדיטים, בנדידה או בסיור של טיול, כולל השיחה והציורים."
+
+#, elixir-autogen, elixir-format
+msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order."
+msgstr "מעבר בין משימות פירושו אריזה מחדש (כ-2 דקות). סייר מסלול עובר בתחנות המסלול שלמטה לפי הסדר."
