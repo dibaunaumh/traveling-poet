@@ -9,9 +9,10 @@ defmodule TravelingPoet.GooglePlaces do
   One Places API (New) Text Search per place, asking for the id and nothing
   else (`X-Goog-FieldMask: places.id`): the "Text Search Essentials (IDs
   Only)" SKU, which Google does not charge for. The search is held to a box
-  of about two km around our own coordinates, so a same-named cafe in another
-  city can never come back. A place Google does not find there gets no id and
-  is left out of the link: a wrong place is worse than a missing one.
+  reaching about 800 m from our own coordinates: at two km, "Szara Kazimierz"
+  came back as Szara's other restaurant on the main square, 1.3 km away. A
+  place Google does not find there gets no id and is left out of the link: a
+  wrong place is worse than a missing one.
 
   Ids are cached in `google_place_ids` by `key/1` (name and where, not place
   row: places are re-inserted on every re-put and bookmarks are snapshots).
@@ -26,8 +27,8 @@ defmodule TravelingPoet.GooglePlaces do
 
   @search_url "https://places.googleapis.com/v1/places:searchText"
   @retry_days 14
-  # Half the box's side, in degrees of latitude (about 2.2 km).
-  @half_box 0.02
+  # Half the box's side, in degrees of latitude (about 780 m).
+  @half_box 0.007
   @concurrency 6
 
   defmodule Entry do
