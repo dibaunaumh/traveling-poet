@@ -132,6 +132,10 @@ defmodule TravelingPoetWeb.GuideLive do
     do: {:noreply, GuideState.select_place(socket, id)}
 
   @impl true
+  def handle_async(:google_ids, result, socket),
+    do: TravelingPoetWeb.GoogleMapsSaving.handle_async(result, socket)
+
+  @impl true
   def handle_info({:guide_geocoded, _poet_id}, socket), do: {:noreply, reload(socket)}
   def handle_info({:journal_published, _id}, socket), do: {:noreply, reload(socket)}
 
@@ -218,8 +222,20 @@ defmodule TravelingPoetWeb.GuideLive do
       <div :if={@saved_view} id="guide-saved">
         <.filter_chips filter={@filter} counts={@counts} />
         <.share_saved :if={@places != []} token={@current_user.saved_share_token} />
+        <.google_maps_save
+          id="saved-google-maps"
+          places={@places}
+          ids={@google_ids}
+          pending={@google_pending}
+        />
         <.maps_export :if={@places != [] and !@native_app} kml_url={~p"/guide/saved.kml"} />
-        <.day_plan :if={@day_plan != []} plan={@day_plan} days={@plan_days} />
+        <.day_plan
+          :if={@day_plan != []}
+          plan={@day_plan}
+          days={@plan_days}
+          google_ids={@google_ids}
+          google_pending={@google_pending}
+        />
         <p
           :if={@places == [] and @saved_finds == []}
           id="guide-saved-empty"
@@ -316,6 +332,12 @@ defmodule TravelingPoetWeb.GuideLive do
       <.empty_state :if={is_nil(@topic) and not @saved_view and @places == []} poet={@poet} />
 
       <div :if={is_nil(@topic) and not @saved_view and @places != []}>
+        <.google_maps_save
+          id="guide-google-maps"
+          places={@places}
+          ids={@google_ids}
+          pending={@google_pending}
+        />
         <.map_view
           :if={@view == "map"}
           map_places={@map_places}

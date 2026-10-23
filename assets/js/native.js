@@ -42,6 +42,15 @@ const SYSTEM_HOSTS = new Set(["t.me", "telegram.me"])
 // it does not serve to the system, as it does mailto:.
 const WHATSAPP_HOSTS = new Set(["wa.me", "api.whatsapp.com"])
 
+// Google Maps links (a place, a walk, "Save to Google Maps") belong in the
+// Google Maps app, where the reader's lists are; the sheet would show the
+// web map with no way to save to them. Left to the web view, a link goes to
+// the system, which opens the app (Google's universal links claim /maps/@,
+// /maps/search, /maps/dir) or Safari when the app is not installed.
+const isGoogleMaps = (url) =>
+  ((url.hostname === "www.google.com" || url.hostname === "google.com") && url.pathname.startsWith("/maps")) ||
+  url.hostname === "maps.google.com"
+
 function whatsappScheme(url) {
   return "whatsapp://send?text=" + encodeURIComponent(url.searchParams.get("text") || "")
 }
@@ -180,7 +189,7 @@ function onClick(e) {
     return
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return
-  if (SYSTEM_HOSTS.has(url.hostname)) return
+  if (SYSTEM_HOSTS.has(url.hostname) || isGoogleMaps(url)) return
   if (WHATSAPP_HOSTS.has(url.hostname)) {
     e.preventDefault()
     window.location.href = whatsappScheme(url)

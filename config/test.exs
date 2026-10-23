@@ -55,6 +55,7 @@ config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}
 # Wikimedia Commons lookups (find_reference_photos) too
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]
 config :traveling_poet, hotels_req_options: [plug: {Req.Test, TravelingPoet.Hotels}]
+config :traveling_poet, google_places_req_options: [plug: {Req.Test, TravelingPoet.GooglePlaces}]
 # Narration: the speech call goes to a stub, the mp3 to a fake bucket, and
 # the on-demand task runs inline, in the test's sandbox connection.
 config :traveling_poet,

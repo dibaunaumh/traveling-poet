@@ -79,6 +79,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.Analytics.VisitEvent,
     TravelingPoet.Reading.ParagraphRead,
     Geocoder.CacheEntry,
+    TravelingPoet.GooglePlaces.Entry,
     TravelingPoet.WebPush.Subscription,
     TravelingPoet.Apns.Device,
     TravelingPoet.ChangeStream.Endpoint,

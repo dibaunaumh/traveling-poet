@@ -1,6 +1,7 @@
 defmodule TravelingPoet.MapsLinks do
   @moduledoc """
   Takes a reader's places to Google Maps (card-94): a search link per place,
+  shortlist links that open many as one list to save (dec-012),
   and a KML file of their saved places that Google My Maps imports as a map
   they can carry on the trip. Pure: no Repo, no HTTP.
   """
@@ -54,6 +55,24 @@ defmodule TravelingPoet.MapsLinks do
         nil
     end
   end
+
+  @shortlist_size 20
+
+  @doc """
+  Google Maps shortlist links for these place ids (dec-012), twenty to a
+  link, which is all one takes. Each opens the places in Google Maps as one
+  list with Select all and Save, in the Google Maps app when it is
+  installed. `[]` with no ids.
+  """
+  def shortlist_urls(place_ids) do
+    place_ids
+    |> Enum.chunk_every(@shortlist_size)
+    |> Enum.map(fn ids ->
+      "https://www.google.com/maps/@?api=1&map_action=shortlist&place_ids=" <> Enum.join(ids, ",")
+    end)
+  end
+
+  def shortlist_size, do: @shortlist_size
 
   @doc "A KML document of the places that have coordinates."
   def kml(places, title) do

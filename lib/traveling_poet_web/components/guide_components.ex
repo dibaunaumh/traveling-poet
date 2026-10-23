@@ -650,19 +650,113 @@ defmodule TravelingPoetWeb.GuideComponents do
     """
   end
 
+  attr :id, :string, required: true
+  attr :places, :list, required: true
+  attr :ids, :map, required: true, doc: "`GooglePlaces.cached/1` for these places"
+  attr :pending, :boolean, default: false
+  attr :compact, :boolean, default: false, doc: "a link for a day of a plan, not a panel"
+
+  @doc """
+  "Save to Google Maps" (dec-012): these places open in Google Maps as one
+  list, where Select all and Save keep them for the trip. Twenty go in a
+  link, so a long list gets a button per twenty. Places Google could not
+  find are left out and counted. Nothing renders until there is an id.
+  """
+  def google_maps_save(assigns) do
+    ids = TravelingPoet.GooglePlaces.ids_for(assigns.places, assigns.ids)
+    size = TravelingPoet.MapsLinks.shortlist_size()
+
+    findable =
+      assigns.places
+      |> Enum.map(&TravelingPoet.GooglePlaces.key/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+      |> length()
+
+    links =
+      ids
+      |> TravelingPoet.MapsLinks.shortlist_urls()
+      |> Enum.with_index()
+      |> Enum.map(fn {url, i} -> {url, i * size + 1, min((i + 1) * size, length(ids))} end)
+
+    assigns =
+      assigns
+      |> assign(:links, links)
+      |> assign(:left_out, if(assigns.pending, do: 0, else: max(findable - length(ids), 0)))
+
+    ~H"""
+    <span :if={@compact and not @pending and @links != []} id={@id} class="flex flex-wrap gap-x-3">
+      <a
+        :for={{{url, from, to}, i} <- Enum.with_index(@links, 1)}
+        id={"#{@id}-#{i}"}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link text-xs"
+      >
+        {if length(@links) == 1,
+          do: dgettext("guide", "Save in Google Maps ↗"),
+          else: dgettext("guide", "Save %{from}-%{to} in Google Maps ↗", from: from, to: to)}
+      </a>
+    </span>
+    <section
+      :if={not @compact and (@pending or @links != [])}
+      id={@id}
+      class="mt-3 mb-5 flex flex-wrap items-center gap-3 rounded-box border border-base-300 bg-base-100 p-3"
+    >
+      <div class="min-w-0 flex-1 basis-56">
+        <h2 class="text-sm font-semibold">{dgettext("guide", "Save to Google Maps")}</h2>
+        <p class="text-xs opacity-70">
+          {dgettext(
+            "guide",
+            "Opens these places in Google Maps. Tap Select all, then Save, and keep them in a list for the trip."
+          )}
+        </p>
+        <p :if={@left_out > 0} id={"#{@id}-left-out"} class="text-xs opacity-60">
+          {dngettext(
+            "guide",
+            "%{count} place Google could not find is not included.",
+            "%{count} places Google could not find are not included.",
+            @left_out
+          )}
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span :if={@pending} id={"#{@id}-pending"} class="btn btn-sm btn-disabled gap-1">
+          <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+          {dgettext("guide", "Getting places ready…")}
+        </span>
+        <a
+          :for={{{url, from, to}, i} <- if(@pending, do: [], else: Enum.with_index(@links, 1))}
+          id={"#{@id}-#{i}"}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-sm btn-primary gap-1"
+        >
+          <.icon name="hero-map-pin" class="size-4" />
+          {if length(@links) == 1,
+            do: dgettext("guide", "Open in Google Maps"),
+            else: dgettext("guide", "Places %{from}-%{to}", from: from, to: to)}
+        </a>
+      </div>
+    </section>
+    """
+  end
+
   attr :id, :string, default: "saved-to-maps"
   attr :kml_url, :string, required: true
 
   @doc """
-  Saved places into Google Maps. Google offers no way for an app to fill a
-  Maps list, so this is the My Maps route: import the file once, and the
-  map shows in the Google Maps app under Saved and can be shared from there.
+  The older route into Google Maps, for a computer: a KML file that Google
+  My Maps imports as a map, which then shows in the Google Maps app under
+  Saved. `google_maps_save/1` is the one to reach for first.
   """
   def maps_export(assigns) do
     ~H"""
     <details id={@id} class="mt-3 text-sm">
       <summary class="cursor-pointer link">
-        {dgettext("guide", "Put these places in Google Maps")}
+        {dgettext("guide", "On a computer: make a Google My Maps map of these places")}
       </summary>
       <ol class="mt-2 ms-5 list-decimal space-y-1 opacity-80">
         <li>
@@ -732,10 +826,13 @@ defmodule TravelingPoetWeb.GuideComponents do
 
   attr :plan, :list, required: true, doc: "`Guide.DayPlan.plan/2`"
   attr :days, :integer, required: true
+  attr :google_ids, :map, default: %{}
+  attr :google_pending, :boolean, default: false
 
   @doc """
   Plan my days (card-91): the saved places split into days by part of town,
-  each day in the order you would walk it, with its route in Google Maps.
+  each day in the order you would walk it, with its route in Google Maps and
+  a link that saves the day's places there (dec-012).
   """
   def day_plan(assigns) do
     ~H"""
@@ -770,16 +867,25 @@ defmodule TravelingPoetWeb.GuideComponents do
         <li :for={day <- @plan} id={"plan-day-#{day.day}"} class="rounded-box bg-base-100 p-3">
           <div class="flex items-baseline justify-between gap-2">
             <h3 class="font-semibold text-sm">{dgettext("guide", "Day %{n}", n: day.day)}</h3>
-            <a
-              :if={day.route_url}
-              id={"plan-route-#{day.day}"}
-              href={day.route_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link text-xs"
-            >
-              {dgettext("guide", "Walk it in Google Maps ↗")}
-            </a>
+            <div class="flex flex-wrap justify-end gap-x-3">
+              <a
+                :if={day.route_url}
+                id={"plan-route-#{day.day}"}
+                href={day.route_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link text-xs"
+              >
+                {dgettext("guide", "Walk it in Google Maps ↗")}
+              </a>
+              <.google_maps_save
+                id={"plan-save-#{day.day}"}
+                places={day.places}
+                ids={@google_ids}
+                pending={@google_pending}
+                compact
+              />
+            </div>
           </div>
           <ol class="mt-2 space-y-2">
             <li :for={{place, i} <- Enum.with_index(day.places, 1)} class="flex gap-2 text-sm">

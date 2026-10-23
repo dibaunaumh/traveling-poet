@@ -592,10 +592,6 @@ msgid "Products"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Put these places in Google Maps"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "Read the entry"
 msgstr ""
 
@@ -1018,4 +1014,38 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "Undo"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{count} place Google could not find is not included."
+msgid_plural "%{count} places Google could not find are not included."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Getting places ready…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "On a computer: make a Google My Maps map of these places"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Opens these places in Google Maps. Tap Select all, then Save, and keep them in a list for the trip."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Places %{from}-%{to}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save %{from}-%{to} in Google Maps ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save in Google Maps ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Save to Google Maps"
 msgstr ""

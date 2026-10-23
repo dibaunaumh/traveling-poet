@@ -141,6 +141,11 @@ config :traveling_poet,
   liteapi_booking_url:
     if(config_env() == :test, do: nil, else: System.get_env("LITEAPI_BOOKING_URL")),
   liteapi_currency: System.get_env("LITEAPI_CURRENCY", "EUR"),
+  # "Save to Google Maps" (GooglePlaces, dec-012): place ids from Places API
+  # (New), ids only. Nil in test: tests that need one set it, and requests go
+  # to the Req.Test stub.
+  google_maps_api_key:
+    if(config_env() == :test, do: nil, else: System.get_env("GOOGLE_MAPS_API_KEY")),
   web_push_notifier: config_env() != :test,
   # Sign in with Apple (the iOS app), and later APNs and the App Store, all
   # signed with the one .p8 key from the developer account. nil in test, so a
