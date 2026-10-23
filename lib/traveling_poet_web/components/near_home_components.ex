@@ -38,6 +38,69 @@ defmodule TravelingPoetWeb.NearHomeComponents do
     """
   end
 
+  attr :trips, :map, required: true, doc: "`TripSuggestions.assign_trips/1`: the home search"
+  attr :user, :map, required: true
+  attr :poet, :map, required: true
+
+  @doc """
+  The journal's invitation to readers with no home city yet: set one here
+  for the weekly picks near home, or say no thanks (which switches Near
+  you off; Settings turns it back on). Its events are the Trips card's.
+  """
+  def near_home_invite(assigns) do
+    ~H"""
+    <div
+      :if={is_nil(@trips.home) and @user.near_home != false}
+      id="near-home-invite"
+      class="alert alert-soft text-sm mt-4 flex-col items-stretch gap-2"
+    >
+      <div class="flex items-start gap-3">
+        <.icon name="hero-home-modern" class="size-5 shrink-0" />
+        <span class="flex-1">
+          <span class="font-medium">{dgettext("guide", "Where do you live?")}</span>
+          {dgettext(
+            "guide",
+            "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them.",
+            poet: @poet.name
+          )}
+        </span>
+      </div>
+      <form id="near-home-invite-search" phx-submit="trip_search_home" class="flex gap-2">
+        <input
+          type="text"
+          name="query"
+          value={@trips.home_query}
+          class="input input-bordered input-sm flex-1 min-w-0"
+          placeholder={dgettext("guide", "Your home city")}
+        />
+        <button type="submit" class="btn btn-sm">{dgettext("guide", "Search")}</button>
+        <button
+          type="button"
+          id="near-home-invite-decline"
+          phx-click="trip_decline_near_home"
+          class="btn btn-ghost btn-sm opacity-60"
+        >
+          {dgettext("guide", "No thanks")}
+        </button>
+      </form>
+      <p :if={@trips.home_error} class="text-error text-xs">{@trips.home_error}</p>
+      <div :if={@trips.home_results != []} class="space-y-1">
+        <button
+          :for={{result, idx} <- Enum.with_index(@trips.home_results)}
+          id={"near-home-invite-pick-#{idx}"}
+          type="button"
+          phx-click="trip_pick_home"
+          phx-value-idx={idx}
+          phx-value-near="1"
+          class="btn btn-outline btn-xs w-full justify-start text-start normal-case"
+        >
+          {result.place_name}
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   attr :pick, Pick, required: true
   attr :n, :integer, required: true
 

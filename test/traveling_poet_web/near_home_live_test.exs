@@ -186,6 +186,20 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
       assert has_element?(view, "#near-home-card-open[href='/guide/near']")
     end
 
+    test "Home stays in Settings when the calendar's Trips card is hidden", %{
+      conn: conn,
+      user: user
+    } do
+      Application.put_env(:traveling_poet, :calendar_enabled, "admins")
+      on_exit(fn -> Application.put_env(:traveling_poet, :calendar_enabled, "all") end)
+
+      {:ok, _view, html} = live(signed_in(conn, user), ~p"/settings")
+      refute html =~ ~s(id="trip-settings")
+      assert html =~ ~s(id="home")
+      assert html =~ "Lisbon, Portugal"
+      assert html =~ ~s(id="near-home-toggle")
+    end
+
     test "Settings switches it off and on, beside the home city", %{conn: conn, user: user} do
       {:ok, view, html} = live(signed_in(conn, user), ~p"/settings")
       assert html =~ ~s(id="near-home-setting")
@@ -233,6 +247,102 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
       text = Notifier.near_home_text(poet, picks, "https://poet.travel/guide/near")
       assert text =~ "- Feira da Ladra\n- Tiles of the Ribeira"
       assert text =~ "https://poet.travel/guide/near"
+    end
+  end
+
+  describe "getting a home" do
+    setup do
+      Application.put_env(:traveling_poet, :destination_search, fn
+        "Lisbon" ->
+          {:ok,
+           [
+             %{
+               place_name: "Lisboa, Portugal",
+               kind: "city",
+               city: "Lisboa",
+               lat: 38.72,
+               lng: -9.14,
+               country_code: "pt"
+             }
+           ]}
+
+        _ ->
+          {:ok, []}
+      end)
+
+      on_exit(fn -> Application.delete_env(:traveling_poet, :destination_search) end)
+      :ok
+    end
+
+    test "onboarding asks where the reader lives, and keeps it", %{conn: conn} do
+      reader = user_fixture()
+      {:ok, view, _html} = live(signed_in(conn, reader), ~p"/onboarding")
+      render_click(view, "next", %{})
+      html = render_click(view, "next", %{})
+      assert html =~ "Where do you live?"
+
+      html = view |> element("#onboarding-home-search") |> render_submit(%{home_query: "Nowhere"})
+      assert html =~ "No places found."
+
+      view |> element("#onboarding-home-search") |> render_submit(%{home_query: "Lisbon"})
+      html = view |> element("#onboarding-home-0") |> render_click()
+      assert html =~ ~s(id="onboarding-home-picked")
+
+      render_click(view, "create_poet", %{})
+      reader = Accounts.get_user!(reader.id)
+      assert reader.home_place_name == "Lisboa, Portugal"
+      assert reader.home_lat == 38.72
+      assert reader.home_country_code == "pt"
+    end
+
+    test "onboarding without a home still finishes", %{conn: conn} do
+      reader = user_fixture()
+      {:ok, view, _html} = live(signed_in(conn, reader), ~p"/onboarding")
+      render_click(view, "next", %{})
+      render_click(view, "next", %{})
+      render_click(view, "create_poet", %{})
+      reader = Accounts.get_user!(reader.id)
+      assert reader.onboarding_completed
+      assert reader.home_lat == nil
+    end
+
+    test "the journal invites a reader with no home, and setting one says what is next", %{
+      conn: conn
+    } do
+      reader = agent_user_fixture(%{onboarding_completed: true})
+      poet = poet_fixture(reader, %{name: "Wren"})
+      published_entry_fixture(poet)
+
+      {:ok, view, html} = live(signed_in(conn, reader), ~p"/journal")
+      assert html =~ ~s(id="near-home-invite")
+
+      view |> element("#near-home-invite-search") |> render_submit(%{query: "Lisbon"})
+      html = view |> element("#near-home-invite-pick-0") |> render_click()
+
+      refute html =~ ~s(id="near-home-invite")
+      assert html =~ "Wren looks for things near you after the next page."
+      assert Accounts.get_user!(reader.id).home_place_name == "Lisboa, Portugal"
+    end
+
+    test "No thanks switches Near you off and the invitation goes", %{conn: conn} do
+      reader = agent_user_fixture(%{onboarding_completed: true})
+      poet = poet_fixture(reader)
+      published_entry_fixture(poet)
+
+      {:ok, view, _html} = live(signed_in(conn, reader), ~p"/journal")
+      html = view |> element("#near-home-invite-decline") |> render_click()
+
+      refute html =~ ~s(id="near-home-invite")
+      refute Accounts.get_user!(reader.id).near_home
+
+      {:ok, _view, html} = live(signed_in(conn, reader), ~p"/journal")
+      refute html =~ ~s(id="near-home-invite")
+    end
+
+    test "a reader with a home gets no invitation", %{conn: conn, user: user, poet: poet} do
+      published_entry_fixture(poet)
+      {:ok, _view, html} = live(signed_in(conn, user), ~p"/journal")
+      refute html =~ ~s(id="near-home-invite")
     end
   end
 end

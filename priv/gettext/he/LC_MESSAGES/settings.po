@@ -884,3 +884,11 @@ msgstr[1] "כל יום מסע עולה %{amount} קרדיטים, בנדידה א
 #, elixir-autogen, elixir-format
 msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order."
 msgstr "מעבר בין משימות פירושו אריזה מחדש (כ-2 דקות). סייר מסלול עובר בתחנות המסלול שלמטה לפי הסדר."
+
+#, elixir-autogen, elixir-format
+msgid "Home"
+msgstr "בית"
+
+#, elixir-autogen, elixir-format
+msgid "Where you live: trips are measured from here, and Near you looks around it."
+msgstr "איפה שאתם גרים: טיולים נמדדים מכאן, ו\"לידכם\" מחפש סביב המקום הזה."

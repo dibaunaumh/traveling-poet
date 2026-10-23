@@ -698,3 +698,23 @@ msgstr "המשורר שלכם יבחר שם עיר או עיירה לצאת ממ
 #, elixir-autogen, elixir-format
 msgid "A day on the road uses one credit, wandering or scouting a trip. You start with ten free, and can top up any time."
 msgstr "יום בדרך עולה קרדיט אחד, בנדידה או בסיור של טיול. מתחילים עם עשרה בחינם, ואפשר להוסיף מתי שרוצים."
+
+#, elixir-autogen, elixir-format
+msgid "Change"
+msgstr "שינוי"
+
+#, elixir-autogen, elixir-format
+msgid "No places found."
+msgstr "לא נמצאו מקומות."
+
+#, elixir-autogen, elixir-format
+msgid "Once a week %{poet} also looks for events, exhibitions and outings near your home that fit what you like. Only you see it."
+msgstr "פעם בשבוע יגיע גם חיפוש של %{poet} ליד הבית: אירועים, תערוכות ויציאות שמתאימים למה שאתם אוהבים. רק אתם רואים אותו."
+
+#, elixir-autogen, elixir-format
+msgid "Where do you live?"
+msgstr "איפה אתם גרים?"
+
+#, elixir-autogen, elixir-format
+msgid "Your home city"
+msgstr "עיר הבית שלכם"
