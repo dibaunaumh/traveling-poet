@@ -4,7 +4,8 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.NotebookComponents
   import TravelingPoetWeb.RouteComponents
   import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
-  import TravelingPoetWeb.ShareComponents, only: [share_menu: 1]
+  import TravelingPoetWeb.ShareComponents, only: [share_menu: 1, invite_actions: 1]
+  alias TravelingPoetWeb.ShareComponents
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
@@ -96,6 +97,8 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:page_title, dgettext("journal", "%{poet}'s Journal", poet: poet.name))
           |> assign(:user, user)
           |> assign(:poet, poet)
+          # The owner's invite code rides on every link they share (card-126)
+          |> assign(:invite_code, TravelingPoet.Referrals.code_for(user))
           |> assign_push()
           |> assign(:sidebar_open, true)
           |> assign(:keepalive_task, SpriteHold.task_name("chat"))
@@ -466,6 +469,16 @@ defmodule TravelingPoetWeb.JournalLive do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_event("invite_dismiss", _params, socket) do
+    {:ok, user} =
+      Accounts.update_user(socket.assigns.user, %{
+        invite_prompt_dismissed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+
+    {:noreply, assign(socket, :user, user)}
   end
 
   @impl true
@@ -1310,7 +1323,7 @@ defmodule TravelingPoetWeb.JournalLive do
               <:controls>
                 <.share_menu
                   id="share-menu"
-                  url={share_url(@poet, @entry)}
+                  url={ShareComponents.invite_url(@poet, @entry, @invite_code)}
                   title={share_title(@poet, @entry)}
                   text={@entry.teaser}
                   public?={@poet.is_public}
@@ -1338,7 +1351,7 @@ defmodule TravelingPoetWeb.JournalLive do
               <:controls>
                 <.share_menu
                   id="share-menu"
-                  url={share_url(@poet, @entry)}
+                  url={ShareComponents.invite_url(@poet, @entry, @invite_code)}
                   title={share_title(@poet, @entry)}
                   text={@entry.teaser}
                   public?={@poet.is_public}
@@ -1373,7 +1386,7 @@ defmodule TravelingPoetWeb.JournalLive do
               <:controls>
                 <.share_menu
                   id="share-menu"
-                  url={share_url(@poet, @entry)}
+                  url={ShareComponents.invite_url(@poet, @entry, @invite_code)}
                   title={share_title(@poet, @entry)}
                   text={@entry.teaser}
                   public?={@poet.is_public}
@@ -1427,7 +1440,7 @@ defmodule TravelingPoetWeb.JournalLive do
                 <.marker_menu active={@active_marker} />
                 <.share_menu
                   id="share-menu"
-                  url={share_url(@poet, @entry)}
+                  url={ShareComponents.invite_url(@poet, @entry, @invite_code)}
                   title={share_title(@poet, @entry)}
                   text={@entry.teaser}
                   public?={@poet.is_public}
@@ -1498,6 +1511,13 @@ defmodule TravelingPoetWeb.JournalLive do
                     {dgettext("journal", "private feedback — shapes what your poet seeks out next")}
                   </p>
                 </div>
+
+                <.invite_prompt
+                  :if={invite_prompt?(assigns)}
+                  poet={@poet}
+                  entry={@entry}
+                  code={@invite_code}
+                />
               </:right_footer>
             </.entry_spread>
           </div>
@@ -1870,12 +1890,9 @@ defmodule TravelingPoetWeb.JournalLive do
     end
   end
 
-  # The page as a friend receives it: the public address, and the title
-  # with the poet's name, since the link lands on a journal they may not
-  # know. See ShareComponents.
-  defp share_url(poet, entry),
-    do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}")
-
+  # The page as a friend receives it: the public address with the owner's
+  # invite code (ShareComponents.invite_url/3), and the title with the
+  # poet's name, since the link lands on a journal they may not know.
   defp share_title(poet, entry),
     do: dgettext("journal", "%{title}, by %{poet}", title: entry_title(entry), poet: poet.name)
 
@@ -1885,5 +1902,66 @@ defmodule TravelingPoetWeb.JournalLive do
     markers
     |> Markers.payload()
     |> Enum.map(&Map.put(&1, :label, TravelingPoetWeb.MarkerComponents.kind_label(&1.kind)))
+  end
+
+  # -- the invite under a fresh page (card-126) --
+
+  @invite_from_day 3
+  @invite_fresh_hours 48
+  @invite_rest_days 30
+
+  # Under the latest page only, once the reader has a few pages to show, while
+  # the page is fresh (the moment they are most delighted, says the plan),
+  # never beside an open question from the poet, and resting a month after
+  # "Not now".
+  defp invite_prompt?(%{next_page: next, entry: %{published_at: %DateTime{} = at}} = assigns)
+       when not is_nil(next) do
+    not question_open?(assigns) and
+      Journal.journey_day(assigns.entry, assigns.journey_start) >= @invite_from_day and
+      DateTime.diff(DateTime.utc_now(), at, :hour) < @invite_fresh_hours and
+      invite_rested?(assigns.user.invite_prompt_dismissed_at)
+  end
+
+  defp invite_prompt?(_), do: false
+
+  # As the footer shows it: the question stays on the page until answered
+  defp question_open?(%{prompt: nil}), do: false
+  defp question_open?(%{prompt_answer: answer}), do: is_nil(answer)
+
+  defp invite_rested?(nil), do: true
+
+  defp invite_rested?(%DateTime{} = at),
+    do: DateTime.diff(DateTime.utc_now(), at, :day) >= @invite_rest_days
+
+  attr :poet, :any, required: true
+  attr :entry, :any, required: true
+  attr :code, :string, required: true
+
+  defp invite_prompt(assigns) do
+    ~H"""
+    <div id="invite-prompt" class="border-t border-base-300 pt-3 mt-4 text-sm">
+      <p class="font-medium">
+        {dgettext("journal", "Know someone who would love a poet of their own?")}
+      </p>
+      <p class="opacity-70 mt-1 mb-2">
+        {dgettext(
+          "journal",
+          "Send them this page. If they start a poet, they get %{credits} extra credits, and you get %{credits} when its first page arrives.",
+          credits: TravelingPoet.Referrals.referral_credits()
+        )}
+      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <.invite_actions
+          id="invite-prompt-share"
+          url={ShareComponents.invite_url(@poet, @entry, @code)}
+          title={share_title(@poet, @entry)}
+          text={ShareComponents.invite_text(@poet.name)}
+        />
+        <button phx-click="invite_dismiss" class="btn btn-ghost btn-xs opacity-50">
+          {dgettext("journal", "Not now")}
+        </button>
+      </div>
+    </div>
+    """
   end
 end

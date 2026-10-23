@@ -222,3 +222,15 @@ msgid "%{poet} found something near you this week:\n%{lines}\n\nWhen and where: 
 msgid_plural "%{poet} found %{count} things near you this week:\n%{lines}\n\nWhen and where: %{link}"
 msgstr[0] "ממצא של %{poet} לידכם השבוע:\n%{lines}\n\nמתי ואיפה: %{link}"
 msgstr[1] "%{count} ממצאים של %{poet} לידכם השבוע:\n%{lines}\n\nמתי ואיפה: %{link}"
+
+#, elixir-autogen, elixir-format
+msgid "%{friend}'s poet has set out"
+msgstr "המסע של %{friend} יצא לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Their first page just arrived, and %{credits} credits are yours. Thank you for inviting them."
+msgstr "העמוד הראשון שלהם הגיע עכשיו, ו־%{credits} קרדיטים מחכים לכם. תודה על ההזמנה."
+
+#, elixir-autogen, elixir-format
+msgid "Your friend"
+msgstr "מי שהזמנתם"

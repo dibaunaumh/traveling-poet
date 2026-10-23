@@ -128,10 +128,22 @@ defmodule TravelingPoet.Credits do
     apply(user, to_milli(signup_credits()), "grant_signup", reference: "signup:#{user.id}")
   end
 
-  def grant_referral(%User{} = user, %User{} = referrer) do
-    apply(user, to_milli(signup_credits()), "grant_referral",
-      reference: "referral:#{referrer.id}:#{user.id}",
+  @doc """
+  One side of a referral (`TravelingPoet.Referrals`): `:friend` credits the
+  friend who joined, `:referrer` the reader who invited them. Both are keyed
+  on the friend, so each lands once.
+  """
+  def grant_referral(%User{} = friend, %User{} = referrer, :friend, milli) do
+    apply(friend, milli, "grant_referral",
+      reference: "referral:friend:#{friend.id}",
       metadata: %{"referrer_id" => referrer.id}
+    )
+  end
+
+  def grant_referral(%User{} = friend, %User{} = referrer, :referrer, milli) do
+    apply(referrer, milli, "grant_referral",
+      reference: "referral:referrer:#{friend.id}",
+      metadata: %{"friend_id" => friend.id}
     )
   end
 

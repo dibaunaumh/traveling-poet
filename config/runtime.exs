@@ -268,6 +268,8 @@ config :traveling_poet,
     "scout" => String.to_integer(System.get_env("CREDIT_RATE_SCOUT") || "1")
   },
   signup_credits: String.to_integer(System.get_env("SIGNUP_CREDITS") || "10"),
+  # Referral credits each side gets (dec-015; TravelingPoet.Referrals)
+  referral_credits: String.to_integer(System.get_env("REFERRAL_CREDITS") || "10"),
   # A composed book edition: base + per chapter (stay), capped. Pinned in
   # test so the pricing tests assert these numbers, not whatever .env holds.
   book_compose_credits:

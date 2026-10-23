@@ -167,6 +167,36 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells a reader that a friend they invited has their first page, and what it earned them (card-126)."
+  def notify_referral_rewarded(referrer_id, friend_id) do
+    case TravelingPoet.Accounts.get_user(friend_id) do
+      nil -> {0, 0}
+      friend -> notify_user(referrer_id, fn -> referral_payload(friend) end)
+    end
+  end
+
+  @doc "What the device shows when an invited friend's poet sets out. Pure, for tests."
+  def referral_payload(friend) do
+    %{
+      title: dgettext("notify", "%{friend}'s poet has set out", friend: first_name(friend)),
+      body:
+        dgettext(
+          "notify",
+          "Their first page just arrived, and %{credits} credits are yours. Thank you for inviting them.",
+          credits: TravelingPoet.Referrals.referral_credits()
+        ),
+      url: "/settings#invite",
+      tag: "referral-#{friend.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
+  # The friend as the referrer knows them: a first name, never an address
+  defp first_name(%{name: name}) when is_binary(name) and name != "",
+    do: name |> String.split() |> List.first()
+
+  defp first_name(_), do: dgettext("notify", "Your friend")
+
   @doc "Tells every device of the owner that their poet asked them something in chat."
   def notify_poet_question(user_id, ask_id) do
     with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),

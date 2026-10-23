@@ -22,6 +22,7 @@ defmodule TravelingPoetWeb.PageController do
 
     render(conn, :welcome,
       start_place: get_session(conn, :start_place),
+      invited_by: invited_by(conn),
       apple_nonce: apple_nonce,
       review_login?: TravelingPoetWeb.ReviewLogin.enabled?(),
       layout: false
@@ -38,6 +39,7 @@ defmodule TravelingPoetWeb.PageController do
     render(conn, :home,
       my_poet: my_poet,
       signed_out?: is_nil(conn.assigns[:current_user]),
+      invited_by: if(is_nil(conn.assigns[:current_user]), do: invited_by(conn)),
       layout: false
     )
   end
@@ -72,6 +74,21 @@ defmodule TravelingPoetWeb.PageController do
         else
           redirect(conn, to: onboarding_path(place))
         end
+    end
+  end
+
+  # The friend whose invite brought this visitor (card-126), by first name
+  # only, for the line that tells them their poet starts with extra credits.
+  defp invited_by(conn) do
+    case TravelingPoet.Referrals.referrer_by_code(get_session(conn, :referral_code)) do
+      %{name: name} when is_binary(name) and name != "" ->
+        name |> String.split() |> List.first()
+
+      %{} ->
+        gettext("A friend")
+
+      nil ->
+        nil
     end
   end
 

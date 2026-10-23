@@ -112,6 +112,75 @@ defmodule TravelingPoetWeb.ShareComponents do
     """
   end
 
+  attr :id, :string, required: true
+  attr :url, :string, required: true, doc: "the invite link, absolute"
+  attr :title, :string, required: true
+  attr :text, :string, required: true, doc: "the message the link travels with"
+
+  @doc """
+  An invite's buttons, in the open (card-126): the phone's share sheet, copy,
+  WhatsApp, email. The same `ShareMenu` hook as the menu above, on a row.
+  """
+  def invite_actions(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-hook="ShareMenu"
+      data-url={@url}
+      data-title={@title}
+      data-text={@text}
+      class="flex flex-wrap items-center gap-2"
+    >
+      <span hidden data-share-native>
+        <button type="button" class="btn btn-primary btn-sm" data-share>
+          <.icon name="hero-arrow-up-tray" class="size-4" />
+          {dgettext("journal", "Invite a friend")}
+        </button>
+      </span>
+      <button type="button" class="btn btn-outline btn-sm" data-copy>
+        <.icon name="hero-link" class="size-4" />
+        <span data-copy-label>{dgettext("journal", "Copy link")}</span>
+      </button>
+      <a
+        href={"https://wa.me/?" <> URI.encode_query(%{"text" => @text <> " " <> @url})}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-ghost btn-sm"
+      >
+        <.icon name="hero-device-phone-mobile" class="size-4" /> WhatsApp
+      </a>
+      <a
+        href={"mailto:?" <> URI.encode_query(%{"subject" => @title, "body" => @text <> "\n" <> @url}, :rfc3986)}
+        class="btn btn-ghost btn-sm"
+      >
+        <.icon name="hero-envelope" class="size-4" />
+        {dgettext("journal", "Email")}
+      </a>
+    </div>
+    """
+  end
+
+  @doc "The message an invite travels with, for a reader's own poet."
+  def invite_text(poet_name) do
+    dgettext(
+      "journal",
+      "My poet %{poet} travels the world and writes me an illustrated page every day. Start a poet of your own with %{credits} extra credits:",
+      poet: poet_name,
+      credits: TravelingPoet.Referrals.referral_credits()
+    )
+  end
+
+  @doc """
+  The address an owner shares (card-126): their public page with their invite
+  code on it, so a friend who starts a poet from there counts as invited; a
+  private journal shares the bare invite link instead.
+  """
+  def invite_url(poet, entry, code) do
+    if poet.is_public && entry,
+      do: url(~p"/p/#{poet.slug}/#{Date.to_iso8601(entry.entry_date)}?#{[ref: code]}"),
+      else: url(~p"/i/#{code}")
+  end
+
   @doc "The line a post or a message leads with: the title, then the teaser."
   def post_text(title, nil), do: title
   def post_text(title, ""), do: title

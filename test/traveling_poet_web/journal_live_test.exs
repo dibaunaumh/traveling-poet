@@ -336,12 +336,17 @@ defmodule TravelingPoetWeb.JournalLiveTest do
     assert menu =~ "https://wa.me/?"
     assert menu =~ "mailto:?"
 
+    # ...except that the owner's link carries their invite code (card-126),
+    # so a friend who starts a poet from it counts as invited.
     owner = Plug.Test.init_test_session(conn, %{user_id: user.id})
     {:ok, view, _html} = live(owner, ~p"/journal/2026-08-27")
-    assert view |> element("#share-menu") |> render() =~ ~s(data-url="#{link}")
+    code = TravelingPoet.Accounts.get_user!(user.id).referral_code
+    assert code =~ ~r/^[A-Z0-9]{7}$/
+    owner_link = link <> "?ref=" <> code
+    assert view |> element("#share-menu") |> render() =~ ~s(data-url="#{owner_link}")
     # ...on every spread of the page.
     {:ok, view, _html} = live(owner, ~p"/journal/2026-08-27?spread=places")
-    assert has_element?(view, "#share-menu[data-url='#{link}']")
+    assert has_element?(view, "#share-menu[data-url='#{owner_link}']")
 
     # A private journal has no page a friend could open: say so instead.
     {:ok, _} = TravelingPoet.Poets.update_poet(poet, %{is_public: false})

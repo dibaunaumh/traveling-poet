@@ -892,3 +892,57 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Where you live: trips are measured from here, and Near you looks around it."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "(%{credits} credits earned so far)."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Give a friend a poet of their own. They start with %{credits} extra credits, and you get %{credits} when their poet's first page arrives."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Got an invite code from a friend?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Invite codes are for new readers in their first week."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Invite friends"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "One friend joined through you"
+msgid_plural "%{count} friends joined through you"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "That code does not match anyone's invite."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That is your own code. Send it to a friend."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Use code"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Welcome! %{credits} extra credits are yours."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You joined through %{friend}'s invite."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your invite link:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a friend"
+msgstr ""

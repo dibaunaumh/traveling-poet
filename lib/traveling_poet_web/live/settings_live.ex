@@ -9,6 +9,7 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   import TravelingPoetWeb.PoetComponents
   import TravelingPoetWeb.AffinityComponents, only: [taste_map: 1]
+  import TravelingPoetWeb.ShareComponents, only: [invite_actions: 1, invite_text: 1]
 
   alias TravelingPoet.{
     Accounts,
@@ -18,7 +19,8 @@ defmodule TravelingPoetWeb.SettingsLive do
     Payments,
     Poets,
     Preferences,
-    Provisioner
+    Provisioner,
+    Referrals
   }
 
   alias TravelingPoet.Poets.{Poet, Presets}
@@ -398,6 +400,47 @@ defmodule TravelingPoetWeb.SettingsLive do
   def handle_event("decline_note_line", %{"id" => id}, socket) do
     ReaderNote.decline(socket.assigns.poet.id, id)
     {:noreply, assign_note(socket)}
+  end
+
+  @impl true
+  def handle_event("claim_invite", %{"code" => code}, socket) do
+    case Referrals.claim(socket.assigns.user, code) do
+      {:ok, _referrer} ->
+        {:noreply,
+         socket
+         |> assign(:user, Accounts.get_user!(socket.assigns.user.id))
+         |> assign_credits()
+         |> put_flash(
+           :info,
+           dgettext("settings", "Welcome! %{credits} extra credits are yours.",
+             credits: Referrals.referral_credits()
+           )
+         )}
+
+      {:error, :own_code} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("settings", "That is your own code. Send it to a friend.")
+         )}
+
+      {:error, :not_eligible} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("settings", "Invite codes are for new readers in their first week.")
+         )}
+
+      {:error, :invalid_code} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("settings", "That code does not match anyone's invite.")
+         )}
+    end
   end
 
   @impl true
@@ -789,6 +832,22 @@ defmodule TravelingPoetWeb.SettingsLive do
     |> assign(:credits_low, Credits.low?(user, poet))
     |> assign(:credits_exhausted, Credits.exhausted?(user, poet))
     |> assign(:transactions, Credits.list_transactions(user, 10))
+    |> assign_invite()
+  end
+
+  # Invite friends (card-126): the reader's link, who came through it, and
+  # the code field a new reader who installed the app (and so lost the link)
+  # can still use in their first week.
+  defp assign_invite(socket) do
+    user = socket.assigns.user
+    code = Referrals.code_for(user)
+
+    socket
+    |> assign(:invite_code, code)
+    |> assign(:invite_url, url(~p"/i/#{code}"))
+    |> assign(:invite_stats, Referrals.stats(user))
+    |> assign(:can_claim_invite, Referrals.can_claim?(user))
+    |> assign(:invited_by, user.referred_by_id && Accounts.get_user(user.referred_by_id))
   end
 
   defp runway_text(nil),
@@ -1262,6 +1321,11 @@ defmodule TravelingPoetWeb.SettingsLive do
      |> assign_learned()}
   end
 
+  defp invited_by_name(%{name: name}) when is_binary(name) and name != "",
+    do: name |> String.split() |> List.first()
+
+  defp invited_by_name(_), do: dgettext("settings", "a friend")
+
   # The menu's order is the page's order.
   defp nav_sections(poet) do
     [
@@ -1275,6 +1339,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       {"tastes", dgettext("settings", "Tastes")},
       {"learned", dgettext("settings", "Learned")},
       {"credits", dgettext("settings", "Credits")},
+      {"invite", dgettext("settings", "Invite friends")},
       {"notifications", dgettext("settings", "Notifications")},
       {"account", dgettext("settings", "Account")}
     ]
@@ -2194,6 +2259,65 @@ defmodule TravelingPoetWeb.SettingsLive do
                   </li>
                 </ul>
               </details>
+            </.settings_section>
+
+            <.settings_section id="invite" title={dgettext("settings", "Invite friends")}>
+              <p class="text-sm mb-3">
+                {dgettext(
+                  "settings",
+                  "Give a friend a poet of their own. They start with %{credits} extra credits, and you get %{credits} when their poet's first page arrives.",
+                  credits: Referrals.referral_credits()
+                )}
+              </p>
+              <p class="text-sm mb-2">
+                <span class="opacity-60">{dgettext("settings", "Your invite link:")}</span>
+                <span id="invite-url" class="font-mono break-all">{@invite_url}</span>
+              </p>
+              <.invite_actions
+                id="settings-invite"
+                url={@invite_url}
+                title="Traveling Poet"
+                text={invite_text(@poet.name)}
+              />
+              <p :if={@invite_stats.joined > 0} id="invite-stats" class="text-sm opacity-70 mt-3">
+                {dngettext(
+                  "settings",
+                  "One friend joined through you",
+                  "%{count} friends joined through you",
+                  @invite_stats.joined
+                )}
+                <span :if={@invite_stats.earned > 0}>
+                  {dgettext("settings", "(%{credits} credits earned so far).",
+                    credits: Credits.format(@invite_stats.earned)
+                  )}
+                </span>
+              </p>
+              <p :if={@invited_by} id="invited-by" class="text-xs opacity-60 mt-3">
+                {dgettext("settings", "You joined through %{friend}'s invite.",
+                  friend: invited_by_name(@invited_by)
+                )}
+              </p>
+              <form
+                :if={@can_claim_invite}
+                id="invite-claim-form"
+                phx-submit="claim_invite"
+                class="mt-4 flex flex-wrap items-end gap-2"
+              >
+                <label class="text-sm">
+                  <span class="block opacity-70 mb-1">
+                    {dgettext("settings", "Got an invite code from a friend?")}
+                  </span>
+                  <input
+                    type="text"
+                    name="code"
+                    autocomplete="off"
+                    autocapitalize="characters"
+                    maxlength="16"
+                    class="input input-sm input-bordered w-40 font-mono uppercase"
+                  />
+                </label>
+                <button type="submit" class="btn btn-sm">{dgettext("settings", "Use code")}</button>
+              </form>
             </.settings_section>
 
             <.settings_section id="notifications" title={dgettext("settings", "Notifications")}>

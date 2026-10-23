@@ -892,3 +892,57 @@ msgstr "בית"
 #, elixir-autogen, elixir-format
 msgid "Where you live: trips are measured from here, and Near you looks around it."
 msgstr "איפה שאתם גרים: טיולים נמדדים מכאן, ו\"לידכם\" מחפש סביב המקום הזה."
+
+#, elixir-autogen, elixir-format
+msgid "(%{credits} credits earned so far)."
+msgstr "(%{credits} קרדיטים שהרווחתם עד עכשיו)."
+
+#, elixir-autogen, elixir-format
+msgid "Give a friend a poet of their own. They start with %{credits} extra credits, and you get %{credits} when their poet's first page arrives."
+msgstr "הזמינו חברים למסע משלהם. הם מתחילים עם %{credits} קרדיטים נוספים, ואתם מקבלים %{credits} כשמגיע העמוד הראשון שלהם."
+
+#, elixir-autogen, elixir-format
+msgid "Got an invite code from a friend?"
+msgstr "קיבלתם קוד הזמנה?"
+
+#, elixir-autogen, elixir-format
+msgid "Invite codes are for new readers in their first week."
+msgstr "קוד הזמנה אפשר להזין רק בשבוע הראשון אחרי ההצטרפות."
+
+#, elixir-autogen, elixir-format
+msgid "Invite friends"
+msgstr "הזמנת חברים"
+
+#, elixir-autogen, elixir-format
+msgid "One friend joined through you"
+msgid_plural "%{count} friends joined through you"
+msgstr[0] "הצטרפות אחת דרך ההזמנה שלכם"
+msgstr[1] "%{count} הצטרפויות דרך ההזמנה שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "That code does not match anyone's invite."
+msgstr "הקוד הזה לא שייך לאף הזמנה."
+
+#, elixir-autogen, elixir-format
+msgid "That is your own code. Send it to a friend."
+msgstr "זה הקוד שלכם. שלחו אותו למישהו אחר."
+
+#, elixir-autogen, elixir-format
+msgid "Use code"
+msgstr "שימוש בקוד"
+
+#, elixir-autogen, elixir-format
+msgid "Welcome! %{credits} extra credits are yours."
+msgstr "ברוכים הבאים! %{credits} קרדיטים נוספים כבר אצלכם."
+
+#, elixir-autogen, elixir-format
+msgid "You joined through %{friend}'s invite."
+msgstr "הצטרפתם בהזמנה של %{friend}."
+
+#, elixir-autogen, elixir-format
+msgid "Your invite link:"
+msgstr "קישור ההזמנה שלכם:"
+
+#, elixir-autogen, elixir-format
+msgid "a friend"
+msgstr "מישהו קרוב"

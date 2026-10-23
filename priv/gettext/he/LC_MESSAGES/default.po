@@ -586,3 +586,11 @@ msgstr "להורדה ב-App Store"
 #, elixir-autogen, elixir-format
 msgid "Trips scouted, not sold. No ads, no paid picks."
 msgstr "טיולים שנבדקים, לא נמכרים. בלי פרסומות, בלי המלצות בתשלום."
+
+#, elixir-autogen, elixir-format
+msgid "%{friend} invited you. Your poet starts with %{credits} extra credits."
+msgstr "הזמנה מאת %{friend}: המסע שלכם מתחיל עם %{credits} קרדיטים נוספים."
+
+#, elixir-autogen, elixir-format
+msgid "A friend"
+msgstr "מישהו קרוב"
