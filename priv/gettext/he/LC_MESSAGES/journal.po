@@ -764,3 +764,19 @@ msgstr "מה כבר נלמד עליכם"
 #, elixir-autogen, elixir-format
 msgid "your poet"
 msgstr "המשורר שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "Invite a friend"
+msgstr "הזמנת חברים"
+
+#, elixir-autogen, elixir-format
+msgid "Know someone who would love a poet of their own?"
+msgstr "מכירים מישהו שיאהב מסע כזה?"
+
+#, elixir-autogen, elixir-format
+msgid "My poet %{poet} travels the world and writes me an illustrated page every day. Start a poet of your own with %{credits} extra credits:"
+msgstr "כל יום מגיע אליי עמוד מאויר מהמסע של %{poet} בעולם. אפשר להתחיל מסע משלכם עם %{credits} קרדיטים נוספים:"
+
+#, elixir-autogen, elixir-format
+msgid "Send them this page. If they start a poet, they get %{credits} extra credits, and you get %{credits} when its first page arrives."
+msgstr "שלחו להם את העמוד הזה. אם יתחילו מסע משלהם, יקבלו %{credits} קרדיטים נוספים, ואתם תקבלו %{credits} כשיגיע העמוד הראשון שלהם."

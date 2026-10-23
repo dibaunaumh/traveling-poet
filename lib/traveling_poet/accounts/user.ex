@@ -84,6 +84,13 @@ defmodule TravelingPoet.Accounts.User do
     field :home_lng, :float
     field :home_country_code, :string
 
+    # Referral credits (card-126; TravelingPoet.Referrals): this reader's
+    # invite code, who invited them, and when they last waved off the
+    # invite under a fresh page
+    field :referral_code, :string
+    belongs_to :referred_by, __MODULE__
+    field :invite_prompt_dismissed_at, :utc_datetime
+
     has_one :poet, TravelingPoet.Poets.Poet
 
     timestamps()
@@ -128,6 +135,9 @@ defmodule TravelingPoet.Accounts.User do
       :daily_budget_cents,
       :quota_exempt,
       :credits_balance,
+      :referral_code,
+      :referred_by_id,
+      :invite_prompt_dismissed_at,
       :low_credits_notified_at,
       :google_refresh_token,
       :google_access_token,

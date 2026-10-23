@@ -1020,6 +1020,16 @@ mark.marker.marker-sent {
   max-width: 34rem;
 }
 
+/* An invited visitor's welcome above the hero title (card-126) */
+.home-hero-invite {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.6rem;
+  background: color-mix(in oklab, var(--hero-ink) 10%, transparent);
+  font-size: 0.95rem;
+}
+
 .home-hero-copy h1 {
   font-family: "Fraunces", Georgia, "Times New Roman", serif;
   font-weight: 300;

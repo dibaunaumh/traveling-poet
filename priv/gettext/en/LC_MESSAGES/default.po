@@ -586,3 +586,11 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Trips scouted, not sold. No ads, no paid picks."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{friend} invited you. Your poet starts with %{credits} extra credits."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A friend"
+msgstr ""

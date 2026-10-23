@@ -24,6 +24,7 @@ defmodule TravelingPoet.WebPush.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "near_home")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "referrals")
       {:ok, %{}}
     else
       :ignore
@@ -41,6 +42,13 @@ defmodule TravelingPoet.WebPush.Notifier do
       end
     end)
 
+    {:noreply, state}
+  end
+
+  # An invited friend's first page earned the reader their credits (card-126)
+  @impl true
+  def handle_info({:referral_rewarded, referrer_id, friend_id}, state) do
+    Task.start(fn -> WebPush.notify_referral_rewarded(referrer_id, friend_id) end)
     {:noreply, state}
   end
 

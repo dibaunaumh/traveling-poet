@@ -16,8 +16,16 @@ defmodule TravelingPoetWeb.UserAuth do
   @doc """
   Logs the user in. Renews the session ID and clears the whole session to
   avoid fixation attacks.
+
+  Every sign-in road ends here (Google on the web, Apple, the iOS app's
+  handoff), so this is where an invite code parked in the session by
+  `Plugs.Referral` is claimed, before the session is cleared.
+  `Referrals.claim/2` turns away anyone who is not a new reader.
   """
   def log_in_user(conn, user) do
+    if code = get_session(conn, :referral_code),
+      do: TravelingPoet.Referrals.claim(user, code)
+
     conn
     |> renew_session()
     |> put_session(:user_id, user.id)

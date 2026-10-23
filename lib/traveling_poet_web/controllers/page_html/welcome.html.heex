@@ -24,6 +24,13 @@
       )}
     </p>
 
+    <p :if={@invited_by} id="invite-welcome" class="app-welcome-place">
+      {gettext("%{friend} invited you. Your poet starts with %{credits} extra credits.",
+        friend: @invited_by,
+        credits: TravelingPoet.Referrals.referral_credits()
+      )}
+    </p>
+
     <p :if={@start_place} id="welcome-place" class="app-welcome-place">
       <.rich text={
         gettext("Your poet sets out from %{place}. Sign in and it goes.", place: marker(:place))

@@ -13,6 +13,7 @@ defmodule TravelingPoetWeb.Router do
     plug TravelingPoetWeb.Plugs.NativeApp
     plug :fetch_current_user
     plug TravelingPoetWeb.Plugs.Locale
+    plug TravelingPoetWeb.Plugs.Referral
   end
 
   # Agent-facing API: sprite -> app, bearer-token auth, no session/CSRF.
@@ -73,6 +74,8 @@ defmodule TravelingPoetWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    # A reader's invite link (card-126): parks the code, then the home page
+    get "/i/:code", InviteController, :show
     get "/email/unsubscribe/:token", EmailController, :show
     get "/email/unsubscribed", EmailController, :done
     # The hero's destination box: remembers the place across Google sign-in

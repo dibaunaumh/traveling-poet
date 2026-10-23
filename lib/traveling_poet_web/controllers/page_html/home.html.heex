@@ -36,6 +36,12 @@
         fetchpriority="high"
       />
       <div class="home-hero-copy">
+        <p :if={@invited_by} id="invite-welcome" class="home-hero-invite">
+          {gettext("%{friend} invited you. Your poet starts with %{credits} extra credits.",
+            friend: @invited_by,
+            credits: TravelingPoet.Referrals.referral_credits()
+          )}
+        </p>
         <h1 id="hero-title">{gettext("Send someone ahead of you.")}</h1>
         <p>
           {gettext(

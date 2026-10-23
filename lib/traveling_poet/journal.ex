@@ -196,6 +196,11 @@ defmodule TravelingPoet.Journal do
       # An excursion entry going out settles its excursion for good.
       TravelingPoet.Topics.mark_published(published.id)
 
+      # A reader who came through a friend: that friend's reward lands with
+      # this reader's first page (dec-015). Ledger-idempotent, so every later
+      # page is a no-op.
+      TravelingPoet.Referrals.after_publish(entry.poet_id)
+
       Phoenix.PubSub.broadcast(
         TravelingPoet.PubSub,
         "poet:#{entry.poet_id}",
