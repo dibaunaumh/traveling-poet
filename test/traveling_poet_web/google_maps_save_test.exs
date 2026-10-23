@@ -21,7 +21,16 @@ defmodule TravelingPoetWeb.GoogleMapsSaveTest do
 
       if name =~ "Nowhere",
         do: Req.Test.json(conn, %{}),
-        else: Req.Test.json(conn, %{places: [%{id: "ChIJ-" <> String.replace(name, " ", "")}]})
+        else:
+          Req.Test.json(conn, %{
+            places: [
+              %{
+                id: "ChIJ-" <> String.replace(name, " ", ""),
+                displayName: %{text: name},
+                formattedAddress: "Kraków, Poland"
+              }
+            ]
+          })
     end)
   end
 
@@ -60,9 +69,9 @@ defmodule TravelingPoetWeb.GoogleMapsSaveTest do
       }
 
       assert GooglePlaces.resolve([place]) == %{GooglePlaces.key(place) => "ChIJ-Charlotte"}
-      assert_received {:search, body, ["places.id"]}
+      assert_received {:search, body, ["places.id,places.displayName,places.formattedAddress"]}
       assert body["textQuery"] == "Charlotte, plac Szczepański 2, Kraków"
-      assert body["pageSize"] == 1
+      assert body["pageSize"] == 3
       %{"low" => low, "high" => high} = body["locationRestriction"]["rectangle"]
       assert low["latitude"] < 50.0646 and high["latitude"] > 50.0646
       assert low["longitude"] < 19.9358 and high["longitude"] > 19.9358
@@ -85,6 +94,74 @@ defmodule TravelingPoetWeb.GoogleMapsSaveTest do
       assert GooglePlaces.missing([place]) == []
       GooglePlaces.resolve([place])
       refute_received {:search, _, _}
+    end
+
+    test "Google's nearest guess for a place it does not know is not taken" do
+      Req.Test.stub(GooglePlaces, fn conn ->
+        Req.Test.json(conn, %{
+          places: [
+            %{
+              id: "ChIJ-Starka",
+              displayName: %{text: "Starka | Restaurant & Vodkas"},
+              formattedAddress: "Józefa 14, 31-056 Kraków, Poland"
+            },
+            %{
+              id: "ChIJ-Szara",
+              displayName: %{text: "Szara Kazimierz"},
+              formattedAddress: "Kraków"
+            }
+          ]
+        })
+      end)
+
+      szara = %{
+        name: "Szara Kazimierz",
+        address: "Szeroka 39, 31-053 Kraków",
+        lat: 50.0536,
+        lng: 19.9468
+      }
+
+      # The right one, though Google ranked another first.
+      assert GooglePlaces.resolve([szara]) == %{GooglePlaces.key(szara) => "ChIJ-Szara"}
+
+      Req.Test.stub(GooglePlaces, fn conn ->
+        Req.Test.json(conn, %{
+          places: [
+            %{
+              id: "ChIJ-Starka",
+              displayName: %{text: "Starka | Restaurant & Vodkas"},
+              formattedAddress: "Józefa 14, 31-056 Kraków, Poland"
+            }
+          ]
+        })
+      end)
+
+      closed = %{szara | name: "Szara Kazimierz Two", lat: 50.0537}
+      assert GooglePlaces.resolve([closed]) == %{}
+      assert GooglePlaces.missing([closed]) == []
+    end
+
+    test "a name the poet translated passes on its street and number" do
+      basilica = %{name: "Bazylika Bożego Ciała", address: "Bożego Ciała 26, 31-059 Kraków"}
+
+      assert GooglePlaces.same_place?(basilica, %{
+               "displayName" => %{"text" => "Corpus Christi Basilica"},
+               "formattedAddress" => "Bożego Ciała 26, 31-059 Kraków, Poland"
+             })
+
+      refute GooglePlaces.same_place?(%{name: "Lody", address: "Szeroka 3, Kraków"}, %{
+               "displayName" => %{"text" => "Gelato"},
+               "formattedAddress" => "Szeroka 39, Kraków, Poland"
+             })
+
+      refute GooglePlaces.same_place?(%{name: "The Bar", address: nil}, %{
+               "displayName" => %{"text" => "Other Bar"},
+               "formattedAddress" => "Kraków"
+             })
+
+      assert GooglePlaces.same_place?(%{name: "Café Camelot", address: nil}, %{
+               "displayName" => %{"text" => "Camelot Cafe"}
+             })
     end
 
     test "a failed search is not cached, and a place without coordinates is never searched" do
