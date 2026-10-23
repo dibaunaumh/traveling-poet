@@ -187,6 +187,7 @@ defmodule TravelingPoetWeb.Router do
       live "/journal", JournalLive
       live "/journal/:date", JournalLive
       live "/guide", GuideLive
+      live "/guide/near", NearHomeLive
       live "/settings", SettingsLive
     end
 

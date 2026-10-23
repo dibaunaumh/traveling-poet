@@ -197,6 +197,13 @@ defmodule TravelingPoetWeb.TripSuggestions do
      )}
   end
 
+  # "Near you" (card-71) lives beside the home city it needs
+  def handle_event("trip_toggle_near_home", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    {:ok, user} = TravelingPoet.NearHome.set_enabled(user, user.near_home == false)
+    {:noreply, assign(socket, :user, user)}
+  end
+
   def handle_event("trip_" <> _, _params, socket), do: {:noreply, socket}
 
   @doc "A sync, an accept or a dismissal changed this companion's trips."
@@ -299,6 +306,28 @@ defmodule TravelingPoetWeb.TripSuggestions do
             {result.place_name}
           </button>
         </div>
+        <label :if={@trips.home} id="near-home-setting" class="flex items-start gap-3 mt-3">
+          <input
+            id="near-home-toggle"
+            type="checkbox"
+            class="toggle toggle-sm mt-0.5"
+            checked={@user.near_home != false}
+            phx-click="trip_toggle_near_home"
+          />
+          <span>
+            <span class="font-medium">{dgettext("guide", "Near you")}</span>
+            <span class="block opacity-70">
+              {dgettext(
+                "guide",
+                "Once a week %{poet} looks for events, exhibitions and outings near home that fit what you like. Included in the day's credit.",
+                poet: @poet.name
+              )}
+              <.link :if={@user.near_home != false} navigate={~p"/guide/near"} class="link">
+                {dgettext("guide", "See this week's")}
+              </.link>
+            </span>
+          </span>
+        </label>
       </div>
 
       <div id="trip-calendar">

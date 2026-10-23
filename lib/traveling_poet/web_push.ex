@@ -157,6 +157,16 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Tells every device of the owner what their poet found near home this week (card-71)."
+  def notify_near_home(user_id) do
+    with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),
+         [_ | _] = picks <- TravelingPoet.NearHome.this_week(user_id) do
+      notify_user(user_id, fn -> near_home_payload(poet, picks) end)
+    else
+      _ -> {0, 0}
+    end
+  end
+
   @doc "Tells every device of the owner that their poet asked them something in chat."
   def notify_poet_question(user_id, ask_id) do
     with poet when not is_nil(poet) <- Poets.get_poet_by_user(user_id),
@@ -213,6 +223,24 @@ defmodule TravelingPoet.WebPush do
       body: ask.question,
       url: "/journal?chat=1",
       tag: "ask-#{ask.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
+  @doc "What the device shows when the week's picks near home arrive. Pure, for tests."
+  def near_home_payload(poet, picks) do
+    %{
+      title:
+        dngettext(
+          "notify",
+          "%{poet} found something near you this week",
+          "%{poet} found %{count} things near you this week",
+          length(picks),
+          poet: poet.name
+        ),
+      body: picks |> Enum.take(3) |> Enum.map_join(", ", & &1.name),
+      url: "/guide/near",
+      tag: "near-home",
       icon: "/images/icon-192.png"
     }
   end

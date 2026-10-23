@@ -210,3 +210,15 @@ msgstr "לפתיחת העמוד של היום"
 #, elixir-autogen, elixir-format
 msgid "Where to go"
 msgstr "לאן ללכת"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found something near you this week"
+msgid_plural "%{poet} found %{count} things near you this week"
+msgstr[0] "ממצא של %{poet} לידכם השבוע"
+msgstr[1] "%{count} ממצאים של %{poet} לידכם השבוע"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found something near you this week:\n%{lines}\n\nWhen and where: %{link}"
+msgid_plural "%{poet} found %{count} things near you this week:\n%{lines}\n\nWhen and where: %{link}"
+msgstr[0] "ממצא של %{poet} לידכם השבוע:\n%{lines}\n\nמתי ואיפה: %{link}"
+msgstr[1] "%{count} ממצאים של %{poet} לידכם השבוע:\n%{lines}\n\nמתי ואיפה: %{link}"

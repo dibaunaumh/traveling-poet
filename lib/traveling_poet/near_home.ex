@@ -60,6 +60,30 @@ defmodule TravelingPoet.NearHome do
     |> Repo.one()
   end
 
+  @doc """
+  What the reader can still go to: the latest batch while it is under a
+  week old, without the picks that are already over. `[]` otherwise.
+  """
+  def this_week(user_id, %Date{} = today \\ Date.utc_today()) do
+    case last_batch_on(user_id) do
+      nil ->
+        []
+
+      date ->
+        if Date.diff(today, date) < 7,
+          do: Enum.reject(batch(user_id, date), &over?(&1, today)),
+          else: []
+    end
+  end
+
+  @doc "Whether a pick's last day has passed."
+  def over?(%Pick{ends_on: %Date{} = ends_on}, today), do: Date.compare(ends_on, today) == :lt
+  def over?(_pick, _today), do: false
+
+  @doc "Turns the weekly picks on or off for this reader."
+  def set_enabled(%User{} = user, enabled?) when is_boolean(enabled?),
+    do: TravelingPoet.Accounts.update_user(user, %{near_home: enabled?})
+
   defp batch(user_id, date) do
     Pick
     |> where(user_id: ^user_id, week_of: ^date)
@@ -219,10 +243,21 @@ defmodule TravelingPoet.NearHome do
 
       kept = Enum.reverse(kept)
       dropped = Enum.reverse(dropped)
+      # A resend that fixes dropped picks replaces the day's batch; the
+      # reader hears about the day's batch once.
+      first_today? = last_batch_on(user.id) != today
       stored = if kept == [], do: [], else: replace_batch(user, poet, today, kept)
 
       if stored != [] do
         Phoenix.PubSub.broadcast(TravelingPoet.PubSub, "user:#{user.id}", {:near_home, today})
+
+        if first_today? do
+          Phoenix.PubSub.broadcast(
+            TravelingPoet.PubSub,
+            "near_home",
+            {:near_home_ready, user.id, today}
+          )
+        end
       end
 
       {:ok, %{kept: stored, dropped: dropped}}

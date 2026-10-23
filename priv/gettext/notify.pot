@@ -210,3 +210,15 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Where to go"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found something near you this week"
+msgid_plural "%{poet} found %{count} things near you this week"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found something near you this week:\n%{lines}\n\nWhen and where: %{link}"
+msgid_plural "%{poet} found %{count} things near you this week:\n%{lines}\n\nWhen and where: %{link}"
+msgstr[0] ""
+msgstr[1] ""
