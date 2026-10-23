@@ -267,6 +267,8 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     if published? do
       log_published_outcome(poet, outcome)
       record_daily_run(user.id, attempt.id)
+      # The week's look near home (card-71) follows a published page.
+      TravelingPoet.NearHome.after_publish(user, poet)
     else
       log_unpublished_outcome(poet, outcome)
       Credits.refund_daily_run(user, attempt.id)

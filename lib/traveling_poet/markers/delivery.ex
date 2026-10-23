@@ -34,7 +34,7 @@ defmodule TravelingPoet.Markers.Delivery do
   @trigger "/revise-entry"
   @attempt_kind "marker_revision_attempt"
   # Anything that holds the sprite in a long turn.
-  @busy_kinds ~w(daily_run_attempt first_entry_attempt marker_revision_attempt book_compose_attempt)
+  @busy_kinds ~w(daily_run_attempt first_entry_attempt marker_revision_attempt book_compose_attempt near_home)
   @busy_window_minutes 15
   @chat_window_minutes 5
   @reply_timeout_ms 10 * 60 * 1000
