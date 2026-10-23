@@ -66,7 +66,9 @@ defmodule TravelingPoetWeb.GoogleMapsSaveTest do
       %{"low" => low, "high" => high} = body["locationRestriction"]["rectangle"]
       assert low["latitude"] < 50.0646 and high["latitude"] > 50.0646
       assert low["longitude"] < 19.9358 and high["longitude"] > 19.9358
-      assert high["latitude"] - low["latitude"] < 0.05
+      # Under a km each way: a namesake branch across town stays out.
+      assert high["latitude"] - low["latitude"] < 0.015
+      assert high["longitude"] - low["longitude"] < 0.025
 
       # Known now: no second search, for this place or the same one spelt
       # with other spacing and case.
