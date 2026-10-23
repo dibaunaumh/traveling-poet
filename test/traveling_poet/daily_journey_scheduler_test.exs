@@ -10,9 +10,13 @@ defmodule TravelingPoet.DailyJourneySchedulerTest do
     poet = poet_fixture(user)
     assert DailyJourneyScheduler.eligible(user, poet) == :ok
 
+    # A scout day costs the same one credit (dec-013).
     {:ok, _} = TravelingPoet.Poets.update_poet(poet, %{settings: %{"mode" => "scout"}})
     scout = TravelingPoet.Poets.get_poet_by_user(user.id)
-    assert DailyJourneyScheduler.eligible(user, scout) == {:skip, "out of credits"}
+    assert DailyJourneyScheduler.eligible(user, scout) == :ok
+
+    broke = user_fixture()
+    assert DailyJourneyScheduler.eligible(broke, poet_fixture(broke)) == {:skip, "out of credits"}
 
     {:ok, _} = Usage.record(user.id, "daily_run")
     assert DailyJourneyScheduler.eligible(user, poet) == {:skip, "over budget"}

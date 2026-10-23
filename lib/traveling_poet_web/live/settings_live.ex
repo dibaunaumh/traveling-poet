@@ -936,23 +936,17 @@ defmodule TravelingPoetWeb.SettingsLive do
       else: dgettext("settings", "(%{size}, %{pages} pages, %{paper}, made %{date})", values)
   end
 
-  # What a day costs, in the mode the poet is in
+  # What a day costs, in the mode the poet is in (the same for both, dec-013)
   defp daily_cost_text(poet) do
-    amount = Credits.format(Credits.daily_run_cost(poet))
+    milli = Credits.daily_run_cost(poet)
 
-    if Poet.mode(poet) == "scout",
-      do:
-        dgettext(
-          "settings",
-          "Each day's journey costs %{amount} credits (Trip Scout); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate.",
-          amount: amount
-        ),
-      else:
-        dgettext(
-          "settings",
-          "Each day's journey costs %{amount} credit (Wanderer); chatting and drawings are included. Days spent scouting one of your own trips cost the Trip Scout rate.",
-          amount: amount
-        )
+    dngettext(
+      "settings",
+      "Each day's journey costs %{amount} credit, wandering or scouting a trip; chatting and drawings are included.",
+      "Each day's journey costs %{amount} credits, wandering or scouting a trip; chatting and drawings are included.",
+      if(milli == 1000, do: 1, else: 2),
+      amount: Credits.format(milli)
+    )
   end
 
   defp signed(milli) when milli >= 0, do: "+" <> Credits.format(milli)
@@ -1612,7 +1606,7 @@ defmodule TravelingPoetWeb.SettingsLive do
               <p class="text-xs opacity-60 mb-4">
                 {dgettext(
                   "settings",
-                  "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order, on a more careful model."
+                  "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order."
                 )}
               </p>
 

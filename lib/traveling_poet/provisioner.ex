@@ -1033,7 +1033,7 @@ defmodule TravelingPoet.Provisioner do
         model
 
       poet && TravelingPoet.Poets.Poet.mode(poet) == "scout" ->
-        Application.get_env(:traveling_poet, :scout_model, "anthropic/claude-sonnet-4.6")
+        Application.get_env(:traveling_poet, :scout_model) || openrouter_model()
 
       true ->
         openrouter_model()

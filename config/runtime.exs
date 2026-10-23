@@ -42,7 +42,11 @@ config :traveling_poet,
   scout_model:
     if(config_env() == :test,
       do: "test/scout-model",
-      else: System.get_env("SCOUT_MODEL", "anthropic/claude-sonnet-4.6")
+      # Unset, scouts run on the fleet model: they are priced like wanderers
+      # (dec-013), so they must not fall back to a dearer one.
+      else:
+        System.get_env("SCOUT_MODEL") ||
+          System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
     ),
   # Every poet's web_search (Provisioner.openclaw_config). Pinned in test like
   # the slugs above. Reaches the fleet only through Provisioner.upgrade_fleet/1.
@@ -257,7 +261,7 @@ config :traveling_poet,
   # threshold in days of runway
   credit_rates: %{
     "wander" => String.to_integer(System.get_env("CREDIT_RATE_WANDER") || "1"),
-    "scout" => String.to_integer(System.get_env("CREDIT_RATE_SCOUT") || "5")
+    "scout" => String.to_integer(System.get_env("CREDIT_RATE_SCOUT") || "1")
   },
   signup_credits: String.to_integer(System.get_env("SIGNUP_CREDITS") || "10"),
   # A composed book edition: base + per chapter (stay), capped. Pinned in
