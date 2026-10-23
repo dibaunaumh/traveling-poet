@@ -22,6 +22,8 @@ defmodule TravelingPoet.Illustrations do
 
   require Logger
 
+  alias TravelingPoet.{Journal, Repo, Storage.S3}
+
   @api_url "https://openrouter.ai/api/v1/chat/completions"
   @images_url "https://openrouter.ai/api/v1/images"
 
@@ -34,8 +36,11 @@ defmodule TravelingPoet.Illustrations do
   # around the scene: spiral binding, page edges, a hand. The drawing is
   # taped into a notebook already; the scene has to fill the image. Added
   # app-side so it holds whatever the poet's own prompt says.
+  # A wide scene ("stretching across the whole frame") also came back
+  # letterboxed, padded to the square with black bars (Letterbox).
   @framing " The image is the scene itself, filling the frame edge to edge:" <>
-             " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands."
+             " no sketchbook, notebook, spiral binding, page edges, paper border, frame, tape, or hands," <>
+             " and no black bars or letterboxing."
 
   # A spot drawing sits inside the prose, blended onto the paper with CSS
   # multiply, which makes pure white vanish and lets a wash sit on the paper
@@ -82,8 +87,65 @@ defmodule TravelingPoet.Illustrations do
   """
   def generate(prompt, kind \\ nil) when is_binary(prompt) do
     case request(prompt, model: model_for(kind)) do
-      {:ok, %{bytes: bytes, content_type: content_type}} -> {:ok, bytes, content_type}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{bytes: bytes, content_type: content_type}} ->
+        {:ok, trim_letterbox(bytes, content_type), content_type}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # The prompt asks for no bars; this catches the drawings that have them anyway
+  defp trim_letterbox(bytes, "image/png") do
+    case __MODULE__.Letterbox.trim(bytes) do
+      {:ok, trimmed, %{top: top, bottom: bottom}} ->
+        Logger.info("Illustrations: trimmed a letterbox, #{top} rows top, #{bottom} bottom")
+        trimmed
+
+      :unchanged ->
+        bytes
+    end
+  end
+
+  defp trim_letterbox(bytes, _content_type), do: bytes
+
+  @doc """
+  Trims the bars from drawings stored before the trim existed. Called over
+  `rpc` with media ids; a dry run unless `commit: true`. The trimmed image
+  goes to a new key (media is cached as immutable by key and URL), so a
+  browser that already holds the old one keeps it until its cache goes.
+  """
+  def repair_letterboxed(media_ids, opts \\ []) do
+    commit = Keyword.get(opts, :commit, false)
+
+    for id <- media_ids do
+      with %{content_type: "image/png"} = media <- Journal.get_media(id),
+           {:ok, bytes} <- S3.download_file(media.s3_key),
+           {:ok, trimmed, info} <- __MODULE__.Letterbox.trim(bytes) do
+        if commit do
+          key = "poets/#{media.poet_id}/media/#{Ecto.UUID.generate()}.png"
+
+          with {:ok, _} <- S3.upload_content(key, trimmed, "image/png"),
+               {:ok, _} <-
+                 media
+                 |> Journal.Media.changeset(%{
+                   s3_key: key,
+                   byte_size: byte_size(trimmed),
+                   content_hash: :crypto.hash(:md5, trimmed) |> Base.encode16()
+                 })
+                 |> Repo.update() do
+            {id, :repaired, info}
+          else
+            error -> {id, :failed, error}
+          end
+        else
+          {id, :would_repair, info}
+        end
+      else
+        :unchanged -> {id, :no_bars}
+        nil -> {id, :not_found}
+        other -> {id, :skipped, other}
+      end
     end
   end
 
