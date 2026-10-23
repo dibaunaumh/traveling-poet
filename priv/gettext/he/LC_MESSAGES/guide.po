@@ -1049,3 +1049,121 @@ msgstr "שמירה ב-Google Maps ↖"
 #, elixir-autogen, elixir-format
 msgid "Save to Google Maps"
 msgstr "שמירה ב-Google Maps"
+
+#, elixir-autogen, elixir-format
+msgid "%{km} km from home"
+msgstr "%{km} ק\"מ מהבית"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} already looked near you today."
+msgstr "החיפוש של %{poet} לידכם כבר נעשה היום."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found nothing that fits this week."
+msgstr "השבוע לא נמצא ליד הבית שלכם משהו שמתאים."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is looking…"
+msgstr "החיפוש של %{poet} בדרך…"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} looks near you once a week, after a day's page. Nothing for this week yet."
+msgstr "החיפוש של %{poet} לידכם נעשה פעם בשבוע, אחרי עמוד יומי. לשבוע הזה עוד אין כלום."
+
+#, elixir-autogen, elixir-format
+msgid "A new list every week. Check the details page before you go: times and tickets change."
+msgstr "רשימה חדשה כל שבוע. כדאי לבדוק את עמוד הפרטים לפני שיוצאים: שעות וכרטיסים משתנים."
+
+#, elixir-autogen, elixir-format
+msgid "Ask %{poet} to look now"
+msgstr "לבקש מ-%{poet} לחפש עכשיו"
+
+#, elixir-autogen, elixir-format
+msgid "Details ↗"
+msgstr "פרטים ↗"
+
+#, elixir-autogen, elixir-format
+msgid "Directions ↗"
+msgstr "הוראות הגעה ↗"
+
+#, elixir-autogen, elixir-format
+msgid "Exhibition"
+msgstr "תערוכה"
+
+#, elixir-autogen, elixir-format
+msgid "From %{date}"
+msgstr "מ-%{date}"
+
+#, elixir-autogen, elixir-format
+msgid "Market"
+msgstr "שוק"
+
+#, elixir-autogen, elixir-format
+msgid "Near you"
+msgstr "לידכם"
+
+#, elixir-autogen, elixir-format
+msgid "Near you is switched off."
+msgstr "\"לידכם\" כבוי."
+
+#, elixir-autogen, elixir-format
+msgid "Near you is switched off. Turn it on in Settings."
+msgstr "\"לידכם\" כבוי. אפשר להפעיל אותו בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Near you this week: %{poet} found one thing around %{home}."
+msgid_plural "Near you this week: %{poet} found %{count} things around %{home}."
+msgstr[0] "לידכם השבוע: דבר אחד שנמצא באזור %{home}, בחיפוש של %{poet}."
+msgstr[1] "לידכם השבוע: %{count} דברים שנמצאו באזור %{home}, בחיפוש של %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Once a week %{poet} looks for events, exhibitions and outings near home that fit what you like. Included in the day's credit."
+msgstr "פעם בשבוע, חיפוש של %{poet} ליד הבית: אירועים, תערוכות ויציאות שמתאימים למה שאתם אוהבים. כלול בקרדיט של היום."
+
+#, elixir-autogen, elixir-format
+msgid "Outing"
+msgstr "יציאה"
+
+#, elixir-autogen, elixir-format
+msgid "Performance"
+msgstr "הופעה"
+
+#, elixir-autogen, elixir-format
+msgid "Place"
+msgstr "מקום"
+
+#, elixir-autogen, elixir-format
+msgid "See this week's"
+msgstr "לרשימה של השבוע"
+
+#, elixir-autogen, elixir-format
+msgid "See when and where"
+msgstr "מתי ואיפה"
+
+#, elixir-autogen, elixir-format
+msgid "Set your home city"
+msgstr "הגדרת עיר הבית"
+
+#, elixir-autogen, elixir-format
+msgid "Set your home city in Settings first."
+msgstr "קודם צריך להגדיר עיר בית בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Something to do"
+msgstr "משהו לעשות"
+
+#, elixir-autogen, elixir-format
+msgid "Tell %{poet} where you live, and once a week it looks for events, exhibitions and outings near you that fit what you like."
+msgstr "ספרו ל-%{poet} איפה אתם גרים, ופעם בשבוע יגיעו אליכם אירועים, תערוכות ויציאות בסביבה שמתאימים למה שאתם אוהבים."
+
+#, elixir-autogen, elixir-format
+msgid "Turn it on in Settings"
+msgstr "להפעלה בהגדרות"
+
+#, elixir-autogen, elixir-format
+msgid "Until %{date}"
+msgstr "עד %{date}"
+
+#, elixir-autogen, elixir-format
+msgid "What is on within %{km} km of %{home} in the coming days, found by %{poet}"
+msgstr "מה קורה בטווח %{km} ק\"מ מ-%{home} בימים הקרובים, ממצאים של %{poet}"

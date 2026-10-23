@@ -158,6 +158,11 @@ defmodule TravelingPoetWeb.GuideComponents do
   attr :saved_count, :integer, default: 0
   attr :saved, :boolean, default: false, doc: "the Saved view is open"
 
+  attr :near, :atom,
+    default: :hidden,
+    values: [:hidden, :link, :active],
+    doc: "the Near you tab (card-71): a link to `/guide/near`, or that page is open"
+
   @doc """
   One row for every journey the guide can show: the places of the road, then
   each topic with excursions behind it. Rendered only when there is a topic
@@ -167,7 +172,7 @@ defmodule TravelingPoetWeb.GuideComponents do
   def journey_switcher(assigns) do
     ~H"""
     <div
-      :if={@journeys != [] or @saved_count > 0 or @saved}
+      :if={@journeys != [] or @saved_count > 0 or @saved or @near != :hidden}
       id="guide-journeys"
       class="flex flex-wrap items-center gap-2 mb-4"
     >
@@ -177,11 +182,22 @@ defmodule TravelingPoetWeb.GuideComponents do
         phx-value-topic=""
         class={[
           "btn btn-sm",
-          if(is_nil(@topic) and not @saved, do: "btn-neutral", else: "btn-ghost")
+          if(is_nil(@topic) and not @saved and @near != :active,
+            do: "btn-neutral",
+            else: "btn-ghost"
+          )
         ]}
       >
         <.icon name="hero-map-pin" class="size-4" /> {dgettext("guide", "Places")}
       </button>
+      <.link
+        :if={@near != :hidden}
+        id="guide-journey-near"
+        navigate={~p"/guide/near"}
+        class={["btn btn-sm", if(@near == :active, do: "btn-neutral", else: "btn-ghost")]}
+      >
+        <.icon name="hero-home-modern" class="size-4" /> {dgettext("guide", "Near you")}
+      </.link>
       <button
         :for={{topic, count} <- @journeys}
         id={"guide-journey-topic-#{topic.id}"}

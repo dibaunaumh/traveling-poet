@@ -9,6 +9,7 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
   import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_nudge: 1]
+  import TravelingPoetWeb.NearHomeComponents, only: [near_home_card: 1]
   import TravelingPoetWeb.ProductTour, only: [product_tour: 1]
 
   alias TravelingPoet.{
@@ -107,6 +108,7 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:last_sent, nil)
           |> assign_telegram()
           |> assign_trips()
+          |> assign(:near_home_picks, TravelingPoet.NearHome.this_week(user.id))
           |> assign(:mobile_chat_open, false)
           |> assign(:gateway_socket_pid, gateway_socket_pid)
           |> assign(:active_marker, nil)
@@ -865,6 +867,12 @@ defmodule TravelingPoetWeb.JournalLive do
     end
   end
 
+  # The week's picks near home landed (card-71)
+  def handle_info({:near_home, _date}, socket),
+    do:
+      {:noreply,
+       assign(socket, :near_home_picks, TravelingPoet.NearHome.this_week(socket.assigns.user.id))}
+
   @impl true
   def handle_info(msg, socket) do
     Logger.debug("JournalLive received unexpected message: #{inspect(msg)}")
@@ -1224,6 +1232,12 @@ defmodule TravelingPoetWeb.JournalLive do
           </div>
 
           <.trip_nudge trips={@trips} poet={@poet} />
+          <.near_home_card
+            :if={!awaiting_first_entry?(assigns)}
+            picks={@near_home_picks}
+            poet={@poet}
+            home={@user.home_place_name}
+          />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
           <.first_entry_placeholder

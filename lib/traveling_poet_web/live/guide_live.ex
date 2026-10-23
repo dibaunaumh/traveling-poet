@@ -217,6 +217,7 @@ defmodule TravelingPoetWeb.GuideLive do
         topic={@topic}
         saved_count={@saved_count}
         saved={@saved_view}
+        near={if TravelingPoet.NearHome.home?(@current_user), do: :link, else: :hidden}
       />
 
       <div :if={@saved_view} id="guide-saved">

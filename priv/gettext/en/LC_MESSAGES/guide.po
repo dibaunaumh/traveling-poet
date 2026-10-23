@@ -1049,3 +1049,121 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Save to Google Maps"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{km} km from home"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} already looked near you today."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found nothing that fits this week."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is looking…"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} looks near you once a week, after a day's page. Nothing for this week yet."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A new list every week. Check the details page before you go: times and tickets change."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Ask %{poet} to look now"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Details ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Directions ↗"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Exhibition"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Market"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Near you"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Near you is switched off."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Near you is switched off. Turn it on in Settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Near you this week: %{poet} found one thing around %{home}."
+msgid_plural "Near you this week: %{poet} found %{count} things around %{home}."
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Once a week %{poet} looks for events, exhibitions and outings near home that fit what you like. Included in the day's credit."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Outing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Performance"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See this week's"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See when and where"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Set your home city"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Set your home city in Settings first."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something to do"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell %{poet} where you live, and once a week it looks for events, exhibitions and outings near you that fit what you like."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Turn it on in Settings"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Until %{date}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What is on within %{km} km of %{home} in the coming days, found by %{poet}"
+msgstr ""

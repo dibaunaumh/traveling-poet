@@ -37,6 +37,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "trips")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "asks")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "near_home")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "admin_events")
       {:ok, %{}}
     else
@@ -160,6 +161,23 @@ defmodule TravelingPoet.Telegram.Notifier do
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
          %{} = ask <- TravelingPoet.Asks.get(ask_id) do
       text = Locale.with_locale(user.locale, fn -> question_text(poet, ask) end)
+      Client.send_message(chat_id, text)
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  # The week's picks near home (card-71): the names, and the way to the list
+  @impl true
+  def handle_info({:near_home_ready, user_id, _date}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
+         [_ | _] = picks <- TravelingPoet.NearHome.this_week(user.id) do
+      link = Application.get_env(:traveling_poet, :phoenix_url, "") <> "/guide/near"
+      text = Locale.with_locale(user.locale, fn -> near_home_text(poet, picks, link) end)
       Client.send_message(chat_id, text)
     else
       _ -> :ok
@@ -293,6 +311,21 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   defp user_count, do: TravelingPoet.Repo.aggregate(TravelingPoet.Accounts.User, :count)
+
+  @doc "The note with the week's picks near home, one per line. Pure, for tests."
+  def near_home_text(poet, picks, link) do
+    lines = Enum.map_join(picks, "\n", &"- #{&1.name}")
+
+    dngettext(
+      "notify",
+      "%{poet} found something near you this week:\n%{lines}\n\nWhen and where: %{link}",
+      "%{poet} found %{count} things near you this week:\n%{lines}\n\nWhen and where: %{link}",
+      length(picks),
+      poet: poet.name,
+      lines: lines,
+      link: link
+    )
+  end
 
   @doc "The note that says a planned trip moved on the calendar. Pure, for tests."
   def trip_changed_text(poet, trip, link) do
