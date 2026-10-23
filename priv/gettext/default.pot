@@ -468,10 +468,6 @@ msgid "Trips coming up?"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Trips scouted, not sold. No ads, no affiliate links."
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "Turn them on or off under Notifications in Settings. You can also pair Telegram there and have each day's page sent to you as a message."
 msgstr ""
 
@@ -585,4 +581,8 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "Download on the App Store"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Trips scouted, not sold. No ads, no paid picks."
 msgstr ""

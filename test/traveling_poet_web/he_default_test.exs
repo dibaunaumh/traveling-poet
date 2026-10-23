@@ -92,7 +92,7 @@ defmodule TravelingPoetWeb.HeDefaultTest do
 
       assert html =~ "המסמך מוצג באנגלית, וזו הגרסה המחייבת."
       assert html =~ "מדיניות פרטיות"
-      assert html =~ "30 בספטמבר 2026"
+      assert html =~ "23 באוקטובר 2026"
       # the body itself stays English, left to right
       assert html =~ ~r/<article[^>]* class="legal" lang="en" dir="ltr"/
       assert html =~ "What the service stores"

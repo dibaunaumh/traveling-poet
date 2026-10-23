@@ -81,7 +81,7 @@ defmodule TravelingPoetWeb.PageController do
   @contact "support@poet.travel"
   # Bumped by hand when either document changes in a way that matters.
   @legal_updated ~D[2026-09-20]
-  @privacy_updated ~D[2026-09-30]
+  @privacy_updated ~D[2026-10-23]
 
   @doc "The privacy policy, at the url Google's OAuth consent screen points at."
   def privacy(conn, _params) do
