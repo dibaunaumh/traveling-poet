@@ -33,7 +33,7 @@ defmodule TravelingPoetWeb.NearHomeLive do
        |> assign(
          poet: poet,
          page_title: dgettext("guide", "Near you"),
-         asking: false,
+         asking: NearHome.looking?(user.id),
          journeys: Topics.list_guide_topics(poet.id),
          saved_count: Bookmarks.count(user.id)
        )
@@ -202,6 +202,13 @@ defmodule TravelingPoetWeb.NearHomeLive do
           )}
         </p>
         <.look_now asking={@asking} poet={@poet} />
+        <p :if={@asking} id="near-asking-note" class="opacity-70 max-w-md mx-auto">
+          {dgettext(
+            "guide",
+            "This takes about ten minutes: %{poet} reads the local listings and venues' own pages. You can leave; the list lands here, on your journal and as a notification.",
+            poet: @poet.name
+          )}
+        </p>
       </div>
 
       <div :if={@home? and @on? and @picks != []} id="near-picks">

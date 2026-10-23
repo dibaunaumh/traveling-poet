@@ -1179,3 +1179,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Where do you live?"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This takes about ten minutes: %{poet} reads the local listings and venues' own pages. You can leave; the list lands here, on your journal and as a notification."
+msgstr ""

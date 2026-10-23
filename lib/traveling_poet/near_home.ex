@@ -76,6 +76,33 @@ defmodule TravelingPoet.NearHome do
     end
   end
 
+  @doc """
+  Whether the poet is out looking right now: a near-home turn started in
+  the last `@reply_timeout_ms` and no batch has landed since. Lets a page
+  opened mid-search show the wait instead of offering to start another.
+  """
+  def looking?(user_id, now \\ DateTime.utc_now()) do
+    since = DateTime.add(now, -@reply_timeout_ms, :millisecond)
+
+    started =
+      TravelingPoet.Usage.UsageEvent
+      |> where([e], e.user_id == ^user_id and e.kind == @usage_kind and e.occurred_at > ^since)
+      |> select([e], max(e.occurred_at))
+      |> Repo.one()
+
+    landed =
+      Pick
+      |> where(user_id: ^user_id)
+      |> select([p], max(p.inserted_at))
+      |> Repo.one()
+
+    cond do
+      is_nil(started) -> false
+      is_nil(landed) -> true
+      true -> NaiveDateTime.compare(landed, DateTime.to_naive(started)) == :lt
+    end
+  end
+
   @doc "Whether a pick's last day has passed."
   def over?(%Pick{ends_on: %Date{} = ends_on}, today), do: Date.compare(ends_on, today) == :lt
   def over?(_pick, _today), do: false

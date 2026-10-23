@@ -150,7 +150,9 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
       {:ok, view, html} = live(signed_in(conn, user), ~p"/guide/near")
       assert html =~ ~s(id="near-empty")
 
-      view |> element("#near-look-now") |> render_click()
+      html = view |> element("#near-look-now") |> render_click()
+      # the wait is minutes, and says so
+      assert html =~ "This takes about ten minutes"
       assert_receive {:session_run, _, note}
       assert note =~ "Lisbon, Portugal"
       # FakeSession answered without sending picks
@@ -158,6 +160,20 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
 
       html = view |> element("#near-look-now") |> render_click()
       assert html =~ "already looked near you today"
+    end
+
+    test "a page opened mid-search shows the wait, not another button", %{
+      conn: conn,
+      user: user,
+      poet: poet
+    } do
+      {:ok, _} = TravelingPoet.Usage.record(user.id, NearHome.usage_kind())
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide/near")
+      assert html =~ "This takes about ten minutes"
+      assert has_element?(view, "#near-look-now[disabled]")
+
+      seed(user, poet)
+      refute NearHome.looking?(user.id)
     end
 
     test "picks landing while the page is open show up", %{conn: conn, user: user, poet: poet} do
