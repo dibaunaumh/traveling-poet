@@ -50,6 +50,9 @@ defmodule TravelingPoet.Accounts.User do
     field :email_notify, :boolean, default: true
     # that email carries the whole page, words and drawings (card-124)
     field :email_full_page, :boolean, default: false
+    # "Near you" (card-71): the poet's weekly picks near home; on by default,
+    # and only ever used once a home is set
+    field :near_home, :boolean, default: true
     # The interface and the poet's writing language, one setting (dec-008;
     # TravelingPoet.Locale)
     field :locale, :string, default: "en"
@@ -102,6 +105,7 @@ defmodule TravelingPoet.Accounts.User do
       :reading_signals,
       :email_notify,
       :email_full_page,
+      :near_home,
       :locale,
       :onboarding_step,
       :last_seen_at,

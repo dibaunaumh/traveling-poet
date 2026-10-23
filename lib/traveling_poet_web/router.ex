@@ -115,6 +115,7 @@ defmodule TravelingPoetWeb.Router do
     post "/reader_note/suggestions", ReaderNoteController, :suggest
     post "/excursions", TopicController, :request
     post "/asks", AskController, :create
+    post "/near_home", NearHomeController, :put
     post "/location", LocationController, :update
     post "/hold", RouteController, :hold
     post "/itinerary_stops", RouteController, :insert_stop

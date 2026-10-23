@@ -1314,8 +1314,8 @@ defmodule TravelingPoet.Provisioner do
     `journal_put_places`, `journal_put_stay_areas`, `generate_illustration`, `find_reference_photos`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
     `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
-    `request_excursion`, `journal_put_finds`, `get_book_context`,
-    `book_put_matter`.
+    `request_excursion`, `journal_put_finds`, `near_home_put`,
+    `get_book_context`, `book_put_matter`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
 
@@ -1614,6 +1614,38 @@ defmodule TravelingPoet.Provisioner do
             }
           },
           execute: function(_id, raw) { return call("POST", "/api/agent/asks", asParams(raw)); }
+        });
+        ctx.registerTool({
+          name: "near_home_put",
+          description: "Only when the app asks you to look near your companion's home (an app note says so). Send the week's picks near home: events, exhibitions, markets, performances, places and outings they can actually go to, each with the exact page you read. Replaces today's whole list, so send them all at once. A pick in the reply's `dropped` is not saved and says why (dead link, dates outside the window, too far, no address): fix it and send the whole list again, or leave it out. Three to six picks.",
+          parameters: {
+            type: "object",
+            required: ["picks"],
+            properties: {
+              picks: {
+                type: "array",
+                description: "three to six; at most 8",
+                items: {
+                  type: "object",
+                  required: ["name", "url"],
+                  properties: {
+                    name: { type: "string", description: "as the venue or organiser writes it" },
+                    url: { type: "string", description: "the exact page you read it on" },
+                    kind: { type: "string", enum: ["event", "exhibition", "market", "performance", "place", "outing", "other"] },
+                    starts_on: { type: "string", description: "YYYY-MM-DD" },
+                    ends_on: { type: "string", description: "YYYY-MM-DD; the same as starts_on for one day" },
+                    when_text: { type: "string", description: "times, or for a place open all week its hours, e.g. 'Sat 10:00-16:00'" },
+                    place_name: { type: "string", description: "the venue" },
+                    address: { type: "string", description: "postal address, with the town" },
+                    lat: { type: "number" },
+                    lng: { type: "number" },
+                    blurb: { type: "string", description: "one or two sentences in your companion's language: why THIS, for THEM" }
+                  }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) { return call("POST", "/api/agent/near_home", asParams(raw)); }
         });
         ctx.registerTool({
           name: "request_excursion",

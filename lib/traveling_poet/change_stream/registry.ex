@@ -76,6 +76,7 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.Bookmarks.Pass,
     TravelingPoet.ReaderNote.Note,
     TravelingPoet.ReaderNote.Suggestion,
+    TravelingPoet.NearHome.Pick,
     TravelingPoet.Analytics.VisitEvent,
     TravelingPoet.Reading.ParagraphRead,
     Geocoder.CacheEntry,

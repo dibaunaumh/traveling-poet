@@ -151,6 +151,10 @@ config :traveling_poet,
   google_maps_api_key:
     if(config_env() == :test, do: nil, else: System.get_env("GOOGLE_MAPS_API_KEY")),
   web_push_notifier: config_env() != :test,
+  # "Near you" (card-71): the weekly near-home turn after a published page.
+  # Off in test, where a run would start a poet turn nobody asked for; tests
+  # that want it call NearHome directly or set this.
+  near_home_enabled: config_env() != :test,
   # Sign in with Apple (the iOS app), and later APNs and the App Store, all
   # signed with the one .p8 key from the developer account. nil in test, so a
   # real key in .env can never sign a request to Apple from the suite; tests
