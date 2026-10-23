@@ -6,13 +6,16 @@ defmodule TravelingPoet.GooglePlaces do
   reader's lists; a shortlist link of place ids (`MapsLinks.shortlist_urls/1`)
   is the closest it allows, and it needs the ids.
 
-  One Places API (New) Text Search per place, asking for the id and nothing
-  else (`X-Goog-FieldMask: places.id`): the "Text Search Essentials (IDs
-  Only)" SKU, which Google does not charge for. The search is held to a box
-  reaching about 800 m from our own coordinates: at two km, "Szara Kazimierz"
-  came back as Szara's other restaurant on the main square, 1.3 km away. A
-  place Google does not find there gets no id and is left out of the link: a
-  wrong place is worse than a missing one.
+  One Places API (New) Text Search per place, held to a box reaching about
+  800 m from our own coordinates (at two km, "Szara Kazimierz" came back as
+  Szara's other restaurant on the main square). The box alone is not enough:
+  for a place Google does not know, search answers its nearest guess
+  (Szara Kazimierz then came back as Starka, a different restaurant), so each
+  candidate's name and address are checked against ours (`same_place?/2`)
+  and a place with no candidate that passes gets no id. A wrong place is
+  worse than a missing one. Asking for the name bills the "Text Search Pro"
+  SKU: 5,000 a month free, then $32 per 1,000; ids are looked up once and
+  cached, a few hundred a month across the fleet.
 
   Ids are cached in `google_place_ids` by `key/1` (name and where, not place
   row: places are re-inserted on every re-put and bookmarks are snapshots).
@@ -147,20 +150,33 @@ defmodule TravelingPoet.GooglePlaces do
       [
         json: %{
           textQuery: query(place),
-          pageSize: 1,
+          pageSize: 3,
           locationRestriction: %{rectangle: box(place.lat, place.lng)}
         },
-        headers: [{"x-goog-api-key", api_key()}, {"x-goog-fieldmask", "places.id"}],
+        headers: [
+          {"x-goog-api-key", api_key()},
+          {"x-goog-fieldmask", "places.id,places.displayName,places.formattedAddress"}
+        ],
         receive_timeout: 10_000,
         retry: false
       ] ++ Application.get_env(:traveling_poet, :google_places_req_options, [])
 
     case Req.post(@search_url, options) do
-      {:ok, %{status: 200, body: %{"places" => [%{"id" => id} | _]}}} when is_binary(id) ->
-        {:ok, key, id}
+      {:ok, %{status: 200, body: %{} = body}} ->
+        candidates = Map.get(body, "places", [])
 
-      {:ok, %{status: 200}} ->
-        {:ok, key, nil}
+        case Enum.find(candidates, &same_place?(place, &1)) do
+          %{"id" => id} when is_binary(id) ->
+            {:ok, key, id}
+
+          _ ->
+            Logger.info(
+              "GooglePlaces: no match for #{inspect(place.name)}; Google offered " <>
+                inspect(Enum.map(candidates, &get_in(&1, ["displayName", "text"])))
+            )
+
+            {:ok, key, nil}
+        end
 
       {:ok, %{status: status, body: body}} ->
         Logger.warning("GooglePlaces: search returned #{status}: #{inspect(body, limit: 200)}")
@@ -170,6 +186,60 @@ defmodule TravelingPoet.GooglePlaces do
         Logger.warning("GooglePlaces: search failed: #{inspect(reason)}")
         :error
     end
+  end
+
+  # Words that name a kind of place, not the place: "Szara Resto&Bar" and
+  # "Starka Restaurant" share "restaurant" and nothing else.
+  @generic ~w(the and of at in on de la le el il di du des del da do das dos und im am an
+              restaurant restauracja ristorante restaurante resto bar pub bistro cafe caffe
+              coffee kawiarnia hotel hostel store shop sklep concept kitchen house)
+
+  @doc """
+  Whether a search candidate is the place the poet wrote about: the names
+  share a word that is not a kind of place, ignoring case and accents, or
+  the poet's street and number appear in Google's address (a name the poet
+  translated: "Bazylika Bożego Ciała" is "Corpus Christi Basilica").
+  """
+  def same_place?(place, candidate) do
+    google_name = get_in(candidate, ["displayName", "text"]) || ""
+    google_address = Map.get(candidate, "formattedAddress") || ""
+
+    names? = MapSet.disjoint?(words(place.name), words(google_name)) == false
+    street = street(Map.get(place, :address))
+    address? = street != nil and String.contains?(" #{plain(google_address)} ", " #{street} ")
+
+    names? or address?
+  end
+
+  defp words(text) do
+    text
+    |> plain()
+    |> String.split()
+    |> Enum.reject(&(String.length(&1) < 3 or &1 in @generic))
+    |> MapSet.new()
+  end
+
+  # The poet's first address part when it has a house number in it
+  # ("Szeroka 39"), else nil: a street alone matches half the quarter.
+  defp street(address) when is_binary(address) do
+    first = address |> String.split(",") |> hd() |> plain()
+    if first =~ ~r/[a-z]/ and first =~ ~r/\d/, do: first
+  end
+
+  defp street(_), do: nil
+
+  # Lowercase ASCII words: no accents, no punctuation, no "ul."/"plac" noise
+  # left in the way of a containment check.
+  defp plain(text) do
+    text
+    |> String.replace(["ł", "Ł"], "l")
+    |> :unicode.characters_to_nfd_binary()
+    |> String.replace(~r/\p{Mn}/u, "")
+    |> String.downcase()
+    |> String.replace(~r/\b(ul|al|pl|os)\./u, " ")
+    |> String.replace(~r/[^a-z0-9]+/u, " ")
+    |> String.split()
+    |> Enum.join(" ")
   end
 
   # The name with the address the poet gave, when it gave one: the box does
