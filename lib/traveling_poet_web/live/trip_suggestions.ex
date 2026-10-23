@@ -1,8 +1,9 @@
 defmodule TravelingPoetWeb.TripSuggestions do
   @moduledoc """
   The LiveView half of calendar trips, shared by the journal (a nudge when
-  a trip has been found) and settings (the Trips card: home city, the
-  calendar connection, suggested and planned trips). Both LiveViews
+  a trip has been found) and settings (the Home section: home city and
+  the Near you switch; the Trips card: the calendar connection, suggested
+  and planned trips). Both LiveViews
   subscribe to the user topic, route `trip_*` events and the
   `{:trips_updated}` broadcast here, and render one of the components.
 
@@ -49,7 +50,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
         {:noreply, socket}
 
       q ->
-        case Geocoder.Limiter.search(q) do
+        case Geocoder.Destinations.search(q) do
           {:ok, results} ->
             {:noreply,
              update_trips(socket, %{
@@ -67,7 +68,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
     end
   end
 
-  def handle_event("trip_pick_home", %{"idx" => idx}, socket) do
+  def handle_event("trip_pick_home", %{"idx" => idx} = params, socket) do
     with result when not is_nil(result) <-
            Enum.at(socket.assigns.trips.home_results, String.to_integer(idx)),
          {:ok, user} <-
@@ -78,7 +79,24 @@ defmodule TravelingPoetWeb.TripSuggestions do
              home_country_code: result.country_code
            }) do
       if GoogleCalendar.connected?(user), do: CalendarSync.sync_soon(user)
-      {:noreply, socket |> assign(:user, user) |> assign_trips()}
+      socket = socket |> assign(:user, user) |> assign_trips()
+
+      # Set from the journal's Near you invitation: say what happens next
+      if params["near"] && socket.assigns[:poet] do
+        {:noreply,
+         put_flash(
+           socket,
+           :info,
+           dgettext(
+             "guide",
+             "Home is %{home}. %{poet} looks for things near you after the next page.",
+             home: user.home_place_name,
+             poet: socket.assigns.poet.name
+           )
+         )}
+      else
+        {:noreply, socket}
+      end
     else
       _ -> {:noreply, socket}
     end
@@ -204,6 +222,16 @@ defmodule TravelingPoetWeb.TripSuggestions do
     {:noreply, assign(socket, :user, user)}
   end
 
+  def handle_event("trip_decline_near_home", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    {:ok, user} = TravelingPoet.NearHome.set_enabled(user, false)
+
+    {:noreply,
+     socket
+     |> assign(:user, user)
+     |> put_flash(:info, dgettext("guide", "No Near you, then. Settings can turn it on."))}
+  end
+
   def handle_event("trip_" <> _, _params, socket), do: {:noreply, socket}
 
   @doc "A sync, an accept or a dismissal changed this companion's trips."
@@ -261,25 +289,21 @@ defmodule TravelingPoetWeb.TripSuggestions do
   attr :user, :any, required: true
   attr :poet, :any, required: true
 
-  @doc "The settings card: home, the calendar connection, and every open trip."
-  def trip_settings(assigns) do
+  @doc """
+  Settings' Home section: the reader's home city, which calendar trips are
+  measured from and Near you looks around (card-71), and the Near you
+  switch. Not part of the Trips card, which hides with the calendar
+  feature. Its events are the `trip_*` ones.
+  """
+  def home_settings(assigns) do
     ~H"""
-    <div :if={@trips.enabled?} id="trip-settings" class="space-y-4 text-sm">
-      <p class="opacity-70">
-        {dgettext(
-          "guide",
-          "Connect your Google Calendar and %{poet} will notice the trips on it and offer to scout them before you go. Only your primary calendar is read, and only the dates and places of trips are kept, never what an event says.",
-          poet: @poet.name
-        )}
-      </p>
-
+    <div class="space-y-4 text-sm">
       <div id="trip-home">
-        <h3 class="font-medium mb-1">{dgettext("guide", "Home")}</h3>
         <p :if={@trips.home} class="flex items-center gap-2 flex-wrap">
           <span>{@trips.home.place_name}</span>
         </p>
         <p :if={is_nil(@trips.home)} class="opacity-70 mb-2">
-          {dgettext("guide", "Where do you set out from? A trip is time spent far from here.")}
+          {dgettext("guide", "Where do you live?")}
         </p>
         <form phx-submit="trip_search_home" class="flex gap-2 mt-2">
           <input
@@ -329,12 +353,31 @@ defmodule TravelingPoetWeb.TripSuggestions do
           </span>
         </label>
       </div>
+    </div>
+    """
+  end
+
+  attr :trips, :map, required: true
+  attr :user, :any, required: true
+  attr :poet, :any, required: true
+
+  @doc "The settings card: the calendar connection, and every open trip."
+  def trip_settings(assigns) do
+    ~H"""
+    <div :if={@trips.enabled?} id="trip-settings" class="space-y-4 text-sm">
+      <p class="opacity-70">
+        {dgettext(
+          "guide",
+          "Connect your Google Calendar and %{poet} will notice the trips on it and offer to scout them before you go. Only your primary calendar is read, and only the dates and places of trips are kept, never what an event says.",
+          poet: @poet.name
+        )}
+      </p>
 
       <div id="trip-calendar">
         <h3 class="font-medium mb-1">Google Calendar</h3>
         <div :if={!@trips.connected?}>
           <p :if={is_nil(@trips.home)} class="opacity-70">
-            {dgettext("guide", "Pick your home city first.")}
+            <.link href="#home" class="link">{dgettext("guide", "Pick your home city first.")}</.link>
           </p>
           <.link
             :if={@trips.home}

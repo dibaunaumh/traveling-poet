@@ -9,7 +9,7 @@ defmodule TravelingPoetWeb.JournalLive do
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_nudge: 1, push_tip: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_tip: 1]
   import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_nudge: 1]
-  import TravelingPoetWeb.NearHomeComponents, only: [near_home_card: 1]
+  import TravelingPoetWeb.NearHomeComponents, only: [near_home_card: 1, near_home_invite: 1]
   import TravelingPoetWeb.ProductTour, only: [product_tour: 1]
 
   alias TravelingPoet.{
@@ -1237,6 +1237,12 @@ defmodule TravelingPoetWeb.JournalLive do
             picks={@near_home_picks}
             poet={@poet}
             home={@user.home_place_name}
+          />
+          <.near_home_invite
+            :if={!awaiting_first_entry?(assigns)}
+            trips={@trips}
+            user={@user}
+            poet={@poet}
           />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />

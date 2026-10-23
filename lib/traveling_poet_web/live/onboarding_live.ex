@@ -73,6 +73,9 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:selected_interests, MapSet.new())
         |> assign(:custom_interests, "")
         |> assign(:is_public, true)
+        |> assign(:home, nil)
+        |> assign(:home_results, [])
+        |> assign(:home_error, nil)
 
       socket = if connected?(socket), do: track_step(socket, :poet), else: socket
 
@@ -102,6 +105,16 @@ defmodule TravelingPoetWeb.OnboardingLive do
   # place and "Lisbon, Porto" as a route (card-97: the home page's own
   # placeholder is a list, and a list sent whole to the geocoder found
   # nothing). `from` is :home for the ?place= box, :search for the wizard's.
+  defp home_attrs(nil), do: %{}
+
+  defp home_attrs(home),
+    do: %{
+      home_place_name: home.place_name,
+      home_lat: home.lat,
+      home_lng: home.lng,
+      home_country_code: home.country_code
+    }
+
   defp look_up(socket, query, from) do
     socket
     |> assign(:location_query, query)
@@ -320,6 +333,41 @@ defmodule TravelingPoetWeb.OnboardingLive do
      |> assign(:route_notice, nil)}
   end
 
+  # "Where do you live?" (card-71), optional on the last step: the home the
+  # weekly picks near home are looked for around (NearHome). Searched like
+  # the Settings home city; nothing is saved until the poet is created.
+  @impl true
+  def handle_event("search_home", %{"home_query" => query}, socket) do
+    case String.trim(query) do
+      "" ->
+        {:noreply, socket}
+
+      q ->
+        case Destinations.search(q) do
+          {:ok, [_ | _] = results} ->
+            {:noreply, socket |> assign(:home_results, results) |> assign(:home_error, nil)}
+
+          _ ->
+            {:noreply,
+             socket
+             |> assign(:home_results, [])
+             |> assign(:home_error, dgettext("onboarding", "No places found."))}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("pick_home", %{"idx" => idx}, socket) do
+    case Enum.at(socket.assigns.home_results, String.to_integer(idx)) do
+      nil -> {:noreply, socket}
+      home -> {:noreply, socket |> assign(:home, home) |> assign(:home_results, [])}
+    end
+  end
+
+  @impl true
+  def handle_event("clear_home", _params, socket),
+    do: {:noreply, assign(socket, :home, nil)}
+
   @impl true
   def handle_event("toggle_location_search", _params, socket) do
     {:noreply,
@@ -489,11 +537,13 @@ defmodule TravelingPoetWeb.OnboardingLive do
         end
 
       {:ok, updated_user} =
-        Accounts.update_user(user, %{
-          name: user_name,
-          onboarding_completed: true,
-          onboarding_step: "done"
-        })
+        Accounts.update_user(
+          user,
+          Map.merge(
+            %{name: user_name, onboarding_completed: true, onboarding_step: "done"},
+            home_attrs(assigns.home)
+          )
+        )
 
       # Provision in the background; JournalLive picks up :sprite_provisioned
       Provisioner.provision_in_background(updated_user)
@@ -1254,6 +1304,53 @@ defmodule TravelingPoetWeb.OnboardingLive do
               )}
             </li>
           </ul>
+
+          <section id="onboarding-home" class="mb-6 rounded-box border border-base-300 p-4 text-sm">
+            <h2 class="font-semibold">
+              {dgettext("onboarding", "Where do you live?")}
+              <span class="font-normal opacity-60">{dgettext("onboarding", "(optional)")}</span>
+            </h2>
+            <p class="opacity-70 mt-1">
+              {dgettext(
+                "onboarding",
+                "Once a week %{poet} also looks for events, exhibitions and outings near your home that fit what you like. Only you see it.",
+                poet: @poet_name
+              )}
+            </p>
+            <div :if={@home} class="flex items-center gap-2 flex-wrap mt-3">
+              <span id="onboarding-home-picked" class="font-medium">{@home.place_name}</span>
+              <button type="button" phx-click="clear_home" class="link text-xs opacity-60">
+                {dgettext("onboarding", "Change")}
+              </button>
+            </div>
+            <form
+              :if={is_nil(@home)}
+              id="onboarding-home-search"
+              phx-submit="search_home"
+              class="flex gap-2 mt-3"
+            >
+              <input
+                type="text"
+                name="home_query"
+                class="input input-bordered input-sm flex-1"
+                placeholder={dgettext("onboarding", "Your home city")}
+              />
+              <button type="submit" class="btn btn-sm">{dgettext("onboarding", "Search")}</button>
+            </form>
+            <p :if={@home_error} class="text-error text-xs mt-1">{@home_error}</p>
+            <div :if={is_nil(@home) and @home_results != []} class="space-y-1 mt-2">
+              <button
+                :for={{result, idx} <- Enum.with_index(@home_results)}
+                id={"onboarding-home-#{idx}"}
+                type="button"
+                phx-click="pick_home"
+                phx-value-idx={idx}
+                class="btn btn-outline btn-xs w-full justify-start text-start normal-case"
+              >
+                {result.place_name}
+              </button>
+            </div>
+          </section>
 
           <form
             id="onboarding-send-off"

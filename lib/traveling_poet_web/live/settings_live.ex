@@ -3,7 +3,9 @@ defmodule TravelingPoetWeb.SettingsLive do
 
   import TravelingPoetWeb.PushNotifications, only: [assign_push: 1, push_settings: 1]
   import TravelingPoetWeb.TelegramPairing, only: [assign_telegram: 1, telegram_settings: 1]
-  import TravelingPoetWeb.TripSuggestions, only: [assign_trips: 1, trip_settings: 1]
+
+  import TravelingPoetWeb.TripSuggestions,
+    only: [assign_trips: 1, home_settings: 1, trip_settings: 1]
 
   import TravelingPoetWeb.PoetComponents
   import TravelingPoetWeb.AffinityComponents, only: [taste_map: 1]
@@ -1266,6 +1268,7 @@ defmodule TravelingPoetWeb.SettingsLive do
       {"poet", poet.name},
       {"about", dgettext("settings", "About you")},
       {"journey", dgettext("settings", "Journey")},
+      {"home", dgettext("settings", "Home")},
       {"trips", dgettext("settings", "Trips")},
       {"book", dgettext("settings", "Your book")},
       {"topics", dgettext("settings", "Topics")},
@@ -1664,6 +1667,19 @@ defmodule TravelingPoetWeb.SettingsLive do
               <p :if={@stops == []} class="text-xs opacity-60 mb-2">
                 {dgettext("settings", "No stops yet.")}
               </p>
+            </.settings_section>
+
+            <.settings_section
+              id="home"
+              title={dgettext("settings", "Home")}
+              note={
+                dgettext(
+                  "settings",
+                  "Where you live: trips are measured from here, and Near you looks around it."
+                )
+              }
+            >
+              <.home_settings trips={@trips} user={@user} poet={@poet} />
             </.settings_section>
 
             <.settings_section

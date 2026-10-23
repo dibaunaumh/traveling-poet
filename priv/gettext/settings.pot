@@ -884,3 +884,11 @@ msgstr[1] ""
 #, elixir-autogen, elixir-format
 msgid "Switching missions repacks your poet (~2 minutes). Trip Scouts follow the itinerary below, in order."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Home"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where you live: trips are measured from here, and Near you looks around it."
+msgstr ""

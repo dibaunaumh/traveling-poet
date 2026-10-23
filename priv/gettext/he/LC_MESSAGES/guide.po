@@ -374,10 +374,6 @@ msgid "Here is where %{poet} sets out from. Yours will be the first poet on the 
 msgstr "כאן מתחילה הדרך של %{poet}, הראשונה על המפה."
 
 #, elixir-autogen, elixir-format
-msgid "Home"
-msgstr "בית"
-
-#, elixir-autogen, elixir-format
 msgid "How to look"
 msgstr "איך להסתכל"
 
@@ -754,10 +750,6 @@ msgstr "מה שהמשוררים כתבו"
 #, elixir-autogen, elixir-format
 msgid "What to show"
 msgstr "מה להציג"
-
-#, elixir-autogen, elixir-format
-msgid "Where do you set out from? A trip is time spent far from here."
-msgstr "מאיפה אתם יוצאים לדרך? טיול הוא זמן שמבלים רחוק מכאן."
 
 #, elixir-autogen, elixir-format
 msgid "Works"
@@ -1167,3 +1159,23 @@ msgstr "עד %{date}"
 #, elixir-autogen, elixir-format
 msgid "What is on within %{km} km of %{home} in the coming days, found by %{poet}"
 msgstr "מה קורה בטווח %{km} ק\"מ מ-%{home} בימים הקרובים, ממצאים של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Home is %{home}. %{poet} looks for things near you after the next page."
+msgstr "הבית הוא %{home}. אחרי העמוד הבא יגיע חיפוש של %{poet} לידכם."
+
+#, elixir-autogen, elixir-format
+msgid "No Near you, then. Settings can turn it on."
+msgstr "בלי \"לידכם\" אז. אפשר להפעיל בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "No thanks"
+msgstr "לא תודה"
+
+#, elixir-autogen, elixir-format
+msgid "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them."
+msgstr "פעם בשבוע אפשר לקבל חיפוש של %{poet} ליד הבית: אירועים, תערוכות ויציאות שמתאימים למה שאתם אוהבים. רק אתם רואים אותם."
+
+#, elixir-autogen, elixir-format
+msgid "Where do you live?"
+msgstr "איפה אתם גרים?"

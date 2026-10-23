@@ -125,6 +125,12 @@ defmodule TravelingPoet.Geocoder.Destinations do
   defp top_of({:ok, []}), do: {:ok, nil}
   defp top_of({:error, reason}), do: {:error, reason}
 
+  @doc """
+  One place search, the way every reader-facing search box runs it: through
+  `Geocoder.Limiter`, or `:destination_search` when a test swaps it in.
+  """
+  def search(query), do: search_fun().(query)
+
   defp search_fun,
     do: Application.get_env(:traveling_poet, :destination_search, &Limiter.search/1)
 end

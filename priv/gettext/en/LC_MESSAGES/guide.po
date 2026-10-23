@@ -374,10 +374,6 @@ msgid "Here is where %{poet} sets out from. Yours will be the first poet on the 
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Home"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "How to look"
 msgstr ""
 
@@ -753,10 +749,6 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "What to show"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-msgid "Where do you set out from? A trip is time spent far from here."
 msgstr ""
 
 #, elixir-autogen, elixir-format
@@ -1166,4 +1158,24 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "What is on within %{km} km of %{home} in the coming days, found by %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Home is %{home}. %{poet} looks for things near you after the next page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No Near you, then. Settings can turn it on."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No thanks"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where do you live?"
 msgstr ""

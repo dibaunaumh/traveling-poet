@@ -177,14 +177,14 @@ defmodule TravelingPoetWeb.NearHomeLive do
             poet: @poet.name
           )}
         </p>
-        <.link navigate={~p"/settings#trips"} class="btn btn-primary btn-sm">
+        <.link navigate={~p"/settings#home"} class="btn btn-primary btn-sm">
           {dgettext("guide", "Set your home city")}
         </.link>
       </div>
 
       <div :if={@home? and not @on?} id="near-off" class="py-10 text-center text-sm space-y-3">
         <p class="opacity-70">{dgettext("guide", "Near you is switched off.")}</p>
-        <.link navigate={~p"/settings#trips"} class="btn btn-sm">
+        <.link navigate={~p"/settings#home"} class="btn btn-sm">
           {dgettext("guide", "Turn it on in Settings")}
         </.link>
       </div>
