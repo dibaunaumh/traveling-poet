@@ -17,6 +17,7 @@ defmodule TravelingPoetWeb.JournalLive do
     Accounts,
     Chat,
     Credits,
+    Feedback,
     FirstEntry,
     GatewaySocket,
     GatewaySocketSupervisor,
@@ -99,6 +100,9 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:poet, poet)
           # The owner's invite code rides on every link they share (card-126)
           |> assign(:invite_code, TravelingPoet.Referrals.code_for(user))
+          # The recommend question's answer in progress, and the page it was done on
+          |> assign(:nps_response, nil)
+          |> assign(:nps_done_on, nil)
           |> assign_push()
           |> assign(:sidebar_open, true)
           |> assign(:keepalive_task, SpriteHold.task_name("chat"))
@@ -254,7 +258,20 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:path_points, Poets.list_path_points(poet.id))
     |> assign_markers(entry)
     |> assign_prompt(poet, entry)
+    |> assign_nps(poet, entry)
     |> assign_spread(nil)
+  end
+
+  # Whether the recommend question is due under this page (card-137): the
+  # owner's, on the page's journey day. The page rules are nps_prompt?/1.
+  defp assign_nps(socket, poet, entry) do
+    user = socket.assigns.current_user
+
+    due =
+      entry && entry.published_at && user.id == poet.user_id &&
+        Feedback.nps_due?(user, Journal.journey_day(entry, socket.assigns.journey_start))
+
+    assign(socket, :nps_due, due == true)
   end
 
   # Feedback markers on the entry, and their JSON for the Markers hook. Runs on
@@ -285,10 +302,15 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   # The question under the entry, if the cadence says there should be one.
+  # One waved off with "not now" stays off: it came back on every reload,
+  # and an open question holds back the invite and the recommend question.
   defp assign_prompt(socket, poet, entry) do
     prompt =
       if entry && socket.assigns.current_user.id == poet.user_id do
-        Preferences.prompt_for_entry(poet, entry)
+        case Preferences.prompt_for_entry(poet, entry) do
+          %{dismissed_at: %DateTime{}} -> nil
+          prompt -> prompt
+        end
       end
 
     socket
@@ -479,6 +501,29 @@ defmodule TravelingPoetWeb.JournalLive do
       })
 
     {:noreply, assign(socket, :user, user)}
+  end
+
+  # The recommend question (card-137): the score is kept the moment it is
+  # tapped; the words after it, or a skip, finish the answer.
+  @impl true
+  def handle_event("nps_score", %{"score" => score}, socket) do
+    with {score, ""} when score in 0..10 <- Integer.parse(to_string(score)),
+         {:ok, response} <-
+           Feedback.record_score(socket.assigns.user, score, socket.assigns.entry.id) do
+      {:noreply, assign(socket, nps_response: response, nps_due: false)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("nps_comment", %{"comment" => comment}, socket),
+    do: finish_nps(socket, comment)
+
+  def handle_event("nps_skip", _params, socket), do: finish_nps(socket, nil)
+
+  def handle_event("nps_dismiss", _params, socket) do
+    {:ok, user} = Feedback.dismiss_nps(socket.assigns.user)
+    {:noreply, assign(socket, user: user, nps_due: false)}
   end
 
   # The week's Near you card, closed until the next week's picks (card-71)
@@ -1521,6 +1566,12 @@ defmodule TravelingPoetWeb.JournalLive do
                   </p>
                 </div>
 
+                <.nps_prompt
+                  :if={nps_prompt?(assigns)}
+                  response={@nps_response}
+                  done={@nps_done_on == @entry.id}
+                />
+
                 <.invite_prompt
                   :if={invite_prompt?(assigns)}
                   poet={@poet}
@@ -1932,9 +1983,11 @@ defmodule TravelingPoetWeb.JournalLive do
   # the page is fresh (the moment they are most delighted, says the plan),
   # never beside an open question from the poet, and resting a month after
   # "Not now".
+  # It also gives way to the recommend question, which comes once a quarter.
   defp invite_prompt?(%{next_page: next, entry: %{published_at: %DateTime{} = at}} = assigns)
        when not is_nil(next) do
     not question_open?(assigns) and
+      not nps_prompt?(assigns) and
       Journal.journey_day(assigns.entry, assigns.journey_start) >= @invite_from_day and
       DateTime.diff(DateTime.utc_now(), at, :hour) < @invite_fresh_hours and
       invite_rested?(assigns.user.invite_prompt_dismissed_at)
@@ -1950,6 +2003,94 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp invite_rested?(%DateTime{} = at),
     do: DateTime.diff(DateTime.utc_now(), at, :day) >= @invite_rest_days
+
+  # -- the recommend question under a fresh page (card-137) --
+
+  # Once answering it starts, it stays through the words and the thanks.
+  # Otherwise the invite's page rules: the latest page, still fresh, never
+  # beside an open question from the poet; and the cadence says it is due.
+  defp nps_prompt?(%{entry: %{id: id}, nps_response: %{journal_entry_id: id}}), do: true
+  defp nps_prompt?(%{entry: %{id: id}, nps_done_on: id}), do: true
+
+  defp nps_prompt?(
+         %{nps_due: true, next_page: next, entry: %{published_at: %DateTime{} = at}} = assigns
+       )
+       when not is_nil(next) do
+    not question_open?(assigns) and
+      DateTime.diff(DateTime.utc_now(), at, :hour) < @invite_fresh_hours
+  end
+
+  defp nps_prompt?(_), do: false
+
+  defp finish_nps(%{assigns: %{nps_response: %{} = response}} = socket, comment) do
+    {:ok, _} = Feedback.finish_response(response, comment)
+    {:noreply, assign(socket, nps_response: nil, nps_done_on: response.journal_entry_id)}
+  end
+
+  defp finish_nps(socket, _comment), do: {:noreply, socket}
+
+  attr :response, :any, required: true
+  attr :done, :boolean, required: true
+
+  defp nps_prompt(assigns) do
+    ~H"""
+    <div id="nps-prompt" class="border-t border-base-300 pt-3 mt-4 text-sm">
+      <%= cond do %>
+        <% @done -> %>
+          <p class="font-medium" id="nps-thanks">
+            {dgettext("journal", "Thank you. That helps a lot.")}
+          </p>
+        <% @response -> %>
+          <form id="nps-comment-form" phx-submit="nps_comment" class="space-y-2">
+            <label for="nps-comment" class="font-medium block">
+              {if @response.score >= 9,
+                do: dgettext("journal", "What do you love most about it?"),
+                else: dgettext("journal", "What would make it better?")}
+            </label>
+            <textarea
+              id="nps-comment"
+              name="comment"
+              rows="3"
+              maxlength="4000"
+              class="page-note-input"
+              placeholder={dgettext("journal", "Optional, a line or two is plenty")}
+            ></textarea>
+            <div class="flex items-center gap-2">
+              <button type="submit" class="btn btn-primary btn-xs">
+                {dgettext("journal", "Send")}
+              </button>
+              <button type="button" phx-click="nps_skip" class="btn btn-ghost btn-xs opacity-60">
+                {dgettext("journal", "Skip")}
+              </button>
+            </div>
+          </form>
+        <% true -> %>
+          <p class="font-medium">
+            {dgettext("journal", "How likely are you to recommend Traveling Poet to a friend?")}
+          </p>
+          <%!-- One row of eleven at any width: wrapped, 10 sat alone --%>
+          <div class="grid grid-cols-11 gap-1 mt-2 max-w-sm" role="group">
+            <button
+              :for={score <- 0..10}
+              phx-click="nps_score"
+              phx-value-score={score}
+              class="btn btn-xs btn-outline border-base-300 px-0"
+              aria-label={dgettext("journal", "%{score} out of 10", score: score)}
+            >
+              {score}
+            </button>
+          </div>
+          <div class="flex justify-between text-xs opacity-50 mt-1 max-w-sm">
+            <span>{dgettext("journal", "Not likely")}</span>
+            <span>{dgettext("journal", "Very likely")}</span>
+          </div>
+          <button phx-click="nps_dismiss" class="btn btn-ghost btn-xs opacity-50 mt-1">
+            {dgettext("journal", "Not now")}
+          </button>
+      <% end %>
+    </div>
+    """
+  end
 
   attr :poet, :any, required: true
   attr :entry, :any, required: true

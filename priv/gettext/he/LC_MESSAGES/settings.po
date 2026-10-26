@@ -946,3 +946,7 @@ msgstr "קישור ההזמנה שלכם:"
 #, elixir-autogen, elixir-format
 msgid "a friend"
 msgstr "מישהו קרוב"
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr "שליחת משוב"

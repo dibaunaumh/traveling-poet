@@ -2424,6 +2424,10 @@ defmodule TravelingPoetWeb.SettingsLive do
                 </.link>
                 ·
                 <.link navigate={~p"/support"} class="link">{dgettext("settings", "Support")}</.link>
+                ·
+                <.link navigate={~p"/feedback?from=/settings"} class="link" id="settings-feedback">
+                  {dgettext("settings", "Send feedback")}
+                </.link>
               </p>
 
               <details id="delete-account" class="mt-6 border-t border-base-300 pt-4">

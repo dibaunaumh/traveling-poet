@@ -294,6 +294,7 @@ defmodule TravelingPoetWeb.AdminLive do
               {@health_summary}
             </span>
             <.link navigate={~p"/admin/funnel"} class="btn btn-sm btn-ghost">Funnel</.link>
+            <.link navigate={~p"/admin/feedback"} class="btn btn-sm btn-ghost">Feedback</.link>
             <.link navigate={~p"/admin/change-stream"} class="btn btn-sm btn-ghost">
               Change stream
             </.link>

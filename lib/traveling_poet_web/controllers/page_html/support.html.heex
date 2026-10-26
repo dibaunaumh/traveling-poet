@@ -15,6 +15,21 @@
       </.rich>
     </p>
 
+    <p>
+      <.rich text={
+        gettext(
+          "Something broken, something you would change, or something missing? Write in the %{form} and it reaches us straight away.",
+          form: marker(:form)
+        )
+      }>
+        <:part name="form">
+          <.link navigate={~p"/feedback?from=/support"} class="link" id="support-feedback">
+            {gettext("feedback form")}
+          </.link>
+        </:part>
+      </.rich>
+    </p>
+
     <h2>{gettext("My poet has not written anything yet")}</h2>
     <p>
       {gettext(

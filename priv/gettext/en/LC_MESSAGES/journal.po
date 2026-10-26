@@ -780,3 +780,39 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Send them this page. If they start a poet, they get %{credits} extra credits, and you get %{credits} when its first page arrives."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{score} out of 10"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "How likely are you to recommend Traveling Poet to a friend?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not likely"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Optional, a line or two is plenty"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Skip"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. That helps a lot."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Very likely"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What do you love most about it?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What would make it better?"
+msgstr ""

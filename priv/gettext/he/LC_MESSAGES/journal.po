@@ -780,3 +780,39 @@ msgstr "כל יום מגיע אליי עמוד מאויר מהמסע של %{poet
 #, elixir-autogen, elixir-format
 msgid "Send them this page. If they start a poet, they get %{credits} extra credits, and you get %{credits} when its first page arrives."
 msgstr "שלחו להם את העמוד הזה. אם יתחילו מסע משלהם, יקבלו %{credits} קרדיטים נוספים, ואתם תקבלו %{credits} כשיגיע העמוד הראשון שלהם."
+
+#, elixir-autogen, elixir-format
+msgid "%{score} out of 10"
+msgstr "%{score} מתוך 10"
+
+#, elixir-autogen, elixir-format
+msgid "How likely are you to recommend Traveling Poet to a friend?"
+msgstr "עד כמה סביר שתמליצו על Traveling Poet לחברים?"
+
+#, elixir-autogen, elixir-format
+msgid "Not likely"
+msgstr "לא סביר"
+
+#, elixir-autogen, elixir-format
+msgid "Optional, a line or two is plenty"
+msgstr "לא חובה, שורה או שתיים מספיקות"
+
+#, elixir-autogen, elixir-format
+msgid "Skip"
+msgstr "דילוג"
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. That helps a lot."
+msgstr "תודה. זה עוזר מאוד."
+
+#, elixir-autogen, elixir-format
+msgid "Very likely"
+msgstr "סביר מאוד"
+
+#, elixir-autogen, elixir-format
+msgid "What do you love most about it?"
+msgstr "מה הכי אהבתם?"
+
+#, elixir-autogen, elixir-format
+msgid "What would make it better?"
+msgstr "מה היה הופך את זה לטוב יותר?"

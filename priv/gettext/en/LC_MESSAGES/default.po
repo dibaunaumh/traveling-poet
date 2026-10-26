@@ -594,3 +594,19 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "A friend"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Feedback"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "feedback form"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something broken, something you would change, or something missing? Write in the %{form} and it reaches us straight away."
+msgstr ""

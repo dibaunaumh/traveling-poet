@@ -594,3 +594,19 @@ msgstr "הזמנה מאת %{friend}: המסע שלכם מתחיל עם %{credits
 #, elixir-autogen, elixir-format
 msgid "A friend"
 msgstr "מישהו קרוב"
+
+#, elixir-autogen, elixir-format
+msgid "Feedback"
+msgstr "משוב"
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr "שליחת משוב"
+
+#, elixir-autogen, elixir-format
+msgid "feedback form"
+msgstr "טופס המשוב"
+
+#, elixir-autogen, elixir-format
+msgid "Something broken, something you would change, or something missing? Write in the %{form} and it reaches us straight away."
+msgstr "משהו לא עובד, משהו שהייתם משנים, או משהו שחסר? כתבו ב%{form} וזה יגיע אלינו מיד."

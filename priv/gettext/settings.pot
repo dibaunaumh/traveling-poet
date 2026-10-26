@@ -946,3 +946,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "a friend"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr ""
