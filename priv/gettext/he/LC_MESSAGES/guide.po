@@ -1103,12 +1103,6 @@ msgid "Near you is switched off. Turn it on in Settings."
 msgstr "\"לידכם\" כבוי. אפשר להפעיל אותו בהגדרות."
 
 #, elixir-autogen, elixir-format
-msgid "Near you this week: %{poet} found one thing around %{home}."
-msgid_plural "Near you this week: %{poet} found %{count} things around %{home}."
-msgstr[0] "לידכם השבוע: דבר אחד שנמצא באזור %{home}, בחיפוש של %{poet}."
-msgstr[1] "לידכם השבוע: %{count} דברים שנמצאו באזור %{home}, בחיפוש של %{poet}."
-
-#, elixir-autogen, elixir-format
 msgid "Once a week %{poet} looks for events, exhibitions and outings near home that fit what you like. Included in the day's credit."
 msgstr "פעם בשבוע, חיפוש של %{poet} ליד הבית: אירועים, תערוכות ויציאות שמתאימים למה שאתם אוהבים. כלול בקרדיט של היום."
 
@@ -1127,10 +1121,6 @@ msgstr "מקום"
 #, elixir-autogen, elixir-format
 msgid "See this week's"
 msgstr "לרשימה של השבוע"
-
-#, elixir-autogen, elixir-format
-msgid "See when and where"
-msgstr "מתי ואיפה"
 
 #, elixir-autogen, elixir-format
 msgid "Set your home city"
@@ -1173,13 +1163,27 @@ msgid "No thanks"
 msgstr "לא תודה"
 
 #, elixir-autogen, elixir-format
-msgid "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them."
-msgstr "פעם בשבוע אפשר לקבל חיפוש של %{poet} ליד הבית: אירועים, תערוכות ויציאות שמתאימים למה שאתם אוהבים. רק אתם רואים אותם."
-
-#, elixir-autogen, elixir-format
 msgid "Where do you live?"
 msgstr "איפה אתם גרים?"
 
 #, elixir-autogen, elixir-format
 msgid "This takes about ten minutes: %{poet} reads the local listings and venues' own pages. You can leave; the list lands here, on your journal and as a notification."
 msgstr "זה לוקח בערך עשר דקות: %{poet} קורא את לוחות האירועים המקומיים ואת עמודי המקומות עצמם. אפשר לצאת מהעמוד; הרשימה תגיע לכאן, ליומן ובהתראה."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found one thing near you this week"
+msgid_plural "%{poet} found %{count} things near you this week"
+msgstr[0] "לידכם השבוע: דבר אחד שנמצא בחיפוש של %{poet}"
+msgstr[1] "לידכם השבוע: %{count} דברים שנמצאו בחיפוש של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Hide until next week"
+msgstr "להסתיר עד השבוע הבא"
+
+#, elixir-autogen, elixir-format
+msgid "Set home"
+msgstr "להגדיר בית"
+
+#, elixir-autogen, elixir-format
+msgid "Where do you live? Once a week %{poet} can look for things to do near you. Only you see them."
+msgstr "איפה אתם גרים? פעם בשבוע, חיפוש של %{poet} ליד הבית: דברים לעשות בסביבה. רק אתם רואים אותם."

@@ -1103,12 +1103,6 @@ msgid "Near you is switched off. Turn it on in Settings."
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Near you this week: %{poet} found one thing around %{home}."
-msgid_plural "Near you this week: %{poet} found %{count} things around %{home}."
-msgstr[0] ""
-msgstr[1] ""
-
-#, elixir-autogen, elixir-format
 msgid "Once a week %{poet} looks for events, exhibitions and outings near home that fit what you like. Included in the day's credit."
 msgstr ""
 
@@ -1126,10 +1120,6 @@ msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "See this week's"
-msgstr ""
-
-#, elixir-autogen, elixir-format
-msgid "See when and where"
 msgstr ""
 
 #, elixir-autogen, elixir-format
@@ -1173,13 +1163,27 @@ msgid "No thanks"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them."
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "Where do you live?"
 msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "This takes about ten minutes: %{poet} reads the local listings and venues' own pages. You can leave; the list lands here, on your journal and as a notification."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found one thing near you this week"
+msgid_plural "%{poet} found %{count} things near you this week"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Hide until next week"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Set home"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where do you live? Once a week %{poet} can look for things to do near you. Only you see them."
 msgstr ""

@@ -11,29 +11,44 @@ defmodule TravelingPoetWeb.NearHomeComponents do
 
   attr :picks, :list, required: true, doc: "`NearHome.this_week/1`"
   attr :poet, :map, required: true
-  attr :home, :string, required: true
+  attr :hidden_week, Date, default: nil, doc: "the week whose card the reader closed"
 
-  @doc "The journal's card: what the poet found near home this week, a tap from the list."
+  @doc """
+  The journal's card: one line saying the poet found things near home this
+  week, a tap from the list. The reader can close it; the next week's picks
+  bring it back.
+  """
   def near_home_card(assigns) do
     ~H"""
-    <div :if={@picks != []} id="near-home-card" class="alert alert-soft text-sm mt-4 flex-wrap">
-      <.icon name="hero-home-modern" class="size-5 shrink-0" />
-      <span class="flex-1 min-w-48">
-        <span class="font-medium">
-          {dngettext(
-            "guide",
-            "Near you this week: %{poet} found one thing around %{home}.",
-            "Near you this week: %{poet} found %{count} things around %{home}.",
-            length(@picks),
-            poet: @poet.name,
-            home: @home
-          )}
-        </span>
-        <span class="opacity-70">{Enum.map_join(Enum.take(@picks, 3), ", ", & &1.name)}</span>
-      </span>
-      <.link navigate={~p"/guide/near"} class="btn btn-primary btn-sm" id="near-home-card-open">
-        {dgettext("guide", "See when and where")}
+    <div
+      :if={@picks != [] and hd(@picks).week_of != @hidden_week}
+      id="near-home-card"
+      class="flex items-center gap-2 mt-3 ps-3 pe-1 py-1 rounded-lg bg-base-200 text-sm"
+    >
+      <.icon name="hero-home-modern" class="size-4 shrink-0 opacity-70" />
+      <.link
+        navigate={~p"/guide/near"}
+        class="flex-1 min-w-0 link link-hover"
+        id="near-home-card-open"
+      >
+        {dngettext(
+          "guide",
+          "%{poet} found one thing near you this week",
+          "%{poet} found %{count} things near you this week",
+          length(@picks),
+          poet: @poet.name
+        )}
       </.link>
+      <button
+        type="button"
+        id="near-home-card-hide"
+        phx-click="hide_near_home_card"
+        class="btn btn-ghost btn-xs btn-square shrink-0 opacity-60"
+        aria-label={dgettext("guide", "Hide until next week")}
+        title={dgettext("guide", "Hide until next week")}
+      >
+        <.icon name="hero-x-mark" class="size-4" />
+      </button>
     </div>
     """
   end
@@ -43,29 +58,64 @@ defmodule TravelingPoetWeb.NearHomeComponents do
   attr :poet, :map, required: true
 
   @doc """
-  The journal's invitation to readers with no home city yet: set one here
-  for the weekly picks near home, or say no thanks (which switches Near
-  you off; Settings turns it back on). Its events are the Trips card's.
+  The journal's invitation to readers with no home city yet, below the
+  page: set one for the weekly picks near home, or say no thanks (which
+  switches Near you off; Settings turns it back on). The search opens on
+  "Set home". Its events are the Trips card's.
   """
   def near_home_invite(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :searching?,
+        assigns.trips.home_query not in [nil, ""] or assigns.trips.home_results != [] or
+          not is_nil(assigns.trips.home_error)
+      )
+
     ~H"""
     <div
       :if={is_nil(@trips.home) and @user.near_home != false}
       id="near-home-invite"
-      class="alert alert-soft text-sm mt-4 flex-col items-stretch gap-2"
+      class="mt-6 px-3 py-2 rounded-lg bg-base-200 text-sm space-y-2"
     >
-      <div class="flex items-start gap-3">
-        <.icon name="hero-home-modern" class="size-5 shrink-0" />
-        <span class="flex-1">
-          <span class="font-medium">{dgettext("guide", "Where do you live?")}</span>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <.icon name="hero-home-modern" class="size-4 shrink-0 opacity-70" />
+        <span class="flex-1 min-w-48">
           {dgettext(
             "guide",
-            "Once a week %{poet} can look for events, exhibitions and outings near your home that fit what you like. Only you see them.",
+            "Where do you live? Once a week %{poet} can look for things to do near you. Only you see them.",
             poet: @poet.name
           )}
         </span>
+        <span class="flex gap-1">
+          <button
+            :if={!@searching?}
+            type="button"
+            id="near-home-invite-open"
+            phx-click={
+              JS.show(to: "#near-home-invite-search")
+              |> JS.hide()
+              |> JS.focus(to: "#near-home-invite-search input")
+            }
+            class="btn btn-xs"
+          >
+            {dgettext("guide", "Set home")}
+          </button>
+          <button
+            type="button"
+            id="near-home-invite-decline"
+            phx-click="trip_decline_near_home"
+            class="btn btn-ghost btn-xs opacity-60"
+          >
+            {dgettext("guide", "No thanks")}
+          </button>
+        </span>
       </div>
-      <form id="near-home-invite-search" phx-submit="trip_search_home" class="flex gap-2">
+      <form
+        id="near-home-invite-search"
+        phx-submit="trip_search_home"
+        class={["flex gap-2", !@searching? && "hidden"]}
+      >
         <input
           type="text"
           name="query"
@@ -74,14 +124,6 @@ defmodule TravelingPoetWeb.NearHomeComponents do
           placeholder={dgettext("guide", "Your home city")}
         />
         <button type="submit" class="btn btn-sm">{dgettext("guide", "Search")}</button>
-        <button
-          type="button"
-          id="near-home-invite-decline"
-          phx-click="trip_decline_near_home"
-          class="btn btn-ghost btn-sm opacity-60"
-        >
-          {dgettext("guide", "No thanks")}
-        </button>
       </form>
       <p :if={@trips.home_error} class="text-error text-xs">{@trips.home_error}</p>
       <div :if={@trips.home_results != []} class="space-y-1">

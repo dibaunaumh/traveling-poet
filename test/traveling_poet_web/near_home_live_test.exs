@@ -198,8 +198,28 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
       send(view.pid, {:near_home, today()})
       html = render(view)
       assert html =~ ~s(id="near-home-card")
-      assert html =~ "Wren found 2 things around Lisbon, Portugal"
+      assert html =~ "Wren found 2 things near you this week"
       assert has_element?(view, "#near-home-card-open[href='/guide/near']")
+    end
+
+    test "closing the card hides it until the next week's picks", %{
+      conn: conn,
+      user: user,
+      poet: poet
+    } do
+      published_entry_fixture(poet)
+      seed(user, poet, Date.add(today(), -6))
+
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/journal")
+      html = view |> element("#near-home-card-hide") |> render_click()
+      refute html =~ ~s(id="near-home-card")
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/journal")
+      refute html =~ ~s(id="near-home-card")
+
+      seed(user, poet)
+      send(view.pid, {:near_home, today()})
+      assert render(view) =~ ~s(id="near-home-card")
     end
 
     test "Home stays in Settings when the calendar's Trips card is hidden", %{
@@ -331,8 +351,13 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
 
       {:ok, view, html} = live(signed_in(conn, reader), ~p"/journal")
       assert html =~ ~s(id="near-home-invite")
+      # Below the page, and the search waits behind "Set home"
+      assert html =~ ~r/class="spread-wrap".*id="near-home-invite"/s
+      assert has_element?(view, "#near-home-invite-open")
+      assert has_element?(view, "#near-home-invite-search.hidden")
 
       view |> element("#near-home-invite-search") |> render_submit(%{query: "Lisbon"})
+      refute has_element?(view, "#near-home-invite-search.hidden")
       html = view |> element("#near-home-invite-pick-0") |> render_click()
 
       refute html =~ ~s(id="near-home-invite")
