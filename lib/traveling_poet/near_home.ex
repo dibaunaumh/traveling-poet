@@ -8,7 +8,9 @@ defmodule TravelingPoet.NearHome do
   frames the task in one headless turn (`request/3`, modelled on
   `Guide.MorePlaces`), and checks every pick the poet sends back
   (`ingest/4`): a live link, dates inside the window, and a location within
-  reach of home. The batch is the reader's alone: it reveals where they
+  reach of home, and nothing suggested in the last `@memory_weeks` weeks
+  (the poet does not reliably remember its earlier weeks, so the app tells
+  it and holds it to that). The batch is the reader's alone: it reveals where they
   live, so it hangs off the user, never the public journal, and the change
   stream leaves it out.
 
@@ -29,6 +31,8 @@ defmodule TravelingPoet.NearHome do
   @max_picks 8
   @usage_kind "near_home"
   @reply_timeout_ms 15 * 60 * 1000
+  # How far back a pick counts as already suggested
+  @memory_weeks 8
 
   def radius_km, do: @radius_km
   def window_days, do: @window_days
@@ -223,6 +227,8 @@ defmodule TravelingPoet.NearHome do
         labels -> "What they are into: #{Enum.join(labels, "; ")} (more in get_poet_context)."
       end
 
+    memory_line = memory_line(user.id, today)
+
     "[From the app: once a week you look near your companion's home, for things they " <>
       "can actually go to. They live in #{user.home_place_name} " <>
       "(#{coord(user.home_lat)}, #{coord(user.home_lng)}). #{tastes_line} " <>
@@ -232,11 +238,55 @@ defmodule TravelingPoet.NearHome do
       "the city's calendar. Cite only pages you actually fetched. Each pick needs that page's " <>
       "URL, its dates (starts_on and ends_on, YYYY-MM-DD) or, for a place open all week, " <>
       "when_text, and a postal address. Write each blurb (one or two sentences: why THIS, for " <>
-      "THEM) in #{Locale.name(user.locale)}; keep names as the venue writes them. Then call " <>
-      "near_home_put once with three to six picks; if the reply drops some, fix them and send " <>
+      "THEM) in #{Locale.name(user.locale)}; keep names as the venue writes them. " <>
+      memory_line <>
+      "Then call near_home_put once with three to six picks; if the reply drops some, fix them and send " <>
       "the whole list again. Do not travel, do not write or change a journal page. Then tell " <>
       "them in one short line what you found.] What is on near home this week?"
   end
+
+  # What the poet must not repeat and what the reader made of earlier weeks:
+  # the picks of the last weeks, the ones they saved and the ones they
+  # waved off. Empty for a first week.
+  defp memory_line(user_id, today) do
+    earlier =
+      user_id
+      |> earlier_picks(today)
+      |> Map.values()
+      |> Enum.sort_by(&{-Date.to_gregorian_days(&1.week_of), &1.position, &1.id})
+      |> Enum.map(& &1.name)
+
+    %{saved: saved, passed: passed} = TravelingPoet.Bookmarks.near_verdicts(user_id)
+
+    [
+      earlier != [] &&
+        "Already suggested in earlier weeks, so do not suggest again: #{names(earlier)}. ",
+      saved != [] && "They saved these, so more like them: #{names(saved)}. ",
+      passed != [] && "They said not for them to these, so steer away: #{names(passed)}. "
+    ]
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join()
+  end
+
+  defp names(list), do: list |> Enum.uniq() |> Enum.take(30) |> Enum.join("; ")
+
+  @doc """
+  The picks of the batches before `today` within `@memory_weeks` weeks, by
+  their name as compared (`same_name/1`), the newest of each name.
+  """
+  def earlier_picks(user_id, %Date{} = today) do
+    since = Date.add(today, -7 * @memory_weeks)
+
+    Pick
+    |> where([p], p.user_id == ^user_id and p.week_of < ^today and p.week_of >= ^since)
+    |> order_by(asc: :week_of)
+    |> Repo.all()
+    |> Map.new(&{same_name(&1.name), &1})
+  end
+
+  @doc "A pick's name as two weeks' picks are compared: case and spacing aside."
+  def same_name(name) when is_binary(name),
+    do: name |> String.downcase() |> String.split() |> Enum.join(" ")
 
   defp coord(x) when is_number(x), do: :erlang.float_to_binary(x / 1, decimals: 4)
 
@@ -245,8 +295,9 @@ defmodule TravelingPoet.NearHome do
   @doc """
   Checks the poet's picks and stores the ones that pass as today's batch,
   replacing an earlier batch of the same day. A pick is dropped, with the
-  reason, when it has no name or link, a dead link, no dates and no
-  when_text, dates outside the window, or no location within reach of home.
+  reason, when it has no name or link, was suggested in an earlier week,
+  has a dead link, no dates and no when_text, dates outside the window, or
+  no location within reach of home.
   Nothing is replaced when every pick is dropped.
 
   Returns `{:ok, %{kept: [Pick], dropped: [%{name, reason}]}}` or
@@ -257,12 +308,13 @@ defmodule TravelingPoet.NearHome do
     if home?(user) do
       picks = Enum.take(picks, @max_picks)
       dead = dead_links(picks)
+      earlier = earlier_picks(user.id, today)
 
       {kept, dropped} =
         picks
         |> Enum.with_index()
         |> Enum.reduce({[], []}, fn {raw, i}, {kept, dropped} ->
-          case check(raw, user, today, dead) do
+          case check(raw, user, today, dead, earlier) do
             {:ok, attrs} -> {[Map.put(attrs, :position, i) | kept], dropped}
             {:error, reason} -> {kept, [%{name: name_of(raw), reason: reason} | dropped]}
           end
@@ -320,11 +372,12 @@ defmodule TravelingPoet.NearHome do
     end
   end
 
-  defp check(raw, user, today, dead) when is_map(raw) do
+  defp check(raw, user, today, dead, earlier) when is_map(raw) do
     name = str(raw, "name")
     url = str(raw, "url")
 
     with {:name, n} when is_binary(n) <- {:name, name},
+         {:repeat, nil} <- {:repeat, earlier[same_name(n)]},
          {:url, u} when is_binary(u) <- {:url, url},
          {:dead, false} <- {:dead, MapSet.member?(dead, u)},
          {:ok, starts_on, ends_on} <- dates(raw, today),
@@ -345,14 +398,24 @@ defmodule TravelingPoet.NearHome do
          distance_km: Float.round(location.distance_km, 1)
        }}
     else
-      {:name, _} -> {:error, "a name is required"}
-      {:url, _} -> {:error, "the page you read it on (url) is required"}
-      {:dead, true} -> {:error, "the link is dead; cite a page you fetched"}
-      {:error, reason} -> {:error, reason}
+      {:name, _} ->
+        {:error, "a name is required"}
+
+      {:repeat, pick} ->
+        {:error, "already suggested the week of #{pick.week_of}; find something new"}
+
+      {:url, _} ->
+        {:error, "the page you read it on (url) is required"}
+
+      {:dead, true} ->
+        {:error, "the link is dead; cite a page you fetched"}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  defp check(_raw, _user, _today, _dead), do: {:error, "not a pick"}
+  defp check(_raw, _user, _today, _dead, _earlier), do: {:error, "not a pick"}
 
   defp dates(raw, today) do
     until = Date.add(today, @window_days)

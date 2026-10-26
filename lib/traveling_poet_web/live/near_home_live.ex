@@ -16,7 +16,7 @@ defmodule TravelingPoetWeb.NearHomeLive do
   import TravelingPoetWeb.NearHomeComponents
 
   alias TravelingPoet.{Bookmarks, NearHome, Poets, Topics}
-  alias TravelingPoetWeb.GoogleMapsSaving
+  alias TravelingPoetWeb.{Bookmarking, GoogleMapsSaving}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -37,6 +37,7 @@ defmodule TravelingPoetWeb.NearHomeLive do
          journeys: Topics.list_guide_topics(poet.id),
          saved_count: Bookmarks.count(user.id)
        )
+       |> Bookmarking.assign_bookmarks()
        |> load()}
     else
       {:ok, push_navigate(socket, to: ~p"/onboarding")}
@@ -67,6 +68,12 @@ defmodule TravelingPoetWeb.NearHomeLive do
 
   def handle_event("set_journey", %{"topic" => topic}, socket),
     do: {:noreply, push_navigate(socket, to: ~p"/guide?#{[topic: topic, view: "route"]}")}
+
+  # Save and Not for me on a pick (`Bookmarks`, kind "near")
+  def handle_event(event, params, socket) when event in ["toggle_bookmark", "toggle_pass"] do
+    {:noreply, socket} = Bookmarking.handle_event(event, params, socket)
+    {:noreply, assign(socket, :saved_count, Bookmarks.count(socket.assigns.current_user.id))}
+  end
 
   def handle_event("set_saved", _params, socket),
     do: {:noreply, push_navigate(socket, to: ~p"/guide?saved=1")}
@@ -229,7 +236,12 @@ defmodule TravelingPoetWeb.NearHomeLive do
         >
         </div>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <.pick_card :for={{pick, n} <- Enum.with_index(@picks, 1)} pick={pick} n={n} />
+          <.pick_card
+            :for={{pick, n} <- Enum.with_index(@picks, 1)}
+            pick={pick}
+            n={n}
+            bookmarks={@bookmarks}
+          />
         </div>
         <p class="text-xs opacity-60 mt-6">
           {dgettext(

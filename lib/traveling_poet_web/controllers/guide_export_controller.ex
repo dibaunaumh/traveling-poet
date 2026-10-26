@@ -15,7 +15,7 @@ defmodule TravelingPoetWeb.GuideExportController do
   def shared_kml(conn, %{"token" => token}) do
     case Bookmarks.shared_by(token) do
       nil -> conn |> put_status(404) |> text(dgettext("guide", "Not found"))
-      owner -> send_kml(conn, Bookmarks.places(owner.id))
+      owner -> send_kml(conn, Bookmarks.places(owner.id, shared: true))
     end
   end
 

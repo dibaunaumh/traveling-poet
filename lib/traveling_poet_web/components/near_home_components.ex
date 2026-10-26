@@ -7,6 +7,8 @@ defmodule TravelingPoetWeb.NearHomeComponents do
 
   use TravelingPoetWeb, :html
 
+  import TravelingPoetWeb.GuideComponents, only: [verdict_buttons: 1, pass_button: 1, passed: 2]
+
   alias TravelingPoet.NearHome.Pick
 
   attr :picks, :list, required: true, doc: "`NearHome.this_week/1`"
@@ -145,9 +147,36 @@ defmodule TravelingPoetWeb.NearHomeComponents do
 
   attr :pick, Pick, required: true
   attr :n, :integer, required: true
+  attr :bookmarks, :any, default: nil, doc: "the reader's verdicts; nil hides Save and Not for me"
 
-  @doc "One pick: what, when, where, how far, why it fits, and the page it was read on."
-  def pick_card(assigns) do
+  @doc """
+  One pick: what, when, where, how far, why it fits, and the page it was
+  read on, with Save and Not for me. A pick the reader passed on folds up.
+  """
+  def pick_card(%{bookmarks: bookmarks, pick: pick} = assigns) do
+    if passed(bookmarks, pick), do: passed_pick(assigns), else: pick_card_full(assigns)
+  end
+
+  defp passed_pick(assigns) do
+    ~H"""
+    <article
+      id={"near-pick-#{@pick.id}"}
+      class="card bg-base-200 border border-dashed border-base-300 opacity-70"
+    >
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="font-semibold leading-snug line-through opacity-60" dir="auto">
+            {@pick.name}
+          </h3>
+          <.pass_button passed={true} kind="near" item={@pick} />
+        </div>
+        <p class="text-xs opacity-60">{dgettext("guide", "Not for you.")}</p>
+      </div>
+    </article>
+    """
+  end
+
+  defp pick_card_full(assigns) do
     ~H"""
     <article id={"near-pick-#{@pick.id}"} class="card bg-base-100 border border-base-300">
       <div class="card-body p-4 gap-2">
@@ -162,6 +191,7 @@ defmodule TravelingPoetWeb.NearHomeComponents do
               </span>
             </p>
           </div>
+          <.verdict_buttons :if={@bookmarks} bookmarks={@bookmarks} kind="near" item={@pick} />
         </div>
         <p :if={when_line(@pick)} class="text-sm font-medium" id={"near-pick-#{@pick.id}-when"}>
           {when_line(@pick)}

@@ -120,6 +120,55 @@ defmodule TravelingPoetWeb.NearHomeLiveTest do
       assert pins =~ "Tiles of the Ribeira"
     end
 
+    test "a pick can be saved into Saved, and stays there after its week", %{
+      conn: conn,
+      user: user,
+      poet: poet
+    } do
+      [feira, _tiles] = seed(user, poet)
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide/near")
+
+      view |> element("#save-near-#{feira.id}") |> render_click()
+      assert has_element?(view, ~s(#save-near-#{feira.id}[aria-pressed="true"]))
+
+      # The week's batch is replaced; the saved copy stands on its own
+      NearHome.replace_batch(user, poet, today(), [])
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide?saved=1")
+      assert html =~ "Feira da Ladra"
+      assert html =~ "Campo de Santa Clara, Lisbon"
+      assert has_element?(view, ~s(a[href="/guide/near"]), "From Near you")
+
+      # Never on a shared list: it shows where the reader lives
+      {:ok, %{saved_share_token: token}} = TravelingPoet.Bookmarks.share(user)
+      {:ok, _view, html} = live(conn, ~p"/shared/#{token}")
+      refute html =~ "Feira da Ladra"
+    end
+
+    test "Not for me folds a pick away, with Undo", %{conn: conn, user: user, poet: poet} do
+      [feira, _tiles] = seed(user, poet)
+      {:ok, view, _html} = live(signed_in(conn, user), ~p"/guide/near")
+
+      view |> element("#save-near-#{feira.id}") |> render_click()
+      html = view |> element("#pass-near-#{feira.id}") |> render_click()
+      assert html =~ "Not for you."
+      refute has_element?(view, "#save-near-#{feira.id}")
+      # a pass takes back the save
+      assert TravelingPoet.Bookmarks.count(user.id) == 0
+
+      view |> element("#pass-near-#{feira.id}") |> render_click()
+      assert has_element?(view, "#save-near-#{feira.id}")
+    end
+
+    test "another reader's pick cannot be saved", %{user: user, poet: poet} do
+      [feira, _tiles] = seed(user, poet)
+      other = user_fixture()
+      assert TravelingPoet.Bookmarks.toggle(other.id, "near", feira.id) == {:error, :not_found}
+
+      assert TravelingPoet.Bookmarks.toggle_pass(other.id, "near", feira.id) ==
+               {:error, :not_found}
+    end
+
     test "without a home it asks for one; the guide shows no Near you tab", %{conn: conn} do
       reader = agent_user_fixture(%{onboarding_completed: true})
       poet_fixture(reader)

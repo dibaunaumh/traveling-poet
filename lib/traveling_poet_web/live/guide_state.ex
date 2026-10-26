@@ -259,6 +259,10 @@ defmodule TravelingPoetWeb.GuideState do
   # The reader's own pages open in their journal, anyone else's in public.
   defp source(nil, _own, _item), do: nil
 
+  # A pick near home kept from its week (card-71): no page, its list instead
+  defp source(_poet, _own, %TravelingPoet.Guide.Place{journal_entry_id: nil, entry_date: nil}),
+    do: {dgettext("guide", "From Near you"), "/guide/near"}
+
   defp source(poet, own, %{entry_date: %Date{} = date}) do
     day = Date.to_iso8601(date)
 

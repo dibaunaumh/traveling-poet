@@ -1187,3 +1187,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Where do you live? Once a week %{poet} can look for things to do near you. Only you see them."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From Near you"
+msgstr ""

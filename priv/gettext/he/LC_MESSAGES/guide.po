@@ -1187,3 +1187,7 @@ msgstr "להגדיר בית"
 #, elixir-autogen, elixir-format
 msgid "Where do you live? Once a week %{poet} can look for things to do near you. Only you see them."
 msgstr "איפה אתם גרים? פעם בשבוע, חיפוש של %{poet} ליד הבית: דברים לעשות בסביבה. רק אתם רואים אותם."
+
+#, elixir-autogen, elixir-format
+msgid "From Near you"
+msgstr "מ\"לידכם\""
