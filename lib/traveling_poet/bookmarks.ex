@@ -16,6 +16,14 @@ defmodule TravelingPoet.Bookmarks do
   pass is a taste signal: `Affinity` counts it against the item's subject,
   and the reader's own poet gets a nudge (`Preferences`, source `tap`) away
   from that subject, which hardens only if the reader keeps passing on it.
+
+  A pick near home (card-71, `NearHome.Pick`) is saved and passed too, as
+  kind "near": it belongs to no page, so its key has no entry, its saved
+  copy is shaped as a place (dates, venue, pin) and shows in Saved like
+  one, and a shared Saved list leaves it out because it gives away where
+  the reader lives. A pass on one reaches the poet in the next week's
+  note (`NearHome`), not as a `Preferences` nudge: a pick's kind ("event")
+  is too broad a subject to lean away from.
   """
 
   import Ecto.Query
@@ -23,6 +31,7 @@ defmodule TravelingPoet.Bookmarks do
   alias TravelingPoet.Bookmarks.{Bookmark, Pass}
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.Entry
+  alias TravelingPoet.NearHome.Pick
   alias TravelingPoet.Poets.Poet
   alias TravelingPoet.Repo
   alias TravelingPoet.Topics.Find
@@ -33,6 +42,7 @@ defmodule TravelingPoet.Bookmarks do
   @doc "The key a bookmark and its item share."
   def key(%Place{journal_entry_id: e, name: n}), do: {"place", e, n}
   def key(%Find{journal_entry_id: e, name: n}), do: {"find", e, n}
+  def key(%Pick{name: n}), do: {"near", nil, n}
 
   @doc """
   The reader's verdicts, for marking the buttons: `%{saved: keys, passed:
@@ -60,9 +70,26 @@ defmodule TravelingPoet.Bookmarks do
     |> MapSet.new()
   end
 
-  def saved?(%{saved: keys}, item), do: MapSet.member?(keys, key(item))
+  def saved?(%{saved: keys}, item), do: Enum.any?(keys_of(item), &MapSet.member?(keys, &1))
 
-  def passed?(%{passed: keys}, item), do: MapSet.member?(keys, key(item))
+  def passed?(%{passed: keys}, item), do: Enum.any?(keys_of(item), &MapSet.member?(keys, &1))
+
+  # A saved pick near home comes back from its copy as a place with no page
+  defp keys_of(%Place{journal_entry_id: nil, name: n}), do: [{"place", nil, n}, {"near", nil, n}]
+  defp keys_of(item), do: [key(item)]
+
+  @doc "The names of the picks near home the reader saved and passed on, for the poet's note."
+  def near_verdicts(user_id) do
+    names = fn schema ->
+      schema
+      |> where([b], b.user_id == ^user_id and b.kind == "near")
+      |> order_by(desc: :inserted_at)
+      |> select([b], b.name)
+      |> Repo.all()
+    end
+
+    %{saved: names.(Bookmark), passed: names.(Pass)}
+  end
 
   @doc """
   "Not for me" on a place or find, or takes it back when already passed.
@@ -98,6 +125,35 @@ defmodule TravelingPoet.Bookmarks do
 
             error ->
               error
+          end
+
+        pass ->
+          Repo.delete(pass)
+          {:ok, :restored}
+      end
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  def toggle_pass(user_id, "near", id) do
+    with %Pick{} = pick <- own_pick(user_id, id) do
+      case near_row(Pass, user_id, pick.name) do
+        nil ->
+          if bookmark = near_row(Bookmark, user_id, pick.name), do: Repo.delete!(bookmark)
+
+          %Pass{}
+          |> Pass.changeset(%{
+            user_id: user_id,
+            kind: "near",
+            poet_id: pick.poet_id,
+            name: pick.name,
+            category: pick.kind
+          })
+          |> Repo.insert()
+          |> case do
+            {:ok, _} -> {:ok, :passed}
+            error -> error
           end
 
         pass ->
@@ -171,9 +227,12 @@ defmodule TravelingPoet.Bookmarks do
 
   def shared_by(_), do: nil
 
-  @doc "A reader's saved places, as their Saved view shows them."
-  def places(user_id) do
-    for %{item: %Place{} = place} <- list(user_id), do: place
+  @doc """
+  A reader's saved places, as their Saved view shows them. `shared: true`
+  for a shared list, which leaves out the picks near home.
+  """
+  def places(user_id, opts \\ []) do
+    for %{item: %Place{} = place} <- list(user_id, opts), do: place
   end
 
   def count(user_id), do: Repo.aggregate(where(Bookmark, user_id: ^user_id), :count)
@@ -218,7 +277,51 @@ defmodule TravelingPoet.Bookmarks do
     end
   end
 
+  def toggle(user_id, "near", id) do
+    with %Pick{} = pick <- own_pick(user_id, id) do
+      case near_row(Bookmark, user_id, pick.name) do
+        nil ->
+          %Bookmark{}
+          |> Bookmark.changeset(%{
+            user_id: user_id,
+            kind: "near",
+            poet_id: pick.poet_id,
+            name: pick.name,
+            snapshot: snapshot(pick)
+          })
+          |> Repo.insert()
+          |> case do
+            {:ok, _} -> {:ok, :saved}
+            error -> error
+          end
+
+        bookmark ->
+          Repo.delete(bookmark)
+          {:ok, :removed}
+      end
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
   def toggle(_user_id, _kind, _id), do: {:error, :not_found}
+
+  # A pick is only ever its own reader's: it shows where they live
+  defp own_pick(user_id, id) do
+    case get(Pick, id) do
+      %Pick{user_id: ^user_id} = pick -> pick
+      _ -> nil
+    end
+  end
+
+  # Keyed with no entry, which a unique index does not hold to, so looked up by hand
+  defp near_row(schema, user_id, name) do
+    schema
+    |> where([r], r.user_id == ^user_id and r.kind == "near" and r.name == ^name)
+    |> where([r], is_nil(r.journal_entry_id))
+    |> limit(1)
+    |> Repo.one()
+  end
 
   @doc "Removes one of the reader's bookmarks by its own id (a saved copy has no live item)."
   def remove(user_id, bookmark_id) do
@@ -234,10 +337,11 @@ defmodule TravelingPoet.Bookmarks do
   has it, else one rebuilt from the saved copy (id: the bookmark's, negated,
   so it can still be selected on the map).
   """
-  def list(user_id) do
+  def list(user_id, opts \\ []) do
     bookmarks =
       Bookmark
       |> where(user_id: ^user_id)
+      |> then(fn q -> if opts[:shared], do: where(q, [b], b.kind != "near"), else: q end)
       |> order_by(desc: :inserted_at, desc: :id)
       |> Repo.all()
 
@@ -275,7 +379,9 @@ defmodule TravelingPoet.Bookmarks do
     |> Map.new(&{key(&1), &1})
   end
 
-  defp rebuilt(%Bookmark{kind: "place"} = b), do: struct(Place, from_snapshot(b, @place_fields))
+  defp rebuilt(%Bookmark{kind: k} = b) when k in ["place", "near"],
+    do: struct(Place, from_snapshot(b, @place_fields))
+
   defp rebuilt(%Bookmark{kind: "find"} = b), do: struct(Find, from_snapshot(b, @find_fields))
 
   defp from_snapshot(b, fields) do
@@ -301,6 +407,35 @@ defmodule TravelingPoet.Bookmarks do
 
   defp snapshot(%Place{} = p), do: take(p, @place_fields)
   defp snapshot(%Find{} = f), do: take(f, @find_fields)
+
+  # A pick is kept in a place's shape, so Saved shows it like one
+  defp snapshot(%Pick{} = pick) do
+    %Place{
+      name: pick.name,
+      category: near_category(pick.kind),
+      blurb: pick.blurb,
+      address: near_address(pick),
+      lat: pick.lat,
+      lng: pick.lng,
+      source_url: pick.url,
+      starts_on: pick.starts_on,
+      ends_on: pick.ends_on,
+      hours: if(is_nil(pick.starts_on) and is_nil(pick.ends_on), do: pick.when_text)
+    }
+    |> take(@place_fields)
+  end
+
+  defp near_address(%Pick{place_name: venue, address: address}) do
+    cond do
+      venue && address && String.contains?(address, venue) -> address
+      venue || address -> Enum.join(Enum.reject([venue, address], &is_nil/1), ", ")
+      true -> nil
+    end
+  end
+
+  # Something dated is an event in the guide; the rest is a place to go
+  defp near_category(kind) when kind in ~w(event exhibition market performance), do: "event"
+  defp near_category(_kind), do: "attraction"
 
   defp take(item, fields) do
     Map.new(fields, fn f ->

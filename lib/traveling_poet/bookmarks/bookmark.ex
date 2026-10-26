@@ -3,13 +3,14 @@ defmodule TravelingPoet.Bookmarks.Bookmark do
   A place or find a reader saved. Keyed by the page it came from and its
   name, not its id: a poet's re-put replaces a page's places and finds
   wholesale, so an id would not survive a revision. `snapshot` keeps what the
-  reader saw, for when the item is gone from the page.
+  reader saw, for when the item is gone from the page. A pick near home
+  ("near") has no page: its key is its name, and its snapshot is all there is.
   """
 
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(place find)
+  @kinds ~w(place find near)
 
   schema "bookmarks" do
     field :kind, :string

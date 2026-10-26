@@ -5,8 +5,9 @@ defmodule TravelingPoetWeb.SharedSavedLive do
   Read-only and needs no account: the friends planning a trip together see
   the same places, the same Plan my days, and can take them into Google
   Maps. The owner chose to share, so the places show as the owner sees them
-  (`Bookmarks.places/1`), including their own private poet's; stopping
-  sharing kills the link. No drawings here: MediaController serves a
+  (`Bookmarks.list/2`), including their own private poet's, but never their
+  picks near home, which give away where they live; stopping sharing kills
+  the link. No drawings here: MediaController serves a
   private poet's media only to its owner.
   """
 
@@ -28,7 +29,7 @@ defmodule TravelingPoetWeb.SharedSavedLive do
          |> push_navigate(to: ~p"/")}
 
       owner ->
-        saved = Bookmarks.list(owner.id)
+        saved = Bookmarks.list(owner.id, shared: true)
         places = for %{item: %TravelingPoet.Guide.Place{} = p} <- saved, do: p
         poets = for %{poet: %{} = poet} <- saved, into: %{}, do: {poet.id, poet}
         who = first_name(owner)

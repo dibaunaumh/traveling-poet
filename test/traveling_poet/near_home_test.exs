@@ -162,6 +162,31 @@ defmodule TravelingPoet.NearHomeTest do
       assert Enum.map(NearHome.list(user.id), & &1.name) == ["Next week", "Third"]
     end
 
+    test "a pick from an earlier week is turned back, so the poet finds something new", %{
+      user: user,
+      poet: poet
+    } do
+      {:ok, %{kept: [_]}} = NearHome.ingest(user, poet, [pick(%{})], @today)
+
+      again = %{
+        "name" => "  feira da  LADRA ",
+        "starts_on" => "2026-10-31",
+        "ends_on" => "2026-10-31"
+      }
+
+      fresh = %{"name" => "Something new", "starts_on" => "2026-10-31", "ends_on" => "2026-10-31"}
+
+      assert {:ok, %{kept: [%Pick{name: "Something new"}], dropped: [dropped]}} =
+               NearHome.ingest(user, poet, [pick(again), pick(fresh)], Date.add(@today, 7))
+
+      assert dropped.reason =~ "already suggested the week of 2026-10-22"
+
+      # Long enough ago, it may come round again
+      later = Date.add(@today, 7 * 9)
+      back = %{"starts_on" => Date.to_iso8601(later), "ends_on" => Date.to_iso8601(later)}
+      assert {:ok, %{kept: [_], dropped: []}} = NearHome.ingest(user, poet, [pick(back)], later)
+    end
+
     test "nothing is kept for a reader with no home", %{poet: poet} do
       user = user_fixture()
       assert NearHome.ingest(user, poet, [pick(%{})], @today) == {:error, :no_home}
@@ -191,6 +216,36 @@ defmodule TravelingPoet.NearHomeTest do
       assert note =~ "in Hebrew"
       assert note =~ "near_home_put"
       assert Usage.today_count(user.id, "near_home") == 1
+    end
+
+    test "tells the poet what it suggested before, and what the reader saved and passed on", %{
+      user: user,
+      poet: poet
+    } do
+      last_week = Date.add(Date.utc_today(), -7)
+
+      [saved, passed, _plain] =
+        NearHome.replace_batch(user, poet, last_week, [
+          %{name: "Fado at Tasca", url: "https://example.com/1", when_text: "Wednesdays"},
+          %{name: "Tile workshop", url: "https://example.com/2", when_text: "Daily"},
+          %{name: "Harbour walk", url: "https://example.com/3", when_text: "Daily"}
+        ])
+
+      {:ok, :saved} = TravelingPoet.Bookmarks.toggle(user.id, "near", saved.id)
+      {:ok, :passed} = TravelingPoet.Bookmarks.toggle_pass(user.id, "near", passed.id)
+
+      assert {:ok, :started} = NearHome.request(user, poet)
+      assert_receive {:session_run, _, note, _}, 2000
+      assert note =~ "do not suggest again: Fado at Tasca; Tile workshop; Harbour walk"
+      assert note =~ "more like them: Fado at Tasca"
+      assert note =~ "steer away: Tile workshop"
+    end
+
+    test "a first week's note has nothing to remember", %{user: user, poet: poet} do
+      assert {:ok, :started} = NearHome.request(user, poet)
+      assert_receive {:session_run, _, note, _}, 2000
+      refute note =~ "earlier weeks"
+      refute note =~ "They saved"
     end
 
     test "once a day, never without a home, and not while switched off", %{user: user, poet: poet} do
