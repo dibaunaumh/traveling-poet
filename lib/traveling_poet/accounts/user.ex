@@ -90,6 +90,8 @@ defmodule TravelingPoet.Accounts.User do
     field :referral_code, :string
     belongs_to :referred_by, __MODULE__
     field :invite_prompt_dismissed_at, :utc_datetime
+    # The week of picks near home whose journal card the reader closed
+    field :near_home_card_hidden_week, :date
 
     has_one :poet, TravelingPoet.Poets.Poet
 
@@ -138,6 +140,7 @@ defmodule TravelingPoet.Accounts.User do
       :referral_code,
       :referred_by_id,
       :invite_prompt_dismissed_at,
+      :near_home_card_hidden_week,
       :low_credits_notified_at,
       :google_refresh_token,
       :google_access_token,

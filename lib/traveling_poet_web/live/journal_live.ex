@@ -481,6 +481,21 @@ defmodule TravelingPoetWeb.JournalLive do
     {:noreply, assign(socket, :user, user)}
   end
 
+  # The week's Near you card, closed until the next week's picks (card-71)
+  @impl true
+  def handle_event("hide_near_home_card", _params, socket) do
+    case socket.assigns.near_home_picks do
+      [%{week_of: week} | _] ->
+        {:ok, user} =
+          Accounts.update_user(socket.assigns.user, %{near_home_card_hidden_week: week})
+
+        {:noreply, assign(socket, :user, user)}
+
+      [] ->
+        {:noreply, socket}
+    end
+  end
+
   @impl true
   def handle_event("prompt_dismiss", _params, socket) do
     {:ok, _} = Preferences.dismiss_prompt(socket.assigns.prompt)
@@ -1249,13 +1264,7 @@ defmodule TravelingPoetWeb.JournalLive do
             :if={!awaiting_first_entry?(assigns)}
             picks={@near_home_picks}
             poet={@poet}
-            home={@user.home_place_name}
-          />
-          <.near_home_invite
-            :if={!awaiting_first_entry?(assigns)}
-            trips={@trips}
-            user={@user}
-            poet={@poet}
+            hidden_week={@user.near_home_card_hidden_week}
           />
 
           <.setup_card :if={provisioning?(assigns)} poet={@poet} provision_step={@provision_step} />
@@ -1521,6 +1530,15 @@ defmodule TravelingPoetWeb.JournalLive do
               </:right_footer>
             </.entry_spread>
           </div>
+
+          <%!-- Below the page: on a phone, above it, the question took most
+                of the first screen --%>
+          <.near_home_invite
+            :if={!awaiting_first_entry?(assigns)}
+            trips={@trips}
+            user={@user}
+            poet={@poet}
+          />
         </div>
 
         <.live_component
