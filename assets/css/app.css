@@ -605,6 +605,29 @@ h1, h2, h3 {
   text-decoration-thickness: 1px;
 }
 
+/* A box to write in on the page itself (the recommend question's "why",
+   card-137): ink on the cream paper in both themes, not the theme's dark
+   field, which sat like a hole in the page. */
+.notebook-page .page-note-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(58, 50, 38, 0.25);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  color: #3a3226;
+  font-size: 0.875rem;
+  line-height: 1.35rem;
+  outline: none;
+}
+
+.notebook-page .page-note-input::placeholder {
+  color: rgba(58, 50, 38, 0.5);
+}
+
+.notebook-page .page-note-input:focus {
+  border-color: rgba(58, 50, 38, 0.6);
+}
+
 /* Feedback markers. The paper stays cream in both themes, so these are fixed
    inks chosen to read on it, not theme tokens. */
 .notebook-page {

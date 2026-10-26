@@ -70,10 +70,14 @@ defmodule TravelingPoet.ChangeStream.Registry do
   # subject_dismissals likewise (what they took off that profile), and
   # bookmarks and passes (what a reader saved for themselves, and said no to),
   # and the reader's "About you" note with the poet's suggested lines.
+  # feedback_messages and nps_responses: what a reader told us about the app,
+  # in their own words, for us alone.
   @excluded [
     TravelingPoet.Affinity.Dismissal,
     TravelingPoet.Bookmarks.Bookmark,
     TravelingPoet.Bookmarks.Pass,
+    TravelingPoet.Feedback.Message,
+    TravelingPoet.Feedback.NpsResponse,
     TravelingPoet.ReaderNote.Note,
     TravelingPoet.ReaderNote.Suggestion,
     TravelingPoet.NearHome.Pick,

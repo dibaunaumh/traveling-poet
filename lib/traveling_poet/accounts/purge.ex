@@ -80,6 +80,8 @@ defmodule TravelingPoet.Accounts.Purge do
     media_deleted = delete_media(media_keys)
     sprite_deleted = delete_sprite(user.sprite_name)
     grants_revoked = revoke_grants(user)
+    # Feedback sent signed out from this address has no user row to go with
+    TravelingPoet.Feedback.delete_signed_out(user.email)
 
     case Repo.delete(user) do
       {:ok, _} ->

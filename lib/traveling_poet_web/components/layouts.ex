@@ -157,6 +157,7 @@ defmodule TravelingPoetWeb.Layouts do
                   {gettext("Settings")}
                 </.link>
               </li>
+              <li><.link navigate={~p"/feedback"}>{gettext("Send feedback")}</.link></li>
               <li><a href={~p"/auth/logout"}>{gettext("Sign out")}</a></li>
             </ul>
           </details>

@@ -1,0 +1,92 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I would change something"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sending..."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something else"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something is broken"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something is missing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something not working, something you would change, or something you miss? Tell us here."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell us anything."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. Every note is read, and it shapes what we build next."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "That is a lot of notes for one day. Please try again tomorrow."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What happened, and what did you expect to happen?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What is it about?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What would you change, and why?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What would you like Traveling Poet to do?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You can also write to %{address}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your email, so we can write back"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your note"
+msgstr ""

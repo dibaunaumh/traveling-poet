@@ -1,0 +1,92 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "Back"
+msgstr "חזרה"
+
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr "ביטול"
+
+#, elixir-autogen, elixir-format
+msgid "I would change something"
+msgstr "הייתי משנה משהו"
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr "שליחה"
+
+#, elixir-autogen, elixir-format
+msgid "Send feedback"
+msgstr "שליחת משוב"
+
+#, elixir-autogen, elixir-format
+msgid "Sending..."
+msgstr "שולחים..."
+
+#, elixir-autogen, elixir-format
+msgid "Something else"
+msgstr "משהו אחר"
+
+#, elixir-autogen, elixir-format
+msgid "Something is broken"
+msgstr "משהו לא עובד"
+
+#, elixir-autogen, elixir-format
+msgid "Something is missing"
+msgstr "משהו חסר"
+
+#, elixir-autogen, elixir-format
+msgid "Something not working, something you would change, or something you miss? Tell us here."
+msgstr "משהו לא עובד, משהו שהייתם משנים, או משהו שחסר לכם? ספרו לנו כאן."
+
+#, elixir-autogen, elixir-format
+msgid "Tell us anything."
+msgstr "ספרו לנו כל דבר."
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. Every note is read, and it shapes what we build next."
+msgstr "תודה. אנחנו קוראים כל הערה, והיא משפיעה על מה שנבנה בהמשך."
+
+#, elixir-autogen, elixir-format
+msgid "That is a lot of notes for one day. Please try again tomorrow."
+msgstr "זה הרבה הערות ליום אחד. נסו שוב מחר."
+
+#, elixir-autogen, elixir-format
+msgid "What happened, and what did you expect to happen?"
+msgstr "מה קרה, ומה ציפיתם שיקרה?"
+
+#, elixir-autogen, elixir-format
+msgid "What is it about?"
+msgstr "על מה מדובר?"
+
+#, elixir-autogen, elixir-format
+msgid "What would you change, and why?"
+msgstr "מה הייתם משנים, ולמה?"
+
+#, elixir-autogen, elixir-format
+msgid "What would you like Traveling Poet to do?"
+msgstr "מה הייתם רוצים ש-Traveling Poet יעשה?"
+
+#, elixir-autogen, elixir-format
+msgid "You can also write to %{address}."
+msgstr "אפשר גם לכתוב ל-%{address}."
+
+#, elixir-autogen, elixir-format
+msgid "Your email, so we can write back"
+msgstr "האימייל שלכם, כדי שנוכל לענות"
+
+#, elixir-autogen, elixir-format
+msgid "Your note"
+msgstr "ההערה שלכם"

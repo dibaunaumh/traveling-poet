@@ -99,6 +99,8 @@ defmodule TravelingPoetWeb.Router do
       on_mount: [{TravelingPoetWeb.UserAuth, :mount_current_user}] do
       live "/discover", DiscoverLive
       live "/shared/:token", SharedSavedLive
+      # What readers, signed in or not, tell us about the app (card-137)
+      live "/feedback", FeedbackLive
       live "/p/:slug", PublicJournalLive
       # Must precede /p/:slug/:date so "guide" isn't swallowed as a date.
       live "/p/:slug/guide", PublicGuideLive
@@ -199,6 +201,7 @@ defmodule TravelingPoetWeb.Router do
       live "/admin", AdminLive
       live "/admin/change-stream", ChangeStreamAdminLive
       live "/admin/funnel", FunnelAdminLive
+      live "/admin/feedback", FeedbackAdminLive
     end
   end
 

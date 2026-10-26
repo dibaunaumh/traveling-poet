@@ -237,6 +237,9 @@
       <span class="home-footer-links">
         <.link navigate={~p"/privacy"} data-track="footer-privacy">{gettext("Privacy")}</.link>
         <.link navigate={~p"/terms"} data-track="footer-terms">{gettext("Terms")}</.link>
+        <.link navigate={~p"/feedback?from=/"} data-track="footer-feedback">
+          {gettext("Feedback")}
+        </.link>
         <Layouts.language_switch :if={@signed_out?} />
       </span>
       <Layouts.app_store_badge :if={!@native_app} track="app-store-footer" />

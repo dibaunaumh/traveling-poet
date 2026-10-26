@@ -7,7 +7,9 @@ defmodule TravelingPoet.Telegram.Notifier do
   the answer itself, so a reply in Telegram reaches the poet as a chat turn.
 
   The admins hear of the business's own events on `"admin_events"`: a new
-  sign-up and a credit purchase, through `Alerts.notify_admins/1`. Opt-out of publish notes via poet settings
+  sign-up, a credit purchase, and what readers say about the app (a
+  feedback message, an answer to the recommend question; `Feedback`),
+  through `Alerts.notify_admins/1`. Opt-out of publish notes via poet settings
   `"telegram_notify" => false`.
 
   A reader's note is written in their own language (`users.locale`, through
@@ -224,6 +226,26 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   @impl true
+  def handle_info({:feedback_received, id}, state) do
+    with %{} = message <- TravelingPoet.Feedback.get_message(id) do
+      poet = message.user && Poets.get_poet_by_user(message.user.id)
+      TravelingPoet.Alerts.notify_admins(feedback_alert_text(message, poet))
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:nps_answered, id}, state) do
+    with %{user: %{}} = response <- TravelingPoet.Feedback.get_response(id) do
+      poet = Poets.get_poet_by_user(response.user.id)
+      TravelingPoet.Alerts.notify_admins(nps_alert_text(response, poet))
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(_msg, state), do: {:noreply, state}
 
   @doc "The poet's question as a Telegram message: its words, signed. Pure, for tests."
@@ -308,6 +330,54 @@ defmodule TravelingPoet.Telegram.Notifier do
     "Credits bought: #{user.name || "(no name)"} <#{user.email}>, " <>
       "#{TravelingPoet.Credits.format(tx.amount)} credits#{price} (#{store}).\n" <>
       TravelingPoet.Alerts.admin_url("/admin")
+  end
+
+  @feedback_kinds %{
+    "broken" => "Something is broken",
+    "change" => "Something to change",
+    "missing" => "Something is missing",
+    "other" => "Feedback"
+  }
+
+  # Enough to act on from the phone; the rest is on /admin/feedback
+  @feedback_max 600
+
+  @doc "What the admins are told about a feedback message. Pure, for tests."
+  def feedback_alert_text(message, poet) do
+    where =
+      [message.page, message.client]
+      |> Enum.reject(&(&1 in [nil, ""]))
+      |> Enum.join(", ")
+
+    "#{Map.get(@feedback_kinds, message.kind, "Feedback")}, from #{sender(message.user, message.email, poet)}" <>
+      if(where != "", do: " (#{where})", else: "") <>
+      ":\n\n#{clip(message.body, @feedback_max)}\n\n" <>
+      TravelingPoet.Alerts.admin_url("/admin/feedback")
+  end
+
+  @doc "What the admins are told about an answer to the recommend question. Pure, for tests."
+  def nps_alert_text(response, poet) do
+    bucket = response.score |> TravelingPoet.Feedback.NpsResponse.bucket() |> to_string()
+
+    comment =
+      case response.comment do
+        text when is_binary(text) and text != "" -> ":\n\n#{clip(text, @feedback_max)}"
+        _ -> ", no comment."
+      end
+
+    "Recommend score #{response.score}/10 (#{bucket}) from #{sender(response.user, nil, poet)}" <>
+      comment <> "\n\n" <> TravelingPoet.Alerts.admin_url("/admin/feedback")
+  end
+
+  defp sender(nil, email, _poet), do: "#{email} (signed out)"
+
+  defp sender(user, _email, poet) do
+    poet = if poet, do: ", poet #{poet.name}", else: ""
+    "#{user.name || "(no name)"} <#{user.email}>#{poet}"
+  end
+
+  defp clip(text, max) do
+    if String.length(text) > max, do: String.slice(text, 0, max) <> "…", else: text
   end
 
   defp user_count, do: TravelingPoet.Repo.aggregate(TravelingPoet.Accounts.User, :count)
