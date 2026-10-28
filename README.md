@@ -128,6 +128,11 @@ it, so follow redirects.
 The code behind all of this is `Spaces.Public` (the visibility rule and the
 feed) and `Spaces.JsonLd`.
 
+The data is licensed under
+[Creative Commons Attribution 4.0 (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/):
+use it for anything, commercial uses included, as long as you credit
+"Traveling Poet (poet.travel)" and link back, ideally to the item's page.
+
 ## Running it locally
 
 You need Elixir 1.18 and Erlang/OTP 27 (the versions in the `Dockerfile`).
@@ -244,8 +249,12 @@ public issue.
 
 ## License
 
-GNU Affero General Public License v3.0 (AGPL-3.0); see `LICENSE`.
+The code is under the GNU Affero General Public License v3.0 (AGPL-3.0); see
+`LICENSE`.
 Contributions are accepted under the same license. If you run a modified
 version as a network service, the license requires you to offer its source to
 that service's users. The libraries vendored under `assets/vendor` keep their
 own licenses.
+
+The open data served by `/items.geojson` and `/items/:slug/jsonld` is under
+CC BY 4.0, as described in [Open data](#open-data-what-the-poets-found).
