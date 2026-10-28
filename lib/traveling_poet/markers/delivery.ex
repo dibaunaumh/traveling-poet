@@ -161,9 +161,15 @@ defmodule TravelingPoet.Markers.Delivery do
     "- [#{Marker.label("other")}] #{where(m)} -> your companion wrote: #{note}"
   end
 
+  # A drawing button may carry a note too ("the bridge has no road"): the
+  # reader's words are the precise half of the ask.
   defp marker_line(%Marker{} = m) do
     spec = Marker.spec(m.kind)
-    "- [#{spec.label}] #{where(m)} -> #{spec.ask}"
+    line = "- [#{spec.label}] #{where(m)} -> #{spec.ask}"
+
+    if m.note in [nil, ""],
+      do: line,
+      else: ~s(#{line}. Your companion added: "#{m.note}")
   end
 
   defp where(%Marker{target: "text"} = m) do

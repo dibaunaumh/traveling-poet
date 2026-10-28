@@ -18,7 +18,6 @@ defmodule TravelingPoet.Markers.Guard do
 
   alias TravelingPoet.Journal.{Marker, Section}
 
-  @praise ~w(interesting beautiful)
   # A revision turn runs within minutes of the digest; older markers belong to
   # earlier revisions and must not fence a change the reader asked for in chat.
   @recent_minutes 30
@@ -84,7 +83,7 @@ defmodule TravelingPoet.Markers.Guard do
   end
 
   @doc "False for praise markers, which ask for nothing to change."
-  def asks_change?(%Marker{kind: kind}), do: kind not in @praise
+  def asks_change?(%Marker{kind: kind}), do: kind not in Marker.praise_kinds()
 
   # Does this marker sit on this stored section?
   defp targets?(%Marker{target: "illustration", media_id: media_id}, %Section{} = section) do

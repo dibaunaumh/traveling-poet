@@ -816,3 +816,55 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "What would make it better?"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will hear it once you have finished reading."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will redraw it once you have finished reading."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Inaccurate"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Made up"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Meh"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Sent to %{poet}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Something in this drawing could not exist"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tell %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This does not look like the real place"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This drawing does nothing for me"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This drawing:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This page stays as it is. %{poet} will keep it in mind for the next drawings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "What is wrong in it? For example: the bridge has no road on it."
+msgstr ""

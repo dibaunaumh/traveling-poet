@@ -9,7 +9,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Narration
   alias TravelingPoet.Guide.{Geocoding, Stay, StayArea, TopicTagging}
-  alias TravelingPoet.Journal.Marker
+  alias TravelingPoet.Journal.{Marker, Media}
 
   # A day's finds, not a directory. The skill asks for 2-4; this is the
   # backstop against a model that decides to list everything it walked past.
@@ -599,9 +599,19 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
             |> Enum.map(fn m ->
               base = %{id: m.id, kind: m.kind, alt_text: m.alt_text}
 
-              if m.kind == "spot",
-                do: Map.put(base, :markdown, Journal.spot_markdown(m)),
-                else: base
+              # A drawing comes back with the prompt that made it and its
+              # sources, so a redraw fixes what was asked rather than
+              # starting from memory.
+              case m.kind do
+                "spot" ->
+                  Map.put(base, :markdown, Journal.spot_markdown(m))
+
+                "illustration" ->
+                  Map.merge(base, %{prompt: m.prompt, sources: Media.source_items(m)})
+
+                _ ->
+                  base
+              end
             end)
 
           markers =

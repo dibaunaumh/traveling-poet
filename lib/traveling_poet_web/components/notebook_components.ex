@@ -114,6 +114,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
   slot :left_footer
   slot :right_footer, doc: "under the drawing and poem: prompt, reactions"
 
+  slot :under_drawing,
+    doc: "right under the main drawing (the first on the page); gets the drawing's media"
+
   @doc """
   An entry open across two facing pages. The article is the unit the Markers
   hook attaches to, so every markable block inside keeps the `.marker-target`
@@ -121,6 +124,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
   it lands on.
   """
   def entry_spread(assigns) do
+    assigns = assign(assigns, :main_drawing, main_drawing(assigns.spread.right, assigns.media))
+
     ~H"""
     <article class="spread" {@rest}>
       <div class="notebook-page spread-page spread-left">
@@ -155,15 +160,18 @@ defmodule TravelingPoetWeb.NotebookComponents do
         "notebook-page spread-page spread-right",
         @spread.right == [] and @right_footer == [] and "spread-page-empty"
       ]}>
-        <.spread_item
-          :for={item <- @spread.right}
-          item={item}
-          entry={@entry}
-          media={@media}
-          clamp={@clamp}
-          links={@place_links}
-          spot_media={@spot_media}
-        />
+        <%= for item <- @spread.right do %>
+          <.spread_item
+            item={item}
+            entry={@entry}
+            media={@media}
+            clamp={@clamp}
+            links={@place_links}
+            spot_media={@spot_media}
+          />
+          {if @main_drawing && drawing_of(item, @media) == @main_drawing,
+            do: render_slot(@under_drawing, @main_drawing)}
+        <% end %>
         {render_slot(@right_footer)}
       </div>
     </article>
@@ -258,6 +266,13 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   def narration_length(seconds) when is_integer(seconds),
     do: dgettext("notebook", "%{n} min", n: max(div(seconds + 30, 60), 1))
+
+  # The first drawing on the right page, the one the day is remembered by.
+  defp main_drawing(items, media), do: Enum.find_value(items, &drawing_of(&1, media))
+
+  defp drawing_of({:section, %{kind: "illustration", media_id: id}}, media), do: media[id]
+  defp drawing_of({:media, media}, _media), do: media
+  defp drawing_of(_item, _media), do: nil
 
   attr :item, :any, required: true
   attr :entry, :map, required: true

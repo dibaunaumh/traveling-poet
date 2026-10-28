@@ -639,6 +639,9 @@ h1, h2, h3 {
   --marker-beautiful: #db2777;
   --marker-not_creative: #c2410c;
   --marker-other: #4a5f8c;
+  --marker-meh: #78716c;
+  --marker-inaccurate: #b45309;
+  --marker-made_up: #b91c1c;
 }
 
 .marker-other { --marker-c: var(--marker-other); }
@@ -650,6 +653,61 @@ h1, h2, h3 {
 .marker-link_needed { --marker-c: var(--marker-link_needed); }
 .marker-beautiful { --marker-c: var(--marker-beautiful); }
 .marker-not_creative { --marker-c: var(--marker-not_creative); }
+.marker-meh { --marker-c: var(--marker-meh); }
+.marker-inaccurate { --marker-c: var(--marker-inaccurate); }
+.marker-made_up { --marker-c: var(--marker-made_up); }
+
+/* The reader's say on the main drawing, right under it: the same inks as the
+   markers, since each button is a marker on the drawing. */
+.drawing-feedback {
+  margin: -0.75rem 0 1.25rem;
+}
+
+.drawing-feedback-label {
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.95rem;
+  color: #6b5b40;
+  margin-inline-end: 0.15rem;
+}
+
+.drawing-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.6rem;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(58, 50, 38, 0.2);
+  color: var(--marker-c);
+  background: transparent;
+  font-family: "Patrick Hand", cursive;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+@media (hover: hover) {
+  .drawing-feedback-btn:hover {
+    background: rgba(58, 50, 38, 0.06);
+  }
+}
+
+.drawing-feedback-btn.is-on {
+  border-color: var(--marker-c);
+  background: color-mix(in srgb, var(--marker-c) 14%, transparent);
+}
+
+.drawing-feedback-status,
+.drawing-feedback-note {
+  font-size: 0.8rem;
+  color: #6b5b40;
+  margin-top: 0.35rem;
+}
+
+.drawing-feedback-note {
+  font-style: italic;
+}
 
 /* The marker picker: one small button in the entry header that opens a menu
    of the seven markers. Picking only changes what you hold; nothing is marked

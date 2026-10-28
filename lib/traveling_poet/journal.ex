@@ -6,7 +6,7 @@ defmodule TravelingPoet.Journal do
 
   import Ecto.Query
   alias TravelingPoet.Repo
-  alias TravelingPoet.Journal.{Entry, Section, Media, Reaction, Spots}
+  alias TravelingPoet.Journal.{Entry, Marker, Section, Media, Reaction, Spots}
 
   ## Entries
 
@@ -430,9 +430,19 @@ defmodule TravelingPoet.Journal do
         select: p.media_id
       )
 
+    # A drawing the reader asked to change ("Made up", "Meh") is gone once
+    # the poet's redraw takes its section; it must not come back as a stray.
+    rejected_by_reader =
+      from(k in Marker,
+        where: k.journal_entry_id in ^entry_ids and k.target == "illustration",
+        where: k.kind not in ^Marker.praise_kinds() and not is_nil(k.media_id),
+        select: k.media_id
+      )
+
     Media
     |> where([m], m.journal_entry_id in ^entry_ids and m.kind == "illustration")
     |> where([m], m.id not in subquery(claimed_by_places))
+    |> where([m], m.id not in subquery(rejected_by_reader))
     |> order_by(asc: :id)
     |> Repo.all()
     |> Enum.reject(fn m -> m.id in Map.get(referenced_by_entry, m.journal_entry_id, []) end)
