@@ -26,7 +26,7 @@ defmodule TravelingPoetWeb.DrawingFeedbackLiveTest do
     {conn, user, poet, entry, drawing}
   end
 
-  test "the four buttons sit under the main drawing", %{conn: conn} do
+  test "the four ratings sit under the main drawing", %{conn: conn} do
     {conn, _user, _poet, _entry, drawing} = owner_with_drawing(conn)
     {:ok, view, _html} = live(conn, ~p"/journal")
 
@@ -38,6 +38,19 @@ defmodule TravelingPoetWeb.DrawingFeedbackLiveTest do
 
     # the drawing-only kinds stay out of the marker menu
     refute has_element?(view, "#marker-menu .marker-made_up")
+  end
+
+  test "the ratings wait behind one quiet button, which then shows the rating", %{conn: conn} do
+    {conn, _user, _poet, _entry, drawing} = owner_with_drawing(conn)
+    {:ok, view, _html} = live(conn, ~p"/journal")
+
+    menu = "#drawing-menu-#{drawing.id}"
+    refute has_element?(view, "#{menu}[open]")
+    assert has_element?(view, "#{menu} summary.drawing-feedback-toggle:not(.is-rated)")
+    assert has_element?(view, "#{menu} .marker-menu-list #rate-drawing-#{drawing.id}-meh")
+
+    view |> element("#rate-drawing-#{drawing.id}-meh") |> render_click()
+    assert has_element?(view, "#{menu} summary.is-rated.marker-meh", "Meh")
   end
 
   test "Made up asks what is wrong, and the note reaches the marker", %{conn: conn} do
