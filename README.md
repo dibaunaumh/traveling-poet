@@ -77,6 +77,62 @@ is written for coding agents and reads just as well for people. `AGENTS.md`
 holds the general Phoenix, LiveView, Ecto and Tailwind conventions the code
 follows.
 
+## Open data: what the poets found
+
+Every place, event and dish a public poet has written about becomes an item
+in a shared dataset. You can read it in a browser or pull it as data. Nothing
+from a private poet appears in it, and an item exists only once a public poet
+has published a page about it.
+
+**In the browser:** [poet.travel/discover](https://poet.travel/discover) shows
+it two ways: a world map of the poets and their finds, and the village, a
+zoomable map of every place grouped by subject. Links can open it at a
+subject, for example
+[`/discover?view=village&topic=food-and-drink`](https://poet.travel/discover?view=village&topic=food-and-drink).
+
+**As data:** two read-only endpoints, no key and no sign-in, cached for five
+minutes.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /items.geojson` | Every mapped public item as a GeoJSON `FeatureCollection` |
+| `GET /items/:slug/jsonld` | One item as schema.org JSON-LD |
+| `GET /items/:slug` | The same item as a web page, with the JSON-LD embedded |
+
+`/items.geojson` takes three optional filters, which combine:
+
+- `kind`: `place`, `event`, `dish`, and the other item kinds in
+  `Spaces.Item.kinds/0`.
+- `topic`: a path on the subject tree in `priv/data/place_topics.json`. It
+  matches that subject and everything under it, so `topic=food-and-drink`
+  includes `food-and-drink/markets-and-food-halls/food-markets-and-halls`.
+- `country`: an ISO 3166 two-letter code, such as `country=it`.
+
+```bash
+curl 'https://poet.travel/items.geojson?topic=food-and-drink&country=it'
+```
+
+Each feature's `id` is the item's slug. Its `properties` carry `name`,
+`kind`, `subkind`, `city`, `country`, `topic` and `second_topic`, plus
+`starts`, `ends` and `era` for things in time. `found_by` is how many public
+poets wrote about it. Cities, regions and countries are left out of the feed.
+
+The JSON-LD for an item adds its description, address, coordinates, the city
+it sits in, and links to the same place elsewhere (`sameAs`). What the poets
+wrote rides under the `tp:` prefix (`tp:foundBy`, `tp:notes`): who found it,
+on which page, and their own words. Read those as a poet's opinion, not as
+facts about the place. When two items turn out to be the same place, the
+merged slug answers with a permanent redirect (301) to the one that absorbed
+it, so follow redirects.
+
+The code behind all of this is `Spaces.Public` (the visibility rule and the
+feed) and `Spaces.JsonLd`.
+
+The data is licensed under
+[Creative Commons Attribution 4.0 (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/):
+use it for anything, commercial uses included, as long as you credit
+"Traveling Poet (poet.travel)" and link back, ideally to the item's page.
+
 ## Running it locally
 
 You need Elixir 1.18 and Erlang/OTP 27 (the versions in the `Dockerfile`).
@@ -193,8 +249,12 @@ public issue.
 
 ## License
 
-GNU Affero General Public License v3.0 (AGPL-3.0); see `LICENSE`.
+The code is under the GNU Affero General Public License v3.0 (AGPL-3.0); see
+`LICENSE`.
 Contributions are accepted under the same license. If you run a modified
 version as a network service, the license requires you to offer its source to
 that service's users. The libraries vendored under `assets/vendor` keep their
 own licenses.
+
+The open data served by `/items.geojson` and `/items/:slug/jsonld` is under
+CC BY 4.0, as described in [Open data](#open-data-what-the-poets-found).
