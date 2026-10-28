@@ -657,45 +657,60 @@ h1, h2, h3 {
 .marker-inaccurate { --marker-c: var(--marker-inaccurate); }
 .marker-made_up { --marker-c: var(--marker-made_up); }
 
-/* The reader's say on the main drawing, right under it: the same inks as the
-   markers, since each button is a marker on the drawing. */
+/* The reader's say on the main drawing: one faint button at the end of the
+   line under it, opening the four ratings in the marker menu's clothes. Once
+   rated it shows the rating in that marker's ink. */
 .drawing-feedback {
   margin: -0.75rem 0 1.25rem;
+  text-align: end;
 }
 
-.drawing-feedback-label {
-  font-family: "Patrick Hand", cursive;
-  font-size: 0.95rem;
-  color: #6b5b40;
-  margin-inline-end: 0.15rem;
+.drawing-feedback-menu summary {
+  list-style: none;
 }
 
-.drawing-feedback-btn {
+.drawing-feedback-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.drawing-feedback-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   height: 1.6rem;
-  padding: 0 0.5rem;
+  min-width: 1.6rem;
+  padding: 0 0.35rem;
   border-radius: 9999px;
-  border: 1.5px solid rgba(58, 50, 38, 0.2);
-  color: var(--marker-c);
-  background: transparent;
+  color: #6b5b40;
+  opacity: 0.5;
   font-family: "Patrick Hand", cursive;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1;
   cursor: pointer;
-  transition: background 120ms ease;
+  transition: opacity 120ms ease, background 120ms ease;
+}
+
+.drawing-feedback-toggle.is-rated {
+  color: var(--marker-c);
+  opacity: 0.85;
+}
+
+.drawing-feedback-menu[open] .drawing-feedback-toggle,
+.drawing-feedback-toggle:focus-visible {
+  opacity: 1;
+  background: rgba(58, 50, 38, 0.06);
 }
 
 @media (hover: hover) {
-  .drawing-feedback-btn:hover {
+  .drawing-feedback-toggle:hover {
+    opacity: 1;
     background: rgba(58, 50, 38, 0.06);
   }
 }
 
-.drawing-feedback-btn.is-on {
-  border-color: var(--marker-c);
-  background: color-mix(in srgb, var(--marker-c) 14%, transparent);
+.drawing-feedback-menu .marker-menu-list,
+.drawing-feedback form {
+  text-align: start;
 }
 
 .drawing-feedback-status,

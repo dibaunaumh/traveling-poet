@@ -101,7 +101,9 @@ defmodule TravelingPoetWeb.MarkerComponents do
   attr :skipped, :any, default: MapSet.new(), doc: "marker ids whose note box was skipped"
 
   @doc """
-  The buttons under the main drawing: Beautiful, Meh, Inaccurate, Made up.
+  One quiet button under the main drawing that opens Beautiful, Meh,
+  Inaccurate, Made up (a row of four inked buttons pulled the eye off the
+  drawing itself).
   Each is a marker on the drawing, so it reaches the poet with the page's
   other markers once the reader has gone quiet; the three negative ones ask
   for a redraw. Inaccurate and Made up then ask what is wrong, because "the
@@ -112,27 +114,39 @@ defmodule TravelingPoetWeb.MarkerComponents do
 
     ~H"""
     <div id={"drawing-feedback-#{@media.id}"} class="drawing-feedback">
-      <div class="flex flex-wrap items-center gap-1">
-        <span class="drawing-feedback-label">{dgettext("journal", "This drawing:")}</span>
-        <button
-          :for={kind <- Marker.drawing_kinds()}
-          id={"rate-drawing-#{@media.id}-#{kind}"}
-          type="button"
-          phx-click="rate_drawing"
-          phx-value-kind={kind}
-          phx-value-media={@media.id}
-          class={[
-            "drawing-feedback-btn",
-            "marker-#{kind}",
-            @rating && @rating.kind == kind && "is-on"
-          ]}
-          aria-pressed={to_string(!!(@rating && @rating.kind == kind))}
-          title={meaning(kind)}
+      <details id={"drawing-menu-#{@media.id}"} class="dropdown dropdown-end drawing-feedback-menu">
+        <summary
+          class={["drawing-feedback-toggle", @rating && ["marker-#{@rating.kind}", "is-rated"]]}
+          title={dgettext("journal", "Feedback on this drawing")}
+          aria-label={dgettext("journal", "Feedback on this drawing")}
         >
-          <.icon name={icons()[kind]} class="size-3.5" />
-          <span>{label(kind)}</span>
-        </button>
-      </div>
+          <.icon
+            name={if @rating, do: icons()[@rating.kind], else: "hero-chat-bubble-left-ellipsis-mini"}
+            class="size-4"
+          />
+          <span :if={@rating}>{label(@rating.kind)}</span>
+        </summary>
+        <ul class="dropdown-content marker-menu-list">
+          <li class="marker-menu-title">{dgettext("journal", "How is this drawing?")}</li>
+          <li :for={kind <- Marker.drawing_kinds()}>
+            <button
+              id={"rate-drawing-#{@media.id}-#{kind}"}
+              type="button"
+              phx-click={rate(@media.id, kind)}
+              class={[
+                "marker-menu-item",
+                "marker-#{kind}",
+                @rating && @rating.kind == kind && "is-active"
+              ]}
+              aria-pressed={to_string(!!(@rating && @rating.kind == kind))}
+              title={meaning(kind)}
+            >
+              <.icon name={icons()[kind]} class="size-4" />
+              <span>{label(kind)}</span>
+            </button>
+          </li>
+        </ul>
+      </details>
       <p :if={@rating} class="drawing-feedback-status">
         {rating_status(@rating, @poet, @latest)}
       </p>
@@ -246,6 +260,12 @@ defmodule TravelingPoetWeb.MarkerComponents do
   defp meaning("inaccurate"), do: dgettext("journal", "This does not look like the real place")
   defp meaning("made_up"), do: dgettext("journal", "Something in this drawing could not exist")
   defp meaning(kind), do: (Marker.spec(kind) || %{meaning: kind}).meaning
+
+  # Rate the drawing and close its menu.
+  defp rate(media_id, kind) do
+    JS.push("rate_drawing", value: %{kind: kind, media: media_id})
+    |> JS.remove_attribute("open", to: "#drawing-menu-#{media_id}")
+  end
 
   # Push the choice and close the menu; <details> does not close itself.
   defp pick(kind) do

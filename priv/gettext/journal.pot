@@ -858,13 +858,17 @@ msgid "This drawing does nothing for me"
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "This drawing:"
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "This page stays as it is. %{poet} will keep it in mind for the next drawings."
 msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "What is wrong in it? For example: the bridge has no road on it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Feedback on this drawing"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "How is this drawing?"
 msgstr ""
