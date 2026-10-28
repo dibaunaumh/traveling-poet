@@ -11,12 +11,21 @@ defmodule TravelingPoet.Journal.Marker do
   `spec/1` is the single source of truth for what each kind means and what it
   asks of the poet; the tray, the digest sent to the agent, and the entry
   endpoint all read from it.
+
+  The buttons under the main drawing (`drawing_kinds/0`) are markers on that
+  illustration too, so a "Made up" travels to the poet the way a "Boring"
+  does. Three of them belong to drawings only and stay out of the tray.
   """
 
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(interesting boring more_details drawing_needed link_needed beautiful not_creative other)
+  @tray_kinds ~w(interesting boring more_details drawing_needed link_needed beautiful not_creative other)
+  @drawing_only ~w(meh inaccurate made_up)
+  @kinds @tray_kinds ++ @drawing_only
+  @drawing_kinds ~w(beautiful meh inaccurate made_up)
+  # Praise asks the poet for nothing; every other kind asks for a change.
+  @praise ~w(interesting beautiful)
   @targets ~w(text section illustration)
   @quote_max 500
   @context_max 64
@@ -58,6 +67,22 @@ defmodule TravelingPoet.Journal.Marker do
       meaning: "This reads like anyone could have written it",
       ask: "rewrite it in your own voice from a fresh angle, same facts"
     },
+    "meh" => %{
+      label: "Meh",
+      meaning: "This drawing does nothing for me",
+      ask: "redraw it: the same place from a livelier moment or angle"
+    },
+    "inaccurate" => %{
+      label: "Inaccurate",
+      meaning: "This does not look like the real place",
+      ask: "redraw it true to the real place: check every detail against your reference sources"
+    },
+    "made_up" => %{
+      label: "Made up",
+      meaning: "Something in this drawing could not exist",
+      ask:
+        "redraw it with nothing invented: only what the real place has, every structure whole and possible"
+    },
     # Carries a free-text note; the digest quotes the note instead of `ask`.
     "other" => %{
       label: "Other feedback",
@@ -85,6 +110,15 @@ defmodule TravelingPoet.Journal.Marker do
   end
 
   def kinds, do: @kinds
+
+  @doc "The kinds the marker menu offers for text, sections and drawings."
+  def tray_kinds, do: @tray_kinds
+
+  @doc "The kinds of the buttons under the main drawing, in button order."
+  def drawing_kinds, do: @drawing_kinds
+
+  @doc "The kinds that ask for nothing to change."
+  def praise_kinds, do: @praise
   def targets, do: @targets
   def quote_max, do: @quote_max
   def context_max, do: @context_max
@@ -94,7 +128,7 @@ defmodule TravelingPoet.Journal.Marker do
   def spec(kind), do: Map.get(@specs, kind)
 
   @doc "`[{kind, spec}]` in tray order."
-  def specs, do: Enum.map(@kinds, &{&1, spec(&1)})
+  def specs, do: Enum.map(@tray_kinds, &{&1, spec(&1)})
 
   def label(kind), do: (spec(kind) || %{label: kind}).label
 
@@ -127,7 +161,15 @@ defmodule TravelingPoet.Journal.Marker do
   end
 
   defp validate_target(changeset) do
-    case get_field(changeset, :target) do
+    target = get_field(changeset, :target)
+
+    if get_field(changeset, :kind) in @drawing_only and target != "illustration",
+      do: add_error(changeset, :kind, "is for drawings only"),
+      else: validate_target(changeset, target)
+  end
+
+  defp validate_target(changeset, target) do
+    case target do
       "text" ->
         if blank?(get_field(changeset, :quote)),
           do: add_error(changeset, :quote, "is required for a text marker"),

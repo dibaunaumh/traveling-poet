@@ -816,3 +816,55 @@ msgstr "מה הכי אהבתם?"
 #, elixir-autogen, elixir-format
 msgid "What would make it better?"
 msgstr "מה היה הופך את זה לטוב יותר?"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will hear it once you have finished reading."
+msgstr "זה יגיע אל %{poet} כשתסיימו לקרוא."
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will redraw it once you have finished reading."
+msgstr "ציור חדש יגיע מ-%{poet} כשתסיימו לקרוא."
+
+#, elixir-autogen, elixir-format
+msgid "Inaccurate"
+msgstr "לא מדויק"
+
+#, elixir-autogen, elixir-format
+msgid "Made up"
+msgstr "מומצא"
+
+#, elixir-autogen, elixir-format
+msgid "Meh"
+msgstr "סתמי"
+
+#, elixir-autogen, elixir-format
+msgid "Sent to %{poet}."
+msgstr "נשלח אל %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Something in this drawing could not exist"
+msgstr "משהו בציור הזה לא יכול להתקיים"
+
+#, elixir-autogen, elixir-format
+msgid "Tell %{poet}"
+msgstr "ספרו ל-%{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "This does not look like the real place"
+msgstr "זה לא נראה כמו המקום האמיתי"
+
+#, elixir-autogen, elixir-format
+msgid "This drawing does nothing for me"
+msgstr "הציור הזה לא אומר לי כלום"
+
+#, elixir-autogen, elixir-format
+msgid "This drawing:"
+msgstr "הציור הזה:"
+
+#, elixir-autogen, elixir-format
+msgid "This page stays as it is. %{poet} will keep it in mind for the next drawings."
+msgstr "הדף הזה נשאר כפי שהוא. ההערה תגיע אל %{poet} לקראת הציורים הבאים."
+
+#, elixir-autogen, elixir-format
+msgid "What is wrong in it? For example: the bridge has no road on it."
+msgstr "מה לא נכון בו? למשל: אין כביש על הגשר."

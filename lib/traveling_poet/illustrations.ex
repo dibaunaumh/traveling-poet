@@ -54,6 +54,11 @@ defmodule TravelingPoet.Illustrations do
          " no paper texture, no grey, no vignette, no shadow, no border, no frame, no text." <>
          " The subject sits alone on blank white."
 
+  # Readers caught the model inventing: a suspension bridge with no road on
+  # it. The poet's prompt names a real place; this holds the drawing to it.
+  @real " Draw only what the real place has, and every structure whole and physically possible:" <>
+          " a bridge carries its deck, a tower stands on the ground, a road leads somewhere."
+
   def configured? do
     Application.get_env(:traveling_poet, :openrouter_api_key) not in [nil, ""]
   end
@@ -73,8 +78,8 @@ defmodule TravelingPoet.Illustrations do
   def model_for(_kind), do: model()
 
   @doc "The style rules the app appends to every poet prompt, by media kind."
-  def style_suffix("spot"), do: @ink <> @framing
-  def style_suffix(_kind), do: @framing
+  def style_suffix("spot"), do: @ink <> @real <> @framing
+  def style_suffix(_kind), do: @real <> @framing
 
   @doc "Which OpenRouter API a model answers on."
   def endpoint_for(model) when is_binary(model) do

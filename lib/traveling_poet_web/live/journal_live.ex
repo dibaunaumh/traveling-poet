@@ -3,7 +3,10 @@ defmodule TravelingPoetWeb.JournalLive do
 
   import TravelingPoetWeb.NotebookComponents
   import TravelingPoetWeb.RouteComponents
-  import TravelingPoetWeb.MarkerComponents, only: [marker_menu: 1, icons_json: 0]
+
+  import TravelingPoetWeb.MarkerComponents,
+    only: [marker_menu: 1, drawing_feedback: 1, icons_json: 0]
+
   import TravelingPoetWeb.ShareComponents, only: [share_menu: 1, invite_actions: 1]
   alias TravelingPoetWeb.ShareComponents
 
@@ -103,6 +106,8 @@ defmodule TravelingPoetWeb.JournalLive do
           # The recommend question's answer in progress, and the page it was done on
           |> assign(:nps_response, nil)
           |> assign(:nps_done_on, nil)
+          # Drawing ratings whose "what is wrong" box the reader skipped
+          |> assign(:drawing_note_skipped, MapSet.new())
           |> assign_push()
           |> assign(:sidebar_open, true)
           |> assign(:keepalive_task, SpriteHold.task_name("chat"))
@@ -567,7 +572,9 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("pick_marker", %{"kind" => kind}, socket) do
     active =
-      if kind != socket.assigns.active_marker and kind in Marker.kinds(), do: kind, else: nil
+      if kind != socket.assigns.active_marker and kind in Marker.tray_kinds(),
+        do: kind,
+        else: nil
 
     {:noreply, assign(socket, :active_marker, active)}
   end
@@ -585,6 +592,34 @@ defmodule TravelingPoetWeb.JournalLive do
     else
       _ -> {:noreply, socket}
     end
+  end
+
+  # The buttons under the main drawing. Only a drawing on this page can be
+  # rated; anything else the browser sends is dropped.
+  @impl true
+  def handle_event("rate_drawing", %{"kind" => kind, "media" => media_id}, socket) do
+    with %{} = entry <- socket.assigns.entry,
+         %{} = drawing <- page_drawing(socket.assigns, media_id),
+         {:ok, _marker} <- Markers.rate_drawing(socket.assigns.user, entry, drawing.id, kind) do
+      {:noreply, assign_markers(socket, entry)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("drawing_note", %{"drawing_note" => %{"id" => id, "note" => note}}, socket) do
+    if String.trim(note) == "" do
+      {:noreply, update(socket, :drawing_note_skipped, &MapSet.put(&1, to_int(id)))}
+    else
+      Markers.update_note(socket.assigns.user.id, id, note)
+      {:noreply, assign_markers(socket, socket.assigns.entry)}
+    end
+  end
+
+  @impl true
+  def handle_event("drawing_note_skip", %{"id" => id}, socket) do
+    {:noreply, update(socket, :drawing_note_skipped, &MapSet.put(&1, to_int(id)))}
   end
 
   @impl true
@@ -1507,6 +1542,15 @@ defmodule TravelingPoetWeb.JournalLive do
                   {label}
                 </.link>
               </:controls>
+              <:under_drawing :let={drawing}>
+                <.drawing_feedback
+                  media={drawing}
+                  markers={@markers}
+                  poet={@poet}
+                  latest={@entries != [] and hd(@entries).id == @entry.id}
+                  skipped={@drawing_note_skipped}
+                />
+              </:under_drawing>
               <:right_footer>
                 <.push_nudge push={@push} poet={@poet} entry={@entry} next={@next_page} />
                 <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
@@ -1967,6 +2011,20 @@ defmodule TravelingPoetWeb.JournalLive do
 
   # The payload's labels are the poet's English (Marker.label/1); the margin
   # pins and popovers show the reader's
+  defp page_drawing(assigns, media_id) do
+    id = to_int(media_id)
+    assigns.entry_media[id] || Enum.find(assigns.extra_media, &(&1.id == id))
+  end
+
+  defp to_int(id) when is_integer(id), do: id
+
+  defp to_int(id) do
+    case Integer.parse(to_string(id)) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
   defp markers_for_reader(markers) do
     markers
     |> Markers.payload()

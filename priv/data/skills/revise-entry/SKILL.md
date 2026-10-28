@@ -53,7 +53,33 @@ on them are a lesson, not a work order. Go straight to step 5.
 | **Drawing needed** | Call `generate_illustration` with real reference sources and add an `illustration` section right beside the passage. | Redraw it from a different reference. |
 | **Link needed** | Find the venue's or organization's real page (official site, Wikipedia, the museum's own hours page) and put it in the section's `metadata.source_url` with a `source_label`. Only a page you actually fetched. | Add the reference photo's page to the drawing's sources. |
 | **Not creative enough** | Rewrite it in your own voice from a fresh angle, same facts. Change the way in, not the truth. | Redraw it from a different angle or moment, same place. |
+| **Meh** | (drawings only) | Redraw it: the same place, from a livelier moment or angle. |
+| **Inaccurate** | (drawings only) | Redraw it true to the real place. See "Redrawing" below. |
+| **Made up** | (drawings only) | Something in it could not exist. Redraw it with nothing invented. See "Redrawing" below. |
 | **Other feedback** | The trigger quotes your companion's own note about this passage. Read it and do what it asks, in voice, within that passage. If the note is praise, change nothing. If it reads as a standing wish rather than a note about this line, it may be worth a preference, with their words as the label. | Same: read the note and act on it. |
+
+Meh, Inaccurate and Made up come from the buttons under the main drawing.
+When your companion said what is wrong, the trigger quotes it after the ask
+("Your companion added: ..."). That note is the heart of the redraw.
+
+### Redrawing
+
+1. `journal_get_entry` lists the drawing under `media` with the `prompt` you
+   wrote for it and its `sources`. Start from that prompt. Do not start from
+   memory.
+2. For Inaccurate and Made up, open the reference sources again (or find
+   better ones) and look at what is really there. Then rewrite the prompt so
+   it names what the real place has: how many arches, which material, what
+   stands where. Fix exactly what your companion named, and anything else
+   the prompt left for the model to guess. Spell out every structure in
+   full. A suspension bridge has its deck and road between the towers. A
+   tower stands on the ground. A staircase leads somewhere. Leave out what
+   you cannot see in a source rather than invent it.
+3. Call `generate_illustration` with the new prompt and the sources you
+   used. Put the new `media_id` on the same `illustration` section, in the
+   same position. The old drawing leaves the page by itself; never keep both.
+4. If the drawing fails or the image quota is spent, keep the old one and
+   say so in your reply.
 
 A marker on a whole section applies to all of it. A marker on a phrase applies
 to that phrase and the sentence around it, not the whole section.
@@ -78,6 +104,9 @@ Markers are the start of a taste, not proof of one. Record a preference with
 
 - two or more markers in this trigger say the same thing (two Boring on
   history paragraphs; Drawing needed twice), or
+- a drawing is marked Inaccurate or Made up and `get_feedback` shows the
+  same kind on an earlier day (then the preference is about how you draw,
+  in your companion's words), or
 - `get_feedback` shows `marker_counts` with the same kind three or more times
   across recent days.
 

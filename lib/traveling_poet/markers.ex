@@ -38,6 +38,49 @@ defmodule TravelingPoet.Markers do
     end
   end
 
+  @doc """
+  One of the buttons under the main drawing. A drawing holds one pending
+  rating at a time: pressing the pending one again takes it back, pressing
+  another replaces it. Returns `{:ok, marker}`, or `{:ok, nil}` when the
+  press took the rating back.
+
+  A rating already sent stays; pressing it again asks once more (the redraw
+  it asked for may have failed).
+  """
+  def rate_drawing(%User{id: user_id} = user, %Entry{} = entry, media_id, kind) do
+    with true <- kind in Marker.drawing_kinds(),
+         media_id when is_integer(media_id) <- to_int(media_id) do
+      pending =
+        Marker
+        |> where(user_id: ^user_id, journal_entry_id: ^entry.id, media_id: ^media_id)
+        |> where([m], m.target == "illustration" and is_nil(m.sent_at))
+        |> where([m], m.kind in ^Marker.drawing_kinds())
+        |> Repo.all()
+
+      Enum.each(pending, &Repo.delete/1)
+
+      if Enum.any?(pending, &(&1.kind == kind)) do
+        {:ok, nil}
+      else
+        add_marker(user, entry, %{
+          kind: kind,
+          target: "illustration",
+          section_kind: "illustration",
+          section_position: drawing_position(entry, media_id),
+          media_id: media_id
+        })
+      end
+    else
+      _ -> {:error, :invalid}
+    end
+  end
+
+  defp drawing_position(%Entry{sections: sections}, media_id) when is_list(sections) do
+    Enum.find_value(sections, &(&1.media_id == media_id && &1.position))
+  end
+
+  defp drawing_position(_entry, _media_id), do: nil
+
   @doc "Deletes one of the user's own markers. `{:error, :not_found}` for anyone else's."
   def remove_marker(user_id, id) do
     case to_int(id) do

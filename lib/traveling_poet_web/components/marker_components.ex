@@ -12,7 +12,7 @@ defmodule TravelingPoetWeb.MarkerComponents do
   use Phoenix.Component
   use Gettext, backend: TravelingPoetWeb.Gettext
 
-  import TravelingPoetWeb.CoreComponents, only: [icon: 1]
+  import TravelingPoetWeb.CoreComponents, only: [icon: 1, input: 1]
 
   alias Phoenix.LiveView.JS
   alias TravelingPoet.Journal.Marker
@@ -25,7 +25,10 @@ defmodule TravelingPoetWeb.MarkerComponents do
     "link_needed" => "hero-link-mini",
     "beautiful" => "hero-heart-mini",
     "not_creative" => "hero-arrow-path-mini",
-    "other" => "hero-chat-bubble-bottom-center-text-mini"
+    "other" => "hero-chat-bubble-bottom-center-text-mini",
+    "meh" => "hero-face-frown-mini",
+    "inaccurate" => "hero-eye-slash-mini",
+    "made_up" => "hero-no-symbol-mini"
   }
 
   @idle_icon "hero-pencil-square-mini"
@@ -91,6 +94,124 @@ defmodule TravelingPoetWeb.MarkerComponents do
     """
   end
 
+  attr :media, :map, required: true, doc: "the main drawing"
+  attr :markers, :list, required: true, doc: "the entry's markers"
+  attr :poet, :map, required: true
+  attr :latest, :boolean, default: true, doc: "only the latest page is redrawn"
+  attr :skipped, :any, default: MapSet.new(), doc: "marker ids whose note box was skipped"
+
+  @doc """
+  The buttons under the main drawing: Beautiful, Meh, Inaccurate, Made up.
+  Each is a marker on the drawing, so it reaches the poet with the page's
+  other markers once the reader has gone quiet; the three negative ones ask
+  for a redraw. Inaccurate and Made up then ask what is wrong, because "the
+  bridge has no road on it" is what makes the redraw right.
+  """
+  def drawing_feedback(assigns) do
+    assigns = assign(assigns, :rating, drawing_rating(assigns.markers, assigns.media.id))
+
+    ~H"""
+    <div id={"drawing-feedback-#{@media.id}"} class="drawing-feedback">
+      <div class="flex flex-wrap items-center gap-1">
+        <span class="drawing-feedback-label">{dgettext("journal", "This drawing:")}</span>
+        <button
+          :for={kind <- Marker.drawing_kinds()}
+          id={"rate-drawing-#{@media.id}-#{kind}"}
+          type="button"
+          phx-click="rate_drawing"
+          phx-value-kind={kind}
+          phx-value-media={@media.id}
+          class={[
+            "drawing-feedback-btn",
+            "marker-#{kind}",
+            @rating && @rating.kind == kind && "is-on"
+          ]}
+          aria-pressed={to_string(!!(@rating && @rating.kind == kind))}
+          title={meaning(kind)}
+        >
+          <.icon name={icons()[kind]} class="size-3.5" />
+          <span>{label(kind)}</span>
+        </button>
+      </div>
+      <p :if={@rating} class="drawing-feedback-status">
+        {rating_status(@rating, @poet, @latest)}
+      </p>
+      <p :if={@rating && @rating.note} class="drawing-feedback-note" dir="auto">
+        “{@rating.note}”
+      </p>
+      <.form
+        :let={f}
+        :if={note_wanted?(@rating, @skipped)}
+        for={to_form(%{"id" => @rating.id, "note" => ""}, as: :drawing_note)}
+        id={"drawing-note-#{@media.id}"}
+        phx-submit="drawing_note"
+        class="mt-2"
+      >
+        <.input field={f[:id]} type="hidden" />
+        <.input
+          field={f[:note]}
+          type="textarea"
+          rows="2"
+          class="page-note-input"
+          placeholder={
+            dgettext("journal", "What is wrong in it? For example: the bridge has no road on it.")
+          }
+        />
+        <div class="flex items-center gap-2 mt-1">
+          <button type="submit" class="btn btn-xs btn-outline">
+            {dgettext("journal", "Tell %{poet}", poet: @poet.name)}
+          </button>
+          <button
+            type="button"
+            phx-click="drawing_note_skip"
+            phx-value-id={@rating.id}
+            class="btn btn-ghost btn-xs opacity-60"
+          >
+            {dgettext("journal", "Skip")}
+          </button>
+        </div>
+      </.form>
+    </div>
+    """
+  end
+
+  # The reader's say on this drawing: the pending rating if there is one,
+  # else the last one sent.
+  defp drawing_rating(markers, media_id) do
+    ratings =
+      Enum.filter(markers, &(&1.media_id == media_id and &1.kind in Marker.drawing_kinds()))
+
+    Enum.find(Enum.reverse(ratings), &is_nil(&1.sent_at)) || List.last(ratings)
+  end
+
+  defp note_wanted?(nil, _skipped), do: false
+
+  defp note_wanted?(rating, skipped) do
+    rating.kind in ~w(inaccurate made_up) and is_nil(rating.sent_at) and
+      rating.note in [nil, ""] and not MapSet.member?(skipped, rating.id)
+  end
+
+  defp rating_status(%{sent_at: %DateTime{}}, poet, _latest),
+    do: dgettext("journal", "Sent to %{poet}.", poet: poet.name)
+
+  defp rating_status(%{kind: "beautiful"}, poet, _latest),
+    do:
+      dgettext("journal", "%{poet} will hear it once you have finished reading.", poet: poet.name)
+
+  defp rating_status(_rating, poet, true),
+    do:
+      dgettext("journal", "%{poet} will redraw it once you have finished reading.",
+        poet: poet.name
+      )
+
+  defp rating_status(_rating, poet, false),
+    do:
+      dgettext(
+        "journal",
+        "This page stays as it is. %{poet} will keep it in mind for the next drawings.",
+        poet: poet.name
+      )
+
   # A marker's name and meaning for the reader. `Marker.spec/1` keeps the
   # English, which the digest to the poet also reads; these are the same
   # words in the reader's language.
@@ -105,6 +226,9 @@ defmodule TravelingPoetWeb.MarkerComponents do
   defp label("beautiful"), do: dgettext("journal", "Beautiful")
   defp label("not_creative"), do: dgettext("journal", "Not creative enough")
   defp label("other"), do: dgettext("journal", "Other feedback")
+  defp label("meh"), do: dgettext("journal", "Meh")
+  defp label("inaccurate"), do: dgettext("journal", "Inaccurate")
+  defp label("made_up"), do: dgettext("journal", "Made up")
   defp label(kind), do: Marker.label(kind)
 
   defp meaning("interesting"), do: dgettext("journal", "This held my attention")
@@ -118,6 +242,9 @@ defmodule TravelingPoetWeb.MarkerComponents do
     do: dgettext("journal", "This reads like anyone could have written it")
 
   defp meaning("other"), do: dgettext("journal", "Something else I want to tell you about this")
+  defp meaning("meh"), do: dgettext("journal", "This drawing does nothing for me")
+  defp meaning("inaccurate"), do: dgettext("journal", "This does not look like the real place")
+  defp meaning("made_up"), do: dgettext("journal", "Something in this drawing could not exist")
   defp meaning(kind), do: (Marker.spec(kind) || %{meaning: kind}).meaning
 
   # Push the choice and close the menu; <details> does not close itself.
