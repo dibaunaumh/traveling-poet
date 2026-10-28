@@ -112,6 +112,9 @@ defmodule TravelingPoetWeb.ItemsTest do
     assert html =~ "Weaving"
     assert html =~ ~s(type="application/ld+json">)
     assert html =~ ~s("@type":"Restaurant")
+    assert html =~ ~s(href="https://creativecommons.org/licenses/by/4.0/")
+    assert html =~ ~s(rel="license noopener")
+    assert html =~ "Credit Traveling Poet (poet.travel) and link to this page."
   end
 
   test "an item two public poets found renders, newest note first", %{
