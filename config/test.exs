@@ -101,3 +101,8 @@ config :traveling_poet,
 
 # Visit-event pruning runs on a timer; tests call Analytics.prune/1 directly.
 config :traveling_poet, analytics_prune: false
+
+# Alice-in-Context: the outbox posts through Req.Test so a test can enable the
+# tap (endpoint + token via Application.put_env) and read what would be sent.
+config :alice_in_context,
+  outbox: [req_options: [plug: {Req.Test, AliceInContext}], flush_ms: 60_000, max_retries: 0]

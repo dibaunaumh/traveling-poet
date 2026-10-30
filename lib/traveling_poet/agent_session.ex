@@ -43,6 +43,7 @@ defmodule TravelingPoet.AgentSession do
       {:ok, pid} ->
         GatewaySocket.subscribe(pid)
         GatewaySocket.send_message(pid, message)
+        TravelingPoet.AiC.turn_requested(user, channel, record)
 
         if persist? do
           Chat.create_message(%{

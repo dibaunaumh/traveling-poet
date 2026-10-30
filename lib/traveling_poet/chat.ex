@@ -47,6 +47,10 @@ defmodule TravelingPoet.Chat do
       TravelingPoet.Asks.note_reader_message(msg.user_id)
     end
 
+    with {:ok, %ChatMessage{role: "agent"} = msg} <- result do
+      TravelingPoet.AiC.poet_replied(msg.user_id, msg.content, msg.channel)
+    end
+
     result
   end
 

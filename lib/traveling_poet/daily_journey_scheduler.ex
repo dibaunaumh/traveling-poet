@@ -210,6 +210,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
             reply_timeout_ms: @reply_timeout_ms
           )
 
+        TravelingPoet.AiC.daily_run(user.id, poet, outcome)
         finish_run(user, poet, attempt, started_at, outcome)
 
       {:error, reason} ->
