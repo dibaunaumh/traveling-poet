@@ -42,6 +42,10 @@ defmodule TravelingPoet.Application do
       # Webhook mirror of the DB (no-op unless CHANGE_STREAM_POLL_SECONDS > 0
       # AND an endpoint is registered)
       TravelingPoet.ChangeStream.Worker,
+      # Alice-in-Context: the event outbox and the PubSub tap (no-op unless
+      # AIC_ENDPOINT and AIC_TOKEN are set)
+      AliceInContext.Outbox,
+      TravelingPoet.AiC.PubSubTap,
       # Retries first-entry kickoffs so a closed tab can't strand a new poet
       TravelingPoet.FirstEntry.Watchdog,
       # Sends feedback markers to the poet once the reader has gone quiet

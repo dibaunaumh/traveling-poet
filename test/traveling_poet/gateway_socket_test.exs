@@ -115,6 +115,21 @@ defmodule TravelingPoet.GatewaySocketTest do
     assert_received {:gateway_event, {:text_replace, "Under the bridge"}}
   end
 
+  # Tool frames (caps: ["tool-events"]) used to fall through to the debug
+  # catch-all. They now reach the subscribers and the Alice-in-Context tap.
+  test "a tool event reaches the subscribers" do
+    st = state(%{subscribers: MapSet.new([self()])})
+
+    tool = %{
+      type: "event",
+      event: "agent",
+      payload: %{stream: "tool", data: %{name: "web_search", phase: "start", toolCallId: "c1"}}
+    }
+
+    assert {:ok, _} = GatewaySocket.handle_frame(frame(tool), st)
+    assert_received {:gateway_event, {:tool, %{"name" => "web_search", "phase" => "start"}}}
+  end
+
   # Udi's poet failed every chat turn for an evening (2026-10-16) with only
   # "Agent error" to show for it. A failed turn now also reaches the
   # admins' reporter (FleetHealth.TurnErrors; the test env's sink here).

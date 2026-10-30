@@ -72,6 +72,7 @@ defmodule TravelingPoet.MixProject do
       {:ueberauth_google, "~> 0.12"},
       {:websockex, "~> 0.4"},
       {:req, "~> 0.5"},
+      {:alice_in_context, path: "../../AliceIn/alice-in-context/packages/aic-client-ex"},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},

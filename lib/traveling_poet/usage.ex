@@ -48,6 +48,10 @@ defmodule TravelingPoet.Usage do
       )
     )
     |> Repo.insert()
+    |> tap(fn
+      {:ok, _} -> TravelingPoet.AiC.usage(user_id, kind, attrs)
+      _ -> :ok
+    end)
   end
 
   def estimated_cost(kind), do: Map.get(costs(), kind, 0)

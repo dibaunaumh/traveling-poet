@@ -32,6 +32,10 @@ defmodule TravelingPoet.Markers do
         %Marker{}
         |> Marker.changeset(Map.merge(attrs, %{user_id: user_id, journal_entry_id: entry_id}))
         |> Repo.insert()
+        |> tap(fn
+          {:ok, _} -> TravelingPoet.AiC.marker_added(user_id, entry_id, attrs)
+          _ -> :ok
+        end)
 
       existing ->
         {:ok, existing}
