@@ -1329,15 +1329,28 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert body["next_stop"] == nil
   end
 
-  describe "publish: a day with no places" do
+  describe "publish: what the page is missing" do
     defp publish(conn, date) do
       conn
       |> post(~p"/api/agent/journal_entries/#{Date.to_iso8601(date)}/publish", %{})
       |> json_response(200)
     end
 
-    test "publishes, and tells the poet to log the day's places", %{conn: conn, poet: poet} do
+    defp drawn_entry(poet) do
       entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      drawing = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{kind: "description", body: "words"},
+          %{kind: "illustration", media_id: drawing.id}
+        ])
+
+      entry
+    end
+
+    test "publishes, and tells the poet to log the day's places", %{conn: conn, poet: poet} do
+      entry = drawn_entry(poet)
 
       body = publish(conn, entry.entry_date)
 
@@ -1347,8 +1360,8 @@ defmodule TravelingPoetWeb.AgentApiTest do
       assert Journal.get_entry(poet.id, entry.entry_date).status == "published"
     end
 
-    test "says nothing once places are logged", %{conn: conn, poet: poet} do
-      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+    test "says nothing once places are logged and the page is drawn", %{conn: conn, poet: poet} do
+      entry = drawn_entry(poet)
       place_fixture(poet, entry)
 
       body = publish(conn, entry.entry_date)
@@ -1357,9 +1370,50 @@ defmodule TravelingPoetWeb.AgentApiTest do
       refute Map.has_key?(body, "note")
     end
 
-    test "says nothing on an excursion day, which has finds instead", %{conn: conn, poet: poet} do
-      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+    test "says nothing about places on an excursion day, which has finds instead",
+         %{conn: conn, poet: poet} do
+      entry = drawn_entry(poet)
       excursion_fixture(poet, topic_fixture(poet), entry)
+
+      refute Map.has_key?(publish(conn, entry.entry_date), "missing")
+    end
+
+    # What poets deep in one long session did on about 20 pages: a
+    # description and a poem, published, no drawing made at all.
+    test "a page with no drawing tells the poet to draw it", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      place_fixture(poet, entry)
+
+      {:ok, _} =
+        Journal.replace_sections(entry, [
+          %{kind: "description", body: "words"},
+          %{kind: "poem", body: "lines"}
+        ])
+
+      body = publish(conn, entry.entry_date)
+
+      assert body["ok"]
+      assert body["missing"] == ["drawing"]
+      assert body["note"] =~ "generate_illustration for 2026-09-25"
+      assert body["note"] =~ "You do not need to publish again."
+    end
+
+    test "both notes in one reply, told once not to publish again", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+
+      body = publish(conn, entry.entry_date)
+
+      assert body["missing"] == ["places", "drawing"]
+      assert body["note"] =~ "journal_put_places"
+      assert body["note"] =~ "generate_illustration"
+      assert length(String.split(body["note"], "You do not need to publish again.")) == 2
+    end
+
+    # Spreads tapes on a drawing no section claimed, so the reader has it.
+    test "a drawing made but left off the sections is not missing", %{conn: conn, poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})
+      place_fixture(poet, entry)
+      media_fixture(poet, %{journal_entry_id: entry.id})
 
       refute Map.has_key?(publish(conn, entry.entry_date), "missing")
     end

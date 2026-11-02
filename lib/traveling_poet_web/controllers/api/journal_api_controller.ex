@@ -681,24 +681,59 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
     end)
   end
 
+  # What a published page is missing, told to the poet in the publish reply.
+  # The entry stays published (refusing it would cost the day); the poet adds
+  # what is missing with one more call, and poets do act on these notes.
+  defp publish_notes(entry) do
+    date = Date.to_iso8601(entry.entry_date)
+
+    [missing_places(entry, date), missing_drawing(entry, date)]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] ->
+        %{}
+
+      notes ->
+        %{
+          missing: Enum.map(notes, &elem(&1, 0)),
+          note:
+            Enum.map_join(notes, " ", &elem(&1, 1)) <>
+              " You do not need to publish again."
+        }
+    end
+  end
+
   # A day at a place with nothing in the trip guide: first entries skipped
   # journal_put_places on 6 of 8 new poets, and the reader found an empty
-  # Places tab. The entry stays published (refusing it would cost the day);
-  # the reply tells the poet to log them now. An excursion has finds instead.
-  defp publish_notes(entry) do
+  # Places tab. An excursion has finds instead.
+  defp missing_places(entry, date) do
     if Topics.excursion_of(entry) == nil and Guide.list_places_for_entry(entry.id) == [] do
-      date = Date.to_iso8601(entry.entry_date)
+      {"places",
+       "Published, but no places are logged for #{date}, so your companion's Places " <>
+         "page is empty. Call journal_put_places for #{date} now with the places and " <>
+         "dated events this entry names (travel-and-journal, section 4b)."}
+    end
+  end
 
-      %{
-        missing: ["places"],
-        note:
-          "Published, but no places are logged for #{date}, so your companion's Places " <>
-            "page is empty. Call journal_put_places for #{date} now with the places and " <>
-            "dated events this entry names (travel-and-journal, section 4b). You do not " <>
-            "need to publish again."
-      }
-    else
-      %{}
+  # A page with no main drawing at all: poets deep into one long session
+  # skipped step 5 on about 20 pages in three weeks, and nothing told them,
+  # while the places note above was obeyed at once. A drawing generated but
+  # never put on a section still shows (Spreads tapes it on), so only a page
+  # with neither is told.
+  defp missing_drawing(entry, date) do
+    sections = Journal.preload_entry(entry).sections
+
+    drawn? =
+      Enum.any?(sections, &(&1.kind == "illustration" and &1.media_id != nil)) or
+        Journal.unattached_illustrations(entry, sections) != []
+
+    unless drawn? do
+      {"drawing",
+       "Published, but today's page has no drawing. Call generate_illustration for " <>
+         "#{date} now (travel-and-journal, step 5), then journal_put_sections with the " <>
+         "full list of sections plus an illustration section carrying the returned " <>
+         "media_id. If generate_illustration refuses, leave the page as it is and tell " <>
+         "your companion the error."}
     end
   end
 
