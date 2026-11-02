@@ -48,7 +48,7 @@ Migrations run automatically on boot (`Ecto.Migrator` in the supervision tree) w
 - Outbound HTTP is `Req` only. In test, change-stream and web-push requests go through `Req.Test` stubs (`config/test.exs`); an unstubbed call raises. There is no other HTTP mocking library.
 - `provision_in_background: false` in test. Onboarding provisions synchronously in the suite.
 - Payments provider is chosen at boot: `Payments.Stripe` when both Stripe secrets exist, else `Payments.Mock` (an in-app fake pay page). Stripe fulfilment happens in the webhook, idempotent on session id.
-- Model policy: one OpenRouter key for the whole fleet. `OPENROUTER_MODEL` is the default, `SCOUT_MODEL` overrides for scout-mode poets, `IMAGE_GEN_MODEL` for illustrations with `SPOT_IMAGE_MODEL` for spot drawings (`Illustrations.model_for/1`; image-only models answer on OpenRouter's Image API, not chat completions), `SEARCH_MODEL` for every poet's `web_search`, `EXTRACTION_MODEL` for the places backfill and the place topic classifier. Test env pins distinct fake slugs so policy tests are real assertions.
+- Model policy: one OpenRouter key for the whole fleet. `OPENROUTER_MODEL` is the default, `HEBREW_MODEL` for poets writing in Hebrew (the reader's locale; it beats scout), `SCOUT_MODEL` overrides for scout-mode poets, `IMAGE_GEN_MODEL` for illustrations with `SPOT_IMAGE_MODEL` for spot drawings (`Illustrations.model_for/1`; image-only models answer on OpenRouter's Image API, not chat completions), `SEARCH_MODEL` for every poet's `web_search`, `EXTRACTION_MODEL` for the places backfill and the place topic classifier. Test env pins distinct fake slugs so policy tests are real assertions.
 
 ## Architecture
 

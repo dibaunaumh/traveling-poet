@@ -1022,15 +1022,21 @@ defmodule TravelingPoet.Provisioner do
   # command keeps bash from substituting it here.
   # Model policy (takes effect on re-provision):
   #   1. explicit per-poet override (poet.settings["model"], an OpenRouter slug)
-  #   2. scout mode -> the reliable model: scout entries inform real trip
+  #   2. a poet writing in Hebrew -> HEBREW_MODEL: the blind test of dec-016
+  #      ended with the reader telling the Sonnet poet apart by its Hebrew,
+  #      while Haiku poets wrote some sentences that were not Hebrew at all
+  #   3. scout mode -> the reliable model: scout entries inform real trip
   #      decisions, and the cheap fleet default has hallucination-shaped
   #      failure modes we can't afford there
-  #   3. fleet default (OPENROUTER_MODEL)
-  @doc "Resolves the model a poet runs on: explicit override > scout default > fleet default."
+  #   4. fleet default (OPENROUTER_MODEL)
+  @doc "Resolves the model a poet runs on: explicit override > Hebrew > scout default > fleet default."
   def poet_model(poet) do
     cond do
       model = poet && get_in(poet.settings || %{}, ["model"]) ->
         model
+
+      poet && writes_hebrew?(poet) ->
+        Application.get_env(:traveling_poet, :hebrew_model) || openrouter_model()
 
       poet && TravelingPoet.Poets.Poet.mode(poet) == "scout" ->
         Application.get_env(:traveling_poet, :scout_model) || openrouter_model()
@@ -1039,6 +1045,15 @@ defmodule TravelingPoet.Provisioner do
         openrouter_model()
     end
   end
+
+  # A poet writes in its reader's language (dec-008).
+  defp writes_hebrew?(%{user: %Accounts.User{locale: locale}}), do: locale == "he"
+
+  defp writes_hebrew?(%{user_id: user_id}) when not is_nil(user_id) do
+    match?(%{locale: "he"}, TravelingPoet.Repo.get(Accounts.User, user_id))
+  end
+
+  defp writes_hebrew?(_poet), do: false
 
   @doc "The Perplexity model behind every poet's `web_search`."
   def search_model,
