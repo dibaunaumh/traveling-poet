@@ -125,6 +125,7 @@ defmodule TravelingPoet.Journal do
         |> Section.changeset(
           attrs
           |> Map.new(fn {k, v} -> {to_string(k), v} end)
+          |> media_from_body(entry.poet_id)
           |> own_media(entry.poet_id)
           |> Map.put("journal_entry_id", entry.id)
           |> Map.put_new("position", i)
@@ -134,6 +135,24 @@ defmodule TravelingPoet.Journal do
       |> tap(&link_media(entry, &1))
     end)
   end
+
+  # An illustration section that pastes its drawing into the body as
+  # `![alt](/media/N)` instead of carrying `media_id` (one poet did it for
+  # nine days running): the page still showed the drawing as a stray, but
+  # untitled and not as the page's own. Take the id from the body, only for
+  # one of this poet's own illustrations; the body is kept as sent.
+  defp media_from_body(%{"kind" => "illustration", "body" => body} = attrs, poet_id)
+       when is_binary(body) do
+    with nil <- attrs["media_id"],
+         [_, id] <- Regex.run(~r{\]\(/media/(\d+)\)}, body),
+         %Media{kind: "illustration"} <- get_own_media(poet_id, String.to_integer(id)) do
+      Map.put(attrs, "media_id", String.to_integer(id))
+    else
+      _ -> attrs
+    end
+  end
+
+  defp media_from_body(attrs, _poet_id), do: attrs
 
   # A drawing made before its page existed was never linked to it; the
   # section that shows it links it now, so everything that looks for a
