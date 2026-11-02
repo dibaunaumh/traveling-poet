@@ -39,6 +39,15 @@ config :traveling_poet,
       do: "test/fleet-model",
       else: System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
     ),
+  # Poets writing in Hebrew (Provisioner.poet_model/1). Unset, they run on
+  # the fleet model like everyone else.
+  hebrew_model:
+    if(config_env() == :test,
+      do: "test/hebrew-model",
+      else:
+        System.get_env("HEBREW_MODEL") ||
+          System.get_env("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6")
+    ),
   scout_model:
     if(config_env() == :test,
       do: "test/scout-model",

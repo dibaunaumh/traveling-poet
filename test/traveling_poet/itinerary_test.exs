@@ -259,7 +259,7 @@ defmodule TravelingPoet.ItineraryTest do
     end
   end
 
-  test "poet_model policy: override beats scout beats fleet default" do
+  test "poet_model policy: override beats Hebrew beats scout beats fleet default" do
     alias TravelingPoet.Provisioner
 
     wander = %Poet{settings: %{}}
@@ -272,6 +272,23 @@ defmodule TravelingPoet.ItineraryTest do
     assert Provisioner.poet_model(scout) == scout_model
     assert Provisioner.poet_model(override) == "custom/model-x"
     assert Provisioner.poet_model(nil) == Provisioner.openrouter_model()
+
+    # A poet writing in Hebrew runs on the Hebrew model, scout or not; an
+    # explicit override still wins.
+    hebrew_model = Application.get_env(:traveling_poet, :hebrew_model)
+    hebrew_user = user_fixture(%{locale: "he"})
+    hebrew_poet = poet_fixture(hebrew_user, %{settings: %{"mode" => "scout"}})
+
+    assert Provisioner.poet_model(hebrew_poet) == hebrew_model
+    assert Provisioner.poet_model(%{hebrew_poet | user: hebrew_user}) == hebrew_model
+
+    assert Provisioner.poet_model(%{hebrew_poet | settings: %{"model" => "custom/model-x"}}) ==
+             "custom/model-x"
+
+    assert Provisioner.poet_model(poet_fixture(user_fixture(%{locale: "en"}))) ==
+             Provisioner.openrouter_model()
+
+    refute hebrew_model in [scout_model, Provisioner.openrouter_model()]
 
     # The precedence only means something while the two differ — config/runtime
     # pins them apart in test so this can't quietly become a tautology.
