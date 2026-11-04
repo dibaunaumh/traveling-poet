@@ -168,6 +168,41 @@ defmodule TravelingPoet.JournalTest do
     end
   end
 
+  describe "an illustration section that pastes its drawing into the body" do
+    # One poet sent `{"kind":"illustration","body":"![alt](/media/N)"}` with no
+    # media_id for nine days: the drawing showed only as an untitled stray.
+    test "takes the drawing's id from the body", %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-10-22]})
+      drawing = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      {:ok, saved} =
+        Journal.replace_sections(entry, [
+          %{kind: "description", body: "words"},
+          %{kind: "illustration", title: "The bridge", body: "![bridge](/media/#{drawing.id})"}
+        ])
+
+      assert %{media_id: id, title: "The bridge"} = Enum.find(saved, &(&1.kind == "illustration"))
+      assert id == drawing.id
+      assert Journal.unattached_illustrations(entry, saved) == []
+    end
+
+    test "only this poet's own illustration, never a spot or another poet's", %{poet: poet} do
+      entry = entry_fixture(poet, %{entry_date: ~D[2026-10-22]})
+      spot = media_fixture(poet, %{journal_entry_id: entry.id, kind: "spot"})
+      foreign = media_fixture(poet_fixture(user_fixture()))
+      kept = media_fixture(poet, %{journal_entry_id: entry.id})
+
+      {:ok, saved} =
+        Journal.replace_sections(entry, [
+          %{kind: "illustration", body: "![s](/media/#{spot.id})"},
+          %{kind: "illustration", body: "![f](/media/#{foreign.id})"},
+          %{kind: "illustration", media_id: kept.id, body: "![s](/media/#{spot.id})"}
+        ])
+
+      assert Enum.map(saved, & &1.media_id) == [nil, nil, kept.id]
+    end
+  end
+
   describe "spot drawings" do
     test "a spot drawing needs sources like any other drawing, and never renders as a taped photo",
          %{poet: poet} do

@@ -3519,6 +3519,7 @@ body::before {
 .item-editions { margin-top: 0.8rem; font-size: 0.9rem; }
 .item-editions a + a::before { content: ", "; }
 .item-page .discover-links { margin-top: 1rem; }
+.item-license { margin-top: 1.25rem; font-size: 0.8rem; opacity: 0.65; }
 
 /* Right to left (card-101). Most of this sheet is written in logical
    properties and mirrors by itself; these are the few things that cannot. */
