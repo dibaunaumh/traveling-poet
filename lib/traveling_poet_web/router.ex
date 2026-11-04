@@ -20,6 +20,7 @@ defmodule TravelingPoetWeb.Router do
   pipeline :agent_api do
     plug :accepts, ["json"]
     plug TravelingPoetWeb.Plugs.AgentAuth
+    plug TravelingPoetWeb.Plugs.AiCTap
   end
 
   # Payment-provider webhooks: signature-verified over the raw body, no session/CSRF.

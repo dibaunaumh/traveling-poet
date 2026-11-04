@@ -30,6 +30,7 @@ kill_signal = 'SIGTERM'
 [build]
 
 [env]
+  AIC_ENDPOINT = "https://alice-in-context-dev.fly.dev"
   DATABASE_PATH = '/mnt/data/traveling_poet.db'
   # Custom domain (certs added via `fly certs add poet.travel`); the
   # traveling-poet-dev.fly.dev hostname stays valid via check_origin.

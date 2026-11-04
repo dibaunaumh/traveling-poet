@@ -479,6 +479,37 @@ defmodule TravelingPoet.GatewaySocket do
     {:ok, state}
   end
 
+  # Agent tool events (requested with caps: ["tool-events"]): one frame per
+  # tool call and result inside the sprite. Forwarded to Alice-in-Context;
+  # the frame's exact keys vary by OpenClaw version, so AiC.tool_event reads
+  # them defensively.
+  defp handle_gateway_frame(
+         %{
+           "type" => "event",
+           "event" => "agent",
+           "payload" => %{"stream" => "tool", "data" => data}
+         },
+         state
+       )
+       when is_map(data) do
+    TravelingPoet.AiC.tool_event(state.user_id, data)
+    notify_subscribers(state, {:gateway_event, {:tool, data}})
+    {:ok, state}
+  end
+
+  # Agent lifecycle — start of a turn
+  defp handle_gateway_frame(
+         %{
+           "type" => "event",
+           "event" => "agent",
+           "payload" => %{"stream" => "lifecycle", "data" => %{"phase" => "start"}}
+         },
+         state
+       ) do
+    TravelingPoet.AiC.turn_phase(state.user_id, "start")
+    {:ok, state}
+  end
+
   # Agent lifecycle — end of response (kept for logging, no longer used for done signal)
   defp handle_gateway_frame(
          %{
@@ -491,6 +522,7 @@ defmodule TravelingPoet.GatewaySocket do
          },
          state
        ) do
+    TravelingPoet.AiC.turn_phase(state.user_id, "end")
     {:ok, state}
   end
 
@@ -581,6 +613,9 @@ defmodule TravelingPoet.GatewaySocket do
         Logger.error("GatewaySocket: error in unmatched event #{frame["event"]}: #{error_msg}")
         report_turn_error(state, error_msg)
         notify_subscribers(state, {:gateway_event, {:error, error_msg}})
+
+      frame["event"] == "agent" ->
+        Logger.info("GatewaySocket: unmatched agent stream #{inspect(payload["stream"])}: #{inspect(frame, limit: 300)}")
 
       true ->
         Logger.debug("GatewaySocket: unmatched event: #{inspect(frame, limit: 500)}")

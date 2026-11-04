@@ -28,4 +28,10 @@ case "$ENV" in
 esac
 
 echo "Deploying to $APP using $CONFIG..."
-fly deploy -c "$CONFIG" -a "$APP" "$@"
+# The alice_in_context dep lives in a private GitHub repo; hand the builder a token.
+BUILD_SECRET=()
+if command -v gh >/dev/null 2>&1 && TOKEN="$(gh auth token 2>/dev/null)"; then
+  BUILD_SECRET=(--build-secret "GH_TOKEN=$TOKEN")
+fi
+
+fly deploy -c "$CONFIG" -a "$APP" "${BUILD_SECRET[@]}" "$@"

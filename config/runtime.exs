@@ -430,3 +430,11 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 end
+
+# Alice-in-Context tap (no-op unless AIC_ENDPOINT and AIC_TOKEN are set; the
+# test env never posts: the suite checks the outbox through Req.Test)
+config :alice_in_context,
+  endpoint: if(config_env() == :test, do: nil, else: System.get_env("AIC_ENDPOINT")),
+  token: System.get_env("AIC_TOKEN"),
+  secret: System.get_env("AIC_SECRET"),
+  source: "traveling-poet"

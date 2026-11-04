@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Find eligible builder and runner images on Docker Hub. We use Ubuntu/Debian
 # instead of Alpine to avoid DNS resolution issues in production.
 #
@@ -37,7 +38,13 @@ ENV MIX_ENV="prod"
 
 # install mix dependencies
 COPY mix.exs mix.lock ./
-RUN mix deps.get --only $MIX_ENV
+# alice_in_context is a git dep in a private repo: pass a GitHub token as a
+# build secret (deploy.sh does this via `gh auth token`).
+RUN --mount=type=secret,id=GH_TOKEN \
+    if [ -s /run/secrets/GH_TOKEN ]; then \
+      git config --global url."https://x-access-token:$(cat /run/secrets/GH_TOKEN)@github.com/".insteadOf "https://github.com/"; \
+    fi \
+    && mix deps.get --only $MIX_ENV
 RUN mkdir config
 
 # copy compile-time config files before we compile dependencies
