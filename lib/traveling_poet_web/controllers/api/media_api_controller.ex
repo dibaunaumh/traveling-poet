@@ -57,7 +57,11 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
                params["kind"]
              ) do
           {:ok, bytes, content_type} ->
-            TravelingPoet.AiC.illustration(user.id, TravelingPoet.Illustrations.model(), {:ok, %{cost: nil, ms: nil}})
+            TravelingPoet.AiC.illustration(
+              user.id,
+              TravelingPoet.Illustrations.model(),
+              {:ok, %{cost: nil, ms: nil}}
+            )
 
             do_create(
               conn,
@@ -68,7 +72,12 @@ defmodule TravelingPoetWeb.Api.MediaApiController do
             )
 
           {:error, reason} ->
-            TravelingPoet.AiC.illustration(user.id, TravelingPoet.Illustrations.model(), {:error, reason})
+            TravelingPoet.AiC.illustration(
+              user.id,
+              TravelingPoet.Illustrations.model(),
+              {:error, reason}
+            )
+
             conn |> put_status(502) |> json(%{error: "generation failed: #{inspect(reason)}"})
         end
     end

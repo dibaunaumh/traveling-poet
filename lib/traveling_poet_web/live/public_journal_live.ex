@@ -159,6 +159,7 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     journey_start = Journal.first_published_date(poet.id)
     bundle = EntryBundle.load(entry)
     entry = bundle.entry
+    record_read(socket, entry)
 
     socket
     |> assign(:entries, entries)
@@ -179,6 +180,20 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:public_reactions, entry && public_reaction_counts(entry.id))
     |> assign(:path_points, Poets.list_path_points(poet.id))
   end
+
+  # A signed-in reader on the live mount is a read of the page for Alice-in-Context;
+  # the dead render and anonymous visits (crawlers among them) are not.
+  defp record_read(socket, %{id: _} = entry) do
+    case socket.assigns[:current_user] do
+      %{id: user_id} when not is_nil(user_id) ->
+        if connected?(socket), do: TravelingPoet.AiC.entry_read(user_id, entry, "public")
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp record_read(_socket, _entry), do: :ok
 
   defp assign_stay(socket, _poet, nil), do: assign(socket, stay_id: nil, stay_count: 0)
 

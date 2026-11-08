@@ -52,16 +52,27 @@ defmodule TravelingPoet.AiC.PubSubTap do
   end
 
   def handle_info({:credits_low, user_id}, state) do
-    AiC.emit(%{type: "metric", verb: "credits_low", actor: AiC.reader_party(user_id), privacy: "internal",
-               hints: %{space: "organization", address: "Serve/outer/Users/user-#{user_id}/credits"}})
+    AiC.emit(%{
+      type: "metric",
+      verb: "credits_low",
+      actor: AiC.reader_party(user_id),
+      privacy: "internal",
+      hints: %{space: "organization", address: "Serve/outer/Users/user-#{user_id}/credits"}
+    })
+
     {:noreply, state}
   end
 
   def handle_info(event, state) when is_tuple(event) and is_atom(elem(event, 0)) do
     name = event |> elem(0) |> to_string()
 
-    AiC.emit(%{type: "activity", verb: name, actor: AiC.system_party("app"), privacy: "internal",
-               hints: %{space: "organization", address: "Operate/inner/App/events/#{name}"}})
+    AiC.emit(%{
+      type: "activity",
+      verb: name,
+      actor: AiC.system_party("app"),
+      privacy: "internal",
+      hints: %{space: "organization", address: "Operate/inner/App/events/#{name}"}
+    })
 
     {:noreply, state}
   end

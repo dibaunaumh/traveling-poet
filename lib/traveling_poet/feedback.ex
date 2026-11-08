@@ -49,7 +49,14 @@ defmodule TravelingPoet.Feedback do
     else
       with {:ok, message} <- %Message{} |> Message.changeset(attrs) |> Repo.insert() do
         broadcast({:feedback_received, message.id})
-        if user, do: TravelingPoet.AiC.feedback_message(user.id, Map.get(message, :body) || Map.get(message, :content) || Map.get(message, :text))
+
+        if user,
+          do:
+            TravelingPoet.AiC.feedback_message(
+              user.id,
+              Map.get(message, :body) || Map.get(message, :content) || Map.get(message, :text)
+            )
+
         {:ok, message}
       end
     end
