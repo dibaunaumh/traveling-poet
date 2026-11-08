@@ -294,9 +294,12 @@ defmodule TravelingPoetWeb.JournalLive do
   end
 
   # Only the owner, and only on the live mount — the dead render would double
-  # count every page load.
+  # count every page load. The same view is the owner's read of the page for
+  # Alice-in-Context.
   defp record_view(socket, poet, entry) do
     if connected?(socket) and entry && socket.assigns.current_user.id == poet.user_id do
+      TravelingPoet.AiC.entry_read(socket.assigns.current_user.id, entry, "owner")
+
       case Journal.mark_owner_viewed(entry) do
         {:ok, updated} -> %{entry | owner_viewed_at: updated.owner_viewed_at}
         _ -> entry

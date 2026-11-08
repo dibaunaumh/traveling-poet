@@ -36,11 +36,27 @@ defmodule TravelingPoet.AiCTest do
     events
   end
 
-  test "a tool event frame becomes an activity at the poet's tool place", %{user: user, poet: poet} do
-    AiC.tool_event(user.id, %{"name" => "web_search", "phase" => "result", "toolCallId" => "c1", "result" => "3 hits"})
+  test "a tool event frame becomes an activity at the poet's tool place", %{
+    user: user,
+    poet: poet
+  } do
+    AiC.tool_event(user.id, %{
+      "name" => "web_search",
+      "phase" => "result",
+      "toolCallId" => "c1",
+      "result" => "3 hits"
+    })
+
     [ev] = sent()
     assert ev["type"] == "activity" and ev["verb"] == "tool_result"
-    assert ev["actor"] == %{"kind" => "agent", "id" => "poet-#{poet.id}", "source" => "traveling-poet", "name" => poet.name}
+
+    assert ev["actor"] == %{
+             "kind" => "agent",
+             "id" => "poet-#{poet.id}",
+             "source" => "traveling-poet",
+             "name" => poet.name
+           }
+
     assert ev["hints"]["address"] == "Operate/inner/Fleet/poet-#{poet.id}/web_search"
     assert ev["body"] == %{"text" => "3 hits"} and ev["privacy"] == "internal"
     assert String.starts_with?(ev["id"], "evt_")
@@ -48,7 +64,12 @@ defmodule TravelingPoet.AiCTest do
 
   test "usage rows become metrics and turn errors become errors", %{user: user, poet: poet} do
     {:ok, _} = TravelingPoet.Usage.record(user.id, "image_gen", %{tokens_in: 12})
-    {:ok, _} = TravelingPoet.Usage.record(user.id, "turn_error", %{metadata: %{"message" => "boom", "channel" => "chat"}})
+
+    {:ok, _} =
+      TravelingPoet.Usage.record(user.id, "turn_error", %{
+        metadata: %{"message" => "boom", "channel" => "chat"}
+      })
+
     events = sent()
     kinds = Enum.map(events, &{&1["type"], &1["verb"]})
     assert {"metric", "image_gen"} in kinds and {"error", "turn_error"} in kinds
@@ -64,16 +85,63 @@ defmodule TravelingPoet.AiCTest do
     AiC.turn_requested(user, "system", "/travel-and-journal")
     [chat, trigger] = sent()
     assert chat["type"] == "message" and chat["privacy"] == "human_authored"
-    assert chat["actor"]["id"] == "user-#{user.id}" and chat["recipient"]["id"] == "poet-#{poet.id}"
-    assert trigger["type"] == "activity" and trigger["privacy"] == "internal" and trigger["actor"]["kind"] == "system"
+
+    assert chat["actor"]["id"] == "user-#{user.id}" and
+             chat["recipient"]["id"] == "poet-#{poet.id}"
+
+    assert trigger["type"] == "activity" and trigger["privacy"] == "internal" and
+             trigger["actor"]["kind"] == "system"
   end
 
   test "a marker is feedback from the reader", %{user: user, poet: poet} do
     entry = entry_fixture(poet)
-    {:ok, _} = TravelingPoet.Markers.add_marker(user, entry, %{"kind" => "more_details", "target" => "text", "quote" => "the old bridge", "note" => "tell me more"})
+
+    {:ok, _} =
+      TravelingPoet.Markers.add_marker(user, entry, %{
+        "kind" => "more_details",
+        "target" => "text",
+        "quote" => "the old bridge",
+        "note" => "tell me more"
+      })
+
     [ev] = sent()
     assert ev["type"] == "feedback" and ev["privacy"] == "human_authored"
     assert ev["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
+  end
+
+  test "opening a page is the reader's read of the entry, one per reader and day", %{
+    user: user,
+    poet: poet
+  } do
+    entry = entry_fixture(poet)
+    AiC.entry_read(user.id, entry, "owner")
+    AiC.entry_read(user.id, entry, "owner")
+    [first, again] = sent()
+    assert first["type"] == "activity" and first["verb"] == "read"
+    assert first["actor"]["kind"] == "human" and first["actor"]["id"] == "user-#{user.id}"
+    assert first["recipient"]["id"] == "poet-#{poet.id}"
+    assert first["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
+    assert first["metadata"]["channel"] == "owner"
+    # the same id on a reload: the server keeps the first
+    assert first["id"] == "evt_read_user-#{user.id}_entry-#{entry.id}_#{Date.utc_today()}"
+    assert again["id"] == first["id"]
+  end
+
+  test "the page email is the poet's delivery of the entry to its reader", %{
+    user: reader,
+    poet: poet
+  } do
+    entry = published_entry_fixture(poet)
+    Application.put_env(:traveling_poet, :resend_api_key, "re_test")
+    on_exit(fn -> Application.delete_env(:traveling_poet, :resend_api_key) end)
+    Req.Test.stub(TravelingPoet.Email, fn conn -> Req.Test.json(conn, %{"id" => "email-1"}) end)
+
+    TravelingPoet.Email.Notifier.send_entry(poet.id, entry.id)
+    events = sent()
+    assert ev = Enum.find(events, &(&1["verb"] == "deliver"))
+    assert ev["actor"]["id"] == "poet-#{poet.id}" and ev["recipient"]["id"] == "user-#{reader.id}"
+    assert ev["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
+    assert ev["metadata"]["channel"] == "email"
   end
 
   test "nothing is emitted when AiC is not configured", %{user: user} do

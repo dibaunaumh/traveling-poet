@@ -57,7 +57,12 @@ defmodule TravelingPoet.AiC do
         hints: %{space: "organization", address: "Operate/inner/Fleet/#{poet.id}/#{name}"},
         body: preview(data["args"] || data["input"] || data["result"] || data["output"]),
         privacy: "internal",
-        metadata: %{tool: name, phase: phase, call_id: data["toolCallId"] || data["id"], channel: "sprite"},
+        metadata: %{
+          tool: name,
+          phase: phase,
+          call_id: data["toolCallId"] || data["id"],
+          channel: "sprite"
+        },
         metrics: Map.take(data, ["durationMs", "duration_ms"]) |> normalize_metrics()
       })
     end
@@ -146,6 +151,48 @@ defmodule TravelingPoet.AiC do
     })
   end
 
+  @doc """
+  A reader opened a journal entry page: the live mount of `/journal/:date` by the
+  owner (channel "owner") or of `/p/:slug/:date` by a signed-in reader ("public").
+  The id is fixed per reader, entry and UTC day, so reloads collapse into one read
+  on the server. Anonymous visits are never reported (crawlers among them).
+  """
+  def entry_read(user_id, entry, channel) do
+    poet = poet_party(%{id: entry.poet_id})
+
+    emit(%{
+      id: "evt_read_user-#{user_id}_entry-#{entry.id}_#{Date.utc_today()}",
+      type: "activity",
+      verb: "read",
+      actor: reader_party(user_id),
+      recipient: poet,
+      subjects: [%{kind: "entry", id: to_string(entry.id)}],
+      refs: entry_refs(entry),
+      hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
+      body: entry_title(entry),
+      privacy: "internal",
+      metadata: %{channel: channel}
+    })
+  end
+
+  @doc "A published entry reached its reader over a channel (email, telegram). The page goes out in the poet's name."
+  def delivered(user_id, entry, channel) do
+    poet = poet_party(%{id: entry.poet_id})
+
+    emit(%{
+      type: "activity",
+      verb: "deliver",
+      actor: poet,
+      recipient: reader_party(user_id),
+      subjects: [%{kind: "entry", id: to_string(entry.id)}],
+      refs: entry_refs(entry),
+      hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
+      body: entry_title(entry),
+      privacy: "internal",
+      metadata: %{channel: channel}
+    })
+  end
+
   def marker_added(user_id, entry_id, attrs) do
     emit(%{
       type: "feedback",
@@ -153,25 +200,45 @@ defmodule TravelingPoet.AiC do
       actor: reader_party(user_id),
       recipient: poet_of(user_id),
       subjects: [%{kind: "entry", id: to_string(entry_id)}],
-      body: Map.get(attrs, :note) || Map.get(attrs, "note") || Map.get(attrs, :quote) || Map.get(attrs, "quote"),
+      body:
+        Map.get(attrs, :note) || Map.get(attrs, "note") || Map.get(attrs, :quote) ||
+          Map.get(attrs, "quote"),
       privacy: "human_authored",
       metadata: %{kind: Map.get(attrs, :kind) || Map.get(attrs, "kind")}
     })
   end
 
   def feedback_message(user_id, text) do
-    emit(%{type: "feedback", verb: "feedback", actor: reader_party(user_id), recipient: poet_of(user_id),
-           body: text, privacy: "human_authored"})
+    emit(%{
+      type: "feedback",
+      verb: "feedback",
+      actor: reader_party(user_id),
+      recipient: poet_of(user_id),
+      body: text,
+      privacy: "human_authored"
+    })
   end
 
   def nps(user_id, score) do
-    emit(%{type: "feedback", verb: "nps", actor: reader_party(user_id), recipient: poet_of(user_id),
-           metrics: %{score: score}, privacy: "internal"})
+    emit(%{
+      type: "feedback",
+      verb: "nps",
+      actor: reader_party(user_id),
+      recipient: poet_of(user_id),
+      metrics: %{score: score},
+      privacy: "internal"
+    })
   end
 
   def poet_asked(poet, question) do
-    emit(%{type: "message", verb: "ask", actor: poet_party(poet), recipient: reader_party(poet.user_id),
-           body: preview(question, 500), privacy: "internal"})
+    emit(%{
+      type: "message",
+      verb: "ask",
+      actor: poet_party(poet),
+      recipient: reader_party(poet.user_id),
+      body: preview(question, 500),
+      privacy: "internal"
+    })
   end
 
   def illustration(user_id, model, result) do
@@ -179,14 +246,26 @@ defmodule TravelingPoet.AiC do
 
     case result do
       {:ok, %{cost: cost, ms: ms}} ->
-        emit(%{type: "activity", verb: "generate_drawing", actor: poet, recipient: service_party("illustrations"),
-               subjects: [%{kind: "model", id: to_string(model), source: "openrouter"}],
-               metrics: %{} |> put_metric("cost_usd", cost) |> put_metric("duration_ms", ms), privacy: "internal"})
+        emit(%{
+          type: "activity",
+          verb: "generate_drawing",
+          actor: poet,
+          recipient: service_party("illustrations"),
+          subjects: [%{kind: "model", id: to_string(model), source: "openrouter"}],
+          metrics: %{} |> put_metric("cost_usd", cost) |> put_metric("duration_ms", ms),
+          privacy: "internal"
+        })
 
       {:error, reason} ->
-        emit(%{type: "error", verb: "generate_drawing", actor: poet, recipient: service_party("illustrations"),
-               subjects: [%{kind: "model", id: to_string(model), source: "openrouter"}],
-               body: "illustration failed: #{inspect(reason) |> String.slice(0, 200)}", privacy: "internal"})
+        emit(%{
+          type: "error",
+          verb: "generate_drawing",
+          actor: poet,
+          recipient: service_party("illustrations"),
+          subjects: [%{kind: "model", id: to_string(model), source: "openrouter"}],
+          body: "illustration failed: #{inspect(reason) |> String.slice(0, 200)}",
+          privacy: "internal"
+        })
     end
   end
 
@@ -197,7 +276,10 @@ defmodule TravelingPoet.AiC do
       verb: "api_#{action}",
       actor: poet_of(user_id),
       recipient: service_party("api:#{controller}"),
-      hints: %{space: "organization", address: "Operate/inner/Services/api/#{controller}/#{action}"},
+      hints: %{
+        space: "organization",
+        address: "Operate/inner/Services/api/#{controller}/#{action}"
+      },
       metadata: %{status: status},
       privacy: "internal"
     })
@@ -209,7 +291,10 @@ defmodule TravelingPoet.AiC do
       verb: "daily_run",
       actor: system_party("scheduler"),
       recipient: poet_party(poet),
-      hints: %{space: "organization", address: "Operate/inner/Fleet/poet-#{poet.id}/travel_n_journal"},
+      hints: %{
+        space: "organization",
+        address: "Operate/inner/Fleet/poet-#{poet.id}/travel_n_journal"
+      },
       body: outcome_text(outcome),
       privacy: "internal",
       metadata: %{user_id: user_id}
@@ -258,12 +343,21 @@ defmodule TravelingPoet.AiC do
   defp stringify(_), do: %{}
 
   defp entry_refs(entry) do
-    base = Application.get_env(:traveling_poet, :public_base_url) || TravelingPoetWeb.Endpoint.url()
+    base =
+      Application.get_env(:traveling_poet, :public_base_url) || TravelingPoetWeb.Endpoint.url()
+
     date = Map.get(entry, :date) || Map.get(entry, :entry_date)
 
     case Poets.get_poet!(entry.poet_id) do
       %{slug: slug} when is_binary(slug) and not is_nil(date) ->
-        [%{system: @source, kind: "entry", id: to_string(entry.id), url: "#{base}/p/#{slug}/#{date}"}]
+        [
+          %{
+            system: @source,
+            kind: "entry",
+            id: to_string(entry.id),
+            url: "#{base}/p/#{slug}/#{date}"
+          }
+        ]
 
       _ ->
         [%{system: @source, kind: "entry", id: to_string(entry.id)}]

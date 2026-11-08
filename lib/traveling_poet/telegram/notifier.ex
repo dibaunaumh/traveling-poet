@@ -60,7 +60,10 @@ defmodule TravelingPoet.Telegram.Notifier do
           publish_text(poet, entry, Journal.journey_day(entry), entry_link(poet, entry))
         end)
 
-      send_publish_note(chat_id, text, Journal.entry_illustration(entry))
+      case send_publish_note(chat_id, text, Journal.entry_illustration(entry)) do
+        :ok -> TravelingPoet.AiC.delivered(user.id, entry, "telegram")
+        other -> other
+      end
     else
       _ -> :ok
     end

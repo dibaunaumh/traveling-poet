@@ -61,8 +61,12 @@ defmodule TravelingPoet.Email.Notifier do
         |> EntryEmail.build()
 
       case Email.deliver(message) do
-        {:ok, _id} -> Logger.info("email: entry #{entry_id} sent to user #{user.id}")
-        other -> other
+        {:ok, _id} ->
+          TravelingPoet.AiC.delivered(user.id, entry, "email")
+          Logger.info("email: entry #{entry_id} sent to user #{user.id}")
+
+        other ->
+          other
       end
     else
       _ -> :skipped

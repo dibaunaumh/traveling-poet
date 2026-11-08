@@ -615,7 +615,9 @@ defmodule TravelingPoet.GatewaySocket do
         notify_subscribers(state, {:gateway_event, {:error, error_msg}})
 
       frame["event"] == "agent" ->
-        Logger.info("GatewaySocket: unmatched agent stream #{inspect(payload["stream"])}: #{inspect(frame, limit: 300)}")
+        Logger.info(
+          "GatewaySocket: unmatched agent stream #{inspect(payload["stream"])}: #{inspect(frame, limit: 300)}"
+        )
 
       true ->
         Logger.debug("GatewaySocket: unmatched event: #{inspect(frame, limit: 500)}")

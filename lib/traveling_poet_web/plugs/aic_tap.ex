@@ -10,7 +10,13 @@ defmodule TravelingPoetWeb.Plugs.AiCTap do
       with %{id: user_id} <- conn.assigns[:agent_user],
            controller when not is_nil(controller) <- conn.private[:phoenix_controller] do
         name = controller |> Module.split() |> List.last() |> Macro.underscore()
-        TravelingPoet.AiC.api_call(user_id, name, conn.private[:phoenix_action], conn.status || 200)
+
+        TravelingPoet.AiC.api_call(
+          user_id,
+          name,
+          conn.private[:phoenix_action],
+          conn.status || 200
+        )
       end
 
       conn
