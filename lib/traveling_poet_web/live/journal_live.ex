@@ -298,7 +298,7 @@ defmodule TravelingPoetWeb.JournalLive do
   # Alice-in-Context.
   defp record_view(socket, poet, entry) do
     if connected?(socket) and entry && socket.assigns.current_user.id == poet.user_id do
-      TravelingPoet.AiC.entry_read(socket.assigns.current_user.id, entry, "owner")
+      TravelingPoet.AiC.entry_read(socket.assigns.current_user, entry, "owner")
 
       case Journal.mark_owner_viewed(entry) do
         {:ok, updated} -> %{entry | owner_viewed_at: updated.owner_viewed_at}

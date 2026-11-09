@@ -26,7 +26,15 @@ defmodule TravelingPoet.AiC do
 
   def poet_party(%{id: id}), do: AliceInContext.party(:agent, "poet-#{id}", source: @source)
 
+  # A reader is a user, or just its id; the display name rides along when the user has one, so the
+  # forest's birds and the feed can say who read a page (names only, never member text — ADR 0004).
+  def reader_party(%{id: id} = user),
+    do: AliceInContext.party(:human, "user-#{id}", source: @source, name: display_name(user))
+
   def reader_party(user_id), do: AliceInContext.party(:human, "user-#{user_id}", source: @source)
+
+  defp display_name(%{name: name}) when is_binary(name) and name != "", do: name
+  defp display_name(_), do: nil
   def service_party(name), do: AliceInContext.party(:service, name, source: @source)
   def system_party(name), do: AliceInContext.party(:system, name, source: @source)
 
@@ -157,14 +165,15 @@ defmodule TravelingPoet.AiC do
   The id is fixed per reader, entry and UTC day, so reloads collapse into one read
   on the server. Anonymous visits are never reported (crawlers among them).
   """
-  def entry_read(user_id, entry, channel) do
+  def entry_read(user, entry, channel) do
     poet = poet_party(%{id: entry.poet_id})
+    reader = reader_party(user)
 
     emit(%{
-      id: "evt_read_user-#{user_id}_entry-#{entry.id}_#{Date.utc_today()}",
+      id: "evt_read_#{reader.id}_entry-#{entry.id}_#{Date.utc_today()}",
       type: "activity",
       verb: "read",
-      actor: reader_party(user_id),
+      actor: reader,
       recipient: poet,
       subjects: [%{kind: "entry", id: to_string(entry.id)}],
       refs: entry_refs(entry),
@@ -176,14 +185,14 @@ defmodule TravelingPoet.AiC do
   end
 
   @doc "A published entry reached its reader over a channel (email, telegram). The page goes out in the poet's name."
-  def delivered(user_id, entry, channel) do
+  def delivered(user, entry, channel) do
     poet = poet_party(%{id: entry.poet_id})
 
     emit(%{
       type: "activity",
       verb: "deliver",
       actor: poet,
-      recipient: reader_party(user_id),
+      recipient: reader_party(user),
       subjects: [%{kind: "entry", id: to_string(entry.id)}],
       refs: entry_refs(entry),
       hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},

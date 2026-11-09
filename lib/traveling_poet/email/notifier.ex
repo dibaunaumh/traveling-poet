@@ -62,7 +62,7 @@ defmodule TravelingPoet.Email.Notifier do
 
       case Email.deliver(message) do
         {:ok, _id} ->
-          TravelingPoet.AiC.delivered(user.id, entry, "email")
+          TravelingPoet.AiC.delivered(user, entry, "email")
           Logger.info("email: entry #{entry_id} sent to user #{user.id}")
 
         other ->

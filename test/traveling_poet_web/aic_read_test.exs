@@ -84,6 +84,8 @@ defmodule TravelingPoetWeb.AiCReadTest do
     assert read["actor"]["id"] == "user-#{reader.id}" and
              read["recipient"]["id"] == "poet-#{poet.id}"
 
+    assert read["actor"]["name"] == reader.name
+
     assert read["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
     assert read["metadata"]["channel"] == "public"
   end
