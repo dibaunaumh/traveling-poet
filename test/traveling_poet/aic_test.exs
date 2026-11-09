@@ -114,11 +114,13 @@ defmodule TravelingPoet.AiCTest do
     poet: poet
   } do
     entry = entry_fixture(poet)
-    AiC.entry_read(user.id, entry, "owner")
+    AiC.entry_read(user, entry, "owner")
     AiC.entry_read(user.id, entry, "owner")
     [first, again] = sent()
     assert first["type"] == "activity" and first["verb"] == "read"
     assert first["actor"]["kind"] == "human" and first["actor"]["id"] == "user-#{user.id}"
+    # the reader's display name rides along when the caller has the user; a bare id sends none
+    assert first["actor"]["name"] == user.name and not Map.has_key?(again["actor"], "name")
     assert first["recipient"]["id"] == "poet-#{poet.id}"
     assert first["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
     assert first["metadata"]["channel"] == "owner"

@@ -185,8 +185,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   # the dead render and anonymous visits (crawlers among them) are not.
   defp record_read(socket, %{id: _} = entry) do
     case socket.assigns[:current_user] do
-      %{id: user_id} when not is_nil(user_id) ->
-        if connected?(socket), do: TravelingPoet.AiC.entry_read(user_id, entry, "public")
+      %{id: user_id} = user when not is_nil(user_id) ->
+        if connected?(socket), do: TravelingPoet.AiC.entry_read(user, entry, "public")
 
       _ ->
         :ok
