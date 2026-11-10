@@ -42,7 +42,9 @@ defmodule TravelingPoet.Evals.Writing do
     %{id: "deepseek-v4.1-flash", model: "deepseek/deepseek-v4.1-flash-1017", list: {0.006, 0.5}},
     %{id: "glm-5.3", model: "z-ai/glm-5.3", list: {0.07, 1.4}},
     %{id: "glm-5.3-flash", model: "z-ai/glm-5.3-flash", list: {0.04, 0.078}},
-    %{id: "qwen3.8-flash", model: "qwen/qwen3.8-flash", list: {0.15, 0.47}},
+    # Alibaba refuses a forced tool_choice while the model thinks; "auto" is
+    # also what OpenClaw sends, and the instruction names the one tool.
+    %{id: "qwen3.8-flash", model: "qwen/qwen3.8-flash", list: {0.15, 0.47}, tool_choice: "auto"},
     %{id: "minimax-m3.1-flash", model: "minimax/minimax-m3.1-flash", list: {0.075, 0.3}},
     %{id: "mimo-v2.6-flash", model: "xiaomi/mimo-v2.6-flash", list: {0.14, 0.28}},
     %{id: "mistral-large-4", model: "mistralai/mistral-large-4-0", list: {0.7, 2.1}}
@@ -182,8 +184,14 @@ defmodule TravelingPoet.Evals.Writing do
   defp write_one(run_dir, day, candidate, log, api) do
     base = %{"day_id" => day["id"], "candidate_id" => candidate.id}
 
-    case chat(candidate.model, messages(day), api) do
-      {:ok, %{content: raw} = res} ->
+    case chat(
+           candidate.model,
+           messages(day),
+           api ++ [tool: write_tool(), tool_choice: Map.get(candidate, :tool_choice)]
+         ) do
+      {:ok, res} ->
+        raw = res.tool_args || res.content
+
         rel = Path.join(["raw", day["id"], "#{candidate.id}.txt"])
         path = Path.join(run_dir, rel)
         File.mkdir_p!(Path.dirname(path))
@@ -274,14 +282,49 @@ defmodule TravelingPoet.Evals.Writing do
     the language your context names. Leave out drawings: no illustration sections and
     no images in any body.
 
-    Answer with one JSON object and nothing else:
-    {"title": "...", "teaser": "...", "sections": [{"kind": "...", "title": "...", "body": "markdown"}]}
+    Send it with one call to journal_write.
     """
   end
 
+  # The page goes out as a tool call, as it does in production: a model
+  # formats tool arguments far more reliably than free-text JSON (a Hebrew
+  # abbreviation like צה"ל broke several free-text answers).
+  @doc false
+  def write_tool do
+    %{
+      type: "function",
+      function: %{
+        name: "journal_write",
+        description: "Saves today's journal entry: its title, teaser and sections.",
+        parameters: %{
+          type: "object",
+          properties: %{
+            title: %{type: "string"},
+            teaser: %{type: "string"},
+            sections: %{
+              type: "array",
+              items: %{
+                type: "object",
+                properties: %{
+                  kind: %{type: "string"},
+                  title: %{type: "string"},
+                  body: %{type: "string", description: "markdown"}
+                },
+                required: ["kind", "body"]
+              }
+            }
+          },
+          required: ["title", "sections"]
+        }
+      }
+    }
+  end
+
   @doc """
-  One OpenRouter chat completion: `{:ok, %{content, cost, ms, tokens_in,
-  tokens_out}}` or `{:error, reason}`. `json: true` asks for a JSON object.
+  One OpenRouter chat completion: `{:ok, %{content, tool_args, cost, ms,
+  tokens_in, tokens_out}}` or `{:error, reason}`. `json: true` asks for a
+  JSON object; `tool:` forces one call to that tool, whose arguments come
+  back as `tool_args`.
   """
   def chat(model, messages, opts \\ []) do
     key = Keyword.get(opts, :api_key, Application.get_env(:traveling_poet, :openrouter_api_key))
@@ -293,12 +336,28 @@ defmodule TravelingPoet.Evals.Writing do
         %{
           model: model,
           messages: messages,
-          max_tokens: Keyword.get(opts, :max_tokens, 12_000),
+          # What poets get in production (Provisioner's openclaw.json): a
+          # thinking model spends part of it before it writes a word.
+          max_tokens: Keyword.get(opts, :max_tokens, 32_768),
           usage: %{include: true}
         }
         |> then(
           &if opts[:json], do: Map.put(&1, :response_format, %{type: "json_object"}), else: &1
         )
+        |> then(fn body ->
+          case opts[:tool] do
+            nil ->
+              body
+
+            tool ->
+              Map.merge(body, %{
+                tools: [tool],
+                tool_choice:
+                  opts[:tool_choice] ||
+                    %{type: "function", function: %{name: tool.function.name}}
+              })
+          end
+        end)
 
       req_opts =
         [
@@ -317,6 +376,7 @@ defmodule TravelingPoet.Evals.Writing do
           {:ok,
            %{
              content: msg["content"] || "",
+             tool_args: get_in(msg, ["tool_calls", Access.at(0), "function", "arguments"]),
              cost: usage["cost"],
              tokens_in: usage["prompt_tokens"],
              tokens_out: usage["completion_tokens"],

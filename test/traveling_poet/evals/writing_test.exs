@@ -173,20 +173,38 @@ defmodule TravelingPoet.Evals.WritingTest do
       {:ok, body, conn} = Plug.Conn.read_body(conn)
       req = Jason.decode!(body)
 
-      content =
+      message =
         cond do
           req["response_format"] ->
-            ~s({"broken": 1, "fluency": 4, "examples": ["bad line"], "reason": "ok"})
+            %{
+              "content" =>
+                ~s({"broken": 1, "fluency": 4, "examples": ["bad line"], "reason": "ok"})
+            }
 
           req["model"] == "z-ai/glm-5.3" ->
-            "Sorry, I need my tools."
+            %{"content" => "Sorry, I need my tools."}
 
+          # The page comes back as the forced journal_write call.
           true ->
-            page_json("Model page by #{req["model"]}")
+            assert req["tool_choice"]["function"]["name"] == "journal_write"
+            assert [%{"function" => %{"name" => "journal_write"}}] = req["tools"]
+            assert req["max_tokens"] == 32_768
+
+            %{
+              "content" => nil,
+              "tool_calls" => [
+                %{
+                  "function" => %{
+                    "name" => "journal_write",
+                    "arguments" => page_json("Model page by #{req["model"]}")
+                  }
+                }
+              ]
+            }
         end
 
       Req.Test.json(conn, %{
-        "choices" => [%{"message" => %{"content" => content}}],
+        "choices" => [%{"message" => message}],
         "usage" => %{"cost" => 0.002, "prompt_tokens" => 900, "completion_tokens" => 300}
       })
     end)
