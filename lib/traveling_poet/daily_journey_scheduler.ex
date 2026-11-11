@@ -16,7 +16,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   acknowledge gaps gracefully.
 
   A run counts as successful only when the poet actually PUBLISHED during it
-  (see `finish_run/5`). An agent that narrates the ritual and never calls
+  (see `finish_run/6`). An agent that narrates the ritual and never calls
   `journal_publish` leaves the reader with nothing, so it is refunded and
   retried rather than billed and closed out.
   """
@@ -83,6 +83,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   @impl true
   def handle_info(:tick, state) do
     settle_interrupted()
+    state = announce_roster(state)
     poets = due_poets()
 
     if poets != [] do
@@ -104,6 +105,16 @@ defmodule TravelingPoet.DailyJourneyScheduler do
 
   @impl true
   def handle_info(_msg, state), do: {:noreply, state}
+
+  # Alice-in-Context is told who is expected today (AiC.Roster), so a poet
+  # that then does nothing shows as missing. Never in the way of the runs.
+  defp announce_roster(state) do
+    Map.put(state, :roster, TravelingPoet.AiC.Roster.announce(Map.get(state, :roster, %{})))
+  rescue
+    e ->
+      Logger.debug("DailyJourneyScheduler: roster not announced: #{inspect(e)}")
+      state
+  end
 
   @doc "How many times a poet's day may be attempted before it's a missed day."
   def max_attempts_per_day, do: @max_attempts_per_day
@@ -210,8 +221,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
             reply_timeout_ms: @reply_timeout_ms
           )
 
-        TravelingPoet.AiC.daily_run(user.id, poet, outcome)
-        finish_run(user, poet, attempt, started_at, outcome)
+        finish_run(user, poet, attempt, started_at, outcome, retry?)
 
       {:error, reason} ->
         Logger.warning(
@@ -257,8 +267,17 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   # An agent can move the poet, draw an illustration, narrate the whole ritual
   # and still never call journal_publish — that is a failed day, and billing it
   # as a success also suppresses the retry that would have saved it.
-  defp finish_run(user, poet, attempt, started_at, outcome) do
+  @doc false
+  def finish_run(user, poet, attempt, started_at, outcome, retry?) do
     published? = Journal.published_since?(poet.id, started_at)
+
+    # Alice-in-Context hears the same verdict: a turn that ended well with
+    # nothing published is reported as the failure it is.
+    TravelingPoet.AiC.daily_run(user.id, poet, outcome,
+      published: published?,
+      attempt: attempt.id,
+      retry: retry?
+    )
 
     # Publication settles the day, whatever the turn did afterwards. An error
     # branch that ignored this is what stranded Hilma on 2026-08-31: her entry
@@ -268,11 +287,21 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     if published? do
       log_published_outcome(poet, outcome)
       record_daily_run(user.id, attempt.id)
+      report_page(poet)
       # The week's look near home (card-71) follows a published page.
       TravelingPoet.NearHome.after_publish(user, poet)
     else
       log_unpublished_outcome(poet, outcome)
       Credits.refund_daily_run(user, attempt.id)
+    end
+  end
+
+  # The page as it stands when the run ends: places and the drawing are put
+  # after the publish call, so what was reported then may be short of them.
+  defp report_page(poet) do
+    case Journal.latest_published_entry(poet.id) do
+      nil -> :ok
+      entry -> TravelingPoet.AiC.journal_published(entry)
     end
   end
 
@@ -333,6 +362,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
         )
 
         record_daily_run(user.id, attempt.id, %{"settled" => true})
+        report_interrupted(user, poet, attempt, true)
         :counted
       else
         # An exempt account was never charged: nothing to give back, and
@@ -347,12 +377,23 @@ defmodule TravelingPoet.DailyJourneyScheduler do
                 "interrupted with nothing published; refunded"
             )
 
+            report_interrupted(user, poet, attempt, false)
             :refunded
         end
       end
     else
       _ -> :skipped
     end
+  end
+
+  # finish_run never ran for this attempt, so neither did its report. (An
+  # exempt account's unpublished attempt is passed over above on every tick,
+  # reported or not; its missing page shows through the roster instead.)
+  defp report_interrupted(user, poet, attempt, published?) do
+    TravelingPoet.AiC.daily_run(user.id, poet, :interrupted,
+      published: published?,
+      attempt: attempt.id
+    )
   end
 
   defp log_published_outcome(_poet, {:ok, _reply}), do: :ok
@@ -400,6 +441,28 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   end
 
   defp past_publish_hour?(poet, now), do: now.hour >= publish_hour(poet)
+
+  @doc """
+  When this poet's run may start on `now`'s day: its publish hour, or later
+  when yesterday's run ended less than #{@min_hours_between_runs}h before it
+  (a day saved by a late retry pushes the next one back). For the roster.
+  """
+  def due_at(poet, now \\ DateTime.utc_now()) do
+    start_of_day = now |> DateTime.to_date() |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+    hour = DateTime.add(start_of_day, publish_hour(poet), :hour)
+
+    last_run =
+      UsageEvent
+      |> where(user_id: ^poet.user_id, kind: "daily_run")
+      |> where([e], e.occurred_at < ^start_of_day)
+      |> select([e], max(e.occurred_at))
+      |> Repo.one()
+
+    case last_run && DateTime.add(last_run, @min_hours_between_runs, :hour) do
+      %DateTime{} = free_at -> Enum.max([hour, DateTime.truncate(free_at, :second)], DateTime)
+      nil -> hour
+    end
+  end
 
   # Entry #0 is FirstEntry.Watchdog's, not the daily run's: a poet whose
   # reader signed up after its publish hour was sent /travel-and-journal 85s

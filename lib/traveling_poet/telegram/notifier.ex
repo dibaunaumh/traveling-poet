@@ -50,19 +50,16 @@ defmodule TravelingPoet.Telegram.Notifier do
   @impl true
   def handle_info({:journal_published, poet_id, entry_id}, state) do
     with poet when not is_nil(poet) <- Poets.get_poet(poet_id),
-         true <- Map.get(poet.settings || %{}, "telegram_notify", true),
          user when not is_nil(user) <- Accounts.get_user(poet.user_id),
          chat_id when is_integer(chat_id) <- user.telegram_chat_id do
       entry = Journal.get_entry!(entry_id)
 
-      text =
-        Locale.with_locale(user.locale, fn ->
-          publish_text(poet, entry, Journal.journey_day(entry), entry_link(poet, entry))
-        end)
-
-      case send_publish_note(chat_id, text, Journal.entry_illustration(entry)) do
-        :ok -> TravelingPoet.AiC.delivered(user, entry, "telegram")
-        other -> other
+      if Map.get(poet.settings || %{}, "telegram_notify", true) == true do
+        send_publish(poet, user, chat_id, entry)
+      else
+        # A paired chat that asked for quiet. (No chat at all is no channel,
+        # and nothing is said.)
+        TravelingPoet.AiC.delivery_skipped(user, entry, "telegram", "turned off")
       end
     else
       _ -> :ok
@@ -469,6 +466,25 @@ defmodule TravelingPoet.Telegram.Notifier do
 
       label ->
         dgettext("notify", "an excursion into %{topic}", topic: label)
+    end
+  end
+
+  defp send_publish(poet, user, chat_id, entry) do
+    # `via` says, when the page is opened from this note, that the note was read.
+    link = TravelingPoet.AiC.via(entry_link(poet, entry), "telegram")
+
+    text =
+      Locale.with_locale(user.locale, fn ->
+        publish_text(poet, entry, Journal.journey_day(entry), link)
+      end)
+
+    case send_publish_note(chat_id, text, Journal.entry_illustration(entry)) do
+      :ok ->
+        TravelingPoet.AiC.delivered(user, entry, "telegram")
+
+      other ->
+        TravelingPoet.AiC.delivery_failed(user, entry, "telegram", other)
+        other
     end
   end
 

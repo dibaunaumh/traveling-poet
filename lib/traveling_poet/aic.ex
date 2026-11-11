@@ -13,9 +13,15 @@ defmodule TravelingPoet.AiC do
 
   require Logger
 
-  alias TravelingPoet.Poets
+  alias TravelingPoet.{Journal, Poets}
+  alias TravelingPoet.Journal.PageFacts
 
   @source "traveling-poet"
+  # The links that say which notification brought the reader (`?via=`).
+  @via_channels ~w(email telegram push)
+  # A page changed this long after publishing is reported again; an older one
+  # has no leaf left to refresh.
+  @refresh_hours 48
 
   # -- identities --------------------------------------------------------
 
@@ -65,12 +71,14 @@ defmodule TravelingPoet.AiC do
         hints: %{space: "organization", address: "Operate/inner/Fleet/#{poet.id}/#{name}"},
         body: preview(data["args"] || data["input"] || data["result"] || data["output"]),
         privacy: "internal",
-        metadata: %{
-          tool: name,
-          phase: phase,
-          call_id: data["toolCallId"] || data["id"],
-          channel: "sprite"
-        },
+        metadata:
+          compact(%{
+            tool: name,
+            phase: phase,
+            call_id: data["toolCallId"] || data["id"],
+            channel: "sprite",
+            args: scalar_args(data["args"] || data["input"])
+          }),
         metrics: Map.take(data, ["durationMs", "duration_ms"]) |> normalize_metrics()
       })
     end
@@ -144,10 +152,19 @@ defmodule TravelingPoet.AiC do
     })
   end
 
+  @doc """
+  A page was published, or what it holds changed afterwards. The page's facts
+  ride along (`Journal.PageFacts`): its parts with their sizes and what it
+  lacks. The id carries a digest of those facts, so the same page reported
+  twice is one event, and a page that gained its places or its drawing after
+  publishing is a new one that corrects the first.
+  """
   def journal_published(entry) do
     poet = poet_party(%{id: entry.poet_id})
+    page = PageFacts.of(entry)
 
     emit(%{
+      id: "evt_published_entry-#{entry.id}_#{page_digest(page)}",
       type: "task",
       verb: "journal_published",
       actor: poet,
@@ -155,22 +172,60 @@ defmodule TravelingPoet.AiC do
       refs: entry_refs(entry),
       hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
       body: entry_title(entry),
-      privacy: "public"
+      privacy: "public",
+      metadata: %{page: page}
     })
+  rescue
+    e ->
+      Logger.debug("AiC journal_published failed: #{inspect(e)}")
+      :error
   end
+
+  @doc """
+  The poet changed a page through the agent API (sections, places, finds,
+  stay areas). Places and the drawing usually arrive after the publish call,
+  so the page is reported again with what it holds now.
+  """
+  def page_changed(user_id, date) do
+    with {:ok, date} <- Date.from_iso8601(to_string(date)),
+         %{} = poet <- Poets.get_poet_by_user(user_id),
+         %{} = entry <- Journal.get_entry(poet.id, date),
+         true <- fresh?(entry) do
+      journal_published(entry)
+    else
+      _ -> :skipped
+    end
+  rescue
+    e ->
+      Logger.debug("AiC page_changed failed: #{inspect(e)}")
+      :error
+  end
+
+  @doc "Whether an entry was published recently enough to be reported again."
+  def fresh?(%{status: "published", published_at: %DateTime{} = at}),
+    do: DateTime.diff(DateTime.utc_now(), at, :hour) < @refresh_hours
+
+  def fresh?(_entry), do: false
 
   @doc """
   A reader opened a journal entry page: the live mount of `/journal/:date` by the
   owner (channel "owner") or of `/p/:slug/:date` by a signed-in reader ("public").
   The id is fixed per reader, entry and UTC day, so reloads collapse into one read
   on the server. Anonymous visits are never reported (crawlers among them).
+
+  `via` names the notification whose link brought the reader (`?via=email`): the
+  only sign that a notification was opened, since nothing in a mail or a push is
+  tracked. It is a second read with its own id.
   """
-  def entry_read(user, entry, channel) do
+  def entry_read(user, entry, channel, via \\ nil) do
     poet = poet_party(%{id: entry.poet_id})
     reader = reader_party(user)
+    via = if via in @via_channels, do: via
 
     emit(%{
-      id: "evt_read_#{reader.id}_entry-#{entry.id}_#{Date.utc_today()}",
+      id:
+        "evt_read_#{reader.id}_entry-#{entry.id}_#{Date.utc_today()}" <>
+          if(via, do: "_via-#{via}", else: ""),
       type: "activity",
       verb: "read",
       actor: reader,
@@ -180,16 +235,82 @@ defmodule TravelingPoet.AiC do
       hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
       body: entry_title(entry),
       privacy: "internal",
-      metadata: %{channel: channel}
+      metadata: compact(%{channel: channel, via: via})
     })
   end
 
-  @doc "A published entry reached its reader over a channel (email, telegram). The page goes out in the poet's name."
-  def delivered(user, entry, channel) do
+  @doc "The channels a notification link may name, and a link with its channel on it."
+  def via_channels, do: @via_channels
+
+  def via(url, channel) when channel in @via_channels do
+    {base, fragment} =
+      case String.split(url, "#", parts: 2) do
+        [base, fragment] -> {base, "#" <> fragment}
+        [base] -> {base, ""}
+      end
+
+    base <> if(String.contains?(base, "?"), do: "&", else: "?") <> "via=" <> channel <> fragment
+  end
+
+  @doc """
+  Time the owner spent on one part of their page (`Journal.PageFacts` ids),
+  in seconds. Only ever sent for an owner who left reading signals on
+  (`TravelingPoet.Reading`); a public reader is never measured. Sent in
+  batches by `TravelingPoet.AiC.ReadTally`, and the times add up on the server.
+  """
+  def part_read(user, entry, part, seconds) do
     poet = poet_party(%{id: entry.poet_id})
 
     emit(%{
       type: "activity",
+      verb: "read",
+      actor: reader_party(user),
+      recipient: poet,
+      subjects: [%{kind: "entry", id: to_string(entry.id)}],
+      hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
+      body: entry_title(entry),
+      privacy: "internal",
+      metadata: %{channel: "owner", part: part},
+      metrics: %{seconds: seconds}
+    })
+  end
+
+  @doc """
+  The owner did something on their page: saved a place, asked for hotels,
+  pressed play, followed a link (`action`), on a part of it or on none.
+  """
+  def interacted(user, entry, action, part \\ nil, extra \\ %{}) do
+    poet = poet_party(%{id: entry.poet_id})
+
+    emit(%{
+      type: "activity",
+      verb: "interact",
+      actor: reader_party(user),
+      recipient: poet,
+      subjects: [%{kind: "entry", id: to_string(entry.id)}],
+      hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
+      body: action,
+      privacy: "internal",
+      metadata: compact(Map.merge(extra, %{action: action, part: part}))
+    })
+  end
+
+  @doc "A published entry reached its reader over a channel (email, telegram, push). The page goes out in the poet's name."
+  def delivered(user, entry, channel), do: delivery(user, entry, channel, "sent", nil)
+
+  @doc "The channel was tried and refused the page. `reason` may be any term: only a short safe label of it is sent."
+  def delivery_failed(user, entry, channel, reason),
+    do: delivery(user, entry, channel, "failed", reason_text(reason))
+
+  @doc "The page was not sent over a channel the reader has, and why (\"turned off\")."
+  def delivery_skipped(user, entry, channel, reason),
+    do: delivery(user, entry, channel, "skipped", reason)
+
+  defp delivery(user, entry, channel, status, reason) do
+    poet = poet_party(%{id: entry.poet_id})
+
+    emit(%{
+      type: if(status == "failed", do: "error", else: "activity"),
       verb: "deliver",
       actor: poet,
       recipient: reader_party(user),
@@ -198,42 +319,99 @@ defmodule TravelingPoet.AiC do
       hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
       body: entry_title(entry),
       privacy: "internal",
-      metadata: %{channel: channel}
+      metadata: compact(%{channel: channel, status: status, reason: reason})
     })
   end
 
+  # What went wrong, in a word or two. Never the term itself: a failed request
+  # can carry a URL with a bot token in it.
+  defp reason_text({:error, reason}), do: reason_text(reason)
+  defp reason_text({:http, status}) when is_integer(status), do: "http #{status}"
+  defp reason_text({status, _body}) when is_integer(status), do: "http #{status}"
+  defp reason_text(%{reason: reason}) when is_atom(reason), do: to_string(reason)
+  defp reason_text(reason) when is_atom(reason), do: to_string(reason)
+  defp reason_text(reason) when is_binary(reason), do: String.slice(reason, 0, 60)
+  defp reason_text(_), do: "error"
+
+  @praise_markers ~w(interesting beautiful)
+  @complaint_markers ~w(boring not_creative meh inaccurate made_up)
+
+  @doc """
+  A marker the reader dropped on a passage or a drawing. The kind says whether
+  it is praise or a complaint; the requests in between (more details, a link)
+  name no sentiment.
+  """
   def marker_added(user_id, entry_id, attrs) do
+    kind = attr(attrs, :kind)
+
     emit(%{
       type: "feedback",
       verb: "marker",
       actor: reader_party(user_id),
       recipient: poet_of(user_id),
       subjects: [%{kind: "entry", id: to_string(entry_id)}],
-      body:
-        Map.get(attrs, :note) || Map.get(attrs, "note") || Map.get(attrs, :quote) ||
-          Map.get(attrs, "quote"),
+      body: attr(attrs, :note) || attr(attrs, :quote),
       privacy: "human_authored",
-      metadata: %{kind: Map.get(attrs, :kind) || Map.get(attrs, "kind")}
+      metadata:
+        compact(%{
+          kind: kind,
+          sentiment:
+            cond do
+              kind in @praise_markers -> "positive"
+              kind in @complaint_markers -> "negative"
+              true -> nil
+            end,
+          part:
+            if(attr(attrs, :target) == "illustration",
+              do: "drawing",
+              else: PageFacts.part_of(attr(attrs, :section_kind))
+            )
+        })
     })
   end
 
-  def feedback_message(user_id, text) do
+  @doc "One of the reaction buttons under the owner's page (love, inspiring, want more, not for me)."
+  def reaction(user, entry, kind) do
+    emit(%{
+      type: "feedback",
+      verb: "reaction",
+      actor: reader_party(user),
+      recipient: poet_party(%{id: entry.poet_id}),
+      subjects: [%{kind: "entry", id: to_string(entry.id)}],
+      privacy: "internal",
+      metadata: %{
+        kind: kind,
+        sentiment: if(kind == "not_for_me", do: "negative", else: "positive")
+      }
+    })
+  end
+
+  @doc """
+  A note to the team from the feedback form. `kind` "broken" or "missing" is a
+  complaint; written from a journal page (`page`), it is about that entry.
+  """
+  def feedback_message(user_id, text, opts \\ []) do
+    kind = opts[:kind]
+
     emit(%{
       type: "feedback",
       verb: "feedback",
       actor: reader_party(user_id),
       recipient: poet_of(user_id),
+      subjects: page_subject(user_id, opts[:page]),
       body: text,
-      privacy: "human_authored"
+      privacy: "human_authored",
+      metadata: compact(%{kind: kind, sentiment: if(kind in ~w(broken missing), do: "negative")})
     })
   end
 
-  def nps(user_id, score) do
+  def nps(user_id, score, entry_id \\ nil) do
     emit(%{
       type: "feedback",
       verb: "nps",
       actor: reader_party(user_id),
       recipient: poet_of(user_id),
+      subjects: entry_id && [%{kind: "entry", id: to_string(entry_id)}],
       metrics: %{score: score},
       privacy: "internal"
     })
@@ -294,9 +472,21 @@ defmodule TravelingPoet.AiC do
     })
   end
 
-  def daily_run(user_id, poet, outcome) do
+  @doc """
+  How a daily run ended, told by what reached the reader rather than by what
+  the turn said: an error when nothing was published, whatever the agent
+  replied. Options: `published` (default: the turn ended well), `attempt` (the
+  usage row of the attempt, which fixes the event id so a run settled twice is
+  one event) and `retry`. `outcome` is `AgentSession.run/3`'s, or
+  `:interrupted` for a run whose task died with the deploy.
+  """
+  def daily_run(user_id, poet, outcome, opts \\ []) do
+    published? = Keyword.get(opts, :published, match?({:ok, _}, outcome))
+    attempt = opts[:attempt]
+
     emit(%{
-      type: if(match?({:ok, _}, outcome), do: "activity", else: "error"),
+      id: attempt && "evt_daily_run_attempt-#{attempt}",
+      type: if(published?, do: "activity", else: "error"),
       verb: "daily_run",
       actor: system_party("scheduler"),
       recipient: poet_party(poet),
@@ -304,9 +494,44 @@ defmodule TravelingPoet.AiC do
         space: "organization",
         address: "Operate/inner/Fleet/poet-#{poet.id}/travel_n_journal"
       },
-      body: outcome_text(outcome),
+      body: outcome_text(outcome, published?),
       privacy: "internal",
-      metadata: %{user_id: user_id}
+      metadata:
+        compact(%{user_id: user_id, published: published?, attempt: attempt, retry: opts[:retry]})
+    })
+  end
+
+  @doc """
+  The day's roster: this poet is expected to publish on `date`, at `due_at`,
+  or is not (`status` "paused" or "no_credits", with a `reason`). Sent ahead
+  of the hour, so a poet that then does nothing can be told from one that was
+  never due. A changed status is a new event; the last one of the day stands.
+  """
+  def expected(poet, %{date: date, due_at: due_at, status: status} = entry) do
+    credits = Map.get(entry, :credits)
+
+    emit(%{
+      id: "evt_expected_poet-#{poet.id}_#{date}_#{status}_#{credits || "exempt"}",
+      type: "activity",
+      verb: "expected",
+      actor: poet_party(poet),
+      hints: %{
+        space: "organization",
+        address: "Operate/inner/Fleet/poet-#{poet.id}/travel_n_journal"
+      },
+      body:
+        if(status == "due",
+          do: "due at #{Calendar.strftime(due_at, "%H:%M")} UTC",
+          else: "not due: #{Map.get(entry, :reason) || status}"
+        ),
+      privacy: "internal",
+      metadata:
+        compact(%{
+          due_at: DateTime.to_iso8601(due_at),
+          status: status,
+          reason: Map.get(entry, :reason)
+        }),
+      metrics: put_metric(%{}, "credits", credits)
     })
   end
 
@@ -329,6 +554,52 @@ defmodule TravelingPoet.AiC do
       Logger.debug("AiC emit failed: #{inspect(e)}")
       :error
   end
+
+  defp compact(map), do: Map.reject(map, fn {_k, v} -> is_nil(v) end)
+
+  defp attr(attrs, key), do: Map.get(attrs, key) || Map.get(attrs, to_string(key))
+
+  # The arguments of a tool call that say what it was about (the query, the
+  # url, the date), as short scalars: the forest prints one on the leaf.
+  defp scalar_args(args) when is_map(args) do
+    args
+    |> Enum.filter(fn {_k, v} -> is_binary(v) or is_number(v) or is_boolean(v) end)
+    |> Enum.take(8)
+    |> Map.new(fn
+      {k, v} when is_binary(v) -> {to_string(k), String.slice(v, 0, 160)}
+      {k, v} -> {to_string(k), v}
+    end)
+    |> case do
+      empty when empty == %{} -> nil
+      scalars -> scalars
+    end
+  end
+
+  defp scalar_args(_), do: nil
+
+  # Parts and their item counts, and what is missing. Word counts are left
+  # out: a revised sentence is not a new fact about the page.
+  defp page_digest(page) do
+    facts = {Enum.map(page.parts, &{&1.id, Map.get(&1, :count)}), page.missing}
+
+    :crypto.hash(:sha256, inspect(facts))
+    |> Base.encode16(case: :lower)
+    |> binary_part(0, 8)
+  end
+
+  # The entry a feedback note was written on, when its page is a journal date.
+  defp page_subject(user_id, page) when is_binary(page) do
+    with [_, date] <- Regex.run(~r|/journal/(\d{4}-\d{2}-\d{2})|, page),
+         {:ok, date} <- Date.from_iso8601(date),
+         %{} = poet <- Poets.get_poet_by_user(user_id),
+         %{id: id} <- Journal.get_entry(poet.id, date) do
+      [%{kind: "entry", id: to_string(id)}]
+    else
+      _ -> nil
+    end
+  end
+
+  defp page_subject(_user_id, _page), do: nil
 
   defp preview(nil), do: nil
   defp preview(v, max \\ 2_000)
@@ -377,8 +648,16 @@ defmodule TravelingPoet.AiC do
 
   defp entry_title(entry), do: Map.get(entry, :title) || "Journal entry #{Map.get(entry, :date)}"
 
-  defp outcome_text({:ok, _}), do: "published"
-  defp outcome_text({:timeout, _}), do: "timed out"
-  defp outcome_text({:error, reason}), do: "failed: #{inspect(reason) |> String.slice(0, 200)}"
-  defp outcome_text(other), do: inspect(other) |> String.slice(0, 200)
+  defp outcome_text({:ok, _}, true), do: "published"
+  defp outcome_text({:timeout, _}, true), do: "published, then the turn stalled"
+  defp outcome_text({:error, _}, true), do: "published, then the turn failed"
+  defp outcome_text(:interrupted, true), do: "published; the run was interrupted"
+  defp outcome_text({:ok, _}, false), do: "failed: finished its turn without publishing"
+  defp outcome_text({:timeout, _}, false), do: "timed out with nothing published"
+  defp outcome_text(:interrupted, false), do: "failed: interrupted with nothing published"
+
+  defp outcome_text({:error, reason}, false),
+    do: "failed: #{inspect(reason) |> String.slice(0, 200)}"
+
+  defp outcome_text(other, _published?), do: inspect(other) |> String.slice(0, 200)
 end

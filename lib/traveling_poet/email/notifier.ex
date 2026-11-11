@@ -42,7 +42,7 @@ defmodule TravelingPoet.Email.Notifier do
   def send_entry(poet_id, entry_id) do
     with %{} = poet <- Poets.get_poet(poet_id),
          %{} = user <- Accounts.get_user(poet.user_id),
-         true <- wants_email?(user) do
+         true <- wants_email?(user) || not_sent(user, entry_id) do
       entry = Journal.get_entry!(entry_id)
 
       message =
@@ -52,7 +52,10 @@ defmodule TravelingPoet.Email.Notifier do
           entry: entry,
           day: Journal.journey_day(entry),
           drawing_url: drawing_url(entry),
-          page_url: url("/journal/#{Date.to_iso8601(entry.entry_date)}"),
+          # `via` says, when the page is opened from here, that the mail was
+          # read: nothing in the mail itself is tracked.
+          page_url:
+            TravelingPoet.AiC.via(url("/journal/#{Date.to_iso8601(entry.entry_date)}"), "email"),
           listen?: TravelingPoet.Narration.configured?(),
           listen_minutes: listen_minutes(entry),
           unsubscribe_url: url("/email/unsubscribe/#{unsubscribe_token(user)}")
@@ -66,11 +69,31 @@ defmodule TravelingPoet.Email.Notifier do
           Logger.info("email: entry #{entry_id} sent to user #{user.id}")
 
         other ->
+          TravelingPoet.AiC.delivery_failed(user, entry, "email", other)
           other
       end
     else
       _ -> :skipped
     end
+  end
+
+  # A reader with an address who is not mailed is told to Alice-in-Context,
+  # so a page nobody was told about can be told from one mailed and ignored.
+  # A reader with no address has no such channel, and nothing is said.
+  defp not_sent(user, entry_id) do
+    reason =
+      case user do
+        %{email: email} when not is_binary(email) -> nil
+        %{email_notify: true} -> "relay address"
+        _ -> "turned off"
+      end
+
+    with reason when is_binary(reason) <- reason,
+         %{} = entry <- TravelingPoet.Repo.get(Journal.Entry, entry_id) do
+      TravelingPoet.AiC.delivery_skipped(user, entry, "email", reason)
+    end
+
+    false
   end
 
   # The whole page (card-124), loaded the way the page itself is.

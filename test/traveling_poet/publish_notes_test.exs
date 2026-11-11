@@ -59,7 +59,7 @@ defmodule TravelingPoet.PublishNotesTest do
 
       assert payload.title == "Day 17 · Nam in Cordoba"
       assert payload.body == @entry.teaser
-      assert payload.url == "/journal/2026-09-11"
+      assert payload.url == "/journal/2026-09-11?via=push"
       assert payload.tag == "entry-7"
     end
 

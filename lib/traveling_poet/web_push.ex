@@ -111,12 +111,27 @@ defmodule TravelingPoet.WebPush do
         {0, 0}
 
       poet ->
-        notify_user(poet.user_id, fn ->
+        poet.user_id
+        |> notify_user(fn ->
           entry = Journal.get_entry!(entry_id)
           entry_payload(poet, entry, Journal.journey_day(entry))
         end)
+        |> tap(&report_entry_push(poet, entry_id, &1))
     end
   end
+
+  # Alice-in-Context hears whether the page reached a device. A reader with
+  # no device has no such channel, and nothing is said.
+  defp report_entry_push(poet, entry_id, {sent, pruned}) when sent + pruned > 0 do
+    with %{} = entry <- TravelingPoet.Repo.get(Journal.Entry, entry_id),
+         %{} = user <- TravelingPoet.Accounts.get_user(poet.user_id) do
+      if sent > 0,
+        do: TravelingPoet.AiC.delivered(user, entry, "push"),
+        else: TravelingPoet.AiC.delivery_failed(user, entry, "push", "subscription gone")
+    end
+  end
+
+  defp report_entry_push(_poet, _entry_id, _counts), do: :ok
 
   @doc """
   Tells every device of the owner that a composed book edition is ready.
@@ -409,7 +424,8 @@ defmodule TravelingPoet.WebPush do
       body:
         present(entry.teaser) || present(entry.title) ||
           dgettext("notify", "A new journal entry is waiting."),
-      url: "/journal/#{entry.entry_date}",
+      # `via` says, when the page is opened from the note, that the note was read
+      url: TravelingPoet.AiC.via("/journal/#{entry.entry_date}", "push"),
       tag: "entry-#{entry.id}",
       icon: "/images/icon-192.png"
     }
