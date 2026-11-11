@@ -920,6 +920,55 @@ defmodule TravelingPoetWeb.AgentApiTest do
     assert entry.title == "Revised title"
   end
 
+  # What Nam's model sent on 2026-11-11: each section split in two, a
+  # title-only object it made up and the object with the words.
+  test "sections with no words are left off the page and named in the reply",
+       %{conn: conn, poet: poet} do
+    date = Date.utc_today()
+    entry = entry_fixture(poet, %{entry_date: date})
+    drawing = media_fixture(poet, %{journal_entry_id: entry.id})
+
+    body =
+      conn
+      |> put(~p"/api/agent/journal_entries/#{Date.to_iso8601(date)}/sections", %{
+        sections: [
+          %{kind: "description", title: "Day - section: description [invalid title]"},
+          %{kind: "description", body: "I left Merzouga this morning."},
+          %{kind: "illustration", media_id: drawing.id, title: "the valley [invalid title]"},
+          %{kind: "illustration", media_id: drawing.id, body: "The Draa Valley."},
+          %{kind: "poem", title: "The months to Timbuktu [invalid title]"},
+          %{kind: "poem", body: "The road came south."}
+        ]
+      })
+      |> json_response(200)
+
+    assert body["section_count"] == 3
+
+    assert body["dropped_empty_sections"] == [
+             "description: Day - section: description [invalid title]",
+             "illustration: the valley [invalid title]",
+             "poem: The months to Timbuktu [invalid title]"
+           ]
+
+    assert body["note"] =~ "one object with its kind, title and body together"
+
+    sections = Journal.preload_entry(Journal.get_entry(poet.id, date)).sections
+
+    assert Enum.map(sections, &{&1.kind, &1.title}) ==
+             [{"description", nil}, {"illustration", nil}, {"poem", nil}]
+
+    # a drawing with no caption is a section in its own right
+    assert %{"section_count" => 2} =
+             conn
+             |> put(~p"/api/agent/journal_entries/#{Date.to_iso8601(date)}/sections", %{
+               sections: [
+                 %{kind: "description", body: "Words."},
+                 %{kind: "illustration", media_id: drawing.id}
+               ]
+             })
+             |> json_response(200)
+  end
+
   test "POST /location moves the poet and appends a path point", %{conn: conn, poet: poet} do
     assert %{"ok" => true, "place_name" => "Sintra, Portugal"} =
              conn
