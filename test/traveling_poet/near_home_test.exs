@@ -281,7 +281,14 @@ defmodule TravelingPoet.NearHomeTest do
     end
 
     test "does nothing the week a batch already came", %{user: user, poet: poet} do
-      {:ok, _} = NearHome.ingest(user, poet, [pick(%{})], Date.add(Date.utc_today(), -2))
+      # The pick's day follows the clock: with the fixture's fixed date this
+      # batch was dropped as past once that date went by, and the week was due.
+      on = Date.to_iso8601(Date.utc_today())
+      came = Date.add(Date.utc_today(), -2)
+
+      assert {:ok, %{kept: [_]}} =
+               NearHome.ingest(user, poet, [pick(%{"starts_on" => on, "ends_on" => on})], came)
+
       assert NearHome.after_publish(user, poet) == :ok
       refute_receive {:session_run, _, _, _}, 200
     end

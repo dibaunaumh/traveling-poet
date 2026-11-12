@@ -9,7 +9,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   alias TravelingPoet.Markers.Guard
   alias TravelingPoet.Narration
   alias TravelingPoet.Guide.{Geocoding, Stay, StayArea, TopicTagging}
-  alias TravelingPoet.Journal.{Marker, Media}
+  alias TravelingPoet.Journal.{Marker, Media, PageFacts}
 
   # A day's finds, not a directory. The skill asks for 2-4; this is the
   # backstop against a model that decides to list everything it walked past.
@@ -687,17 +687,16 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   defp publish_notes(entry) do
     date = Date.to_iso8601(entry.entry_date)
 
-    [missing_places(entry, date), missing_drawing(entry, date)]
-    |> Enum.reject(&is_nil/1)
-    |> case do
+    # The same facts go to Alice-in-Context with the page (Journal.PageFacts).
+    case PageFacts.of(entry).missing do
       [] ->
         %{}
 
-      notes ->
+      missing ->
         %{
-          missing: Enum.map(notes, &elem(&1, 0)),
+          missing: missing,
           note:
-            Enum.map_join(notes, " ", &elem(&1, 1)) <>
+            Enum.map_join(missing, " ", &missing_note(&1, date)) <>
               " You do not need to publish again."
         }
     end
@@ -706,13 +705,10 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   # A day at a place with nothing in the trip guide: first entries skipped
   # journal_put_places on 6 of 8 new poets, and the reader found an empty
   # Places tab. An excursion has finds instead.
-  defp missing_places(entry, date) do
-    if Topics.excursion_of(entry) == nil and Guide.list_places_for_entry(entry.id) == [] do
-      {"places",
-       "Published, but no places are logged for #{date}, so your companion's Places " <>
-         "page is empty. Call journal_put_places for #{date} now with the places and " <>
-         "dated events this entry names (travel-and-journal, section 4b)."}
-    end
+  defp missing_note("places", date) do
+    "Published, but no places are logged for #{date}, so your companion's Places " <>
+      "page is empty. Call journal_put_places for #{date} now with the places and " <>
+      "dated events this entry names (travel-and-journal, section 4b)."
   end
 
   # A page with no main drawing at all: poets deep into one long session
@@ -720,21 +716,12 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   # while the places note above was obeyed at once. A drawing generated but
   # never put on a section still shows (Spreads tapes it on), so only a page
   # with neither is told.
-  defp missing_drawing(entry, date) do
-    sections = Journal.preload_entry(entry).sections
-
-    drawn? =
-      Enum.any?(sections, &(&1.kind == "illustration" and &1.media_id != nil)) or
-        Journal.unattached_illustrations(entry, sections) != []
-
-    unless drawn? do
-      {"drawing",
-       "Published, but today's page has no drawing. Call generate_illustration for " <>
-         "#{date} now (travel-and-journal, step 5), then journal_put_sections with the " <>
-         "full list of sections plus an illustration section carrying the returned " <>
-         "media_id. If generate_illustration refuses, leave the page as it is and tell " <>
-         "your companion the error."}
-    end
+  defp missing_note("drawing", date) do
+    "Published, but today's page has no drawing. Call generate_illustration for " <>
+      "#{date} now (travel-and-journal, step 5), then journal_put_sections with the " <>
+      "full list of sections plus an illustration section carrying the returned " <>
+      "media_id. If generate_illustration refuses, leave the page as it is and tell " <>
+      "your companion the error."
   end
 
   defp with_poet_and_date(conn, date_str, fun) do

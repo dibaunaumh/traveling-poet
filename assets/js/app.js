@@ -37,6 +37,7 @@ import {initBeacon} from "./beacon"
 import {initNative} from "./native"
 import AppleIAP from "./apple_iap_hook"
 import ReadingTime from "./reading_time_hook"
+import LinkClicks from "./link_clicks_hook"
 import LocalTime from "./local_time_hook"
 import AutoDismiss from "./auto_dismiss_hook"
 import ProductTour from "./product_tour_hook"
@@ -48,7 +49,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LocalTime, AutoDismiss, ProductTour, NarrationPlayer, ShareMenu},
+  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LinkClicks, LocalTime, AutoDismiss, ProductTour, NarrationPlayer, ShareMenu},
 })
 
 // Show progress bar on live navigation and form submits

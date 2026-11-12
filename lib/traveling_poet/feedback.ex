@@ -54,7 +54,9 @@ defmodule TravelingPoet.Feedback do
           do:
             TravelingPoet.AiC.feedback_message(
               user.id,
-              Map.get(message, :body) || Map.get(message, :content) || Map.get(message, :text)
+              Map.get(message, :body) || Map.get(message, :content) || Map.get(message, :text),
+              kind: Map.get(message, :kind),
+              page: Map.get(message, :page)
             )
 
         {:ok, message}
@@ -172,7 +174,7 @@ defmodule TravelingPoet.Feedback do
 
     with {:ok, response} <- result do
       broadcast({:nps_answered, response.id})
-      TravelingPoet.AiC.nps(response.user_id, response.score)
+      TravelingPoet.AiC.nps(response.user_id, response.score, response.journal_entry_id)
       {:ok, response}
     end
   end

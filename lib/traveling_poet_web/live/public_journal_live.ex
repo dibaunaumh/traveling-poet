@@ -51,9 +51,24 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             do: socket,
             else: assign_journal(socket, poet, date)
 
-        {:noreply, socket |> assign_spread(params["spread"]) |> push_map()}
+        {:noreply, socket |> assign_spread(params["spread"]) |> via_read(params) |> push_map()}
     end
   end
+
+  # A public poet's Telegram note links here, with `?via=telegram`. Opened by
+  # the poet's own reader, it says the note was read; from anyone else the
+  # parameter means nothing (a forwarded link).
+  defp via_read(socket, %{"via" => via}) do
+    with %{entry: %{} = entry, poet: poet, current_user: %{id: id} = user} <- socket.assigns,
+         true <- id == poet.user_id and connected?(socket),
+         true <- via in TravelingPoet.AiC.via_channels() do
+      TravelingPoet.AiC.entry_read(user, entry, "public", via)
+    end
+
+    socket
+  end
+
+  defp via_read(socket, _params), do: socket
 
   defp same_entry?(%{assigns: %{entry: %{entry_date: shown}}}, %Date{} = date), do: shown == date
   defp same_entry?(_socket, _date), do: false

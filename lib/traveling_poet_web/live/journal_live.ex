@@ -165,11 +165,74 @@ defmodule TravelingPoetWeb.JournalLive do
         {:noreply,
          socket
          |> assign_spread(params["spread"])
+         |> via_read(params)
          |> open_chat(params)
          |> open_tour(params)
          |> push_map()}
     end
   end
+
+  # The page was opened from the link in a notification (`?via=email`). The
+  # owner's read says so: that is how Alice-in-Context knows the notification
+  # was opened, since nothing in a mail or a push is tracked.
+  defp via_read(socket, %{"via" => via}) do
+    if owner_here?(socket) and via in TravelingPoet.AiC.via_channels(),
+      do:
+        TravelingPoet.AiC.entry_read(
+          socket.assigns.current_user,
+          socket.assigns.entry,
+          "owner",
+          via
+        )
+
+    socket
+  end
+
+  defp via_read(socket, _params), do: socket
+
+  # The owner, on a live page that shows an entry: the only reader whose
+  # doings on the page are reported.
+  defp owner_here?(%{assigns: %{entry: %{}, poet: poet, current_user: %{id: id}}} = socket),
+    do: id == poet.user_id and connected?(socket)
+
+  defp owner_here?(_socket), do: false
+
+  # The spreads that are a part of the page in their own right.
+  @spread_parts ~w(places finds stay)
+
+  # What the owner did on the page, for Alice-in-Context: a deliberate press,
+  # so it is told whatever the reading-signals switch says.
+  defp interacted(socket, action, part \\ nil, extra \\ %{}) do
+    if owner_here?(socket),
+      do:
+        TravelingPoet.AiC.interacted(
+          socket.assigns.current_user,
+          socket.assigns.entry,
+          action,
+          part,
+          extra
+        )
+
+    socket
+  end
+
+  # A Save or a Not for me that was added (not one taken back) is told, on the
+  # part of the page the item belongs to.
+  defp bookmarking(event, set, action, %{"kind" => kind} = params, socket) do
+    before = socket.assigns.bookmarks
+    {:noreply, socket} = TravelingPoetWeb.Bookmarking.handle_event(event, params, socket)
+
+    added? =
+      is_map(before) and is_map(socket.assigns.bookmarks) and
+        MapSet.size(Map.fetch!(socket.assigns.bookmarks, set)) >
+          MapSet.size(Map.fetch!(before, set))
+
+    part = %{"place" => "places", "find" => "finds"}[kind]
+    {:noreply, if(added?, do: interacted(socket, action, part), else: socket)}
+  end
+
+  defp bookmarking(event, _set, _action, params, socket),
+    do: TravelingPoetWeb.Bookmarking.handle_event(event, params, socket)
 
   # `?chat=1` arrives with the chat already open: the app's Chat tab on the
   # guide or settings has no chat of its own to open, so it comes here.
@@ -393,10 +456,28 @@ defmodule TravelingPoetWeb.JournalLive do
 
   @impl true
   def handle_event("toggle_bookmark", params, socket),
-    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_bookmark", params, socket)
+    do: bookmarking("toggle_bookmark", :saved, "saved", params, socket)
 
   def handle_event("toggle_pass", params, socket),
-    do: TravelingPoetWeb.Bookmarking.handle_event("toggle_pass", params, socket)
+    do: bookmarking("toggle_pass", :passed, "not for me", params, socket)
+
+  # An outside link on the page was followed (the LinkClicks hook, mounted for
+  # an owner with reading signals on). Only the host is kept, never the link.
+  def handle_event("link_click", %{"entry_id" => id} = params, socket) do
+    entry = socket.assigns[:entry]
+
+    if entry && to_string(entry.id) == to_string(id) && socket.assigns.user.reading_signals do
+      part =
+        if params["spread"] in @spread_parts,
+          do: params["spread"],
+          else: TravelingPoet.Journal.PageFacts.part_of(params["kind"])
+
+      host = if is_binary(params["host"]), do: String.slice(params["host"], 0, 80)
+      {:noreply, interacted(socket, "link", part, %{host: host})}
+    else
+      {:noreply, socket}
+    end
+  end
 
   # Hotels for the reader's dates on a where-to-stay page (card-92): one
   # search around the area the poet picked, ranked against its places. The
@@ -413,6 +494,7 @@ defmodule TravelingPoetWeb.JournalLive do
 
       {:noreply,
        socket
+       |> interacted("hotels", "stay")
        |> assign(hotels: :loading, hotel_query: query)
        |> start_async(:hotels, fn ->
          with {:ok, found} <- TravelingPoet.Hotels.search(centre, checkin, checkout, adults) do
@@ -442,8 +524,11 @@ defmodule TravelingPoetWeb.JournalLive do
 
   # A page without a recording, read because the reader pressed play
   # (TravelingPoetWeb.Listening).
-  def handle_event("narration_request", _params, socket),
-    do: TravelingPoetWeb.Listening.request(socket)
+  def handle_event("narration_request", _params, socket) do
+    {:noreply, asked} = TravelingPoetWeb.Listening.request(socket)
+    new? = asked.assigns.narration_pending == true and socket.assigns.narration_pending != true
+    {:noreply, if(new?, do: interacted(asked, "listen"), else: asked)}
+  end
 
   def handle_event("toggle_chat", _params, socket) do
     {:noreply, assign(socket, :sidebar_open, !socket.assigns.sidebar_open)}
@@ -558,7 +643,13 @@ defmodule TravelingPoetWeb.JournalLive do
   @impl true
   def handle_event("react", %{"kind" => kind}, socket) do
     if entry = socket.assigns.entry do
-      Journal.toggle_reaction(entry.id, socket.assigns.user.id, kind, "private")
+      # A reaction given (not one taken back) is feedback on the page.
+      with {:ok, %{__meta__: %{state: :loaded}}} <-
+             Journal.toggle_reaction(entry.id, socket.assigns.user.id, kind, "private"),
+           true <- owner_here?(socket) do
+        TravelingPoet.AiC.reaction(socket.assigns.current_user, entry, kind)
+      end
+
       entry = Journal.preload_entry(Journal.get_entry!(entry.id))
 
       {:noreply,
@@ -1507,6 +1598,17 @@ defmodule TravelingPoetWeb.JournalLive do
               data-entry-id={@entry.id}
               data-target={"entry-#{@entry.id}"}
               data-kinds={Enum.join(Paragraphs.prose_kinds(), " ")}
+              hidden
+            >
+            </div>
+            <%!-- outside links followed from the page (only which site, and from
+                  which part of the page): same owner, same switch --%>
+            <div
+              :if={@user.reading_signals}
+              id={"links-#{@entry.id}"}
+              phx-hook="LinkClicks"
+              data-entry-id={@entry.id}
+              data-spread={@spread && @spread.key}
               hidden
             >
             </div>
