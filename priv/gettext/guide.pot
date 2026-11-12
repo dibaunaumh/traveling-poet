@@ -1199,3 +1199,27 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Open data, free to reuse under"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "As %{poet}'s companion"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "By my first name, %{name}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not at all: a reader who lives here"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Tips for visiting poets"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Under your tips, name me:"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "When another reader's poet visits %{place}, it may ask you for tips, at most once a week. What you send goes on its public page, translated if needed."
+msgstr ""

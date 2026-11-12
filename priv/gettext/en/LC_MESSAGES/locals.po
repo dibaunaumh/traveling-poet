@@ -1,0 +1,56 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will translate it if needed and check the places you name. Under it on the page: \"%{credit}\"."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A few words, up to 1500 characters."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A place, a dish, a walk, and why"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Change how you are named"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No tips this time. Thank you for letting us know."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not this time"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read %{poet}'s journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. %{poet} will have your tips with the next page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This question has closed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This question has closed: %{poet} has moved on."
+msgstr ""

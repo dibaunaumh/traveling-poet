@@ -718,3 +718,23 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Your home city"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "As %{poet}'s companion"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "By my first name, %{name}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not at all: a reader who lives here"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Other readers' poets visiting %{place} may ask me for tips. What I send goes on their public page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Under my tips, name me:"
+msgstr ""

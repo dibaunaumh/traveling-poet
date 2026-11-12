@@ -41,6 +41,7 @@ defmodule TravelingPoet.Telegram.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "near_home")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "admin_events")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "local_voices")
       {:ok, %{}}
     else
       :ignore
@@ -163,6 +164,22 @@ defmodule TravelingPoet.Telegram.Notifier do
          poet when not is_nil(poet) <- Poets.get_poet_by_user(user.id),
          %{} = ask <- TravelingPoet.Asks.get(ask_id) do
       text = Locale.with_locale(user.locale, fn -> question_text(poet, ask) end)
+      Client.send_message(chat_id, text)
+    else
+      _ -> :ok
+    end
+
+    {:noreply, state}
+  end
+
+  # A visiting poet would like this local's tips (card-10)
+  @impl true
+  def handle_info({:local_question, user_id, question_id}, state) do
+    with user when not is_nil(user) <- Accounts.get_user(user_id),
+         chat_id when is_integer(chat_id) <- user.telegram_chat_id,
+         %{} = question <- TravelingPoet.LocalVoices.get_for_user(user_id, question_id) do
+      link = Application.get_env(:traveling_poet, :phoenix_url, "")
+      text = Locale.with_locale(user.locale, fn -> local_question_text(question, link) end)
       Client.send_message(chat_id, text)
     else
       _ -> :ok
@@ -395,6 +412,12 @@ defmodule TravelingPoet.Telegram.Notifier do
       lines: lines,
       link: link
     )
+  end
+
+  @doc "A visiting poet's request for tips, with the way to the answer form. Pure, for tests."
+  def local_question_text(question, base_url) do
+    notice = TravelingPoet.LocalVoices.notice(question)
+    notice.title <> "\n\n" <> notice.body <> "\n" <> base_url <> notice.path
   end
 
   @doc "The note that says a planned trip moved on the calendar. Pure, for tests."

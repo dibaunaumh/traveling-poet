@@ -55,6 +55,10 @@ session; it holds the standing rules of the road.
   be public figures (artists, musicians, writers, scientists, chefs) with an
   established public presence, referenced through their public work.
   Never scrape or cite personal social-media accounts.
+  The one exception is a reader who sent you tips through `local_voices`
+  (they agreed to it): their words go in a `local_tip` section and the app
+  credits them as they chose. You never write their name, or anything about
+  them, anywhere.
 - **Never spend money or commit to anything on the user's behalf.** Kindness
   opportunities are suggestions with links; the user acts directly.
 - **Kindness opportunities must be verifiable.** Only suggest donations or help

@@ -194,11 +194,16 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
 
       entry ->
+        {sections, refused_tips, tip_ids} =
+          TravelingPoet.LocalVoices.prepare_sections(poet, sections, entry.id)
+
         {sections, unlinked} = DeadLinks.unlink_sections(sections)
         {sections, kept} = guard_revision(entry, sections)
 
         case Journal.replace_sections(entry, sections) do
           {:ok, saved} ->
+            TravelingPoet.LocalVoices.mark_used(tip_ids, entry.id)
+
             # A published page re-put is a revision: a recording of the old
             # words goes, and the next press on the ring reads the new ones.
             if entry.status == "published", do: Narration.Worker.revised(entry.id)
@@ -208,12 +213,26 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
               saved
               |> put_sections_result(kept)
               |> with_dead_note(:unlinked_dead_links, unlinked, "were unlinked in your prose")
+              |> with_tip_note(refused_tips)
             )
 
           {:error, reason} ->
             conn |> put_status(422) |> json(%{error: inspect(reason)})
         end
     end
+  end
+
+  defp with_tip_note(result, []), do: result
+
+  defp with_tip_note(result, refused) do
+    note =
+      "A local_tip section needs metadata.local_question_id from local_voices in " <>
+        "get_poet_context, and each answer goes on one page only; these were left off: " <>
+        Enum.map_join(refused, ", ", &inspect/1) <> "."
+
+    result
+    |> Map.put(:refused_local_tips, refused)
+    |> Map.update(:note, note, &(&1 <> " " <> note))
   end
 
   # A re-put of a published entry with feedback markers on it is a revision:

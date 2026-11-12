@@ -324,3 +324,19 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Not for you."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From %{name}, who lives in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From %{poet}'s companion, who lives in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From a reader who lives here"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "From a reader who lives in %{place}"
+msgstr ""

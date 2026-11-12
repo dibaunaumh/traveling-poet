@@ -9,7 +9,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   alias TravelingPoet.Guide.Place
   alias TravelingPoet.Journal.{Blank, Media}
-  alias TravelingPoet.Topics
+  alias TravelingPoet.{LocalVoices, Topics}
   alias TravelingPoetWeb.GuideComponents
 
   @doc """
@@ -1023,6 +1023,20 @@ defmodule TravelingPoetWeb.NotebookComponents do
           </:part>
         </.rich>
       </div>
+      <%!-- a local's tips (card-10): the app credits them as the local
+            chose, from what it stamped in; the poet never names them --%>
+      <p :if={@section.kind == "local_tip"} class="local-tip-credit text-sm opacity-70">
+        <a
+          :if={is_binary(@section.metadata["credit"]["poet_slug"])}
+          href={~p"/p/#{@section.metadata["credit"]["poet_slug"]}"}
+          class="link"
+        >
+          {LocalVoices.credit_text(@section.metadata["credit"])}
+        </a>
+        <span :if={!is_binary(@section.metadata["credit"]["poet_slug"])}>
+          {LocalVoices.credit_text(@section.metadata["credit"])}
+        </span>
+      </p>
       <a
         :if={@section.metadata["source_url"]}
         href={@section.metadata["source_url"]}

@@ -234,3 +234,19 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Your friend"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is in %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Answer"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You live nearby. Is there a place, a dish or a corner of town you would tell them about?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You said poets visiting your city may ask you. Settings can turn it off."
+msgstr ""

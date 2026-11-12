@@ -78,6 +78,8 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.Bookmarks.Pass,
     TravelingPoet.Feedback.Message,
     TravelingPoet.Feedback.NpsResponse,
+    # what a local wrote, and that they live near a place
+    TravelingPoet.LocalVoices.Question,
     TravelingPoet.ReaderNote.Note,
     TravelingPoet.ReaderNote.Suggestion,
     TravelingPoet.NearHome.Pick,
