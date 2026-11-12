@@ -9,7 +9,7 @@ defmodule TravelingPoet.AiCHealthTest do
 
   alias TravelingPoet.{Accounts, AiC, Credits, DailyJourneyScheduler, Email, Journal, Poets}
   alias TravelingPoet.{Repo, Telegram, Usage, WebPush}
-  alias TravelingPoet.AiC.{ReadTally, Roster}
+  alias TravelingPoet.AiC.Roster
   alias TravelingPoet.Email.Notifier
 
   setup do
@@ -421,26 +421,6 @@ defmodule TravelingPoet.AiCHealthTest do
       entry = page(poet)
       sent()
       %{user: user, poet: poet, entry: entry}
-    end
-
-    test "time on a part adds up and is sent once, in seconds",
-         %{user: user, poet: poet, entry: entry} do
-      ReadTally.add(user, entry, "story", 20_000)
-      ReadTally.add(user, entry, "story", 14_400)
-      ReadTally.add(user, entry, "places", 0)
-      ReadTally.add(user, entry, nil, 9_000)
-
-      reads = sent("read") |> Enum.sort_by(& &1["metadata"]["part"])
-      assert [places, story] = reads
-      assert story["actor"]["id"] == "user-#{user.id}"
-      assert story["recipient"]["id"] == "poet-#{poet.id}"
-      assert story["subjects"] == [%{"kind" => "entry", "id" => to_string(entry.id)}]
-      assert story["metadata"] == %{"channel" => "owner", "part" => "story"}
-      assert story["metrics"] == %{"seconds" => 34}
-      # opened and left at once: seen, for no time
-      assert places["metrics"] == %{"seconds" => 0}
-
-      assert sent("read") == []
     end
 
     test "a marker says praise or complaint, and which part it is on",

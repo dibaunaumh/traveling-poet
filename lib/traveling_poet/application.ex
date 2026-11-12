@@ -46,8 +46,6 @@ defmodule TravelingPoet.Application do
       # AIC_ENDPOINT and AIC_TOKEN are set)
       AliceInContext.Outbox,
       TravelingPoet.AiC.PubSubTap,
-      # Sums an owner's reading by part of the page and reports it each minute
-      TravelingPoet.AiC.ReadTally,
       # Retries first-entry kickoffs so a closed tab can't strand a new poet
       TravelingPoet.FirstEntry.Watchdog,
       # Sends feedback markers to the poet once the reader has gone quiet

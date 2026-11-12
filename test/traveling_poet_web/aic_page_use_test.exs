@@ -1,8 +1,8 @@
 defmodule TravelingPoetWeb.AiCPageUseTest do
   # What Alice-in-Context hears of a page in use: that a notification's link
-  # was followed, how long its owner spent on each part, what they pressed,
-  # and the page again when the poet adds to it after publishing. A public
-  # reader is never measured.
+  # was followed, what its owner pressed, and the page again when the poet
+  # adds to it after publishing. How long the owner read stays with the poet
+  # (reading signals); a public reader is never measured.
   use TravelingPoetWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -52,30 +52,25 @@ defmodule TravelingPoetWeb.AiCPageUseTest do
     refute Enum.any?(sent("read"), & &1["metadata"]["via"])
   end
 
-  test "the time the hook reports is told by part of the page",
+  test "the time the hook reports stays with the poet: no part of the page is timed here",
        %{conn: conn, user: user, entry: entry, date: date} do
-    {:ok, view, _html} = live(sign_in(conn, user), ~p"/journal/#{date}")
+    {:ok, view, _html} = live(sign_in(conn, user), ~p"/journal/#{date}?spread=places")
 
     render_hook(view, "paragraph_reads", %{
       "entry_id" => to_string(entry.id),
       "reads" => %{Paragraphs.key(@para) => 6_000}
     })
 
-    assert [read] = part_reads()
-    assert read["metadata"] == %{"channel" => "owner", "part" => "story"}
-    assert read["metrics"] == %{"seconds" => 6}
-    assert read["actor"]["id"] == "user-#{user.id}"
+    # kept for the poet, as before
+    assert TravelingPoet.Repo.aggregate(TravelingPoet.Reading.ParagraphRead, :count) == 1
+    assert part_reads() == []
   end
 
-  test "turning to the places is a read of that part, with a mount for link clicks",
+  test "an outside link followed is told with its host and its part of the page",
        %{conn: conn, user: user, entry: entry, date: date} do
     {:ok, view, html} = live(sign_in(conn, user), ~p"/journal/#{date}?spread=places")
     assert html =~ ~s(phx-hook="LinkClicks")
     assert html =~ ~s(id="links-#{entry.id}")
-
-    assert [read] = part_reads()
-    assert read["metadata"]["part"] == "places"
-    assert read["metrics"]["seconds"] >= 0
 
     render_hook(view, "link_click", %{
       "entry_id" => to_string(entry.id),
@@ -125,7 +120,7 @@ defmodule TravelingPoetWeb.AiCPageUseTest do
     assert sent("reaction") == []
   end
 
-  test "with reading signals off no part is timed and no link is followed",
+  test "with reading signals off no link is followed",
        %{conn: conn, user: user, entry: entry, date: date} do
     {:ok, user} = Accounts.update_user(user, %{reading_signals: false})
     {:ok, view, html} = live(sign_in(conn, user), ~p"/journal/#{date}?spread=places")

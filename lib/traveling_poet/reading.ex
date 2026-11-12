@@ -30,19 +30,11 @@ defmodule TravelingPoet.Reading do
   Returns the number of paragraphs recorded. Records nothing when the user
   turned reading signals off or the entry is not theirs.
   """
-  def record(user, entry, reads, today \\ Date.utc_today()),
-    do: user |> record_by_kind(entry, reads, today) |> elem(0)
+  def record(user, entry, reads, today \\ Date.utc_today())
 
-  @doc """
-  `record/4`, also saying where the time went: `{count, %{section_kind =>
-  ms}}` over the paragraphs recorded. The owner's journal passes the second
-  on as time per part of the page (`TravelingPoet.AiC.ReadTally`).
-  """
-  def record_by_kind(user, entry, reads, today \\ Date.utc_today())
+  def record(%User{reading_signals: false}, _entry, _reads, _today), do: 0
 
-  def record_by_kind(%User{reading_signals: false}, _entry, _reads, _today), do: {0, %{}}
-
-  def record_by_kind(%User{} = user, %Entry{} = entry, reads, today) when is_map(reads) do
+  def record(%User{} = user, %Entry{} = entry, reads, today) when is_map(reads) do
     if owner?(user, entry) do
       paragraphs = entry_paragraphs(entry)
       now = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_naive()
@@ -59,7 +51,6 @@ defmodule TravelingPoet.Reading do
             {p, ms} ->
               [
                 %{
-                  kind: p.section_kind,
                   user_id: user.id,
                   journal_entry_id: entry.id,
                   key: key,
@@ -75,7 +66,7 @@ defmodule TravelingPoet.Reading do
 
       # The day's row grows: a second visit adds its time to the first.
       {count, _} =
-        Repo.insert_all(ParagraphRead, Enum.map(rows, &Map.delete(&1, :kind)),
+        Repo.insert_all(ParagraphRead, rows,
           on_conflict:
             from(r in ParagraphRead,
               update: [
@@ -88,18 +79,13 @@ defmodule TravelingPoet.Reading do
           conflict_target: [:user_id, :journal_entry_id, :key, :read_on]
         )
 
-      by_kind =
-        Enum.reduce(rows, %{}, fn row, acc ->
-          Map.update(acc, row.kind, row.ms, &(&1 + row.ms))
-        end)
-
-      {count, by_kind}
+      count
     else
-      {0, %{}}
+      0
     end
   end
 
-  def record_by_kind(_user, _entry, _reads, _today), do: {0, %{}}
+  def record(_user, _entry, _reads, _today), do: 0
 
   @doc "Forgets every reading signal kept for `user`."
   def forget(%User{id: id}) do

@@ -253,29 +253,6 @@ defmodule TravelingPoet.AiC do
   end
 
   @doc """
-  Time the owner spent on one part of their page (`Journal.PageFacts` ids),
-  in seconds. Only ever sent for an owner who left reading signals on
-  (`TravelingPoet.Reading`); a public reader is never measured. Sent in
-  batches by `TravelingPoet.AiC.ReadTally`, and the times add up on the server.
-  """
-  def part_read(user, entry, part, seconds) do
-    poet = poet_party(%{id: entry.poet_id})
-
-    emit(%{
-      type: "activity",
-      verb: "read",
-      actor: reader_party(user),
-      recipient: poet,
-      subjects: [%{kind: "entry", id: to_string(entry.id)}],
-      hints: %{space: "organization", address: "Serve/shared/Journal/#{poet.id}/entries"},
-      body: entry_title(entry),
-      privacy: "internal",
-      metadata: %{channel: "owner", part: part},
-      metrics: %{seconds: seconds}
-    })
-  end
-
-  @doc """
   The owner did something on their page: saved a place, asked for hotels,
   pressed play, followed a link (`action`), on a part of it or on none.
   """

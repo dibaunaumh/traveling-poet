@@ -7,7 +7,6 @@ defmodule TravelingPoet.AiCStub do
   import ExUnit.Callbacks, only: [on_exit: 1]
 
   alias AliceInContext.Outbox
-  alias TravelingPoet.AiC.ReadTally
 
   @doc "Call from `setup`. Events left over from an earlier test are thrown away."
   def start do
@@ -33,7 +32,6 @@ defmodule TravelingPoet.AiCStub do
       end)
 
       Req.Test.allow(AliceInContext, self(), Process.whereis(Outbox))
-      ReadTally.flush()
       Outbox.flush()
 
       Application.delete_env(:alice_in_context, :endpoint)
@@ -47,11 +45,10 @@ defmodule TravelingPoet.AiCStub do
   @doc """
   Every event emitted since the last call, oldest first; with a verb, only
   those (usage metrics, which share verbs with what they count, left out).
-  The read tally hands over its own first. The PubSub tap subscribes at boot
+  The PubSub tap subscribes at boot
   only when AiC is configured, so in a test it forwards nothing.
   """
   def sent(verb \\ nil) do
-    ReadTally.flush()
     Outbox.flush()
     events = drain([])
 

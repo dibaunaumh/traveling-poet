@@ -34,7 +34,6 @@ defmodule TravelingPoetWeb.JournalLive do
   alias TravelingPoet.{Guide, Topics}
   alias TravelingPoet.Journal.{EntryBundle, Paragraphs, Spreads}
   alias TravelingPoet.Reading
-  alias TravelingPoet.AiC.ReadTally
   alias TravelingPoetWeb.ChatSidebarComponent
 
   require Logger
@@ -127,7 +126,6 @@ defmodule TravelingPoetWeb.JournalLive do
           |> assign(:active_marker, nil)
           |> assign(:hotels, nil)
           |> assign(:hotel_query, %{"adults" => "2"})
-          |> assign(:spread_open, nil)
           |> assign_journal(poet, nil)
           |> then(&assign(&1, :tour_open, &1.assigns.entries == []))
           |> assign(:tour_ready, false)
@@ -168,7 +166,6 @@ defmodule TravelingPoetWeb.JournalLive do
          socket
          |> assign_spread(params["spread"])
          |> via_read(params)
-         |> time_spread()
          |> open_chat(params)
          |> open_tour(params)
          |> push_map()}
@@ -200,49 +197,8 @@ defmodule TravelingPoetWeb.JournalLive do
 
   defp owner_here?(_socket), do: false
 
-  # The places, finds and stay spreads have no paragraphs for the ReadingTime
-  # hook to time, so their time is kept here: from turning to one until
-  # turning away, counted in steps so a closed tab keeps what it had, and never
-  # past `Reading.max_ms_per_report/0` a visit (longer is a tab left open).
-  # Reading signals only, like the paragraphs.
+  # The spreads that are a part of the page in their own right.
   @spread_parts ~w(places finds stay)
-  @spread_tick_ms 20_000
-
-  defp time_spread(socket) do
-    socket = count_spread(socket, false)
-    key = socket.assigns.spread && socket.assigns.spread.key
-
-    if owner_here?(socket) and socket.assigns.user.reading_signals and key in @spread_parts do
-      now = System.monotonic_time(:millisecond)
-      ReadTally.add(socket.assigns.user, socket.assigns.entry, key, 0)
-      Process.send_after(self(), {:spread_tick, now}, @spread_tick_ms)
-
-      assign(socket, :spread_open, %{
-        entry: socket.assigns.entry,
-        part: key,
-        opened: now,
-        last: now
-      })
-    else
-      socket
-    end
-  end
-
-  defp count_spread(%{assigns: %{spread_open: %{} = open}} = socket, keep?) do
-    now = System.monotonic_time(:millisecond)
-    left = Reading.max_ms_per_report() - (open.last - open.opened)
-    ms = (now - open.last) |> min(left) |> max(0)
-    ReadTally.add(socket.assigns.user, open.entry, open.part, ms)
-
-    if keep? and ms < left do
-      Process.send_after(self(), {:spread_tick, open.opened}, @spread_tick_ms)
-      assign(socket, :spread_open, %{open | last: now})
-    else
-      assign(socket, :spread_open, nil)
-    end
-  end
-
-  defp count_spread(socket, _keep?), do: socket
 
   # What the owner did on the page, for Alice-in-Context: a deliberate press,
   # so it is told whatever the reading-signals switch says.
@@ -773,19 +729,7 @@ defmodule TravelingPoetWeb.JournalLive do
     entry = socket.assigns[:entry]
 
     if entry && to_string(entry.id) == to_string(id) && is_map(reads) do
-      # The same time, by part of the page, goes to Alice-in-Context.
-      {_count, by_kind} = Reading.record_by_kind(socket.assigns.user, entry, reads)
-
-      if owner_here?(socket) do
-        Enum.each(by_kind, fn {kind, ms} ->
-          ReadTally.add(
-            socket.assigns.user,
-            entry,
-            TravelingPoet.Journal.PageFacts.part_of(kind),
-            ms
-          )
-        end)
-      end
+      Reading.record(socket.assigns.user, entry, reads)
     end
 
     {:noreply, socket}
@@ -1130,16 +1074,6 @@ defmodule TravelingPoetWeb.JournalLive do
     do:
       {:noreply,
        assign(socket, :near_home_picks, TravelingPoet.NearHome.this_week(socket.assigns.user.id))}
-
-  # A spread still open after another step (time_spread/1). A tick left over
-  # from a spread since turned away from is dropped.
-  @impl true
-  def handle_info({:spread_tick, opened}, socket) do
-    case socket.assigns[:spread_open] do
-      %{opened: ^opened} -> {:noreply, count_spread(socket, true)}
-      _ -> {:noreply, socket}
-    end
-  end
 
   @impl true
   def handle_info(msg, socket) do
