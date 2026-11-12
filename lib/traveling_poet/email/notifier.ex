@@ -15,6 +15,8 @@ defmodule TravelingPoet.Email.Notifier do
   use GenServer
   require Logger
 
+  use Gettext, backend: TravelingPoetWeb.Gettext
+
   alias TravelingPoet.{Accounts, Email, Journal, Poets}
   alias TravelingPoet.Email.EntryEmail
 
@@ -24,6 +26,7 @@ defmodule TravelingPoet.Email.Notifier do
   def init(_opts) do
     if Email.configured?() and Application.get_env(:traveling_poet, :email_notifier, true) do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "journal:published")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "local_voices")
       {:ok, %{}}
     else
       :ignore
@@ -36,7 +39,51 @@ defmodule TravelingPoet.Email.Notifier do
     {:noreply, state}
   end
 
+  def handle_info({:local_question, user_id, question_id}, state) do
+    Task.start(fn -> send_local_question(user_id, question_id) end)
+    {:noreply, state}
+  end
+
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @doc """
+  Asks a local for tips by email (card-10): most readers have no push or
+  Telegram, and the question is only open for a few days.
+  """
+  def send_local_question(user_id, question_id) do
+    with %{} = user <- Accounts.get_user(user_id),
+         true <- wants_email?(user),
+         %{} = question <- TravelingPoet.LocalVoices.get_for_user(user_id, question_id) do
+      Email.deliver(local_question_message(user, question))
+    else
+      _ -> :skipped
+    end
+  end
+
+  @doc false
+  def local_question_message(user, question) do
+    TravelingPoet.Locale.with_locale(user.locale, fn ->
+      notice = TravelingPoet.LocalVoices.notice(question)
+      link = url(notice.path)
+
+      foot =
+        dgettext(
+          "notify",
+          "You said poets visiting your city may ask you. Settings can turn it off."
+        )
+
+      %{
+        to: user.email,
+        subject: notice.title,
+        html:
+          ~s(<p>#{esc(notice.body)}</p><p><a href="#{esc(link)}">#{esc(dgettext("notify", "Answer"))}</a></p>) <>
+            ~s(<p style="opacity:0.7;font-size:90%">#{esc(foot)}</p>),
+        text: Enum.join([notice.body, link, foot], "\n\n")
+      }
+    end)
+  end
+
+  defp esc(s), do: s |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
 
   @doc "Builds and sends the page email for one entry, when the reader wants it."
   def send_entry(poet_id, entry_id) do

@@ -182,6 +182,27 @@ defmodule TravelingPoet.WebPush do
     end
   end
 
+  @doc "Asks a local for tips on a visiting poet's behalf (card-10)."
+  def notify_local_question(user_id, question_id) do
+    case TravelingPoet.LocalVoices.get_for_user(user_id, question_id) do
+      nil -> {0, 0}
+      question -> notify_user(user_id, fn -> local_question_payload(question) end)
+    end
+  end
+
+  @doc "What the device shows when a visiting poet asks for tips. Pure, for tests."
+  def local_question_payload(question) do
+    notice = TravelingPoet.LocalVoices.notice(question)
+
+    %{
+      title: notice.title,
+      body: notice.body,
+      url: notice.path,
+      tag: "local-question-#{question.id}",
+      icon: "/images/icon-192.png"
+    }
+  end
+
   @doc "Tells a reader that a friend they invited has their first page, and what it earned them (card-126)."
   def notify_referral_rewarded(referrer_id, friend_id) do
     case TravelingPoet.Accounts.get_user(friend_id) do

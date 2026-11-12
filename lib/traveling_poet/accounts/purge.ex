@@ -82,6 +82,9 @@ defmodule TravelingPoet.Accounts.Purge do
     grants_revoked = revoke_grants(user)
     # Feedback sent signed out from this address has no user row to go with
     TravelingPoet.Feedback.delete_signed_out(user.email)
+    # Their tips on other poets' pages carry their credit; the questions
+    # cascade, the sections would not
+    TravelingPoet.LocalVoices.forget(user)
 
     case Repo.delete(user) do
       {:ok, _} ->

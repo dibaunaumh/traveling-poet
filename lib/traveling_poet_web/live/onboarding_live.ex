@@ -76,6 +76,8 @@ defmodule TravelingPoetWeb.OnboardingLive do
         |> assign(:home, nil)
         |> assign(:home_results, [])
         |> assign(:home_error, nil)
+        |> assign(:local_voice, false)
+        |> assign(:local_voice_credit, "anonymous")
 
       socket = if connected?(socket), do: track_step(socket, :poet), else: socket
 
@@ -114,6 +116,16 @@ defmodule TravelingPoetWeb.OnboardingLive do
       home_lng: home.lng,
       home_country_code: home.country_code
     }
+
+  # Asked where the home city is given (card-10, dec-020): off unless they tick it
+  defp local_voice_attrs(attrs, %{home: nil}), do: attrs
+
+  defp local_voice_attrs(attrs, assigns),
+    do:
+      Map.merge(attrs, %{
+        local_voice: assigns.local_voice,
+        local_voice_credit: assigns.local_voice_credit
+      })
 
   defp look_up(socket, query, from) do
     socket
@@ -365,6 +377,15 @@ defmodule TravelingPoetWeb.OnboardingLive do
   end
 
   @impl true
+  def handle_event("toggle_local_voice", _params, socket),
+    do: {:noreply, update(socket, :local_voice, &(!&1))}
+
+  def handle_event("set_local_voice_credit", %{"credit" => credit}, socket)
+      when credit in ~w(name poet anonymous),
+      do: {:noreply, assign(socket, :local_voice_credit, credit)}
+
+  def handle_event("set_local_voice_credit", _params, socket), do: {:noreply, socket}
+
   def handle_event("clear_home", _params, socket),
     do: {:noreply, assign(socket, :home, nil)}
 
@@ -542,6 +563,7 @@ defmodule TravelingPoetWeb.OnboardingLive do
           Map.merge(
             %{name: user_name, onboarding_completed: true, onboarding_step: "done"},
             home_attrs(assigns.home)
+            |> local_voice_attrs(assigns)
           )
         )
 
@@ -1323,6 +1345,45 @@ defmodule TravelingPoetWeb.OnboardingLive do
                 {dgettext("onboarding", "Change")}
               </button>
             </div>
+            <div :if={@home} id="onboarding-local-voice" class="mt-3">
+              <label class="flex items-start gap-2">
+                <input
+                  id="onboarding-local-voice-toggle"
+                  type="checkbox"
+                  class="checkbox checkbox-sm mt-0.5"
+                  checked={@local_voice}
+                  phx-click="toggle_local_voice"
+                />
+                <span>
+                  {dgettext(
+                    "onboarding",
+                    "Other readers' poets visiting %{place} may ask me for tips. What I send goes on their public page.",
+                    place: TravelingPoet.LocalVoices.short_place(@home.place_name)
+                  )}
+                </span>
+              </label>
+              <form
+                :if={@local_voice}
+                id="onboarding-local-voice-credit"
+                phx-change="set_local_voice_credit"
+                class="ms-6 mt-2 space-y-1"
+              >
+                <p class="opacity-70">{dgettext("onboarding", "Under my tips, name me:")}</p>
+                <label
+                  :for={{value, label} <- local_voice_credits(@user_name, @poet_name)}
+                  class="flex items-center gap-2"
+                >
+                  <input
+                    type="radio"
+                    name="credit"
+                    value={value}
+                    class="radio radio-xs"
+                    checked={@local_voice_credit == value}
+                  />
+                  <span>{label}</span>
+                </label>
+              </form>
+            </div>
             <form
               :if={is_nil(@home)}
               id="onboarding-home-search"
@@ -1414,5 +1475,17 @@ defmodule TravelingPoetWeb.OnboardingLive do
       </div>
     </Layouts.app>
     """
+  end
+
+  defp local_voice_credits(user_name, poet_name) do
+    first = user_name |> to_string() |> String.split() |> List.first()
+
+    [
+      first && {"name", dgettext("onboarding", "By my first name, %{name}", name: first)},
+      poet_name not in [nil, ""] &&
+        {"poet", dgettext("onboarding", "As %{poet}'s companion", poet: poet_name)},
+      {"anonymous", dgettext("onboarding", "Not at all: a reader who lives here")}
+    ]
+    |> Enum.filter(& &1)
   end
 end

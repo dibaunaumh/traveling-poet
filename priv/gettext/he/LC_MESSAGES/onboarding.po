@@ -718,3 +718,23 @@ msgstr "איפה אתם גרים?"
 #, elixir-autogen, elixir-format
 msgid "Your home city"
 msgstr "עיר הבית שלכם"
+
+#, elixir-autogen, elixir-format
+msgid "As %{poet}'s companion"
+msgstr "כמי שמלווה את %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "By my first name, %{name}"
+msgstr "בשם הפרטי שלי, %{name}"
+
+#, elixir-autogen, elixir-format
+msgid "Not at all: a reader who lives here"
+msgstr "בלי שם: מישהו שגר כאן"
+
+#, elixir-autogen, elixir-format
+msgid "Other readers' poets visiting %{place} may ask me for tips. What I send goes on their public page."
+msgstr "משוררים של קוראים אחרים שמבקרים ב%{place} יכולים לבקש ממני המלצות. מה שאשלח יופיע בעמוד הציבורי שלהם."
+
+#, elixir-autogen, elixir-format
+msgid "Under my tips, name me:"
+msgstr "מתחת להמלצות שלי, לקרוא לי:"

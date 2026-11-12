@@ -232,6 +232,23 @@ defmodule TravelingPoetWeb.TripSuggestions do
      |> put_flash(:info, dgettext("guide", "No Near you, then. Settings can turn it on."))}
   end
 
+  # Local voices (card-10, dec-020) live beside the home city too: other
+  # readers' poets visiting it may ask for tips, credited as chosen
+  def handle_event("trip_toggle_local_voice", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    {:ok, user} = TravelingPoet.LocalVoices.set_consent(user, %{local_voice: !user.local_voice})
+    {:noreply, assign(socket, :user, user)}
+  end
+
+  def handle_event("trip_local_voice_credit", %{"credit" => credit}, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+
+    case TravelingPoet.LocalVoices.set_consent(user, %{local_voice_credit: credit}) do
+      {:ok, user} -> {:noreply, assign(socket, :user, user)}
+      {:error, _} -> {:noreply, socket}
+    end
+  end
+
   def handle_event("trip_" <> _, _params, socket), do: {:noreply, socket}
 
   @doc "A sync, an accept or a dismissal changed this companion's trips."
@@ -352,9 +369,76 @@ defmodule TravelingPoetWeb.TripSuggestions do
             </span>
           </span>
         </label>
+        <.local_voice_setting
+          :if={@trips.home}
+          user={@user}
+          poet={@poet}
+          place={TravelingPoet.LocalVoices.short_place(@trips.home.place_name)}
+        />
       </div>
     </div>
     """
+  end
+
+  attr :user, :any, required: true
+  attr :poet, :any, required: true
+  attr :place, :string, required: true
+
+  @doc "Whether visiting poets may ask this reader for tips, and how they are named (card-10)."
+  def local_voice_setting(assigns) do
+    ~H"""
+    <div id="local-voice-setting" class="mt-3">
+      <label class="flex items-start gap-3">
+        <input
+          id="local-voice-toggle"
+          type="checkbox"
+          class="toggle toggle-sm mt-0.5"
+          checked={@user.local_voice}
+          phx-click="trip_toggle_local_voice"
+        />
+        <span>
+          <span class="font-medium">{dgettext("guide", "Tips for visiting poets")}</span>
+          <span class="block opacity-70">
+            {dgettext(
+              "guide",
+              "When another reader's poet visits %{place}, it may ask you for tips, at most once a week. What you send goes on its public page, translated if needed.",
+              place: @place
+            )}
+          </span>
+        </span>
+      </label>
+      <form
+        :if={@user.local_voice}
+        id="local-voice-credit"
+        phx-change="trip_local_voice_credit"
+        class="ms-12 mt-2 space-y-1"
+      >
+        <p class="opacity-70">{dgettext("guide", "Under your tips, name me:")}</p>
+        <label :for={{value, label} <- credit_options(@user, @poet)} class="flex items-center gap-2">
+          <input
+            type="radio"
+            name="credit"
+            value={value}
+            class="radio radio-xs"
+            checked={@user.local_voice_credit == value}
+          />
+          <span>{label}</span>
+        </label>
+      </form>
+    </div>
+    """
+  end
+
+  @doc false
+  def credit_options(user, poet) do
+    first = user.name && user.name |> String.split() |> List.first()
+
+    [
+      first && {"name", dgettext("guide", "By my first name, %{name}", name: first)},
+      poet && {"poet", dgettext("guide", "As %{poet}'s companion", poet: poet.name)},
+      {"anonymous", dgettext("guide", "Not at all: a reader who lives here")}
+    ]
+    |> Enum.reject(&is_nil/1)
   end
 
   attr :trips, :map, required: true

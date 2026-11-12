@@ -324,3 +324,19 @@ msgstr "מקריאים את העמוד, זה יכול לקחת דקה"
 #, elixir-autogen, elixir-format
 msgid "Not for you."
 msgstr "לא בשבילכם."
+
+#, elixir-autogen, elixir-format
+msgid "From %{name}, who lives in %{place}"
+msgstr "מאת %{name}, מ%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "From %{poet}'s companion, who lives in %{place}"
+msgstr "מאת מי שמלווה את %{poet}, מ%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "From a reader who lives here"
+msgstr "מאת מישהו שגר כאן"
+
+#, elixir-autogen, elixir-format
+msgid "From a reader who lives in %{place}"
+msgstr "מאת מישהו שגר ב%{place}"

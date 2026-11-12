@@ -135,7 +135,11 @@ defmodule TravelingPoetWeb.Api.AgentController do
           ask_reader: Asks.due(poet),
           # Your question still waiting on an answer, if any. When they answer
           # with an interest, pass its id as `ask_id` to propose_topic.
-          open_ask: open_ask_payload(poet)
+          open_ask: open_ask_payload(poet),
+          # Tips from readers who live where you are (card-10): the app asked
+          # them for you. Put one on a page as a local_tip section with its
+          # local_question_id; the app credits it, you never name them.
+          local_voices: TravelingPoet.LocalVoices.payload(poet)
         })
     end
   end

@@ -139,7 +139,7 @@ defmodule TravelingPoet.Email.EntryEmail do
         prose = prose_html(s.body, Map.get(page, :spot_media, %{}), url)
 
         style = if s.kind == "poem", do: ~s( style="white-space:pre-line"), else: ""
-        heading <> ~s(<div#{lang}#{style}>#{prose}</div>)
+        heading <> ~s(<div#{lang}#{style}>#{prose}</div>) <> credit_html(s)
       end)
 
     places =
@@ -240,7 +240,7 @@ defmodule TravelingPoet.Email.EntryEmail do
       page.sections
       |> Enum.reject(&(&1.kind == "illustration"))
       |> Enum.map(fn s ->
-        [if(present(s.title), do: s.title), s.body]
+        [if(present(s.title), do: s.title), s.body, credit_line(s)]
         |> Enum.reject(&is_nil/1)
         |> Enum.join("\n\n")
       end)
@@ -264,4 +264,17 @@ defmodule TravelingPoet.Email.EntryEmail do
 
   defp present(nil), do: nil
   defp present(s), do: if(String.trim(s) == "", do: nil, else: s)
+
+  # A local's tips carry the credit the app stamped in (card-10)
+  defp credit_line(%{kind: "local_tip", metadata: metadata}),
+    do: TravelingPoet.LocalVoices.credit_text(metadata["credit"])
+
+  defp credit_line(_section), do: nil
+
+  defp credit_html(section) do
+    case credit_line(section) do
+      nil -> ""
+      text -> ~s(<p style="opacity:0.7;font-size:90%">#{esc(text)}</p>)
+    end
+  end
 end

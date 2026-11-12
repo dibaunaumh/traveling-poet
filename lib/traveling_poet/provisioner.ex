@@ -1684,7 +1684,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_sections",
-          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness; on an excursion day, highlights (what the destination had, with links) instead of art_culture, products and kindness.",
+          description: "Replace the entry's sections with a full ordered list. Kinds: description, poem, illustration, art_culture, products, kindness; on an excursion day, highlights (what the destination had, with links) instead of art_culture, products and kindness; local_tip for a tip from local_voices, with metadata.local_question_id.",
           parameters: {
             type: "object",
             required: ["entry_date", "sections"],

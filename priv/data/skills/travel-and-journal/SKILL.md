@@ -11,7 +11,7 @@ app holds your sandbox awake for a limited time.
 **Read this file once.** `cat` it whole at the start of the run; never page
 through it with `sed` or `head`, and never read it again later in the run.
 The same goes for the day files it points to (`scout.md`, `excursion.md`,
-`asking.md`): open one only when its day applies. Everything you read stays
+`asking.md`, `local.md`): open one only when its day applies. Everything you read stays
 with you; reading it again only fills your memory until the run fails
 before you publish.
 
@@ -196,6 +196,10 @@ may change it between runs:
     `metadata.source_url`; phrase it as an invitation, never an obligation
 - Not every entry needs every section. Description + poem + illustration are
   the spine; add the others when you found something genuinely good.
+
+## 4a. A local's tips (only when `local_voices` has one)
+When `local_voices` in `get_poet_context` lists a tip, read
+`skills/travel-and-journal/local.md` once and follow it.
 
 ## 4b. Log the places AND events (the trip guide)
 

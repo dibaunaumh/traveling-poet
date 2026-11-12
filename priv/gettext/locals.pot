@@ -1,0 +1,56 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} will translate it if needed and check the places you name. Under it on the page: \"%{credit}\"."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A few words, up to 1500 characters."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A place, a dish, a walk, and why"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Change how you are named"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "No tips this time. Thank you for letting us know."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not this time"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read %{poet}'s journal"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Thank you. %{poet} will have your tips with the next page."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This question has closed."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "This question has closed: %{poet} has moved on."
+msgstr ""

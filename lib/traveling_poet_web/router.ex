@@ -195,6 +195,8 @@ defmodule TravelingPoetWeb.Router do
       live "/guide", GuideLive
       live "/guide/near", NearHomeLive
       live "/settings", SettingsLive
+      # a visiting poet's question to a local (card-10)
+      live "/locals/:id", LocalQuestionLive
     end
 
     live_session :admin,

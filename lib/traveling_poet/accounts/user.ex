@@ -94,6 +94,10 @@ defmodule TravelingPoet.Accounts.User do
     field :near_home_card_hidden_week, :date
     # When they last said "Not now" to the recommend question (card-137)
     field :nps_prompt_dismissed_at, :utc_datetime
+    # Local voices (card-10, dec-020): poets visiting their home city may
+    # ask them for tips, credited as they chose (`LocalVoices.credits/0`)
+    field :local_voice, :boolean, default: false
+    field :local_voice_credit, :string, default: "anonymous"
 
     has_one :poet, TravelingPoet.Poets.Poet
 
@@ -157,10 +161,13 @@ defmodule TravelingPoet.Accounts.User do
       :home_place_name,
       :home_lat,
       :home_lng,
-      :home_country_code
+      :home_country_code,
+      :local_voice,
+      :local_voice_credit
     ])
     |> validate_required([:email])
     |> validate_inclusion(:locale, TravelingPoet.Locale.supported())
+    |> validate_inclusion(:local_voice_credit, ~w(name poet anonymous))
     |> validate_has_identity()
     |> unique_constraint(:email)
     |> unique_constraint(:google_id)

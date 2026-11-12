@@ -234,3 +234,19 @@ msgstr "העמוד הראשון שלהם הגיע עכשיו, ו־%{credits} ק�
 #, elixir-autogen, elixir-format
 msgid "Your friend"
 msgstr "מי שהזמנתם"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} is in %{place}"
+msgstr "%{poet} נמצא ב%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "Answer"
+msgstr "לענות"
+
+#, elixir-autogen, elixir-format
+msgid "You live nearby. Is there a place, a dish or a corner of town you would tell them about?"
+msgstr "זאת העיר שלך: יש מקום, מנה או פינה שכדאי להכיר?"
+
+#, elixir-autogen, elixir-format
+msgid "You said poets visiting your city may ask you. Settings can turn it off."
+msgstr "אישרת שמשוררים שמבקרים בעיר שלך יכולים לשאול אותך. אפשר לכבות את זה בהגדרות."

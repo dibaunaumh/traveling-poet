@@ -25,6 +25,7 @@ defmodule TravelingPoet.WebPush.Notifier do
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "chat")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "near_home")
       Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "referrals")
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "local_voices")
       {:ok, %{}}
     else
       :ignore
@@ -106,6 +107,13 @@ defmodule TravelingPoet.WebPush.Notifier do
   @impl true
   def handle_info({:near_home_ready, user_id, _date}, state) do
     Task.start(fn -> WebPush.notify_near_home(user_id) end)
+    {:noreply, state}
+  end
+
+  # A visiting poet would like this local's tips (card-10)
+  @impl true
+  def handle_info({:local_question, user_id, question_id}, state) do
+    Task.start(fn -> WebPush.notify_local_question(user_id, question_id) end)
     {:noreply, state}
   end
 

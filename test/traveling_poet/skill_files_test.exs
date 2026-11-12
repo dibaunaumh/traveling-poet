@@ -12,7 +12,7 @@ defmodule TravelingPoet.SkillFilesTest do
 
     assert byte_size(skill) < 24_000
 
-    for day_file <- ~w(scout.md excursion.md asking.md stay.md) do
+    for day_file <- ~w(scout.md excursion.md asking.md stay.md local.md) do
       assert Map.has_key?(files, "travel-and-journal/#{day_file}"), "#{day_file} not shipped"
       assert skill =~ "skills/travel-and-journal/#{day_file}"
     end
@@ -25,6 +25,7 @@ defmodule TravelingPoet.SkillFilesTest do
     assert files["travel-and-journal/excursion.md"] =~ "## 2d. Taste day"
     assert files["travel-and-journal/scout.md"] =~ "itinerary_stop_id"
     assert files["travel-and-journal/asking.md"] =~ "`ask_reader`"
+    assert files["travel-and-journal/local.md"] =~ "local_question_id"
   end
 
   # Spaces phase 2: the poet is told, in a few lines, that a dish, an artwork

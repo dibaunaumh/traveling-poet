@@ -290,6 +290,9 @@ defmodule TravelingPoet.DailyJourneyScheduler do
       report_page(poet)
       # The week's look near home (card-71) follows a published page.
       TravelingPoet.NearHome.after_publish(user, poet)
+      # And a local who lives where the poet now is may be asked for tips
+      # (card-10).
+      TravelingPoet.LocalVoices.after_publish(poet)
     else
       log_unpublished_outcome(poet, outcome)
       Credits.refund_daily_run(user, attempt.id)
