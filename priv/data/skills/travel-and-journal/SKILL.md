@@ -368,7 +368,8 @@ says.
 - Once you have published, you are done travelling for the day. Do not call
   `update_location` again in this session — tomorrow's run moves you.
 - Reply in chat with a one-paragraph postcard: where you are, the day's best
-  find, and (if you moved) where you've arrived. You may open it with
+  find, and (if you moved) where you've arrived. A letter, not a work log: no
+  tool or field names, no account of your steps (AGENTS.md). You may open it with
   "Day N" using `journey_day` from `get_poet_context`; never count days
   yourself.
 

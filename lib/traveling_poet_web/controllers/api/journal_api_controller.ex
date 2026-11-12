@@ -194,6 +194,8 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
         |> json(%{error: "no entry for #{date_str}; call journal_upsert_entry first"})
 
       entry ->
+        {sections, empty} = drop_empty_sections(sections)
+
         {sections, refused_tips, tip_ids} =
           TravelingPoet.LocalVoices.prepare_sections(poet, sections, entry.id)
 
@@ -213,6 +215,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
               saved
               |> put_sections_result(kept)
               |> with_dead_note(:unlinked_dead_links, unlinked, "were unlinked in your prose")
+              |> with_empty_note(empty)
               |> with_tip_note(refused_tips)
             )
 
@@ -232,6 +235,60 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
     result
     |> Map.put(:refused_local_tips, refused)
+    |> Map.update(:note, note, &(&1 <> " " <> note))
+  end
+
+  # Nam's model, 2026-11-11, sent every section as two objects: one with only
+  # a title it made up ("Fifty-two days to Timbuktu - section: description
+  # [invalid title]"), one with the kind and body. The title-only ones were
+  # stored as empty sections with headings, and the daily email, sent on
+  # publish, printed them before the poet fixed the page 30 seconds later. A
+  # section with no words is dropped and named in the reply. An illustration
+  # with no caption stays when it is the only section carrying its drawing.
+  defp drop_empty_sections(sections) do
+    worded = sections |> Enum.filter(&worded?/1) |> MapSet.new(&field(&1, "media_id"))
+
+    {kept, dropped, _drawn} =
+      Enum.reduce(sections, {[], [], MapSet.new()}, fn s, {kept, dropped, drawn} ->
+        media_id = field(s, "media_id")
+
+        cond do
+          worded?(s) ->
+            {[s | kept], dropped, drawn}
+
+          field(s, "kind") == "illustration" and media_id != nil and
+            not MapSet.member?(worded, media_id) and not MapSet.member?(drawn, media_id) ->
+            {[s | kept], dropped, MapSet.put(drawn, media_id)}
+
+          true ->
+            {kept, [describe_section(s) | dropped], drawn}
+        end
+      end)
+
+    {Enum.reverse(kept), Enum.reverse(dropped)}
+  end
+
+  defp worded?(s), do: is_binary(field(s, "body")) and String.trim(field(s, "body")) != ""
+
+  defp field(s, key) when is_map(s), do: Map.get(s, key) || Map.get(s, String.to_atom(key))
+  defp field(_s, _key), do: nil
+
+  defp describe_section(s) do
+    case {field(s, "kind"), field(s, "title")} do
+      {kind, title} when is_binary(title) and title != "" -> "#{kind || "no kind"}: #{title}"
+      {kind, _} -> kind || "no kind"
+    end
+  end
+
+  defp with_empty_note(result, []), do: result
+
+  defp with_empty_note(result, empty) do
+    note =
+      "These sections had no body and were left off the page: #{Enum.join(empty, "; ")}. " <>
+        "Send each section as one object with its kind, title and body together."
+
+    result
+    |> Map.put(:dropped_empty_sections, empty)
     |> Map.update(:note, note, &(&1 <> " " <> note))
   end
 

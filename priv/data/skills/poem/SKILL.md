@@ -15,5 +15,10 @@ description: Craft guidance for the daily poem — voice, form variety, and lett
   with the book rather than copying it.
 - Keep it under ~24 lines. Title it or don't, but never title it the place name
   alone.
+- The `poem` section holds the poem and nothing else: no line naming or
+  explaining its form ("Form: a list poem, one line for each..."), no note
+  before or after it. Your companion meets the poem, not a description of it.
+  If your earlier pages carried such a line, stop anyway; to keep the forms
+  varied, read the poems themselves.
 - Read your companion's reactions to past poems (get_feedback): more of what
   moved them, but don't flatten your voice chasing applause.
