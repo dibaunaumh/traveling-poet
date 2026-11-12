@@ -12,6 +12,8 @@ defmodule TravelingPoet.AgentSession do
   alias TravelingPoet.{Chat, GatewaySocket, GatewaySocketSupervisor, SpriteHold}
 
   @default_reply_timeout_ms 5 * 60 * 1000
+  # A cold boot had the gateway ready 50 to 85 s after the wake (2026-11-12).
+  @connect_within_ms 150_000
 
   @doc """
   Runs one exchange. Options:
@@ -39,36 +41,40 @@ defmodule TravelingPoet.AgentSession do
     # (an app note ahead of their words, `Asks.frame_reply/2`).
     record = Keyword.get(opts, :record_as, message)
 
-    case GatewaySocketSupervisor.ensure_connected(user, attempts: 6) do
-      {:ok, pid} ->
-        GatewaySocket.subscribe(pid)
-        GatewaySocket.send_message(pid, message)
-        TravelingPoet.AiC.turn_requested(user, channel, record)
+    # The hold starts before the connect: a sprite that wakes from a cold
+    # boot needs a minute or more before its gateway answers, and with
+    # nothing holding it the sprite could pause again in the meantime.
+    SpriteHold.with_hold(user.sprite_name, "turn", fn ->
+      case GatewaySocketSupervisor.ensure_connected(user,
+             attempts: 6,
+             within_ms: @connect_within_ms
+           ) do
+        {:ok, pid} ->
+          GatewaySocket.subscribe(pid)
+          GatewaySocket.send_message(pid, message)
+          TravelingPoet.AiC.turn_requested(user, channel, record)
 
-        if persist? do
-          Chat.create_message(%{
-            user_id: user.id,
-            role: "user",
-            content: record,
-            channel: channel
-          })
-        end
+          if persist? do
+            Chat.create_message(%{
+              user_id: user.id,
+              role: "user",
+              content: record,
+              channel: channel
+            })
+          end
 
-        result =
-          SpriteHold.with_hold(user.sprite_name, "turn", fn ->
-            collect_reply(user, "", timeout, persist?, channel)
-          end)
+          result = collect_reply(user, "", timeout, persist?, channel)
+          GatewaySocket.unsubscribe(pid)
+          result
 
-        GatewaySocket.unsubscribe(pid)
-        result
+        err ->
+          Logger.warning(
+            "AgentSession: could not connect gateway for user #{user.id}: #{inspect(err)}"
+          )
 
-      err ->
-        Logger.warning(
-          "AgentSession: could not connect gateway for user #{user.id}: #{inspect(err)}"
-        )
-
-        {:error, err}
-    end
+          {:error, err}
+      end
+    end)
   rescue
     e ->
       Logger.warning(
