@@ -122,6 +122,8 @@ defmodule TravelingPoet.Accounts do
       from(u in User, where: u.id == ^user.id)
       |> Repo.update_all(set: [last_seen_at: now])
 
+      # The first time on a UTC day tells Alice-in-Context the reader was here.
+      TravelingPoet.AiC.Users.seen(user, user.last_seen_at, now)
       %{user | last_seen_at: now}
     end
   end

@@ -84,6 +84,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   def handle_info(:tick, state) do
     settle_interrupted()
     state = announce_roster(state)
+    state = announce_users(state)
     poets = due_poets()
 
     if poets != [] do
@@ -113,6 +114,16 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   rescue
     e ->
       Logger.debug("DailyJourneyScheduler: roster not announced: #{inspect(e)}")
+      state
+  end
+
+  # And where each reader stands with the app (AiC.Users): their facts when
+  # they change, and the visitor counts. Never in the way of the runs either.
+  defp announce_users(state) do
+    Map.put(state, :users, TravelingPoet.AiC.Users.announce(Map.get(state, :users, %{})))
+  rescue
+    e ->
+      Logger.debug("DailyJourneyScheduler: users not announced: #{inspect(e)}")
       state
   end
 
