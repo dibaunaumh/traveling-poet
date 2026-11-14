@@ -286,4 +286,41 @@ defmodule TravelingPoet.JournalTest do
       assert Journal.backfill_coordinates() == []
     end
   end
+
+  # Ottoline Frost, 2026-11-14: a failed attempt's drawings went out on the
+  # retry's page, which was about something else.
+  describe "set_aside_draft_media/1 before a retry" do
+    test "the failed attempt's drawings leave the draft, a published page keeps its own",
+         %{poet: poet} do
+      published = published_entry_fixture(poet, %{entry_date: ~D[2026-11-13]})
+      kept = media_fixture(poet, %{journal_entry_id: published.id})
+
+      draft = entry_fixture(poet, %{entry_date: ~D[2026-11-14]})
+      stray = media_fixture(poet, %{journal_entry_id: draft.id})
+      stray_spot = media_fixture(poet, %{journal_entry_id: draft.id, kind: "spot"})
+
+      assert [%{id: id}] = Journal.unattached_illustrations(draft, [])
+      assert id == stray.id
+
+      assert Journal.set_aside_draft_media(poet.id) == 2
+
+      assert Journal.unattached_illustrations(draft, []) == []
+      assert Journal.spot_media(draft) == []
+      assert Repo.get(Media, stray_spot.id).journal_entry_id == nil
+      assert Repo.get(Media, kept.id).journal_entry_id == published.id
+    end
+
+    test "a drawing set aside comes back when the retry's section names it", %{poet: poet} do
+      draft = entry_fixture(poet, %{entry_date: ~D[2026-11-14]})
+      drawing = media_fixture(poet, %{journal_entry_id: draft.id})
+      Journal.set_aside_draft_media(poet.id)
+
+      {:ok, _} =
+        Journal.replace_sections(draft, [
+          %{"kind" => "illustration", "body" => "", "media_id" => drawing.id}
+        ])
+
+      assert Repo.get(Media, drawing.id).journal_entry_id == draft.id
+    end
+  end
 end
