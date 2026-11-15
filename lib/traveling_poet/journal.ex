@@ -270,6 +270,37 @@ defmodule TravelingPoet.Journal do
   end
 
   @doc """
+  Sets aside the drawings on this poet's unpublished pages before a retried
+  daily run, by unlinking them from the entry. Nothing is deleted.
+
+  A retry starts a fresh conversation, so it never knows what the failed
+  attempt drew and draws its own. The failed attempt's drawings stayed linked
+  to the draft, and the page shows every linked drawing that no section
+  claims. Ottoline Frost, 2026-11-14: the first attempt drew a Wallingford
+  street and two food vignettes, died mid-turn, and the retry's page about
+  Hmong New Year went out with all three on it. An unlinked drawing comes
+  back if a section names it again (`link_media/2` relinks unlinked rows).
+
+  Published entries are never touched: a revision's drawings belong there.
+  Returns the number of drawings set aside.
+  """
+  def set_aside_draft_media(poet_id) do
+    drafts =
+      from(e in Entry, where: e.poet_id == ^poet_id and e.status != "published", select: e.id)
+
+    {count, _} =
+      Repo.update_all(
+        from(m in Media,
+          where: m.poet_id == ^poet_id and m.journal_entry_id in subquery(drafts),
+          where: m.kind in ["illustration", "spot"]
+        ),
+        set: [journal_entry_id: nil]
+      )
+
+    count
+  end
+
+  @doc """
   Whether this poet published anything at or after `since` — the daily run's
   real outcome. A run that talked but never published hasn't happened.
   """

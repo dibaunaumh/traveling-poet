@@ -211,6 +211,7 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     retry? = attempts_today(user.id, DateTime.utc_now()) > 0
     {:ok, attempt} = Usage.record(user.id, "daily_run_attempt")
     before_attempt(user, retry?)
+    if retry?, do: set_aside_failed_drawings(poet)
 
     started_at = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -246,6 +247,20 @@ defmodule TravelingPoet.DailyJourneyScheduler do
   # derailed session only fails again (Provisioner.fresh_start/1).
   def before_attempt(user, retry?) do
     if retry?, do: Provisioner.fresh_start(user), else: :first
+  end
+
+  # The fresh conversation draws its own; what the failed attempt drew would
+  # otherwise show on the retry's page (Journal.set_aside_draft_media/1).
+  defp set_aside_failed_drawings(poet) do
+    case Journal.set_aside_draft_media(poet.id) do
+      0 ->
+        :ok
+
+      n ->
+        Logger.info(
+          "DailyJourneyScheduler: poet #{poet.id} retry set aside #{n} drawing(s) from the failed attempt"
+        )
+    end
   end
 
   @doc """
