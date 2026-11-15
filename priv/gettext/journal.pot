@@ -872,3 +872,83 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "How is this drawing?"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{right} of %{of}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "A little quiz"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Bravo!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Fellow traveler"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Fresh off the train"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Keeper of the notebook"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Next question"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Not quite. It was %{letter}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Pages to look back at"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Play along. Your answers are not saved."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Question %{n} of %{of}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Read it again: %{page}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Right!"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "See your score"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Two truths and a fib: which did I make up?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Where did I draw this?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Which came first?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Which is true?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your answers stay between you and %{poet}."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your stamps"
+msgstr ""

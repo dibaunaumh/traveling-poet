@@ -872,3 +872,83 @@ msgstr "משוב על הציור"
 #, elixir-autogen, elixir-format
 msgid "How is this drawing?"
 msgstr "מה דעתכם על הציור?"
+
+#, elixir-autogen, elixir-format
+msgid "%{right} of %{of}"
+msgstr "%{right} מתוך %{of}"
+
+#, elixir-autogen, elixir-format
+msgid "A little quiz"
+msgstr "חידון קטן"
+
+#, elixir-autogen, elixir-format
+msgid "Bravo!"
+msgstr "בראבו!"
+
+#, elixir-autogen, elixir-format
+msgid "Fellow traveler"
+msgstr "שותף לדרך"
+
+#, elixir-autogen, elixir-format
+msgid "Fresh off the train"
+msgstr "רק ירדת מהרכבת"
+
+#, elixir-autogen, elixir-format
+msgid "Keeper of the notebook"
+msgstr "שומר המחברת"
+
+#, elixir-autogen, elixir-format
+msgid "Next question"
+msgstr "לשאלה הבאה"
+
+#, elixir-autogen, elixir-format
+msgid "Not quite. It was %{letter}."
+msgstr "לא בדיוק. התשובה הייתה %{letter}."
+
+#, elixir-autogen, elixir-format
+msgid "Pages to look back at"
+msgstr "דפים שכדאי לחזור אליהם"
+
+#, elixir-autogen, elixir-format
+msgid "Play along. Your answers are not saved."
+msgstr "שחקו איתנו. התשובות שלכם לא נשמרות."
+
+#, elixir-autogen, elixir-format
+msgid "Question %{n} of %{of}"
+msgstr "שאלה %{n} מתוך %{of}"
+
+#, elixir-autogen, elixir-format
+msgid "Read it again: %{page}"
+msgstr "לקרוא שוב: %{page}"
+
+#, elixir-autogen, elixir-format
+msgid "Right!"
+msgstr "נכון!"
+
+#, elixir-autogen, elixir-format
+msgid "See your score"
+msgstr "לראות את התוצאה"
+
+#, elixir-autogen, elixir-format
+msgid "Two truths and a fib: which did I make up?"
+msgstr "שתי אמיתות ושקר אחד: מה המצאתי?"
+
+#, elixir-autogen, elixir-format
+msgid "Where did I draw this?"
+msgstr "איפה ציירתי את זה?"
+
+#, elixir-autogen, elixir-format
+msgid "Which came first?"
+msgstr "מה היה קודם?"
+
+#, elixir-autogen, elixir-format
+msgid "Which is true?"
+msgstr "מה נכון?"
+
+#, elixir-autogen, elixir-format
+msgid "Your answers stay between you and %{poet}."
+msgstr "התשובות שלך נשארות בינך לבין %{poet}."
+
+#, elixir-autogen, elixir-format
+msgid "Your stamps"
+msgstr "החותמות שלך"

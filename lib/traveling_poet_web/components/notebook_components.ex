@@ -113,6 +113,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
   slot :controls, doc: "beside the heading: marker menu, earlier/later links"
   slot :left_footer
   slot :right_footer, doc: "under the drawing and poem: prompt, reactions"
+  slot :right_header, doc: "the top of the right page: a quiz day's quiz"
 
   slot :under_drawing,
     doc: "right under the main drawing (the first on the page); gets the drawing's media"
@@ -158,8 +159,9 @@ defmodule TravelingPoetWeb.NotebookComponents do
       </div>
       <div class={[
         "notebook-page spread-page spread-right",
-        @spread.right == [] and @right_footer == [] and "spread-page-empty"
+        @spread.right == [] and @right_footer == [] and @right_header == [] and "spread-page-empty"
       ]}>
+        {render_slot(@right_header)}
         <%= for item <- @spread.right do %>
           <.spread_item
             item={item}

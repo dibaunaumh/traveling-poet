@@ -319,6 +319,7 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign(:find_media, bundle.find_media)
     |> assign(:spot_media, bundle.spot_media)
     |> TravelingPoetWeb.Listening.assign_narration(entry, bundle.narration)
+    |> TravelingPoetWeb.QuizPlay.assign_quiz(bundle.quiz, quiz_owner(socket, poet))
     |> assign_stay(poet, bundle.stay_id)
     |> assign_route(poet, entry)
     |> assign(:spreads, bundle.spreads)
@@ -328,6 +329,15 @@ defmodule TravelingPoetWeb.JournalLive do
     |> assign_prompt(poet, entry)
     |> assign_nps(poet, entry)
     |> assign_spread(nil)
+  end
+
+  # The poet's own reader, whose quiz answers are kept; an admin looking on
+  # plays without keeping anything.
+  defp quiz_owner(socket, poet) do
+    case socket.assigns.current_user do
+      %{id: id} = user when id == poet.user_id -> user
+      _ -> nil
+    end
   end
 
   # Whether the recommend question is due under this page (card-137): the
@@ -521,6 +531,10 @@ defmodule TravelingPoetWeb.JournalLive do
   def handle_event("close_tour", _params, socket) do
     {:noreply, socket |> assign(:tour_open, false) |> assign(:tour_ready, false)}
   end
+
+  # A quiz day's quiz (card-140): the owner's answers are kept.
+  def handle_event(event, params, socket) when event in ["quiz_answer", "quiz_next"],
+    do: TravelingPoetWeb.QuizPlay.handle_event(event, params, socket)
 
   # A page without a recording, read because the reader pressed play
   # (TravelingPoetWeb.Listening).
@@ -1647,6 +1661,16 @@ defmodule TravelingPoetWeb.JournalLive do
                   {label}
                 </.link>
               </:controls>
+              <:right_header :if={@quiz}>
+                <TravelingPoetWeb.QuizComponents.quiz_card
+                  quiz={@quiz}
+                  answers={@quiz_answers}
+                  reveal={@quiz_reveal}
+                  poet={@poet}
+                  saves={@quiz_owner != nil}
+                  page_path={&~p"/journal/#{Date.to_iso8601(&1)}"}
+                />
+              </:right_header>
               <:under_drawing :let={drawing}>
                 <.drawing_feedback
                   media={drawing}
@@ -1658,7 +1682,7 @@ defmodule TravelingPoetWeb.JournalLive do
               </:under_drawing>
               <:right_footer>
                 <.push_nudge push={@push} poet={@poet} entry={@entry} next={@next_page} />
-                <div :if={@prompt} class="border-t border-base-300 pt-3 mt-4">
+                <div :if={@prompt && !@quiz} class="border-t border-base-300 pt-3 mt-4">
                   <div :if={is_nil(@prompt_answer)}>
                     <p class="text-sm font-medium mb-2">{@prompt.question}</p>
                     <div class="flex flex-wrap items-center gap-2">

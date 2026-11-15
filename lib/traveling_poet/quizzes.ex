@@ -180,6 +180,106 @@ defmodule TravelingPoet.Quizzes do
     :ok
   end
 
+  ## Playing
+
+  @doc "The quiz on a published entry, ready to play (drawings and sources loaded); nil if none."
+  def playable(nil), do: nil
+
+  def playable(%Entry{status: "published"} = entry) do
+    Quiz
+    |> where(journal_entry_id: ^entry.id)
+    |> preload(questions: [:media, :source_entry])
+    |> Repo.one()
+    |> case do
+      %Quiz{questions: [_ | _]} = quiz -> quiz
+      _ -> nil
+    end
+  end
+
+  def playable(_entry), do: nil
+
+  @doc "`playable/1` for many entries at once: `%{entry_id => quiz}` (the book, the bundle)."
+  def playable_by_entry([]), do: %{}
+
+  def playable_by_entry(entry_ids) do
+    Quiz
+    |> where([q], q.journal_entry_id in ^entry_ids)
+    |> preload(questions: [:media, :source_entry])
+    |> Repo.all()
+    |> Enum.reject(&(&1.questions == []))
+    |> Map.new(&{&1.journal_entry_id, &1})
+  end
+
+  @doc "The owner's answers so far, `%{question_id => option_id}`."
+  def answers_for(%Quiz{questions: questions}, user_id) do
+    ids = Enum.map(questions, & &1.id)
+
+    from(a in Answer,
+      where: a.user_id == ^user_id and a.question_id in ^ids,
+      select: {a.question_id, a.option_id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
+  Keeps the owner's answer to one question. One try: a second answer to the
+  same question is ignored and the first stands. Only the poet's own reader
+  is kept (dec-021); anyone else plays in the page.
+  """
+  def answer(%Quiz{} = quiz, %User{} = user, question_id, option_id) do
+    question = Enum.find(quiz.questions, &(&1.id == question_id))
+
+    cond do
+      is_nil(question) or not Enum.any?(question.options, &(&1["id"] == option_id)) ->
+        {:error, :unknown}
+
+      not owner?(quiz, user) ->
+        {:error, :not_owner}
+
+      true ->
+        %Answer{}
+        |> Answer.changeset(%{
+          question_id: question.id,
+          user_id: user.id,
+          option_id: option_id,
+          correct: right?(question, option_id)
+        })
+        |> Repo.insert(on_conflict: :nothing, conflict_target: [:question_id, :user_id])
+        |> case do
+          {:ok, _} -> {:ok, answers_for(quiz, user.id)}
+          error -> error
+        end
+    end
+  end
+
+  defp owner?(%Quiz{poet_id: poet_id}, %User{id: user_id}),
+    do: Repo.exists?(from p in Poet, where: p.id == ^poet_id and p.user_id == ^user_id)
+
+  def right?(%Question{answer_id: answer_id}, option_id), do: answer_id == option_id
+
+  @doc "`%{right, of, tier}` for a set of answers; `tier` picks the poet's closing note."
+  def score(%Quiz{questions: questions}, answers) do
+    right = Enum.count(questions, &right?(&1, Map.get(answers, &1.id)))
+    of = length(questions)
+    %{right: right, of: of, tier: tier(right, of)}
+  end
+
+  @doc "high (about 4 in 5 right), mid (half or more), low."
+  def tier(right, of) when of > 0 do
+    cond do
+      right / of >= 0.8 -> "high"
+      right / of >= 0.5 -> "mid"
+      true -> "low"
+    end
+  end
+
+  def tier(_right, _of), do: "low"
+
+  @doc "Whether every question has an answer."
+  def finished?(%Quiz{questions: questions}, answers),
+    do: Enum.all?(questions, &Map.has_key?(answers, &1.id))
+
   ## The handout
 
   @doc """

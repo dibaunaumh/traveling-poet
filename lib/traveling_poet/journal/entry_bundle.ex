@@ -29,6 +29,7 @@ defmodule TravelingPoet.Journal.EntryBundle do
             find_media: %{},
             stay_id: nil,
             narration: nil,
+            quiz: nil,
             spreads: []
 
   @type t :: %__MODULE__{}
@@ -64,6 +65,12 @@ defmodule TravelingPoet.Journal.EntryBundle do
     areas_by_entry = Stay.list_for_entries(entry_ids)
     narration_by_entry = TravelingPoet.Narration.narration_by_entry(entry_ids)
 
+    quiz_by_entry =
+      entries
+      |> Enum.filter(&(&1.status == "published"))
+      |> Enum.map(& &1.id)
+      |> TravelingPoet.Quizzes.playable_by_entry()
+
     media_ids =
       Enum.flat_map(entries, fn e -> Enum.map(e.sections, & &1.media_id) end) ++
         Enum.flat_map(Map.values(places_by_entry), fn ps -> Enum.map(ps, & &1.media_id) end) ++
@@ -95,12 +102,20 @@ defmodule TravelingPoet.Journal.EntryBundle do
         find_media: pick(all_media, Enum.map(finds, & &1.media_id)),
         stay_id: Guide.path_point_for(entry, stays),
         narration: Map.get(narration_by_entry, entry.id),
+        quiz: Map.get(quiz_by_entry, entry.id),
         spreads:
-          Spreads.pack(entry, media, extra, places ++ finds) ++
-            stay_spread(entry, Map.get(areas_by_entry, entry.id, []))
+          entry
+          |> Spreads.pack(media, extra, places ++ finds)
+          |> only_today(Map.has_key?(quiz_by_entry, entry.id))
+          |> Kernel.++(stay_spread(entry, Map.get(areas_by_entry, entry.id, [])))
       }
     end)
   end
+
+  # A quiz day (card-140) is one spread: the poet's intro and the quiz. It
+  # has no places to show.
+  defp only_today(spreads, true), do: Enum.take(spreads, 1)
+  defp only_today(spreads, false), do: spreads
 
   # A where-to-stay day (card-90) gets a third spread: the areas the poet
   # weighed, ranked, with every place of the poet's around them for the map.

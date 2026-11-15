@@ -122,6 +122,10 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   def handle_event("narration_request", _params, socket),
     do: TravelingPoetWeb.Listening.request(socket)
 
+  # A quiz day's quiz (card-140): visitors play in the page.
+  def handle_event(event, params, socket) when event in ["quiz_answer", "quiz_next"],
+    do: TravelingPoetWeb.QuizPlay.handle_event(event, params, socket)
+
   def handle_event("react", %{"kind" => kind}, socket) do
     user = socket.assigns[:current_user]
     entry = socket.assigns.entry
@@ -161,6 +165,14 @@ defmodule TravelingPoetWeb.PublicJournalLive do
   @impl true
   def handle_info(_msg, socket), do: {:noreply, socket}
 
+  # The poet's own reader on their public page: their answers are kept.
+  defp quiz_owner(socket, poet) do
+    case socket.assigns[:current_user] do
+      %{id: id} = user when id == poet.user_id -> user
+      _ -> nil
+    end
+  end
+
   defp assign_journal(socket, poet, date) do
     entries = Journal.list_entries(poet.id, status: "published")
 
@@ -184,6 +196,8 @@ defmodule TravelingPoetWeb.PublicJournalLive do
     |> assign(:entry_media, bundle.media)
     |> assign(:extra_media, bundle.extra_media)
     |> TravelingPoetWeb.Listening.assign_narration(entry, bundle.narration)
+    # Visitors play along in the page; nothing of theirs is kept.
+    |> TravelingPoetWeb.QuizPlay.assign_quiz(bundle.quiz, quiz_owner(socket, poet))
     |> assign(:places, bundle.places)
     |> assign(:place_media, bundle.place_media)
     |> assign(:find_media, bundle.find_media)
@@ -447,6 +461,16 @@ defmodule TravelingPoetWeb.PublicJournalLive do
             narration_pending={@narration_pending}
             narration_estimate={@narration_estimate}
           >
+            <:right_header :if={@quiz}>
+              <TravelingPoetWeb.QuizComponents.quiz_card
+                quiz={@quiz}
+                answers={@quiz_answers}
+                reveal={@quiz_reveal}
+                poet={@poet}
+                saves={@quiz_owner != nil}
+                page_path={&~p"/p/#{@poet.slug}/#{Date.to_iso8601(&1)}"}
+              />
+            </:right_header>
             <:controls>
               <.share_menu
                 id="share-menu"
