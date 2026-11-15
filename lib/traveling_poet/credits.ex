@@ -229,8 +229,15 @@ defmodule TravelingPoet.Credits do
   # of run was bought, and `scouting:` prices a trip day at the scout rate
   # (`mode` is the rate paid, `mission` the poet's own when they differ). An
   # excursion costs the same as any run of this mode and runs on the poet's
-  # own model; revisit once real ones show their cost.
+  # own model; revisit once real ones show their cost. A quiz day is free:
+  # the poet's gift, not a charge for a test (dec-021).
   def debit_daily_run(%User{} = user, poet, ref, opts) do
+    if opts[:day] == "quiz",
+      do: {:ok, :free},
+      else: charge_daily_run(user, poet, ref, opts)
+  end
+
+  defp charge_daily_run(user, poet, ref, opts) do
     rate = rate_mode(poet, opts)
 
     metadata =

@@ -800,6 +800,14 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
       "your companion the error."
   end
 
+  # A quiz day's page went out without its quiz: the reader got only the
+  # intro.
+  defp missing_note("quiz", date) do
+    "Published, but today is a quiz day and the page has no quiz. Call " <>
+      "journal_put_quiz for #{date} now with your questions and closing notes " <>
+      "(skills/travel-and-journal/quiz.md)."
+  end
+
   defp with_poet_and_date(conn, date_str, fun) do
     user = conn.assigns.agent_user
 

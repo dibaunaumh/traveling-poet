@@ -425,6 +425,12 @@ defmodule TravelingPoet.WebPush do
     %{
       title:
         cond do
+          TravelingPoet.Quizzes.quiz_day?(entry) ->
+            dgettext("notify", "Day %{day} · A little quiz from %{poet}",
+              day: day,
+              poet: poet.name
+            )
+
           excursion ->
             dgettext("notify", "Day %{day} · %{poet}, an excursion into %{topic}",
               day: day,

@@ -225,6 +225,10 @@ defmodule TravelingPoet.DailyJourneyScheduler do
     # trip day is priced as a scout's.
     plan = Poets.travel_plan(poet)
 
+    # A quiz day is held by a row, so the retry and the publish reply both
+    # know the page is a quiz (Quizzes.hold_day/2 is idempotent).
+    if plan.day == "quiz", do: TravelingPoet.Quizzes.hold_day(poet, Date.utc_today())
+
     case Credits.debit_daily_run(user, poet, attempt.id, day: plan.day, scouting: plan.scouting) do
       {:ok, _} ->
         outcome =
@@ -277,6 +281,8 @@ defmodule TravelingPoet.DailyJourneyScheduler do
       [
         plan.day == "excursion" &&
           "Today is an excursion day: after SKILL.md, read #{dir}/excursion.md once and follow it.",
+        plan.day == "quiz" &&
+          "Today is a quiz day: after SKILL.md, read #{dir}/quiz.md once and follow it instead of steps 2 to 5.",
         plan.scouting &&
           "Today you scout your companion's route: after SKILL.md, read #{dir}/scout.md once and follow it.",
         plan[:stay_guide] &&

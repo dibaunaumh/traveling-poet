@@ -209,6 +209,10 @@ config :traveling_poet,
   calendar_lookahead_days: String.to_integer(System.get_env("CALENDAR_LOOKAHEAD_DAYS") || "120"),
   calendar_enabled:
     if(config_env() == :test, do: "all", else: System.get_env("CALENDAR_ENABLED") || "admins"),
+  # Quiz days (card-140): "all", "admins" (the first weeks) or "off". Off in
+  # test so a suite's long journeys stay ordinary days; quiz tests turn it on.
+  quiz_enabled:
+    if(config_env() == :test, do: "off", else: System.get_env("QUIZ_ENABLED") || "admins"),
   # what counts as away from home, as one city, and as a trip rather than a move
   trip_away_km: String.to_integer(System.get_env("TRIP_AWAY_KM") || "150"),
   trip_same_city_km: String.to_integer(System.get_env("TRIP_SAME_CITY_KM") || "50"),

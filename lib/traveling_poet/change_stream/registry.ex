@@ -42,6 +42,10 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.Spaces.Link,
     Topics.Excursion,
     Topics.Find,
+    # A quiz day's quiz and the poet's questions; the reader's answers stay
+    # excluded below.
+    TravelingPoet.Quizzes.Quiz,
+    TravelingPoet.Quizzes.Question,
     Journal.Section,
     Journal.Media,
     Journal.Reaction,
@@ -85,6 +89,8 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.NearHome.Pick,
     TravelingPoet.Analytics.VisitEvent,
     TravelingPoet.Reading.ParagraphRead,
+    # how a reader did on their poet's quiz, theirs alone
+    TravelingPoet.Quizzes.Answer,
     Geocoder.CacheEntry,
     TravelingPoet.GooglePlaces.Entry,
     TravelingPoet.WebPush.Subscription,

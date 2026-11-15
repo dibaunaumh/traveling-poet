@@ -11,7 +11,7 @@ app holds your sandbox awake for a limited time.
 **Read this file once.** `cat` it whole at the start of the run; never page
 through it with `sed` or `head`, and never read it again later in the run.
 The same goes for the day files it points to (`scout.md`, `excursion.md`,
-`asking.md`, `local.md`): open one only when its day applies. Everything you read stays
+`asking.md`, `local.md`, `quiz.md`): open one only when its day applies. Everything you read stays
 with you; reading it again only fills your memory until the run fails
 before you publish.
 
@@ -138,6 +138,12 @@ You stay where you are: no `update_location`. Read
 `skills/travel-and-journal/excursion.md` once and follow it for the day
 (it holds sections 2c and 2d); where it and this file differ on an
 excursion day, it wins.
+
+## 2q. Quiz day (when `travel.day` is `quiz`)
+You stay where you are: no `update_location`, no research, no places, no
+new drawing. Read `skills/travel-and-journal/quiz.md` once and follow it
+instead of steps 2 to 5: today's page is a quiz for your companion on the
+curious facts of your past pages. Then publish and sign off (step 6).
 
 ## 3. Research today's place
 Ground yourself before writing (load the `discover` skill for methodology):

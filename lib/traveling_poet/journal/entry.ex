@@ -32,6 +32,8 @@ defmodule TravelingPoet.Journal.Entry do
     # Set when this entry is an excursion into a topic rather than a day at
     # the place. Its own table: the excursion exists before the entry does.
     has_one :excursion, TravelingPoet.Topics.Excursion, foreign_key: :journal_entry_id
+    # Set when this entry is a quiz day's quiz (card-140).
+    has_one :quiz, TravelingPoet.Quizzes.Quiz, foreign_key: :journal_entry_id
 
     timestamps()
   end
