@@ -3666,6 +3666,42 @@ body::before {
   font-style: italic;
 }
 
+/* Until the drawing arrives (QuizDrawing hook) the figure holds its place
+   with a pencilled note, so a slow phone shows a wait, not a gap. */
+.quiz-drawing {
+  position: relative;
+  margin: 0;
+}
+
+.quiz-drawing-wait {
+  display: none;
+}
+
+.quiz-drawing:not(.is-loaded) {
+  min-height: 14rem;
+}
+
+.quiz-drawing:not(.is-loaded) .quiz-drawing-wait {
+  position: absolute;
+  inset: 0.25rem 15% 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-family: "Patrick Hand", cursive;
+  color: color-mix(in oklab, currentColor 55%, transparent);
+  border: 1.5px dashed color-mix(in oklab, currentColor 30%, transparent);
+  border-radius: 2px;
+  transform: rotate(-1deg);
+  animation: quiz-drawing-wait 1.6s ease-in-out infinite alternate;
+}
+
+.quiz-drawing:not(.is-loaded) img {
+  position: absolute;
+  opacity: 0;
+}
+
 .quiz-drawing img {
   display: block;
   max-width: 100%;
@@ -3675,6 +3711,31 @@ body::before {
   border-radius: 2px;
   box-shadow: 0 2px 6px rgba(60, 45, 20, 0.25);
   transform: rotate(-1deg);
+  transition: opacity 0.3s ease-out;
+}
+
+@keyframes quiz-drawing-wait {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Drawings of questions still ahead, downloading out of sight. */
+.quiz-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.quiz-preload img {
+  width: 1px;
+  height: 1px;
 }
 
 .quiz-prompt {
@@ -3905,7 +3966,8 @@ body::before {
   .quiz-stamp.is-new,
   .quiz-bravo,
   .quiz-final.is-high::before,
-  .quiz-final.is-high::after {
+  .quiz-final.is-high::after,
+  .quiz-drawing-wait {
     animation: none;
   }
 }

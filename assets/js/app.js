@@ -44,13 +44,14 @@ import ProductTour from "./product_tour_hook"
 import NarrationPlayer from "./narration_player_hook"
 import ShareMenu from "./share_menu_hook"
 import ParagraphFocus from "./paragraph_focus_hook"
+import QuizDrawing from "./quiz_drawing_hook"
 import {initReconnectNotice} from "./reconnect_notice"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LinkClicks, LocalTime, AutoDismiss, ProductTour, NarrationPlayer, ShareMenu, ParagraphFocus},
+  hooks: {...colocatedHooks, PoetMap, DiscoverMap, ScrollBottom, ChatInput, ChatResizer, MobileViewport, WebPush, Markers, SettingsNav, AppleIAP, ReadingTime, LinkClicks, LocalTime, AutoDismiss, ProductTour, NarrationPlayer, ShareMenu, ParagraphFocus, QuizDrawing},
 })
 
 // Show progress bar on live navigation and form submits

@@ -9,8 +9,7 @@ defmodule TravelingPoet.Quizzes do
   `handout/2` chooses the material (paragraphs the reader actually read come
   first, past drawings, places); the poet writes the questions from it and
   sends them with `journal_put_quiz`, and `put/3` checks every one against
-  what was really written, the way `Books.Quotes` checks a quote. A
-  "which came first" answer is set here, from the dates, never by the poet.
+  what was really written, the way `Books.Quotes` checks a quote.
 
   A quiz day is free (`Credits.debit_daily_run/4`) and, like an excursion, a
   day off the road: it does not count against the stay (`days_off_since/2`).
@@ -720,37 +719,6 @@ defmodule TravelingPoet.Quizzes do
          media_id: media_id,
          source_entry_id: entry.id
        }}
-    end
-  end
-
-  # Which came first? Three moments, each cited, from three different days;
-  # the app sets the answer from the dates.
-  defp by_kind("first", _q, options, known, _drawings) do
-    with :ok <- option_count(options, 3..3) do
-      cited = Enum.map(options, &Map.get(known, &1["source_key"]))
-
-      cond do
-        Enum.any?(cited, &is_nil/1) ->
-          {:error,
-           [
-             "each moment needs the source_key of the paragraph it came from (from travel.quiz.candidates)"
-           ]}
-
-        cited |> Enum.map(& &1.entry_date) |> Enum.uniq() |> length() < 3 ->
-          {:error, ["the three moments must come from three different days"]}
-
-        true ->
-          options = options |> ids() |> Enum.map(&with_source(&1, known))
-          earliest = Enum.min_by(options, &Map.fetch!(known, &1["source_key"]).entry_date, Date)
-
-          {:ok,
-           %{
-             options: options,
-             answer_id: earliest["id"],
-             source_key: earliest["source_key"],
-             source_entry_id: earliest["source_entry_id"]
-           }}
-      end
     end
   end
 

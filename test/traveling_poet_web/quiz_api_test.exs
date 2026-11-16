@@ -61,7 +61,7 @@ defmodule TravelingPoetWeb.QuizApiTest do
   defp today_entry(poet), do: entry_fixture(poet, %{entry_date: @today, title: "What stayed?"})
 
   defp valid_quiz(pages) do
-    [{e1, d1}, {e2, _}, {e3, _}, {e4, _} | _] = pages
+    [{_e1, d1}, {e2, _}, {e3, _}, {e4, _} | _] = pages
 
     %{
       "entry_date" => Date.to_iso8601(@today),
@@ -97,13 +97,11 @@ defmodule TravelingPoetWeb.QuizApiTest do
           "answer" => "b"
         },
         %{
-          "kind" => "first",
-          "prompt" => "Which came first?",
-          "options" => [
-            %{"text" => "The tide bakery of Town 4", "source_key" => key(e4, 1)},
-            %{"text" => "The bees of Town 1", "source_key" => key(e1, 0)},
-            %{"text" => "The bees of Town 3", "source_key" => key(e3, 0)}
-          ]
+          "kind" => "choice",
+          "prompt" => "When does the bakery of Town 4 bake?",
+          "options" => ["At full moon", "When the tide is out", "At dawn"],
+          "answer" => "b",
+          "source_key" => key(e4, 1)
         }
       ]
     }
@@ -165,7 +163,7 @@ defmodule TravelingPoetWeb.QuizApiTest do
     assert Poets.travel_plan(poet).day == "quiz"
   end
 
-  test "a good quiz is kept, and the app sets which came first from the dates",
+  test "a good quiz is kept",
        %{conn: conn, poet: poet} do
     pages = journey(poet)
     today_entry(poet)
@@ -177,14 +175,10 @@ defmodule TravelingPoetWeb.QuizApiTest do
     assert quiz.status == "written"
     assert quiz.notes["low"] == "That is why I write it all down."
 
-    [choice, fib, drawing, first] = quiz.questions
+    [choice, fib, drawing, _choice] = quiz.questions
     assert choice.answer_id == "a"
     assert Question.answer(fib)["text"] == "A mayor who rides a camel"
     assert drawing.answer_id == "b"
-    # Town 1 is the earliest of the three moments, whatever the poet thought
-    assert first.answer_id == "b"
-    {e1, _} = hd(pages)
-    assert first.source_entry_id == e1.id
   end
 
   test "every wrong question is named, so the poet can fix them all at once",
@@ -197,17 +191,16 @@ defmodule TravelingPoetWeb.QuizApiTest do
       quiz["questions"]
       |> List.replace_at(0, %{hd(quiz["questions"]) | "source_key" => "deadbeefdeadbeef"})
       |> List.replace_at(2, %{Enum.at(quiz["questions"], 2) | "answer" => "a"})
-      |> List.replace_at(
-        3,
-        %{
-          Enum.at(quiz["questions"], 3)
-          | "options" => [
-              %{"text" => "One", "source_key" => key(e1, 0)},
-              %{"text" => "Two", "source_key" => key(e1, 1)},
-              %{"text" => "Three", "source_key" => key(e2, 0)}
-            ]
-        }
-      )
+      # "which came first" was retired: readers took it for a list to drag
+      |> List.replace_at(3, %{
+        "kind" => "first",
+        "prompt" => "Which came first?",
+        "options" => [
+          %{"text" => "One", "source_key" => key(e1, 0)},
+          %{"text" => "Two", "source_key" => key(e2, 0)},
+          %{"text" => "Three", "source_key" => key(e2, 1)}
+        ]
+      })
 
     %{"fix" => fix} =
       conn |> put_quiz(%{quiz | "questions" => broken}) |> json_response(422)
@@ -221,7 +214,7 @@ defmodule TravelingPoetWeb.QuizApiTest do
 
     assert Enum.any?(
              fix,
-             &(&1 =~ "question 4: the three moments must come from three different days")
+             &(&1 =~ "question 4: kind must be one of choice, fib, drawing")
            )
 
     assert Quizzes.for_day(poet.id, @today).questions == []

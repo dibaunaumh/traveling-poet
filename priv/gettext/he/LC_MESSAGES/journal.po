@@ -964,3 +964,7 @@ msgstr "זכרתי %{right} מתוך %{of} מהמסע של %{poet}"
 #, elixir-autogen, elixir-format
 msgid "Share your score"
 msgstr "לשתף את התוצאה"
+
+#, elixir-autogen, elixir-format
+msgid "Finding the drawing in my notebook…"
+msgstr "הציור בדרך מהמחברת…"
