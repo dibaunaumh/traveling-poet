@@ -88,13 +88,11 @@ defmodule TravelingPoetWeb.QuizLiveTest do
             "answer" => "b"
           },
           %{
-            "kind" => "first",
-            "prompt" => "Which came first?",
-            "options" => [
-              %{"text" => "The tide bakery of Town 4", "source_key" => key.(p4, 1)},
-              %{"text" => "The bees of Town 1", "source_key" => key.(p1, 0)},
-              %{"text" => "The bees of Town 3", "source_key" => key.(p3, 0)}
-            ]
+            "kind" => "choice",
+            "prompt" => "When does the bakery of Town 4 bake?",
+            "options" => ["At full moon", "When the tide is out", "At dawn"],
+            "answer" => "b",
+            "source_key" => key.(p4, 1)
           }
         ]
       })
@@ -123,6 +121,8 @@ defmodule TravelingPoetWeb.QuizLiveTest do
     refute html =~ "is-right"
     # a quiz page has no Places tab
     refute has_element?(view, "a", "Places")
+    # the drawing of question 3 is already on its way
+    assert has_element?(view, ~s(.quiz-preload img[src="/media/#{q3.media_id}"]))
 
     html = answer(view, q1, "b")
     assert html =~ "Not quite. It was A."
@@ -134,9 +134,12 @@ defmodule TravelingPoetWeb.QuizLiveTest do
     answer(view, q2, "c")
     assert has_element?(view, ".quiz-stamp.is-new")
     next(view)
+    # the drawing holds its place with a note until it arrives, and is no
+    # longer preloaded once it is on show
+    assert has_element?(view, "#quiz-drawing-#{q3.id}[phx-hook=QuizDrawing] .quiz-drawing-wait")
+    refute has_element?(view, ".quiz-preload")
     answer(view, q3, "b")
     next(view)
-    # which came first: the app knew it was Town 1
     answer(view, q4, "b")
     html = next(view)
 

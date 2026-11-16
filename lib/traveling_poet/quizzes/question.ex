@@ -6,8 +6,11 @@ defmodule TravelingPoet.Quizzes.Question do
     * `fib`: two truths and a fib. Three statements; the answer is the fib.
     * `drawing`: where did I draw this? One of the poet's past drawings
       (`media_id`) and three or four places.
-    * `first`: which came first? Three moments, each cited; the app sets the
-      answer from the entry dates, so it is never the poet's guess.
+
+  A fourth kind, `first` (which came first?), was dropped after the first
+  quiz on prod (2026-11-16): readers took it for a list to drag into order.
+  The poet can no longer write one (`kinds/0`), but the one already played
+  still renders (`played_kinds/0`).
 
   `options` are `%{"id", "text", "source_key", "source_entry_id"}`; `id` is
   "a", "b", "c", "d". `source_entry_id` / `source_key` point at the page and
@@ -17,7 +20,8 @@ defmodule TravelingPoet.Quizzes.Question do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @kinds ~w(choice fib drawing first)
+  @kinds ~w(choice fib drawing)
+  @played_kinds @kinds ++ ~w(first)
 
   schema "quiz_questions" do
     field :position, :integer
@@ -35,7 +39,11 @@ defmodule TravelingPoet.Quizzes.Question do
     timestamps()
   end
 
+  @doc "The kinds a poet can write."
   def kinds, do: @kinds
+
+  @doc "Every kind a stored question can have, retired ones included."
+  def played_kinds, do: @played_kinds
 
   @doc false
   def changeset(question, attrs) do

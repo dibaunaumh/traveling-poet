@@ -41,6 +41,7 @@ defmodule TravelingPoetWeb.QuizComponents do
       |> assign(:current, current)
       |> assign(:position, current && Enum.find_index(questions, &(&1.id == current.id)) + 1)
       |> assign(:score, Quizzes.score(assigns.quiz, assigns.answers))
+      |> assign(:upcoming_drawings, upcoming_drawings(questions, assigns.answers, current))
 
     ~H"""
     <section id="quiz" class="quiz-card" aria-live="polite">
@@ -66,6 +67,13 @@ defmodule TravelingPoetWeb.QuizComponents do
         page_path={@page_path}
       />
 
+      <%!-- The drawings of the questions still ahead start downloading now,
+           while the reader is on the earlier ones, so a drawing question
+           opens on a drawing already there. --%>
+      <div :if={@upcoming_drawings != []} class="quiz-preload" aria-hidden="true">
+        <img :for={id <- @upcoming_drawings} src={~p"/media/#{id}"} alt="" />
+      </div>
+
       <p class="quiz-privacy">
         {if @saves,
           do: dgettext("journal", "Your answers stay between you and %{poet}.", poet: @poet.name),
@@ -73,6 +81,15 @@ defmodule TravelingPoetWeb.QuizComponents do
       </p>
     </section>
     """
+  end
+
+  defp upcoming_drawings(questions, answers, current) do
+    for q <- questions,
+        q.media_id,
+        not Map.has_key?(answers, q.id),
+        is_nil(current) or q.id != current.id,
+        uniq: true,
+        do: q.media_id
   end
 
   # The question on show: the one just answered while its answer is up,
@@ -142,8 +159,17 @@ defmodule TravelingPoetWeb.QuizComponents do
         <span class="quiz-kind">{kind_label(@question.kind)}</span>
       </p>
 
-      <figure :if={@question.media} class="quiz-drawing">
-        <img src={~p"/media/#{@question.media.id}"} alt="" loading="lazy" />
+      <figure
+        :if={@question.media}
+        id={"quiz-drawing-#{@question.id}"}
+        class="quiz-drawing"
+        phx-hook="QuizDrawing"
+        phx-update="ignore"
+      >
+        <span class="quiz-drawing-wait">
+          {dgettext("journal", "Finding the drawing in my notebook…")}
+        </span>
+        <img src={~p"/media/#{@question.media.id}"} alt="" fetchpriority="high" />
       </figure>
 
       <p class="quiz-prompt">{@question.prompt}</p>

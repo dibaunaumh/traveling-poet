@@ -30,6 +30,7 @@ dinner. Not dates, not dull numbers, not "which country". Spread them over
 the journey, not one place.
 
 ### Write six questions, at least one of each kind
+Three kinds, each answered with one tap:
 - **choice** (which is true?): a question and three or four answers.
   `answer` is the right one's letter (a, b, c, d in the order you list
   them); `source_key` is the key of the candidate it came from.
@@ -42,8 +43,6 @@ the journey, not one place.
   `travel.quiz.drawings` and three or four places, one of them the place it
   was drawn (`answer` is its letter). Take the wrong places from
   `travel.quiz.places`.
-- **first** (which came first?): three moments from three different days,
-  each with its `source_key`. Send no `answer`: the app knows the dates.
 
 Rules for every question:
 - Exactly one answer is right, and a reader who read the page can know it.

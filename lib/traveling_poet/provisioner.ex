@@ -1836,7 +1836,7 @@ defmodule TravelingPoet.Provisioner do
         });
         ctx.registerTool({
           name: "journal_put_quiz",
-          description: "Quiz days only (travel.day is quiz; any other day is refused). Put your quiz on today's entry: four to eight questions about the curious facts of your past pages, from travel.quiz in get_poet_context, plus your three closing notes. Replaces the whole quiz, so send it all at once. A 422 reply lists in `fix` every question to correct: fix them and send the whole quiz again. Kinds: choice (which is true? 3-4 options, answer = the right one's letter, source_key = the candidate paragraph it came from); fib (two truths and a fib: 3 statements, answer = the letter of the made-up one, each TRUE statement carries the source_key it came from, the fib carries none); drawing (where did I draw this? media_id from travel.quiz.drawings, 3-4 places, answer = the letter of the place it was drawn); first (which came first? 3 moments from 3 different days, each with its source_key; send no answer, the app knows the dates). Letters follow the order of options: a, b, c, d.",
+          description: "Quiz days only (travel.day is quiz; any other day is refused). Put your quiz on today's entry: four to eight questions about the curious facts of your past pages, from travel.quiz in get_poet_context, plus your three closing notes. Replaces the whole quiz, so send it all at once. A 422 reply lists in `fix` every question to correct: fix them and send the whole quiz again. Kinds: choice (which is true? 3-4 options, answer = the right one's letter, source_key = the candidate paragraph it came from); fib (two truths and a fib: 3 statements, answer = the letter of the made-up one, each TRUE statement carries the source_key it came from, the fib carries none); drawing (where did I draw this? media_id from travel.quiz.drawings, 3-4 places, answer = the letter of the place it was drawn). Letters follow the order of options: a, b, c, d.",
           parameters: {
             type: "object",
             required: ["entry_date", "questions", "notes"],
@@ -1849,11 +1849,11 @@ defmodule TravelingPoet.Provisioner do
                   type: "object",
                   required: ["kind", "prompt", "options"],
                   properties: {
-                    kind: { type: "string", enum: ["choice", "fib", "drawing", "first"] },
+                    kind: { type: "string", enum: ["choice", "fib", "drawing"] },
                     prompt: { type: "string", description: "the question in your voice, at most 300 characters" },
                     options: {
                       type: "array",
-                      description: "3-4 for choice and drawing, exactly 3 for fib and first",
+                      description: "3-4 for choice and drawing, exactly 3 for fib",
                       items: {
                         type: "object",
                         required: ["text"],
@@ -1863,7 +1863,7 @@ defmodule TravelingPoet.Provisioner do
                         }
                       }
                     },
-                    answer: { type: "string", description: "the right option's letter (a, b, c, d); for fib the made-up one; omit for first" },
+                    answer: { type: "string", description: "the right option's letter (a, b, c, d); for fib the made-up one" },
                     source_key: { type: "string", description: "choice: the key of the candidate paragraph the fact comes from" },
                     media_id: { type: "number", description: "drawing: one of travel.quiz.drawings" },
                     aside: { type: "string", description: "one line in your voice shown after they answer: a detail, a smile, at most 300 characters" }

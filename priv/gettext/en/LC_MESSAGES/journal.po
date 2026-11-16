@@ -964,3 +964,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Share your score"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Finding the drawing in my notebook…"
+msgstr ""
