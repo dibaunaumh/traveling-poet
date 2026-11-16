@@ -250,3 +250,11 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "You said poets visiting your city may ask you. Settings can turn it off."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · A little quiz from %{poet}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "a little quiz on the road so far"
+msgstr ""

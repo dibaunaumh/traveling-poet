@@ -1314,7 +1314,7 @@ defmodule TravelingPoet.Provisioner do
     `journal_put_places`, `journal_put_stay_areas`, `generate_illustration`, `find_reference_photos`,
     `journal_upload_illustration`, `journal_publish`, `update_location`,
     `record_preference`, `hold_here`, `insert_stop`, `propose_topic`,
-    `request_excursion`, `journal_put_finds`, `near_home_put`,
+    `request_excursion`, `journal_put_finds`, `journal_put_quiz`, `near_home_put`,
     `get_book_context`, `book_put_matter`.
     All journal work must go through them; drawings are made with
     `generate_illustration` (the app renders them for you).
@@ -1832,6 +1832,59 @@ defmodule TravelingPoet.Provisioner do
           execute: function(_id, raw) {
             var a = asParams(raw);
             return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/finds", { finds: a.finds, destination_name: a.destination_name, destination_url: a.destination_url });
+          }
+        });
+        ctx.registerTool({
+          name: "journal_put_quiz",
+          description: "Quiz days only (travel.day is quiz; any other day is refused). Put your quiz on today's entry: four to eight questions about the curious facts of your past pages, from travel.quiz in get_poet_context, plus your three closing notes. Replaces the whole quiz, so send it all at once. A 422 reply lists in `fix` every question to correct: fix them and send the whole quiz again. Kinds: choice (which is true? 3-4 options, answer = the right one's letter, source_key = the candidate paragraph it came from); fib (two truths and a fib: 3 statements, answer = the letter of the made-up one, each TRUE statement carries the source_key it came from, the fib carries none); drawing (where did I draw this? media_id from travel.quiz.drawings, 3-4 places, answer = the letter of the place it was drawn); first (which came first? 3 moments from 3 different days, each with its source_key; send no answer, the app knows the dates). Letters follow the order of options: a, b, c, d.",
+          parameters: {
+            type: "object",
+            required: ["entry_date", "questions", "notes"],
+            properties: {
+              entry_date: { type: "string", description: "YYYY-MM-DD, today" },
+              questions: {
+                type: "array",
+                description: "four to eight; six is best, at least one of each kind",
+                items: {
+                  type: "object",
+                  required: ["kind", "prompt", "options"],
+                  properties: {
+                    kind: { type: "string", enum: ["choice", "fib", "drawing", "first"] },
+                    prompt: { type: "string", description: "the question in your voice, at most 300 characters" },
+                    options: {
+                      type: "array",
+                      description: "3-4 for choice and drawing, exactly 3 for fib and first",
+                      items: {
+                        type: "object",
+                        required: ["text"],
+                        properties: {
+                          text: { type: "string", description: "at most 160 characters" },
+                          source_key: { type: "string", description: "fib (true statements) and first: the key of the candidate paragraph this comes from" }
+                        }
+                      }
+                    },
+                    answer: { type: "string", description: "the right option's letter (a, b, c, d); for fib the made-up one; omit for first" },
+                    source_key: { type: "string", description: "choice: the key of the candidate paragraph the fact comes from" },
+                    media_id: { type: "number", description: "drawing: one of travel.quiz.drawings" },
+                    aside: { type: "string", description: "one line in your voice shown after they answer: a detail, a smile, at most 300 characters" }
+                  }
+                }
+              },
+              notes: {
+                type: "object",
+                required: ["high", "mid", "low"],
+                description: "your closing note for each score: high (most right: celebrate them warmly), mid (some right), low (few right: gentle, never a scolding)",
+                properties: {
+                  high: { type: "string" },
+                  mid: { type: "string" },
+                  low: { type: "string" }
+                }
+              }
+            }
+          },
+          execute: function(_id, raw) {
+            var a = asParams(raw);
+            return call("PUT", "/api/agent/journal_entries/" + a.entry_date + "/quiz", { questions: a.questions, notes: a.notes });
           }
         });
         ctx.registerTool({

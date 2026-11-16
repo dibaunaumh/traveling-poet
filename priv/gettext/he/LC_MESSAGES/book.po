@@ -278,3 +278,7 @@ msgstr "ב-%{count} מקומות"
 #, elixir-autogen, elixir-format
 msgid "the real place"
 msgstr "המקום האמיתי"
+
+#, elixir-autogen, elixir-format
+msgid "Answers"
+msgstr "תשובות"

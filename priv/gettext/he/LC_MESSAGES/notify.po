@@ -250,3 +250,11 @@ msgstr "זאת העיר שלך: יש מקום, מנה או פינה שכדאי �
 #, elixir-autogen, elixir-format
 msgid "You said poets visiting your city may ask you. Settings can turn it off."
 msgstr "אישרת שמשוררים שמבקרים בעיר שלך יכולים לשאול אותך. אפשר לכבות את זה בהגדרות."
+
+#, elixir-autogen, elixir-format
+msgid "Day %{day} · A little quiz from %{poet}"
+msgstr "יום %{day} · חידון קטן מאת %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "a little quiz on the road so far"
+msgstr "חידון קטן על הדרך עד כה"

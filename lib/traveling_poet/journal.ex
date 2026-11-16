@@ -214,6 +214,8 @@ defmodule TravelingPoet.Journal do
     with {:ok, published} <- result do
       # An excursion entry going out settles its excursion for good.
       TravelingPoet.Topics.mark_published(published.id)
+      # So does a quiz day's quiz.
+      TravelingPoet.Quizzes.mark_published(published.id)
 
       # A reader who came through a friend: that friend's reward lands with
       # this reader's first page (dec-015). Ledger-idempotent, so every later

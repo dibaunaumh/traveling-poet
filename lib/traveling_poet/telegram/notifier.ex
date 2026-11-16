@@ -480,6 +480,12 @@ defmodule TravelingPoet.Telegram.Notifier do
   end
 
   defp fallback_hook(entry) do
+    if TravelingPoet.Quizzes.quiz_day?(entry),
+      do: dgettext("notify", "a little quiz on the road so far"),
+      else: place_hook(entry)
+  end
+
+  defp place_hook(entry) do
     case TravelingPoet.Topics.label_for_entry(entry) do
       nil ->
         case entry.place_name do

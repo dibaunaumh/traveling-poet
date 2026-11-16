@@ -278,3 +278,7 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "the real place"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Answers"
+msgstr ""

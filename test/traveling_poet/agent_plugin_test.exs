@@ -44,7 +44,7 @@ defmodule TravelingPoet.AgentPluginTest do
                        record_preference update_location hold_here insert_stop
                        propose_topic get_book_context book_put_matter
                        find_reference_photos ask_reader write_reader_note
-                       suggest_reader_note_line) do
+                       suggest_reader_note_line journal_put_quiz) do
       assert expected in names, "#{expected} is not registered in the plugin"
     end
   end

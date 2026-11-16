@@ -11,7 +11,7 @@ app holds your sandbox awake for a limited time.
 **Read this file once.** `cat` it whole at the start of the run; never page
 through it with `sed` or `head`, and never read it again later in the run.
 The same goes for the day files it points to (`scout.md`, `excursion.md`,
-`asking.md`, `local.md`): open one only when its day applies. Everything you read stays
+`asking.md`, `local.md`, `quiz.md`): open one only when its day applies. Everything you read stays
 with you; reading it again only fills your memory until the run fails
 before you publish.
 
@@ -138,6 +138,10 @@ You stay where you are: no `update_location`. Read
 `skills/travel-and-journal/excursion.md` once and follow it for the day
 (it holds sections 2c and 2d); where it and this file differ on an
 excursion day, it wins.
+
+## 2q. Quiz day (when `travel.day` is `quiz`)
+No travel, research, places or drawing: follow `quiz.md` instead of steps
+2 to 5, then publish and sign off (step 6).
 
 ## 3. Research today's place
 Ground yourself before writing (load the `discover` skill for methodology):
@@ -372,6 +376,9 @@ says.
   tool or field names, no account of your steps (AGENTS.md). You may open it with
   "Day N" using `journey_day` from `get_poet_context`; never count days
   yourself.
+- `quiz_result` set: they played your quiz. One warm line in the postcard
+  (not the entry) about something they `remembered` or a kind word on one
+  they `missed`; never a grade or a lecture.
 
 ## 6b. Ask your companion (only when told)
 When `get_poet_context` has `ask_reader` set, and only then, read

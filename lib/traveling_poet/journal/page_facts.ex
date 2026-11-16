@@ -12,7 +12,7 @@ defmodule TravelingPoet.Journal.PageFacts do
   in it is left out.
   """
 
-  alias TravelingPoet.{Guide, Journal, Topics}
+  alias TravelingPoet.{Guide, Journal, Quizzes, Topics}
 
   @note_kinds ~w(art_culture products kindness highlights)
 
@@ -42,14 +42,20 @@ defmodule TravelingPoet.Journal.PageFacts do
       |> Enum.reject(&is_nil/1)
 
     missing =
-      [
-        # A day at a place with nothing in the trip guide leaves the reader an
-        # empty Places tab; an excursion has finds instead.
-        if(not excursion? and places == 0, do: "places"),
-        # A drawing generated but never put on a section still shows.
-        if(drawings == 0, do: "drawing")
-      ]
-      |> Enum.reject(&is_nil/1)
+      if Quizzes.quiz_day?(entry) do
+        # A quiz day has no places and no new drawing; it needs its quiz.
+        quiz = Quizzes.quiz_of(entry)
+        if(is_nil(quiz) or quiz.questions == [], do: ["quiz"], else: [])
+      else
+        [
+          # A day at a place with nothing in the trip guide leaves the reader an
+          # empty Places tab; an excursion has finds instead.
+          if(not excursion? and places == 0, do: "places"),
+          # A drawing generated but never put on a section still shows.
+          if(drawings == 0, do: "drawing")
+        ]
+        |> Enum.reject(&is_nil/1)
+      end
 
     %{parts: parts, missing: missing}
   end

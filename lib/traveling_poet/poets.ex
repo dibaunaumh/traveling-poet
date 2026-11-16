@@ -4,7 +4,7 @@ defmodule TravelingPoet.Poets do
   """
 
   import Ecto.Query
-  alias TravelingPoet.{Repo, Topics, Trips}
+  alias TravelingPoet.{Quizzes, Repo, Topics, Trips}
   alias TravelingPoet.Poets.{ItineraryStop, Poet, PathPoint}
 
   def get_poet!(id), do: Repo.get!(Poet, id)
@@ -395,7 +395,10 @@ defmodule TravelingPoet.Poets do
           )
       end
 
-    route |> with_excursion(poet, today) |> with_stay_guide(poet)
+    route
+    |> with_excursion(poet, today)
+    |> with_stay_guide(poet)
+    |> Map.put_new(:quiz, nil)
   end
 
   # Where to stay (card-90): on the first plain day at a Trip Scout stop the
@@ -425,12 +428,19 @@ defmodule TravelingPoet.Poets do
   # Cadiz, stalled, and the retry turned the arrival into an excursion to
   # Okinawa with the Cadiz drawings still on the page. The arrival day is
   # the new place's first entry.
+  #
+  # A quiz day (card-140) is a stay day too, held by a row like an
+  # excursion's: it waits for a move, an excursion the reader asked for and
+  # the where-to-stay page, and goes before the cadence's excursion.
   defp with_excursion(route, poet, today) do
     today_row = Topics.excursion_for_today(poet.id, today)
 
     cond do
       today_row ->
         excursion(route, today_row)
+
+      held_quiz = Quizzes.for_day(poet.id, today) ->
+        quiz_day(route, poet, held_quiz.source, today)
 
       route.travel_today ->
         Map.merge(route, %{day: "move", excursion: nil})
@@ -446,6 +456,9 @@ defmodule TravelingPoet.Poets do
 
       stay_guide_due?(route, poet) ->
         Map.merge(route, %{day: "stay", excursion: nil})
+
+      reason = Quizzes.due(poet, today) ->
+        quiz_day(route, poet, reason, today)
 
       topic = Topics.due_topic(poet.id, today) ->
         excursion(route, %Topics.Excursion{
@@ -493,6 +506,19 @@ defmodule TravelingPoet.Poets do
       "never one of excursion.past_destinations, you have written those up already"
   end
 
+  defp quiz_day(route, poet, reason, today) do
+    Map.merge(route, %{
+      travel_today: false,
+      day: "quiz",
+      excursion: nil,
+      quiz: Map.put(Quizzes.handout(poet, today), :reason, reason),
+      reason:
+        "a quiz day: you stay where you are and today's page is a quiz for your " <>
+          "companion on the curious facts of your past pages; it does not count " <>
+          "against your stay"
+    })
+  end
+
   defp excursion(route, %Topics.Excursion{} = x) do
     label = x.topic && x.topic.label
 
@@ -519,7 +545,8 @@ defmodule TravelingPoet.Poets do
   def days_here(%Poet{} = poet, _today \\ Date.utc_today()) do
     arrived_on = poet.arrived_at && DateTime.to_date(poet.arrived_at)
     excursions = Topics.excursion_days_since(poet.id, arrived_on)
-    max(Poet.days_at_location(poet) - excursions, 0)
+    quizzes = Quizzes.days_off_since(poet.id, arrived_on)
+    max(Poet.days_at_location(poet) - excursions - quizzes, 0)
   end
 
   defp decide(base, travel?, reason),
