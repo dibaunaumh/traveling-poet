@@ -178,7 +178,11 @@ defmodule TravelingPoetWeb.QuizComponents do
               )}
         </p>
         <p :if={@question.aside} class="quiz-aside">{@question.aside}</p>
-        <.read_again entry={@question.source_entry} page_path={@page_path} />
+        <.read_again
+          entry={@question.source_entry}
+          key={@question.source_key}
+          page_path={@page_path}
+        />
         <button type="button" class="btn btn-sm btn-primary quiz-next" phx-click="quiz_next">
           {if @last,
             do: dgettext("journal", "See your score"),
@@ -196,11 +200,15 @@ defmodule TravelingPoetWeb.QuizComponents do
   defp kind_label(_), do: nil
 
   attr :entry, :any, required: true
+  attr :key, :string, default: nil, doc: "the paragraph to open the page at (ParagraphFocus)"
   attr :page_path, :any, required: true
 
   defp read_again(%{entry: %{entry_date: %Date{}}} = assigns) do
+    path = assigns.page_path.(assigns.entry.entry_date)
+    assigns = assign(assigns, :to, if(assigns.key, do: "#{path}?p=#{assigns.key}", else: path))
+
     ~H"""
-    <.link navigate={@page_path.(@entry.entry_date)} class="quiz-read-again">
+    <.link navigate={@to} class="quiz-read-again">
       {dgettext("journal", "Read it again: %{page}", page: page_name(@entry))}
     </.link>
     """
@@ -246,6 +254,21 @@ defmodule TravelingPoetWeb.QuizComponents do
         <p>{@quiz.notes[@score.tier]}</p>
         <footer>{@poet.name}</footer>
       </blockquote>
+      <div :if={@poet.is_public} class="quiz-share">
+        <span>{dgettext("journal", "Share your score")}</span>
+        <TravelingPoetWeb.ShareComponents.share_menu
+          id="quiz-share"
+          url={url(~p"/p/#{@poet.slug}/#{Date.to_iso8601(@quiz.scheduled_for)}")}
+          title={
+            dgettext("journal", "I remembered %{right} of %{of} from %{poet}'s journey",
+              right: @score.right,
+              of: @score.of,
+              poet: @poet.name
+            )
+          }
+          text={dgettext("journal", "Can you do better?")}
+        />
+      </div>
       <div :if={@missed != []} class="quiz-missed">
         <p>{dgettext("journal", "Pages to look back at")}</p>
         <ul>

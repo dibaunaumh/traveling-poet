@@ -133,6 +133,10 @@ defmodule TravelingPoetWeb.Api.AgentController do
           # (the `ask_reader` tool, after publishing). nil = do not ask. The
           # app decides this too; `reason` is no_topics | check_in.
           ask_reader: Asks.due(poet),
+          # Your companion played your last quiz (card-140): their score and
+          # what they remembered and missed. Set until your next page after
+          # they finished; one warm line about it, never a lecture.
+          quiz_result: TravelingPoet.Quizzes.result_for(poet),
           # Your question still waiting on an answer, if any. When they answer
           # with an interest, pass its id as `ask_id` to propose_topic.
           open_ask: open_ask_payload(poet),

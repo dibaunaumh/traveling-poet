@@ -326,6 +326,8 @@ defmodule TravelingPoetWeb.BookComponents do
 
       <.section :for={s <- @prose} section={s} spot_media={@spot_media} />
 
+      <.puzzle :if={@day.bundle.quiz} quiz={@day.bundle.quiz} />
+
       <.sources list={@day.sources} />
 
       <p class="book-day-foot">
@@ -368,6 +370,38 @@ defmodule TravelingPoetWeb.BookComponents do
         </span>
       </figcaption>
     </figure>
+    """
+  end
+
+  attr :quiz, :map, required: true
+
+  # A quiz day (card-140) in the book is a puzzle page, as in an old
+  # magazine: the questions with their options, and the answers printed
+  # upside down at the foot so a reader can try before they look.
+  defp puzzle(assigns) do
+    ~H"""
+    <section class="book-puzzle">
+      <ol class="book-puzzle-questions">
+        <li :for={q <- @quiz.questions}>
+          <img
+            :if={q.media}
+            class="book-puzzle-drawing"
+            src={~p"/media/#{q.media.id}"}
+            alt={dgettext("book", "drawing")}
+          />
+          <p class="book-puzzle-prompt">{q.prompt}</p>
+          <ol class="book-puzzle-options" type="A">
+            <li :for={o <- q.options}>{o["text"]}</li>
+          </ol>
+        </li>
+      </ol>
+      <p class="book-puzzle-answers">
+        {dgettext("book", "Answers")}:
+        <span :for={{q, n} <- Enum.with_index(@quiz.questions, 1)}>
+          {n} {String.upcase(q.answer_id)}
+        </span>
+      </p>
+    </section>
     """
   end
 

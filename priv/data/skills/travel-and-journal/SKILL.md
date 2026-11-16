@@ -140,10 +140,8 @@ You stay where you are: no `update_location`. Read
 excursion day, it wins.
 
 ## 2q. Quiz day (when `travel.day` is `quiz`)
-You stay where you are: no `update_location`, no research, no places, no
-new drawing. Read `skills/travel-and-journal/quiz.md` once and follow it
-instead of steps 2 to 5: today's page is a quiz for your companion on the
-curious facts of your past pages. Then publish and sign off (step 6).
+No travel, research, places or drawing: follow `quiz.md` instead of steps
+2 to 5, then publish and sign off (step 6).
 
 ## 3. Research today's place
 Ground yourself before writing (load the `discover` skill for methodology):
@@ -378,6 +376,9 @@ says.
   tool or field names, no account of your steps (AGENTS.md). You may open it with
   "Day N" using `journey_day` from `get_poet_context`; never count days
   yourself.
+- `quiz_result` set: they played your quiz. One warm line in the postcard
+  (not the entry) about something they `remembered` or a kind word on one
+  they `missed`; never a grade or a lecture.
 
 ## 6b. Ask your companion (only when told)
 When `get_poet_context` has `ask_reader` set, and only then, read

@@ -952,3 +952,15 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Your stamps"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Can you do better?"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "I remembered %{right} of %{of} from %{poet}'s journey"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Share your score"
+msgstr ""

@@ -1600,6 +1600,14 @@ defmodule TravelingPoetWeb.JournalLive do
                 <.hotel_search hotels={@hotels} query={@hotel_query} poet={@poet} />
               </:hotels>
             </.stay_spread>
+            <%!-- a quiz's "Read it again" opens the page at its paragraph (?p=) --%>
+            <div
+              id={"para-focus-#{@entry.id}"}
+              phx-hook="ParagraphFocus"
+              data-target={"entry-#{@entry.id}"}
+              hidden
+            >
+            </div>
             <%!-- reading time per paragraph, for the taste profile: the
                   owner's own journal only, and only with the switch on --%>
             <div

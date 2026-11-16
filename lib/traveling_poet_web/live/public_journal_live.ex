@@ -445,6 +445,15 @@ defmodule TravelingPoetWeb.PublicJournalLive do
               </.link>
             </:controls>
           </.stay_spread>
+          <%!-- a quiz's "Read it again" opens the page at its paragraph (?p=) --%>
+          <div
+            :if={!places_spread?(assigns) and !finds_spread?(assigns) and !stay_spread?(assigns)}
+            id={"para-focus-#{@entry.id}"}
+            phx-hook="ParagraphFocus"
+            data-target={"entry-#{@entry.id}"}
+            hidden
+          >
+          </div>
           <.entry_spread
             :if={!places_spread?(assigns) and !finds_spread?(assigns) and !stay_spread?(assigns)}
             id={"entry-#{@entry.id}"}

@@ -276,6 +276,73 @@ defmodule TravelingPoet.Quizzes do
 
   def tier(_right, _of), do: "low"
 
+  @doc """
+  How the reader did on the poet's latest quiz, for `/api/agent/context`
+  (`quiz_result`), so the poet can say one warm thing about it: set once
+  the owner has answered every question, and until the poet publishes its
+  next page after that. Nil otherwise; a quiz left unplayed is never
+  brought up (the poet does not nag).
+  """
+  def result_for(%Poet{} = poet) do
+    with %Quiz{} = quiz <- latest_published(poet.id),
+         answers when map_size(answers) > 0 <- answers_for(quiz, poet.user_id),
+         true <- finished?(quiz, answers),
+         finished_at = finished_at(quiz, poet.user_id),
+         false <- published_after?(poet.id, finished_at) do
+      score = score(quiz, answers)
+
+      {remembered, missed} =
+        Enum.split_with(quiz.questions, &right?(&1, answers[&1.id]))
+
+      %{
+        quiz_date: quiz.scheduled_for,
+        right: score.right,
+        of: score.of,
+        tier: score.tier,
+        remembered: Enum.map(remembered, &recap/1),
+        missed: Enum.map(missed, &recap/1)
+      }
+    else
+      _ -> nil
+    end
+  end
+
+  defp latest_published(poet_id) do
+    Quiz
+    |> where(poet_id: ^poet_id, status: "published")
+    |> order_by(desc: :scheduled_for)
+    |> limit(1)
+    |> preload(:questions)
+    |> Repo.one()
+  end
+
+  defp finished_at(%Quiz{questions: questions}, user_id) do
+    ids = Enum.map(questions, & &1.id)
+
+    Repo.one(
+      from a in Answer,
+        where: a.user_id == ^user_id and a.question_id in ^ids,
+        select: max(a.inserted_at)
+    )
+  end
+
+  defp published_after?(poet_id, %NaiveDateTime{} = at) do
+    at = DateTime.from_naive!(at, "Etc/UTC")
+
+    Repo.exists?(
+      from e in Entry,
+        where: e.poet_id == ^poet_id and e.status == "published" and e.published_at > ^at
+    )
+  end
+
+  defp published_after?(_poet_id, _at), do: false
+
+  # "What did the bell-ringer keep in the tower? Bees"
+  defp recap(%Question{} = q) do
+    answer = Question.answer(q)
+    String.slice("#{q.prompt} #{answer && answer["text"]}", 0, 200)
+  end
+
   @doc "Whether every question has an answer."
   def finished?(%Quiz{questions: questions}, answers),
     do: Enum.all?(questions, &Map.has_key?(answers, &1.id))

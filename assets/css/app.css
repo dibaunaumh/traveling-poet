@@ -3909,3 +3909,20 @@ body::before {
     animation: none;
   }
 }
+
+/* The paragraph a quiz's "Read it again" opened the page at: a highlighter
+   stroke that fades. */
+.notebook-page .prose > p.para-focus {
+  background: linear-gradient(transparent 55%, rgba(250, 204, 21, 0.45) 55%);
+  transition: background 1.5s ease-out;
+}
+
+.quiz-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0.75rem;
+  opacity: 0.85;
+}

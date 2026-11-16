@@ -167,6 +167,67 @@ defmodule TravelingPoetWeb.QuizLiveTest do
     assert html =~ "4 of 4"
     assert html =~ "Bravo!"
     assert html =~ "You were with me the whole way."
+    # a public journal's score can be shared
+    assert has_element?(view, "#quiz-share")
     assert Repo.aggregate(Answer, :count) == 0
+  end
+
+  test "\"Read it again\" opens the page at the paragraph the fact came from", %{conn: conn} do
+    {conn, user, _poet, _entry, quiz} = quiz_day(conn)
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id})
+    [q1 | _] = quiz.questions
+
+    {:ok, view, _html} = live(conn, ~p"/journal")
+    answer(view, q1, "a")
+
+    assert has_element?(
+             view,
+             ~s(a.quiz-read-again[href="/journal/#{Date.to_iso8601(q1.source_entry.entry_date)}?p=#{q1.source_key}"])
+           )
+
+    # and the page it opens has the hook that finds that paragraph
+    {:ok, page, _html} =
+      live(conn, ~p"/journal/#{Date.to_iso8601(q1.source_entry.entry_date)}?p=#{q1.source_key}")
+
+    assert has_element?(page, "[phx-hook=ParagraphFocus]")
+  end
+
+  test "the poet hears how it went, until its next page", %{conn: conn} do
+    {_conn, user, poet, _entry, quiz} = quiz_day(conn)
+    assert Quizzes.result_for(poet) == nil
+
+    [q1 | rest] = quiz.questions
+    {:ok, _} = Quizzes.answer(quiz, user, q1.id, "b")
+    # half played is not played
+    assert Quizzes.result_for(poet) == nil
+
+    for q <- rest, do: {:ok, _} = Quizzes.answer(quiz, user, q.id, q.answer_id)
+
+    assert %{right: 3, of: 4, tier: "mid", remembered: remembered, missed: [missed]} =
+             Quizzes.result_for(poet)
+
+    assert length(remembered) == 3
+    assert missed =~ "How many bees in the tower of Town 2? Two"
+
+    # the next page went out after they finished: told once, then quiet
+    Repo.update_all(Answer, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+    published_entry_fixture(poet, %{entry_date: Date.add(@today, 1)})
+    assert Quizzes.result_for(poet) == nil
+  end
+
+  test "in the book, a quiz day is a puzzle page with the answers upside down", %{conn: conn} do
+    {conn, user, _poet, _entry, quiz} = quiz_day(conn)
+
+    html =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id})
+      |> get(~p"/journal/book")
+      |> html_response(200)
+
+    assert html =~ "book-puzzle"
+    assert html =~ "How many bees in the tower of Town 2?"
+    assert html =~ "A mayor who rides a camel"
+    assert html =~ "book-puzzle-answers"
+    assert length(quiz.questions) == 4
   end
 end
