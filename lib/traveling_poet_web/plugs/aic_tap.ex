@@ -5,6 +5,10 @@ defmodule TravelingPoetWeb.Plugs.AiCTap do
 
   def init(opts), do: opts
 
+  # A shadow run of the app-side loop (AppLoop.Shadow) reads through the same
+  # endpoints; those reads are not the poet's activity and are not reported.
+  def call(%{private: %{app_loop_shadow: true}} = conn, _opts), do: conn
+
   def call(conn, _opts) do
     register_before_send(conn, fn conn ->
       with %{id: user_id} <- conn.assigns[:agent_user],

@@ -52,6 +52,11 @@ config :traveling_poet,
   reader_note_req_options: [plug: {Req.Test, TravelingPoet.ReaderNote.Extractor}]
 
 config :traveling_poet, eval_req_options: [plug: {Req.Test, TravelingPoet.Evals}]
+# The app-side poet loop (model, search and fetch), and no DNS for its fetch
+config :traveling_poet,
+  app_loop_req_options: [plug: {Req.Test, TravelingPoet.AppLoop}],
+  app_loop_resolver: &TravelingPoet.AppLoop.Web.no_addresses/1
+
 # Wikimedia Commons lookups (find_reference_photos) too
 config :traveling_poet, commons_req_options: [plug: {Req.Test, TravelingPoet.Commons}]
 config :traveling_poet, hotels_req_options: [plug: {Req.Test, TravelingPoet.Hotels}]

@@ -234,18 +234,7 @@ defmodule TravelingPoet.Evals.Writing do
   poet's tools returned that day, then the eval's one instruction.
   """
   def messages(day) do
-    files = day["files"] || %{}
-
-    {skill, rest} =
-      files
-      |> Map.keys()
-      |> Enum.split_with(&(&1 == "skills/travel-and-journal/SKILL.md"))
-
-    order =
-      Enum.filter(~w(instructions.md AGENTS.md IDENTITY.md USER.md), &Map.has_key?(files, &1)) ++
-        skill ++ Enum.sort(rest -- ~w(instructions.md AGENTS.md IDENTITY.md USER.md))
-
-    system = Enum.map_join(order, "\n\n", &"=== #{&1} ===\n#{files[&1]}")
+    system = system_prompt(day["files"] || %{})
 
     research =
       Enum.map_join(day["research"], "\n\n", fn r ->
@@ -268,6 +257,29 @@ defmodule TravelingPoet.Evals.Writing do
     """
 
     [%{role: "system", content: system}, %{role: "user", content: user}]
+  end
+
+  @prompt_head ~w(instructions.md AGENTS.md IDENTITY.md USER.md)
+
+  @doc """
+  The poet's workspace files as one system prompt: OpenClaw's instructions,
+  AGENTS.md, IDENTITY.md, USER.md, the daily skill, then the rest by path.
+  `only:` keeps just those paths (the app-side loop reads day files with
+  its `read` tool instead).
+  """
+  def system_prompt(files, opts \\ []) do
+    files = if only = opts[:only], do: Map.take(files, only), else: files
+
+    {skill, rest} =
+      files
+      |> Map.keys()
+      |> Enum.split_with(&(&1 == "skills/travel-and-journal/SKILL.md"))
+
+    order =
+      Enum.filter(@prompt_head, &Map.has_key?(files, &1)) ++
+        skill ++ Enum.sort(rest -- @prompt_head)
+
+    Enum.map_join(order, "\n\n", &"=== #{&1} ===\n#{files[&1]}")
   end
 
   @doc false

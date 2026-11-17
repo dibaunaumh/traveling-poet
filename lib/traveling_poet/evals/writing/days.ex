@@ -126,7 +126,9 @@ defmodule TravelingPoet.Evals.Writing.Days do
 
   defp research_count(run), do: Enum.count(run["results"], &(&1["tool"] in @research))
 
-  defp read_sprite(sprite) do
+  @doc false
+  # Also read by AppLoop.Shadow, for the run it replays.
+  def read_sprite(sprite) do
     cmd =
       "echo #{Base.encode64(@script)} | base64 -d > /tmp/tp_writing_eval.js && " <>
         "/.sprite/bin/node /tmp/tp_writing_eval.js #{@result_cap}"
