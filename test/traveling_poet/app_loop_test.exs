@@ -341,4 +341,176 @@ defmodule TravelingPoet.AppLoopTest do
       refute Shadow.enabled?(poet)
     end
   end
+
+  describe "memory" do
+    defp page_on(poet, date, title, body, opts \\ []) do
+      entry =
+        if Keyword.get(opts, :published, true),
+          do: published_entry_fixture(poet, %{entry_date: date, title: title}),
+          else: entry_fixture(poet, %{entry_date: date, title: title})
+
+      {:ok, _} = Journal.replace_sections(entry, [%{kind: "description", body: body}])
+      entry
+    end
+
+    defp message_at(user, role, content, at, channel \\ "web") do
+      {:ok, m} =
+        TravelingPoet.Chat.create_message(%{
+          user_id: user.id,
+          role: role,
+          content: content,
+          channel: channel
+        })
+
+      Repo.update_all(
+        from(c in TravelingPoet.Chat.ChatMessage, where: c.id == ^m.id),
+        set: [inserted_at: at]
+      )
+    end
+
+    test "the block holds the pages before the day, the chat before the run, and the notebook" do
+      user = agent_user_fixture()
+      poet = poet_fixture(user)
+
+      page_on(
+        poet,
+        ~D[2026-11-16],
+        "The bell-ringer",
+        "He keeps ![bees](/media/9) in the [tower](https://x.org)."
+      )
+
+      page_on(poet, ~D[2026-11-17], "Tiles", "Blue tiles on every wall.")
+      # the day being written, and a page never published, are not memory
+      page_on(poet, @date, "Today", "Today's own words.")
+      page_on(poet, ~D[2026-11-15], "Draft", "Never published.", published: false)
+
+      run_start = ~N[2026-11-18 10:00:00]
+      message_at(user, "user", "My daughter Maya turns six on Friday.", ~N[2026-11-17 20:00:00])
+      message_at(user, "agent", "I will find her something.", ~N[2026-11-17 20:01:00])
+      message_at(user, "user", "/travel-and-journal", ~N[2026-11-18 09:00:00], "system")
+      message_at(user, "agent", "Published today's page about Sintra.", ~N[2026-11-18 10:30:00])
+
+      {200, %{"note_id" => _}} =
+        TravelingPoet.AppLoop.Memory.remember(
+          poet.id,
+          ~D[2026-11-17],
+          "Maya, six on Friday, loves owls."
+        )
+
+      block =
+        TravelingPoet.AppLoop.Memory.block(poet, user, @date,
+          before: DateTime.from_naive!(run_start, "Etc/UTC")
+        )
+
+      assert block =~ "# Your memory"
+      assert block =~ ~s(2026-11-16 · Lisbon, Portugal · "The bell-ringer")
+      # images go, links keep their words
+      assert block =~ "He keeps in the tower."
+      assert block =~ "Blue tiles on every wall."
+      refute block =~ "Today's own words."
+      refute block =~ "Never published."
+
+      assert block =~ "Companion (2026-11-17): My daughter Maya turns six on Friday."
+      assert block =~ "You (2026-11-17): I will find her something."
+      # the app's trigger, and anything said after the run began
+      refute block =~ "/travel-and-journal"
+      refute block =~ "Published today's page"
+
+      assert block =~ "Maya, six on Friday, loves owls."
+    end
+
+    test "the loop keeps its notebook in shadow mode, and the next day remembers it" do
+      user = agent_user_fixture()
+      poet = poet_fixture(user)
+      other = poet_fixture(agent_user_fixture())
+
+      {200, %{"note_id" => old}} =
+        TravelingPoet.AppLoop.Memory.remember(
+          poet.id,
+          ~D[2026-11-10],
+          "Companion is in Lisbon in May."
+        )
+
+      {200, %{"note_id" => theirs}} =
+        TravelingPoet.AppLoop.Memory.remember(other.id, ~D[2026-11-10], "Someone else's note.")
+
+      agent =
+        script_model([
+          tools([
+            call("r1", "remember", %{"note" => "Promised Maya an owl drawing."}),
+            call("f1", "forget", %{"note_id" => old}),
+            call("f2", "forget", %{"note_id" => theirs})
+          ]),
+          %{"content" => "Done."}
+        ])
+
+      inputs = Map.put(inputs(user, poet), :memory, "# Your memory\nYesterday: tiles.")
+      result = Runner.run(inputs, shadow: true)
+
+      {_, [first | _] = requests} = Agent.get(agent, & &1)
+      [system | _] = first["messages"]
+      assert system["content"] == "You are a poet.\n\n# Your memory\nYesterday: tiles."
+      assert Enum.any?(first["tools"], &(&1["function"]["name"] == "remember"))
+
+      replies =
+        requests
+        |> List.last()
+        |> Map.fetch!("messages")
+        |> Enum.filter(&(&1["role"] == "tool"))
+        |> Map.new(&{&1["tool_call_id"], Jason.decode!(&1["content"])})
+
+      assert %{"ok" => true, "note_id" => _} = replies["r1"]
+      assert replies["f1"] == %{"ok" => true}
+      assert replies["f2"]["error"] =~ "no note"
+      assert result.tool_errors == 1
+
+      # the next day's memory: the new note, not the forgotten one
+      next = TravelingPoet.AppLoop.Memory.block(poet, user, Date.add(@date, 1))
+      assert next =~ "Promised Maya an owl drawing."
+      refute next =~ "Lisbon in May"
+      # a replay of an earlier day still sees what was in force then
+      assert TravelingPoet.AppLoop.Memory.block(poet, user, @date) =~ "Lisbon in May"
+      # the other poet's notebook is untouched
+      assert [%{body: "Someone else's note."}] =
+               TravelingPoet.AppLoop.Memory.notes(other.id, Date.add(@date, 1))
+    end
+
+    test "a full notebook refuses instead of dropping a note" do
+      poet = poet_fixture(agent_user_fixture())
+
+      for i <- 1..60,
+          do:
+            {200, _} = TravelingPoet.AppLoop.Memory.remember(poet.id, ~D[2026-11-01], "note #{i}")
+
+      assert {409, %{"error" => error}} =
+               TravelingPoet.AppLoop.Memory.remember(poet.id, @date, "one more")
+
+      assert error =~ "Forget one"
+    end
+
+    test "a shadow run starts from the memory as it stood when the sprite's run began" do
+      user = agent_user_fixture()
+      poet = poet_fixture(user, %{settings: %{"app_loop" => "shadow"}})
+      page_on(poet, ~D[2026-11-17], "Tiles", "Blue tiles on every wall.")
+      message_at(user, "user", "Before the run.", ~N[2026-11-18 08:00:00])
+      message_at(user, "agent", "Published, after the run began.", ~N[2026-11-18 10:30:00])
+
+      sprite_run = %{
+        "files" => %{"skills/travel-and-journal/SKILL.md" => "The skill."},
+        "runs" => [
+          %{
+            "at" => DateTime.to_unix(~U[2026-11-18 10:00:00Z], :millisecond),
+            "prompt" => "/travel-and-journal",
+            "entry_date" => "2026-11-18",
+            "results" => [%{"tool" => "get_poet_context", "text" => ~s({"result":{}})}]
+          }
+        ]
+      }
+
+      {:ok, inputs} = Shadow.inputs_for(Repo.preload(poet, :user), @date, sprite_run: sprite_run)
+      assert inputs.memory =~ "Blue tiles on every wall."
+      assert inputs.memory =~ "Before the run."
+      refute inputs.memory =~ "after the run began"
+    end
+  end
 end

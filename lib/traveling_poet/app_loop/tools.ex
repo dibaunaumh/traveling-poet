@@ -15,6 +15,9 @@ defmodule TravelingPoet.AppLoop.Tools do
       `AppLoop.Web` does them on the server.
     * `read` opens a workspace file (a day file such as
       `skills/travel-and-journal/quiz.md`) from the files the run was given.
+    * `remember` and `forget` keep the poet's notebook (`AppLoop.Memory`),
+      the app-side stand-in for what a sprite poet carries in its long
+      conversation. Only app-side runs have them; sprites are unchanged.
 
   `@not_offered` lists plugin tools a daily run has no use for. A new
   plugin tool must be routed or listed there (`app_loop_tools_test.exs`).
@@ -65,8 +68,34 @@ defmodule TravelingPoet.AppLoop.Tools do
     }
   ]
 
+  @notebook [
+    %{
+      name: "remember",
+      description:
+        "Keep one fact in your notebook so later runs know it: something about your companion (a name, a plan, a taste, a worry), your journey, or a promise you made. One fact per note, in a sentence. Your notebook comes back in every run under \"Your memory\".",
+      parameters: %{
+        type: "object",
+        required: ["note"],
+        properties: %{note: %{type: "string", description: "The fact, at most 500 characters"}}
+      }
+    },
+    %{
+      name: "forget",
+      description:
+        "Strike a note from your notebook when it is no longer true or no longer matters, by the id shown in brackets.",
+      parameters: %{
+        type: "object",
+        required: ["note_id"],
+        properties: %{note_id: %{type: "integer"}}
+      }
+    }
+  ]
+
   @doc "Names of the tools that are not `:app` tools."
-  def builtin_names, do: Enum.map(@builtins, & &1.name)
+  def builtin_names, do: Enum.map(@builtins ++ @notebook, & &1.name)
+
+  @doc "The notebook tools (`AppLoop.Memory`)."
+  def notebook_names, do: Enum.map(@notebook, & &1.name)
 
   @doc "Plugin tools a daily run is not offered."
   def not_offered, do: @not_offered
@@ -81,16 +110,17 @@ defmodule TravelingPoet.AppLoop.Tools do
         %{name: spec["name"], description: spec["description"], parameters: spec["parameters"]}
       end
 
-    Enum.map(plugin ++ @builtins, fn t ->
+    Enum.map(plugin ++ @builtins ++ @notebook, fn t ->
       %{type: "function", function: Map.update!(t, :parameters, &normalize_parameters/1)}
     end)
   end
 
-  @doc "`:read`, `:write`, `:builtin`, or `:unknown` for a tool name."
+  @doc "`:read`, `:write`, `:builtin`, `:notebook`, or `:unknown` for a tool name."
   def kind(name) when name in @reads, do: :read
 
   def kind(name) do
     cond do
+      name in notebook_names() -> :notebook
       name in builtin_names() -> :builtin
       name in @not_offered -> :unknown
       name in Provisioner.tpoet_plugin_tools() -> :write

@@ -7,6 +7,9 @@ defmodule TravelingPoet.AppLoop.Shadow do
   "The same start" is read off the sprite, from the run that published:
   the trigger the app sent, the `get_poet_context` answer the poet got, and
   the workspace files it wrote under (`Evals.Writing.Days.read_sprite/1`).
+  In place of the sprite's long conversation, the loop gets its memory
+  block (`AppLoop.Memory`: recent pages, the chat, its notebook) as it
+  stood when the sprite's run began.
   Research is live (`AppLoop.Web`), so the loop finds its own pages, as a
   real run would. Every write lands in an `AppLoop.Draft`; reads go to the
   real endpoints, in-process.
@@ -23,7 +26,7 @@ defmodule TravelingPoet.AppLoop.Shadow do
 
   import Ecto.Query
 
-  alias TravelingPoet.AppLoop.{Draft, Run, Runner}
+  alias TravelingPoet.AppLoop.{Draft, Memory, Run, Runner}
   alias TravelingPoet.Evals.Writing
   alias TravelingPoet.Evals.Writing.Days
   alias TravelingPoet.{Journal, Poets, Provisioner, Repo}
@@ -91,8 +94,31 @@ defmodule TravelingPoet.AppLoop.Shadow do
          entry_date: date,
          context: context,
          day: day_of(context),
-         files: Map.merge(seeded_skills(), files)
+         files: Map.merge(seeded_skills(), files),
+         # what the poet knew when the sprite's run began, never its own day
+         memory: Memory.block(poet, poet.user, date, before: started_at(run))
        }}
+    end
+  end
+
+  # OpenClaw stamps a message in epoch milliseconds (older builds: an ISO
+  # string). Unknown means the start of the day, which is never too late.
+  defp started_at(run) do
+    case run["at"] do
+      ms when is_integer(ms) and ms > 100_000_000_000 ->
+        DateTime.from_unix!(ms, :millisecond)
+
+      s when is_integer(s) ->
+        DateTime.from_unix!(s)
+
+      iso when is_binary(iso) ->
+        case DateTime.from_iso8601(iso) do
+          {:ok, dt, _} -> dt
+          _ -> nil
+        end
+
+      _ ->
+        nil
     end
   end
 
@@ -156,7 +182,8 @@ defmodule TravelingPoet.AppLoop.Shadow do
       cost: result.cost * 1.0,
       ms: result.ms,
       final_text: result.final_text,
-      trigger: inputs.trigger
+      trigger: inputs.trigger,
+      memory: inputs[:memory]
     })
     |> Repo.insert()
   end

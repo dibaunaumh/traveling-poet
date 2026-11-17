@@ -93,6 +93,8 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.Quizzes.Answer,
     # a shadow run of the app-side poet loop: an experiment, never a page
     TravelingPoet.AppLoop.Run,
+    # the app-side poet's notebook: read only by its own runs
+    TravelingPoet.AppLoop.Note,
     Geocoder.CacheEntry,
     TravelingPoet.GooglePlaces.Entry,
     TravelingPoet.WebPush.Subscription,

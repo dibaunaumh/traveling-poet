@@ -27,12 +27,15 @@ defmodule TravelingPoet.AppLoop.Run do
     field :ms, :integer
     field :final_text, :string
     field :trigger, :string
+    # the memory block the run started from (AppLoop.Memory)
+    field :memory, :string
 
     timestamps(type: :utc_datetime)
   end
 
   @fields ~w(poet_id entry_date mode model status error page steps model_calls tool_calls
-             malformed_calls tool_errors tokens_in tokens_out cost ms final_text trigger)a
+             malformed_calls tool_errors tokens_in tokens_out cost ms final_text trigger
+             memory)a
 
   def changeset(run, attrs) do
     run

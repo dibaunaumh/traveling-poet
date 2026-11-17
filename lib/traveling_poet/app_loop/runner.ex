@@ -14,9 +14,10 @@ defmodule TravelingPoet.AppLoop.Runner do
       allow, deny, later hold for approval). Today it denies tools that are
       not offered, and in shadow mode sends every write to `AppLoop.Draft`.
     * **Context.** Each run starts fresh: the system prompt (the poet's
-      workspace files) and the day's trigger, nothing carried over from
-      earlier days. That is the difference the shadow run measures against a
-      sprite's one long session.
+      workspace files, then its memory block, `AppLoop.Memory`) and the
+      day's trigger. What a sprite carries in its one long session (its
+      recent pages, the chat, what it chose to keep) comes from the memory
+      block and the notebook tools instead.
     * **Limits.** At most `:max_model_calls` replies (default 60) and a
       deadline (default 15 minutes); one result is capped so a long page
       cannot crowd the run out.
@@ -24,12 +25,13 @@ defmodule TravelingPoet.AppLoop.Runner do
   The run's inputs are a map: `user` and `poet` (whose endpoints the reads
   go to), `model`, `system`, `trigger`, `entry_date`, `context` (a frozen
   `get_poet_context` answer, as text, or nil to read the live one), `files`
-  (workspace path => content, for the `read` tool) and `day` (travel.day).
+  (workspace path => content, for the `read` tool), `day` (travel.day) and
+  `memory` (the memory block, appended to the system prompt; optional).
   """
 
   require Logger
 
-  alias TravelingPoet.AppLoop.{Dispatch, Draft, Tools, Web}
+  alias TravelingPoet.AppLoop.{Dispatch, Draft, Memory, Tools, Web}
 
   @api_url "https://openrouter.ai/api/v1/chat/completions"
   @result_cap 30_000
@@ -48,7 +50,7 @@ defmodule TravelingPoet.AppLoop.Runner do
       shadow?: shadow?,
       draft: Draft.new(inputs.entry_date, inputs[:day]),
       messages: [
-        %{role: "system", content: inputs.system},
+        %{role: "system", content: system_prompt(inputs)},
         %{role: "user", content: inputs.trigger}
       ],
       steps: [],
@@ -63,6 +65,15 @@ defmodule TravelingPoet.AppLoop.Runner do
     }
 
     state |> loop() |> summary()
+  end
+
+  # The workspace files first: they are the same every day, so a provider
+  # that caches prompt prefixes reuses them; the memory changes daily.
+  defp system_prompt(inputs) do
+    case inputs[:memory] do
+      memory when is_binary(memory) and memory != "" -> inputs.system <> "\n\n" <> memory
+      _ -> inputs.system
+    end
   end
 
   defp loop(state) do
@@ -169,13 +180,16 @@ defmodule TravelingPoet.AppLoop.Runner do
 
   @doc """
   The one gate every tool call passes: `:allow` (carry it out), `:draft`
-  (shadow mode: keep the write in the draft) or `:deny`.
+  (shadow mode: keep the write in the draft) or `:deny`. The notebook is
+  allowed in shadow mode too: only app-side runs ever read it, so keeping
+  it for real reaches no reader, and a shadow trial without it would not
+  test the memory D depends on.
   """
   def policy(name, _args, state) do
     case Tools.kind(name) do
       :unknown -> :deny
       :write -> if state.shadow?, do: :draft, else: :allow
-      _read_or_builtin -> :allow
+      _read_builtin_or_notebook -> :allow
     end
   end
 
@@ -223,6 +237,12 @@ defmodule TravelingPoet.AppLoop.Runner do
   end
 
   defp carry_out("read", _args, _state), do: {422, %{"error" => "path is required"}}
+
+  defp carry_out("remember", args, state),
+    do: Memory.remember(state.inputs.poet.id, state.inputs.entry_date, args["note"])
+
+  defp carry_out("forget", args, state),
+    do: Memory.forget(state.inputs.poet.id, state.inputs.entry_date, args["note_id"])
 
   defp carry_out(name, args, state), do: dispatch(name, args, state)
 
