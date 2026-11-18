@@ -1289,9 +1289,13 @@ mark.marker.marker-sent {
   position: relative;
 }
 
+/* minmax(0, 1fr), never a bare 1fr: a bare 1fr track is at least as wide
+   as the widest thing in it that cannot wrap (a drawing's source line, a
+   long title beside the share button), so on a phone the page grew past
+   the screen and cut off the prose and the drawing at the right edge. */
 .spread {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
   margin-top: 1rem;
   filter: drop-shadow(0 14px 28px rgba(60, 45, 20, 0.18));
@@ -1300,6 +1304,8 @@ mark.marker.marker-sent {
 .spread .spread-page {
   box-shadow: none;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Stacked (a phone): one continuous sheet, the second page simply carrying
@@ -1434,7 +1440,6 @@ mark.marker.marker-sent {
   font-size: 1.05rem;
   font-weight: 400;
   color: #3b4a8c;
-  white-space: nowrap;
 }
 
 .taped-ticket {
@@ -1708,7 +1713,7 @@ mark.marker.marker-sent {
    hang off the right edge. */
 @container journal (min-width: 34rem) {
   .spread {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .spread .spread-page {
