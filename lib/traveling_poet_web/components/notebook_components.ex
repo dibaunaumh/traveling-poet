@@ -285,7 +285,8 @@ defmodule TravelingPoetWeb.NotebookComponents do
 
   # The id and data attributes come from the section's stored position, not
   # its place on the page: the Markers hook matches marks by (kind, position)
-  # and the tests pin `section-<entry>-0`.
+  # and the tests pin `section-<entry>-0`. A page's drawing loads eagerly: in
+  # the iPhone app a lazy one with no size of its own was never fetched.
   defp spread_item(%{item: {:section, section}} = assigns) do
     assigns = assign(assigns, :section, section)
 
@@ -304,6 +305,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
         clamp={@clamp and @section.kind != "illustration"}
         links={@links}
         spot_media={@spot_media}
+        loading="eager"
       />
     </div>
     """
@@ -320,7 +322,7 @@ defmodule TravelingPoetWeb.NotebookComponents do
       data-section-kind="illustration"
       data-media-id={@drawing.id}
     >
-      <.section section={%{kind: "illustration"}} media={@drawing} />
+      <.section section={%{kind: "illustration"}} media={@drawing} loading="eager" />
     </div>
     """
   end
