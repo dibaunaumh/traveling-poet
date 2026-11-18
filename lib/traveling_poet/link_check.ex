@@ -62,6 +62,9 @@ defmodule TravelingPoet.LinkCheck do
 
   def check(_), do: {:error, :invalid_url}
 
+  @doc "Whether a host is one the app must never request (local, internal, a literal IP)."
+  def blocked_host?(host), do: String.contains?(host, ":") or check_host(host) != :ok
+
   defp check_host(host) do
     cond do
       host in ["localhost", "127.0.0.1", "[::1]"] ->

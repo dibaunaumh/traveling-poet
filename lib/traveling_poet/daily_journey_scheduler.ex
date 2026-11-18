@@ -325,6 +325,9 @@ defmodule TravelingPoet.DailyJourneyScheduler do
       # And a local who lives where the poet now is may be asked for tips
       # (card-10).
       TravelingPoet.LocalVoices.after_publish(poet)
+      # A poet in shadow mode has the same day written again by the app-side
+      # loop, for comparison only (dec-024).
+      TravelingPoet.AppLoop.Shadow.after_publish(user, poet)
     else
       log_unpublished_outcome(poet, outcome)
       Credits.refund_daily_run(user, attempt.id)

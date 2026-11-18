@@ -778,10 +778,14 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
     end
   end
 
+  # Public for AppLoop.Draft, whose shadow publish answers with the same notes.
+  @doc false
+  def missing_note(kind, date)
+
   # A day at a place with nothing in the trip guide: first entries skipped
   # journal_put_places on 6 of 8 new poets, and the reader found an empty
   # Places tab. An excursion has finds instead.
-  defp missing_note("places", date) do
+  def missing_note("places", date) do
     "Published, but no places are logged for #{date}, so your companion's Places " <>
       "page is empty. Call journal_put_places for #{date} now with the places and " <>
       "dated events this entry names (travel-and-journal, section 4b)."
@@ -792,7 +796,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   # while the places note above was obeyed at once. A drawing generated but
   # never put on a section still shows (Spreads tapes it on), so only a page
   # with neither is told.
-  defp missing_note("drawing", date) do
+  def missing_note("drawing", date) do
     "Published, but today's page has no drawing. Call generate_illustration for " <>
       "#{date} now (travel-and-journal, step 5), then journal_put_sections with the " <>
       "full list of sections plus an illustration section carrying the returned " <>
@@ -802,7 +806,7 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
 
   # A quiz day's page went out without its quiz: the reader got only the
   # intro.
-  defp missing_note("quiz", date) do
+  def missing_note("quiz", date) do
     "Published, but today is a quiz day and the page has no quiz. Call " <>
       "journal_put_quiz for #{date} now with your questions and closing notes " <>
       "(skills/travel-and-journal/quiz.md)."
