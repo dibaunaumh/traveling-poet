@@ -41,24 +41,34 @@ defmodule TravelingPoet.Journal.PageFacts do
       ]
       |> Enum.reject(&is_nil/1)
 
+    # A page with no title: Beatrix's of 2026-11-17 went out with neither a
+    # title nor a teaser (her upsert carried only place, weather and
+    # sources), and the publish reply said nothing.
+    untitled = if blank?(entry.title), do: ["title"], else: []
+
     missing =
-      if Quizzes.quiz_day?(entry) do
-        # A quiz day has no places and no new drawing; it needs its quiz.
-        quiz = Quizzes.quiz_of(entry)
-        if(is_nil(quiz) or quiz.questions == [], do: ["quiz"], else: [])
-      else
-        [
-          # A day at a place with nothing in the trip guide leaves the reader an
-          # empty Places tab; an excursion has finds instead.
-          if(not excursion? and places == 0, do: "places"),
-          # A drawing generated but never put on a section still shows.
-          if(drawings == 0, do: "drawing")
-        ]
-        |> Enum.reject(&is_nil/1)
-      end
+      untitled ++
+        if Quizzes.quiz_day?(entry) do
+          # A quiz day has no places and no new drawing; it needs its quiz.
+          quiz = Quizzes.quiz_of(entry)
+          if(is_nil(quiz) or quiz.questions == [], do: ["quiz"], else: [])
+        else
+          [
+            # A day at a place with nothing in the trip guide leaves the reader an
+            # empty Places tab; an excursion has finds instead.
+            if(not excursion? and places == 0, do: "places"),
+            # A drawing generated but never put on a section still shows.
+            if(drawings == 0, do: "drawing")
+          ]
+          |> Enum.reject(&is_nil/1)
+        end
 
     %{parts: parts, missing: missing}
   end
+
+  defp blank?(nil), do: true
+  defp blank?(s) when is_binary(s), do: String.trim(s) in ["", "null"]
+  defp blank?(_), do: false
 
   @doc "The part of the page a section kind (or a spread) belongs to, or nil."
   def part_of("description"), do: "story"

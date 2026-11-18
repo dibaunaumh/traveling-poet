@@ -183,19 +183,23 @@ defmodule TravelingPoet.AppLoop.Draft do
       Enum.count(draft.sections, &(&1["kind"] == "illustration" and &1["media_id"] != nil)) +
         Enum.count(draft.media, &(&1["kind"] == "illustration"))
 
-    case draft.day do
-      "quiz" ->
-        if draft.quiz, do: [], else: ["quiz"]
+    title = (draft.entry || %{})["title"]
+    titled? = is_binary(title) and String.trim(title) not in ["", "null"]
 
-      day ->
-        Enum.reject(
-          [
-            if(day != "excursion" and draft.places == [], do: "places"),
-            if(drawings == 0, do: "drawing")
-          ],
-          &is_nil/1
-        )
-    end
+    if(titled?, do: [], else: ["title"]) ++
+      case draft.day do
+        "quiz" ->
+          if draft.quiz, do: [], else: ["quiz"]
+
+        day ->
+          Enum.reject(
+            [
+              if(day != "excursion" and draft.places == [], do: "places"),
+              if(drawings == 0, do: "drawing")
+            ],
+            &is_nil/1
+          )
+      end
   end
 
   defp notes(draft) do

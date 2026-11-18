@@ -782,6 +782,14 @@ defmodule TravelingPoetWeb.Api.JournalApiController do
   @doc false
   def missing_note(kind, date)
 
+  # A page with no title shows the reader a bare date, and the notification
+  # and the email have nothing to say about the day.
+  def missing_note("title", date) do
+    "Published, but the page for #{date} has no title. Call journal_upsert_entry " <>
+      "for #{date} now with only title and teaser: the title is the day's one " <>
+      "concrete moment, the teaser one or two sentences, both in the page's language."
+  end
+
   # A day at a place with nothing in the trip guide: first entries skipped
   # journal_put_places on 6 of 8 new poets, and the reader found an empty
   # Places tab. An excursion has finds instead.
