@@ -1458,6 +1458,34 @@ defmodule TravelingPoetWeb.AgentApiTest do
       assert length(String.split(body["note"], "You do not need to publish again.")) == 2
     end
 
+    # Beatrix, 2026-11-17: an upsert with place, weather and sources only,
+    # published as a page with no title, and the reply said nothing.
+    test "a page with no title tells the poet to name it", %{conn: conn, poet: poet} do
+      entry = drawn_entry(poet)
+      place_fixture(poet, entry)
+      {:ok, _} = Journal.upsert_entry(poet.id, entry.entry_date, %{title: nil})
+
+      body = publish(conn, entry.entry_date)
+
+      assert body["ok"]
+      assert body["missing"] == ["title"]
+      assert body["note"] =~ "journal_upsert_entry for 2026-09-25"
+      assert Journal.get_entry(poet.id, entry.entry_date).status == "published"
+
+      # naming it afterwards is enough
+      conn
+      |> post(~p"/api/agent/journal_entries", %{
+        "entry_date" => "2026-09-25",
+        "title" => "What stayed dry",
+        "teaser" => "Rain all day."
+      })
+      |> json_response(200)
+
+      published = Journal.get_entry(poet.id, entry.entry_date)
+      assert {published.title, published.status} == {"What stayed dry", "published"}
+      refute Map.has_key?(publish(conn, entry.entry_date), "missing")
+    end
+
     # Spreads tapes on a drawing no section claimed, so the reader has it.
     test "a drawing made but left off the sections is not missing", %{conn: conn, poet: poet} do
       entry = entry_fixture(poet, %{entry_date: ~D[2026-09-25]})

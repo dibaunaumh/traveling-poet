@@ -112,8 +112,11 @@ defmodule TravelingPoet.AppLoopTest do
       assert Draft.published?(d)
 
       # a quiz day needs its quiz, nothing else
-      q = %{Draft.new(@date, "quiz") | entry: %{}}
+      q = %{Draft.new(@date, "quiz") | entry: %{"title" => "Q"}}
       assert Draft.missing(q) == ["quiz"]
+
+      # and every page needs a title
+      assert Draft.missing(%{q | entry: %{}}) == ["title", "quiz"]
     end
 
     test "a write for another day is refused, never let through" do
