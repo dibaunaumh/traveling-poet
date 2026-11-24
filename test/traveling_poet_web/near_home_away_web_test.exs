@@ -153,6 +153,22 @@ defmodule TravelingPoetWeb.NearHomeAwayWebTest do
       assert note =~ "Tel Aviv-Yafo"
     end
 
+    test "a trip on the calendar says so, with no device report", %{conn: conn, user: user} do
+      {:ok, user} =
+        Accounts.update_user(user, %{
+          google_refresh_token: "refresh",
+          google_scopes: [TravelingPoet.GoogleAuth.scope(:calendar)],
+          trip_here_name: "Jerusalem, Israel",
+          trip_here_lat: 31.77,
+          trip_here_lng: 35.21,
+          trip_here_until: Date.add(Date.utc_today(), 3)
+        })
+
+      {:ok, view, html} = live(signed_in(conn, user), ~p"/guide/near")
+      assert html =~ "within 40 km of Jerusalem"
+      assert has_element?(view, "#near-away", "Your calendar has you in Jerusalem.")
+    end
+
     test "a batch found around the place says so, on the page and its cards", %{
       conn: conn,
       user: user,

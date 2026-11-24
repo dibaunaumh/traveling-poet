@@ -90,6 +90,12 @@ defmodule TravelingPoet.Accounts.User do
     field :here_lng, :float
     field :here_place_name, :string
     field :here_at, :utc_datetime
+    # Where the calendar puts the reader today (a trip city), set by each
+    # calendar sync; nil when no trip is on
+    field :trip_here_name, :string
+    field :trip_here_lat, :float
+    field :trip_here_lng, :float
+    field :trip_here_until, :date
 
     # Referral credits (card-126; TravelingPoet.Referrals): this reader's
     # invite code, who invited them, and when they last waved off the
@@ -174,6 +180,10 @@ defmodule TravelingPoet.Accounts.User do
       :here_lng,
       :here_place_name,
       :here_at,
+      :trip_here_name,
+      :trip_here_lat,
+      :trip_here_lng,
+      :trip_here_until,
       :local_voice,
       :local_voice_credit
     ])

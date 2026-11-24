@@ -1243,13 +1243,17 @@ msgid "Traveling? %{poet} can look around wherever you are, while the app is ope
 msgstr ""
 
 #, elixir-autogen, elixir-format
-msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it."
-msgstr ""
-
-#, elixir-autogen, elixir-format
 msgid "You are in %{place}, away from home."
 msgstr ""
 
 #, elixir-autogen, elixir-format
 msgid "You are in %{place}. %{poet} is looking for things to do around you. This takes about ten minutes."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it. Trips on your calendar count even with this off."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has you in %{place}."
 msgstr ""
