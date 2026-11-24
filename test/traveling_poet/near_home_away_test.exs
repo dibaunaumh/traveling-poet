@@ -323,6 +323,49 @@ defmodule TravelingPoet.NearHomeAwayTest do
     end
   end
 
+  describe "a call written as text" do
+    defmodule WritingSession do
+      def run(_user, _note, _opts) do
+        picks = [
+          %{
+            "name" => "Carmel Market",
+            "url" => "https://example.com/carmel",
+            "kind" => "market",
+            "when_text" => "Sunday to Friday, until the afternoon",
+            "address" => "HaCarmel St, Tel Aviv",
+            "lat" => 32.0684,
+            "lng" => 34.7686,
+            "blurb" => "Spices {and} \"fresh\" juice."
+          }
+        ]
+
+        {:ok, "[tool call] near_home_put(#{Jason.encode!(%{"picks" => picks})}) and then done"}
+      end
+    end
+
+    test "is taken as the call when the turn saved nothing", %{user: user, poet: poet} do
+      Application.put_env(:traveling_poet, :agent_session, WritingSession)
+      Phoenix.PubSub.subscribe(TravelingPoet.PubSub, "user:#{user.id}")
+      user = in_tel_aviv(user)
+
+      assert {:ok, :started} = NearHome.request(user, poet)
+      assert_receive {:near_home, :done}, 2000
+
+      assert [%Pick{name: "Carmel Market", around_name: "Tel Aviv-Yafo, Israel"}] =
+               NearHome.list(user.id)
+    end
+
+    test "is left alone once a real call landed, or when there is none", %{user: user, poet: poet} do
+      user = in_tel_aviv(user)
+      {:ok, %{kept: [_]}} = NearHome.ingest(user, poet, [pick(%{})])
+      {:ok, written} = WritingSession.run(user, "", [])
+
+      assert NearHome.rescue_written_call(user, poet, written) == :none
+      assert NearHome.rescue_written_call(user, poet, "Four things around you.") == :none
+      assert NearHome.rescue_written_call(user, poet, "near_home_put(not json)") == :none
+    end
+  end
+
   test "where the reader is never leaves through the change stream" do
     for field <-
           ~w(here_lat here_lng here_place_name here_at trip_here_name trip_here_lat trip_here_lng trip_here_until),
