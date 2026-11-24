@@ -566,18 +566,14 @@ defmodule TravelingPoet.NearHome do
         {:ok, Map.put(given, :distance_km, distance(given, anchor))}
 
       query = geocode_query(raw, anchor) ->
-        case Geocoder.locate(query) do
-          {:ok, %{lat: lat, lng: lng}} ->
-            found = %{lat: lat, lng: lng}
-            km = distance(found, anchor)
+        case first_within_reach(geocode_fallbacks(query), anchor) do
+          {:ok, found} ->
+            {:ok, found}
 
-            if km <= @radius_km * 1.5,
-              do: {:ok, Map.put(found, :distance_km, km)},
-              else:
-                {:error,
-                 "#{round(km)} km from #{measured_from(anchor)}; keep to #{@radius_km} km"}
+          {:far, km} ->
+            {:error, "#{round(km)} km from #{measured_from(anchor)}; keep to #{@radius_km} km"}
 
-          _ ->
+          :not_found ->
             {:error, "could not find \"#{query}\" on a map; give its full postal address"}
         end
 
@@ -592,6 +588,58 @@ defmodule TravelingPoet.NearHome do
       (place = str(raw, "place_name")) && anchor.name -> "#{place}, #{anchor.name}"
       true -> nil
     end
+  end
+
+  # Nominatim knows many streets only by their local name, so an English
+  # postal address abroad often finds nothing ("27 Shaul Hamelech Blvd.,
+  # Tel Aviv"; Ashdod, 2026-11-24). Simpler forms are tried in turn: without
+  # house numbers and postcodes, the street or venue with the town, the
+  # venue alone ("Tel Aviv Museum of Art"), then the town. Each goes through
+  # the geocoder's cache and limiter.
+  @doc false
+  def geocode_fallbacks(query) do
+    parts =
+      query
+      |> String.split(",")
+      |> Enum.map(&(&1 |> String.replace(~r/\b\d[\w-]*\b/u, "") |> squeeze()))
+      |> Enum.reject(&(&1 == ""))
+
+    simplified =
+      case parts do
+        [] ->
+          []
+
+        [one] ->
+          [one]
+
+        [first | _] ->
+          [Enum.join(parts, ", "), "#{first}, #{List.last(parts)}", first, List.last(parts)]
+      end
+
+    Enum.uniq([String.trim(query) | simplified])
+  end
+
+  defp squeeze(text), do: text |> String.replace(~r/\s+/u, " ") |> String.trim()
+
+  # The first form found within reach; else how far the first one found
+  # was, so the poet hears it picked a place too far away.
+  defp first_within_reach(queries, anchor) do
+    Enum.reduce_while(queries, :not_found, fn query, acc ->
+      case Geocoder.locate(query) do
+        {:ok, %{lat: lat, lng: lng}} ->
+          found = %{lat: lat, lng: lng}
+          km = distance(found, anchor)
+
+          cond do
+            km <= @radius_km * 1.5 -> {:halt, {:ok, Map.put(found, :distance_km, km)}}
+            acc == :not_found -> {:cont, {:far, km}}
+            true -> {:cont, acc}
+          end
+
+        _ ->
+          {:cont, acc}
+      end
+    end)
   end
 
   defp measured_from(%{away?: true, name: name}) when is_binary(name), do: Away.short_name(name)

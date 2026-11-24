@@ -323,6 +323,52 @@ defmodule TravelingPoet.NearHomeAwayTest do
     end
   end
 
+  describe "an address the map does not know as written" do
+    defp remember(query, lat, lng) do
+      %TravelingPoet.Geocoder.CacheEntry{}
+      |> TravelingPoet.Geocoder.CacheEntry.changeset(%{
+        query_hash: TravelingPoet.Geocoder.CacheEntry.hash(query),
+        query: query,
+        found: true,
+        lat: lat,
+        lng: lng,
+        looked_up_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+      |> TravelingPoet.Repo.insert!()
+    end
+
+    test "is found by simpler forms: the venue, then the town", %{user: user, poet: poet} do
+      user = in_tel_aviv(user)
+      remember("Tel Aviv Museum of Art", 32.0773, 34.7869)
+      remember("Ashdod", 31.8044, 34.6553)
+      # a street of the same name far away is passed over, not taken
+      remember("Mazal Dagim St.", 40.0, -74.0)
+
+      museum =
+        pick(%{
+          "name" => "A Moment of Birth",
+          "address" => "Tel Aviv Museum of Art, 27 Shaul Hamelech Blvd., Tel Aviv"
+        })
+        |> Map.drop(["lat", "lng"])
+
+      festival =
+        pick(%{"name" => "Festival", "address" => "Various venues, Ashdod"})
+        |> Map.drop(["lat", "lng"])
+
+      nowhere =
+        pick(%{"name" => "Nhafa", "address" => "4 Mazal Dagim St., Old Jaffa"})
+        |> Map.drop(["lat", "lng"])
+
+      assert {:ok, %{kept: kept, dropped: [dropped]}} =
+               NearHome.ingest(user, poet, [museum, festival, nowhere])
+
+      assert Enum.map(kept, & &1.name) == ["A Moment of Birth", "Festival"]
+      assert hd(kept).lat == 32.0773
+      assert dropped.name == "Nhafa"
+      assert dropped.reason =~ "km from Tel Aviv-Yafo"
+    end
+  end
+
   describe "a call written as text" do
     defmodule WritingSession do
       def run(_user, _note, _opts) do
