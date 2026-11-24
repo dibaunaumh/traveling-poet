@@ -109,4 +109,51 @@ defmodule TravelingPoet.Trips.CalendarSyncTest do
     assert [{id, {:ok, _}}] = CalendarSync.sync_all()
     assert id == user.id
   end
+
+  defmodule FakeSession do
+    def run(user, note, _opts) do
+      if pid = Process.whereis(:calendar_sync_away_test),
+        do: send(pid, {:session_run, user.id, note})
+
+      {:ok, "Looking."}
+    end
+  end
+
+  test "a trip under way puts the companion there, and Near you looks around it the same day" do
+    Process.register(self(), :calendar_sync_away_test)
+    Application.put_env(:traveling_poet, :agent_session, FakeSession)
+    Application.put_env(:traveling_poet, :near_home_enabled, true)
+
+    on_exit(fn ->
+      Application.delete_env(:traveling_poet, :agent_session)
+      Application.delete_env(:traveling_poet, :near_home_enabled)
+    end)
+
+    user = calendar_user_fixture(%{credits: 10, onboarding_completed: true})
+    poet_fixture(user)
+
+    remember("Rome, Italy", %{
+      lat: 41.9028,
+      lng: 12.4964,
+      country_code: "IT",
+      city: "Rome",
+      country: "Italy"
+    })
+
+    # landed yesterday: too late to suggest, but they are there
+    calendar([rome_event(-1)])
+
+    assert {:ok, %{new: []}} = CalendarSync.sync_user(user)
+    user = Accounts.get_user!(user.id)
+    assert user.trip_here_name == "Rome, Italy"
+    # an all-day event ends the day before its exclusive end date
+    assert user.trip_here_until == Date.add(Date.utc_today(), 2)
+    assert_receive {:session_run, _, note}, 2000
+    assert note =~ "A trip on their calendar puts them in Rome, Italy"
+
+    # home again: the next sync forgets it
+    calendar([])
+    assert {:ok, _} = CalendarSync.sync_user(user)
+    assert Accounts.get_user!(user.id).trip_here_name == nil
+  end
 end

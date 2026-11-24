@@ -12,7 +12,9 @@ defmodule TravelingPoet.Trips.CalendarSync do
 
   One sync is: list the next `:calendar_lookahead_days` of events, geocode
   the locations the detector asks for (through the cache and the limiter,
-  at most `@max_locations` new ones per run), detect, reconcile.
+  at most `@max_locations` new ones per run), detect, reconcile, and note
+  the city a trip under way puts them in today (`Away.calendar_moved/2`),
+  which is how Near you finds things around them the day they land.
   """
 
   use GenServer
@@ -22,6 +24,7 @@ defmodule TravelingPoet.Trips.CalendarSync do
 
   alias TravelingPoet.{Accounts, Geocoder, GoogleAuth, GoogleCalendar, Poets, Repo, Trips}
   alias TravelingPoet.Accounts.User
+  alias TravelingPoet.NearHome.Away
   alias TravelingPoet.Trips.Detector
 
   @startup_delay_ms 120_000
@@ -107,6 +110,9 @@ defmodule TravelingPoet.Trips.CalendarSync do
       resolved = resolve(Detector.locations(events, today, options()))
       detected = Detector.detect(events, resolved, home, today, options())
       result = Trips.reconcile(poet, detected, user.home_place_name)
+      # Where a trip under way puts them today: Near you looks around it (card-78)
+      {:ok, user} =
+        Away.calendar_moved(user, Detector.current(events, resolved, home, today, options()))
 
       {:ok, _} =
         Accounts.update_user(user, %{

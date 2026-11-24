@@ -245,4 +245,50 @@ defmodule TravelingPoet.Trips.DetectorTest do
 
     assert Detector.locations(events, @today) == ["Rome, Italy", "Cascais, Portugal"]
   end
+
+  describe "current/5" do
+    defp current(events, today), do: Detector.current(events, @resolved, @home, today)
+
+    test "a trip under way puts the companion in the last city they reached, until it ends" do
+      flight =
+        ev(%{
+          event_type: "fromGmail",
+          location: "Rome, Italy",
+          start_on: @today,
+          end_on: @today
+        })
+
+      florence =
+        ev(%{
+          event_type: "fromGmail",
+          location: "Florence, Italy",
+          start_on: Date.add(@today, 1),
+          end_on: Date.add(@today, 6)
+        })
+
+      events = [flight, florence]
+
+      # too soon to suggest, but under way
+      assert detect(events) == []
+
+      assert %{place_name: "Rome, Italy", lat: 41.9028, country_code: "IT", until: until} =
+               current(events, @today)
+
+      assert until == Date.add(@today, 6)
+      assert %{place_name: "Florence, Italy"} = current(events, Date.add(@today, 4))
+    end
+
+    test "no trip today, home before the first arrival, and a place near home are nowhere" do
+      rome =
+        ev(%{location: "Rome, Italy", start_on: Date.add(@today, 1), end_on: Date.add(@today, 4)})
+
+      ooo = ev(%{event_type: "outOfOffice", start_on: @today, end_on: Date.add(@today, 4)})
+
+      assert current([rome], @today) == nil
+      # the trip has begun (out of office), but they have not landed yet
+      assert current([rome, ooo], @today) == nil
+      assert %{place_name: "Rome, Italy"} = current([rome, ooo], Date.add(@today, 1))
+      assert current([ev(%{location: "Cascais, Portugal", start_on: @today})], @today) == nil
+    end
+  end
 end

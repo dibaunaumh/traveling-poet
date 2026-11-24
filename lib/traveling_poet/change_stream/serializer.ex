@@ -37,9 +37,9 @@ defmodule TravelingPoet.ChangeStream.Serializer do
   ]
 
   @redact_exact %{
-    # here_*: where the reader's device is right now (card-78)
+    # here_*, trip_here_*: where the reader is right now, by device or calendar (card-78)
     "users" => ~w(email google_id apple_id telegram_chat_id telegram_username here_lat here_lng
-         here_place_name here_at),
+         here_place_name here_at trip_here_name trip_here_lat trip_here_lng trip_here_until),
     "chat_messages" => ~w(content),
     # the calendar events behind a trip (ids, dates, locations): calendar content
     "trips" => ~w(signals)

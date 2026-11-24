@@ -1243,13 +1243,17 @@ msgid "Traveling? %{poet} can look around wherever you are, while the app is ope
 msgstr "בנסיעה? בזמן שהאפליקציה פתוחה, החיפוש של %{poet} יכול להתמקד במקום שבו אתם נמצאים."
 
 #, elixir-autogen, elixir-format
-msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it."
-msgstr "בזמן שהאפליקציה פתוחה, הטלפון או הדפדפן מוסרים ל-%{poet} בערך איפה אתם. ביותר מ-%{km} ק\"מ מהבית, \"לידכם\" מחפש סביבכם שם. אף פעם לא ברקע, ורק אתם רואים את זה."
-
-#, elixir-autogen, elixir-format
 msgid "You are in %{place}, away from home."
 msgstr "אתם ב-%{place}, רחוק מהבית."
 
 #, elixir-autogen, elixir-format
 msgid "You are in %{place}. %{poet} is looking for things to do around you. This takes about ten minutes."
 msgstr "אתם ב-%{place}. החיפוש של %{poet} אחר דברים לעשות סביבכם כבר בדרך. זה לוקח בערך עשר דקות."
+
+#, elixir-autogen, elixir-format
+msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it. Trips on your calendar count even with this off."
+msgstr "בזמן שהאפליקציה פתוחה, הטלפון או הדפדפן מוסרים ל-%{poet} בערך איפה אתם. ביותר מ-%{km} ק\"מ מהבית, \"לידכם\" מחפש סביבכם שם. אף פעם לא ברקע, ורק אתם רואים את זה. נסיעות ביומן שלכם נחשבות גם כשזה כבוי."
+
+#, elixir-autogen, elixir-format
+msgid "Your calendar has you in %{place}."
+msgstr "לפי היומן שלכם, אתם ב-%{place}."

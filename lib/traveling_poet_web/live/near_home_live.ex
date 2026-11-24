@@ -173,6 +173,7 @@ defmodule TravelingPoetWeb.NearHomeLive do
       assigns
       |> assign(:home?, NearHome.home?(assigns.current_user))
       |> assign(:here, here && Away.display_name(here.name, here.lat, here.lng))
+      |> assign(:by_calendar?, match?(%{source: :calendar}, here))
       |> assign(:around, around)
       # Away, Near you runs on the "notice when I am away" switch
       |> assign(:on?, assigns.current_user.near_home != false or here != nil)
@@ -207,7 +208,11 @@ defmodule TravelingPoetWeb.NearHomeLive do
                 place: @here,
                 poet: @poet.name
               ),
-            else: dgettext("guide", "You are in %{place}, away from home.", place: @here)}
+            else:
+              if(@by_calendar?,
+                do: dgettext("guide", "Your calendar has you in %{place}.", place: @here),
+                else: dgettext("guide", "You are in %{place}, away from home.", place: @here)
+              )}
         </span>
         <.look_now :if={!@asking} asking={@asking} poet={@poet} />
       </div>

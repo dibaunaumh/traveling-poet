@@ -225,8 +225,107 @@ defmodule TravelingPoet.NearHomeAwayTest do
     end
   end
 
+  describe "a trip on the calendar" do
+    @jerusalem %{place_name: "Jerusalem, Israel", lat: 31.7683, lng: 35.2137, country_code: "IL"}
+
+    defp connected(user) do
+      {:ok, user} =
+        Accounts.update_user(user, %{
+          google_refresh_token: "refresh",
+          google_scopes: [TravelingPoet.GoogleAuth.scope(:calendar)]
+        })
+
+      user
+    end
+
+    defp on_trip(user, until \\ Date.add(Date.utc_today(), 5)) do
+      {:ok, user} = Away.calendar_moved(connected(user), Map.put(@jerusalem, :until, until))
+      user
+    end
+
+    setup do
+      Application.put_env(:traveling_poet, :near_home_enabled, true)
+      on_exit(fn -> Application.delete_env(:traveling_poet, :near_home_enabled) end)
+    end
+
+    test "puts the reader there with no device at all, and Near you looks at once", %{
+      user: user
+    } do
+      {:ok, user} = Accounts.update_user(user, %{away_aware: false})
+      user = on_trip(user)
+
+      assert %{name: "Jerusalem, Israel", source: :calendar, away?: true} = Away.here(user)
+      assert NearHome.anchor(user).name == "Jerusalem, Israel"
+
+      assert_receive {:session_run, _, note, _}, 2000
+      assert note =~ "A trip on their calendar puts them in Jerusalem, Israel"
+      assert note =~ "What is on around Jerusalem?"
+    end
+
+    test "the next sync on the same trip does not ask twice", %{user: user, poet: poet} do
+      user = on_trip(user)
+      assert_receive {:session_run, _, _, _}, 2000
+
+      {:ok, %{kept: [_]}} =
+        NearHome.ingest(user, poet, [
+          pick(%{"address" => "Jaffa Gate, Jerusalem", "lat" => 31.7767, "lng" => 35.2275})
+        ])
+
+      _ = on_trip(user)
+      refute_receive {:session_run, _, _, _}, 200
+    end
+
+    test "a device report from today beats it, an older one does not", %{user: user} do
+      user = on_trip(user)
+
+      older = in_tel_aviv(user, DateTime.add(DateTime.utc_now(), -2, :day))
+      assert %{name: "Jerusalem, Israel"} = Away.here(older)
+
+      assert %{name: "Tel Aviv-Yafo, Israel", source: :device} = Away.here(in_tel_aviv(user))
+
+      {:ok, home_today} =
+        Accounts.update_user(user, %{
+          here_lat: 38.72,
+          here_lng: -9.14,
+          here_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+
+      assert Away.here(home_today) == nil
+    end
+
+    test "counts only while the trip lasts, the calendar is connected and Near you is on", %{
+      user: user
+    } do
+      {:ok, user} = Accounts.update_user(user, %{away_aware: false})
+
+      ended = on_trip(user, Date.add(Date.utc_today(), -1))
+      assert Away.here(ended) == nil
+
+      user = on_trip(user)
+      {:ok, disconnected} = Accounts.update_user(user, %{google_scopes: []})
+      assert Away.here(disconnected) == nil
+
+      {:ok, near_off} = Accounts.update_user(user, %{near_home: false})
+      assert Away.here(near_off) == nil
+
+      # the "notice when I am away" switch is consent enough
+      {:ok, switch_on} = Accounts.update_user(near_off, %{away_aware: true})
+      assert %{source: :calendar} = Away.here(switch_on)
+    end
+
+    test "no trip on forgets the place, and nothing starts", %{user: user} do
+      user = on_trip(user)
+      assert_receive {:session_run, _, _, _}, 2000
+
+      {:ok, user} = Away.calendar_moved(user, nil)
+      assert {user.trip_here_name, user.trip_here_lat, user.trip_here_until} == {nil, nil, nil}
+      refute_receive {:session_run, _, _, _}, 200
+    end
+  end
+
   test "where the reader is never leaves through the change stream" do
-    for field <- ~w(here_lat here_lng here_place_name here_at),
+    for field <-
+          ~w(here_lat here_lng here_place_name here_at trip_here_name trip_here_lat trip_here_lng trip_here_until),
         do: assert(Serializer.redacted_field?("users", field))
   end
 

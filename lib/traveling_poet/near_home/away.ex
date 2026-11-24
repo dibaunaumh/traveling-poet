@@ -3,12 +3,22 @@ defmodule TravelingPoet.NearHome.Away do
   Away from home (card-78): when the reader's own device says they are far
   from home, Near you looks around where they are instead.
 
-  The device reports only while the app or site is open, and only after the
-  reader switched it on in Settings (`users.away_aware`); there is no
-  background location. A report is rounded to about a kilometre and named
-  by town (`Geocoder.reverse/2`). The reader is away while their last
-  report is under `@fresh_days` old and more than `@away_km` from home, the
-  same distance calendar trips count as a trip (`Trips.Detector`).
+  Two things say where the reader is:
+
+    * their device, only while the app or site is open, and only after the
+      reader switched it on in Settings (`users.away_aware`); there is no
+      background location. A report is rounded to about a kilometre and
+      named by town (`Geocoder.reverse/2`), and counts for `@fresh_days`;
+    * their calendar: each calendar sync stores the city a trip under way
+      puts them in today (`users.trip_here_*`, `Trips.Detector.current/5`,
+      `calendar_moved/1`). No device needed, so Near you can find picks on
+      the day they land, before they open anything. It counts while the
+      calendar is connected and Near you is on (or the switch above is).
+
+  A device report from today beats the calendar (plans change); the
+  calendar beats an older report. Either way the reader is away when the
+  place is more than `@away_km` from home, the same distance calendar trips
+  count as a trip.
 
   Arriving somewhere new starts a Near you turn at once (`report/3`), not
   on the weekly cadence: a stay is short. Once per place a week: a batch
@@ -21,7 +31,7 @@ defmodule TravelingPoet.NearHome.Away do
   import Ecto.Query
   require Logger
 
-  alias TravelingPoet.{Accounts, Geo, NearHome, Poets, Repo}
+  alias TravelingPoet.{Accounts, Geo, GoogleAuth, NearHome, Poets, Repo}
   alias TravelingPoet.Accounts.User
   alias TravelingPoet.NearHome.Pick
 
@@ -34,22 +44,95 @@ defmodule TravelingPoet.NearHome.Away do
 
   @doc """
   Where the reader is, as Near you's anchor, when they are away from home:
-  `%{name:, lat:, lng:, away?: true}`; nil when they are home, have no
-  home, did not switch this on, or have not reported in `@fresh_days`.
+  `%{name:, lat:, lng:, away?: true, source: :device | :calendar}`; nil
+  when they are home, have no home, or neither their device nor their
+  calendar says where they are.
   """
   def here(%User{} = user, now \\ DateTime.utc_now()) do
+    if NearHome.home?(user) do
+      device = device(user, now)
+      calendar = calendar(user, DateTime.to_date(now))
+
+      place =
+        cond do
+          device && Date.compare(DateTime.to_date(user.here_at), DateTime.to_date(now)) == :eq ->
+            device
+
+          calendar ->
+            calendar
+
+          true ->
+            device
+        end
+
+      if place && Geo.distance_km(place.lat, place.lng, user.home_lat, user.home_lng) > @away_km,
+        do: Map.put(place, :away?, true)
+    end
+  end
+
+  # The device's last report, while it is fresh.
+  defp device(user, now) do
     with true <- user.away_aware == true,
-         true <- NearHome.home?(user),
          lat when is_number(lat) <- user.here_lat,
          lng when is_number(lng) <- user.here_lng,
          %DateTime{} = at <- user.here_at,
-         true <- DateTime.diff(now, at, :day) < @fresh_days,
-         true <- Geo.distance_km(lat, lng, user.home_lat, user.home_lng) > @away_km do
-      %{name: user.here_place_name, lat: lat, lng: lng, away?: true}
+         true <- DateTime.diff(now, at, :day) < @fresh_days do
+      %{name: user.here_place_name, lat: lat, lng: lng, source: :device}
     else
       _ -> nil
     end
   end
+
+  # Today's trip city, from the last calendar sync.
+  defp calendar(user, today) do
+    with true <- user.away_aware == true or user.near_home != false,
+         lat when is_number(lat) <- user.trip_here_lat,
+         lng when is_number(lng) <- user.trip_here_lng,
+         %Date{} = until <- user.trip_here_until,
+         true <- Date.compare(until, today) != :lt,
+         true <- GoogleAuth.connected?(user, :calendar) do
+      %{name: user.trip_here_name, lat: lat, lng: lng, source: :calendar}
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  A calendar sync found where the reader is today (`city` as
+  `Trips.Detector.current/5`, or nil for no trip on). Stores it, and starts
+  a Near you turn when that makes them away somewhere Near you has not
+  looked yet: the proactive half, with no device involved. Returns
+  `{:ok, user}`.
+  """
+  def calendar_moved(%User{} = user, city) do
+    attrs =
+      case city do
+        %{lat: lat, lng: lng, until: until} = city ->
+          %{
+            trip_here_name: city[:place_name],
+            trip_here_lat: lat,
+            trip_here_lng: lng,
+            trip_here_until: until
+          }
+
+        nil ->
+          %{trip_here_name: nil, trip_here_lat: nil, trip_here_lng: nil, trip_here_until: nil}
+      end
+
+    {:ok, user} = Accounts.update_user(user, attrs)
+
+    if city && Application.get_env(:traveling_poet, :near_home_enabled, true) do
+      case here(user) do
+        %{source: :calendar} -> look(user)
+        _ -> false
+      end
+    end
+
+    {:ok, user}
+  end
+
+  @doc "Forgets the calendar's place, as when the calendar is disconnected."
+  def forget_calendar(%User{} = user), do: calendar_moved(user, nil)
 
   @doc """
   Whether Near you should look around where the reader is now: they are

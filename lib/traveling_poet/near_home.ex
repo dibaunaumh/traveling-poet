@@ -132,7 +132,7 @@ defmodule TravelingPoet.NearHome do
 
   @doc """
   The place Near you looks around: where the reader is when they are away
-  from home (`Away.where/1`), else home, as `%{name:, lat:, lng:, away?:}`.
+  from home (`Away.here/2`), else home, as `%{name:, lat:, lng:, away?:}`.
   Nil without a home.
   """
   def anchor(%User{} = user) do
@@ -259,8 +259,9 @@ defmodule TravelingPoet.NearHome do
 
     {opening, around, question} =
       if anchor.away? do
-        {"[From the app: your companion is away from home right now. Their phone says they " <>
-           "are in #{anchor.name || "a place far from home"} " <>
+        {"[From the app: your companion is away from home right now. " <>
+           "#{if anchor[:source] == :calendar, do: "A trip on their calendar puts them", else: "Their phone says they are"} " <>
+           "in #{anchor.name || "a place far from home"} " <>
            "(#{coord(anchor.lat)}, #{coord(anchor.lng)}); home is #{user.home_place_name}. " <>
            "Look around where they are now for things they can actually go to while they " <>
            "are there, the next few days first.", "of where they are",

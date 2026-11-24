@@ -203,6 +203,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
   def handle_event("trip_disconnect", _params, socket) do
     user = Accounts.get_user!(socket.assigns.user.id)
     {:ok, user} = GoogleAuth.disconnect(user, :calendar)
+    {:ok, user} = TravelingPoet.NearHome.Away.forget_calendar(user)
     if poet = socket.assigns[:poet], do: Trips.withdraw_suggestions(poet.id)
 
     {:noreply,
@@ -397,7 +398,7 @@ defmodule TravelingPoetWeb.TripSuggestions do
               <span class="block opacity-70">
                 {dgettext(
                   "guide",
-                  "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it.",
+                  "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it. Trips on your calendar count even with this off.",
                   poet: @poet.name,
                   km: TravelingPoet.NearHome.Away.away_km()
                 )}

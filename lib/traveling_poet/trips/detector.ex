@@ -62,9 +62,43 @@ defmodule TravelingPoet.Trips.Detector do
   """
   def detect(events, resolved, %{lat: _, lng: _} = home, today, opts \\ %{}) do
     opts = options(opts)
-    candidates = candidates(events, today, opts)
 
-    {ooo, dated} = Enum.split_with(candidates, &(&1.kind == :ooo))
+    events
+    |> trips(resolved, home, today, opts)
+    |> Enum.reject(&too_soon?(&1, today, opts))
+  end
+
+  @doc """
+  Where the calendar puts the companion today: the city of a trip under
+  way (`detect/5`'s rules, but one already begun), the last one they have
+  arrived in, as `%{place_name, lat, lng, country_code, until}` with `until`
+  the trip's last day. Nil when no trip is on today, or it is still before
+  the first arrival (an out-of-office day at home before the flight).
+  """
+  def current(events, resolved, %{lat: _, lng: _} = home, today, opts \\ %{}) do
+    opts = options(opts)
+
+    with %{} = trip <-
+           events
+           |> trips(resolved, home, today, opts)
+           |> Enum.find(
+             &(Date.compare(&1.start_date, today) != :gt and
+                 Date.compare(&1.end_date, today) != :lt)
+           ),
+         %{} = city <-
+           trip.destinations
+           |> Enum.filter(&(Date.compare(&1.arrive_on, today) != :gt))
+           |> List.last() do
+      city
+      |> Map.take([:place_name, :lat, :lng, :country_code])
+      |> Map.put(:until, trip.end_date)
+    else
+      _ -> nil
+    end
+  end
+
+  defp trips(events, resolved, home, today, opts) do
+    {ooo, dated} = events |> candidates(today, opts) |> Enum.split_with(&(&1.kind == :ooo))
 
     dated
     |> Enum.flat_map(&locate(&1, resolved, home, opts))
@@ -73,7 +107,6 @@ defmodule TravelingPoet.Trips.Detector do
     |> Enum.map(&envelope(&1, ooo, opts))
     |> Enum.map(&trip(&1, opts))
     |> Enum.reject(&too_long?(&1, opts))
-    |> Enum.reject(&too_soon?(&1, today, opts))
     |> Enum.sort_by(& &1.start_date, Date)
   end
 
