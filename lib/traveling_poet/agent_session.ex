@@ -24,6 +24,10 @@ defmodule TravelingPoet.AgentSession do
   The sprite is held awake for exactly as long as the turn runs (bounded by
   `:reply_timeout_ms`) and released when it finishes.
     * `:persist` — persist both sides to Chat (default true)
+    * `:session_key` — run the turn in that OpenClaw session instead of the
+      poet's main one (`GatewaySocket.send_message/3`). A new key is a fresh,
+      short conversation with the same workspace and tools: for app jobs
+      that need none of the main conversation's history (Near you).
 
   Returns `{:ok, reply_text}` when the agent finished its turn (`:done`),
   `{:timeout, partial_text}` when it went silent for `:reply_timeout_ms`
@@ -40,6 +44,7 @@ defmodule TravelingPoet.AgentSession do
     # What the chat keeps, when the poet is sent more than the reader wrote
     # (an app note ahead of their words, `Asks.frame_reply/2`).
     record = Keyword.get(opts, :record_as, message)
+    session = [session_key: Keyword.get(opts, :session_key)]
 
     # The hold starts before the connect: a sprite that wakes from a cold
     # boot needs a minute or more before its gateway answers, and with
@@ -50,8 +55,8 @@ defmodule TravelingPoet.AgentSession do
              within_ms: @connect_within_ms
            ) do
         {:ok, pid} ->
-          GatewaySocket.subscribe(pid)
-          GatewaySocket.send_message(pid, message)
+          GatewaySocket.subscribe(pid, session)
+          GatewaySocket.send_message(pid, message, session)
           TravelingPoet.AiC.turn_requested(user, channel, record)
 
           if persist? do
