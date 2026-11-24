@@ -15,7 +15,8 @@ defmodule TravelingPoetWeb.NearHomeLive do
   import TravelingPoetWeb.GuideComponents, only: [journey_switcher: 1, google_maps_save: 1]
   import TravelingPoetWeb.NearHomeComponents
 
-  alias TravelingPoet.{Bookmarks, NearHome, Poets, Topics}
+  alias TravelingPoet.{Accounts, Bookmarks, NearHome, Poets, Topics}
+  alias TravelingPoet.NearHome.Away
   alias TravelingPoetWeb.{Bookmarking, GoogleMapsSaving}
 
   @impl true
@@ -54,8 +55,16 @@ defmodule TravelingPoetWeb.NearHomeLive do
     |> GoogleMapsSaving.assign_ids()
   end
 
-  defp reload(socket) do
-    socket = load(socket)
+  # Picks landed, or a turn started or ended, here or elsewhere: the
+  # reader's place may have moved too (card-78). `asking` follows the turn.
+  defp reload(socket, asking) do
+    user = Accounts.get_user!(socket.assigns.current_user.id)
+
+    socket =
+      socket
+      |> assign(:current_user, user)
+      |> assign(:asking, asking)
+      |> load()
 
     if connected?(socket),
       do: push_event(socket, "map:update", %{places: socket.assigns.map_places}),
@@ -77,6 +86,12 @@ defmodule TravelingPoetWeb.NearHomeLive do
 
   def handle_event("set_saved", _params, socket),
     do: {:noreply, push_navigate(socket, to: ~p"/guide?saved=1")}
+
+  # "Notice when I am away" from here: the same switch as Settings' (card-78)
+  def handle_event("away_on", _params, socket) do
+    {:ok, user} = Away.set_enabled(socket.assigns.current_user, true)
+    {:noreply, socket |> assign(:current_user, user) |> push_event("here:now", %{})}
+  end
 
   # The pins pop up their own name, blurb and link; nothing to open here.
   def handle_event("select_place", _params, socket), do: {:noreply, socket}
@@ -101,10 +116,11 @@ defmodule TravelingPoetWeb.NearHomeLive do
     do: GoogleMapsSaving.handle_async(result, socket)
 
   @impl true
-  def handle_info({:near_home, _date}, socket), do: {:noreply, reload(socket)}
+  def handle_info({:near_home, :looking}, socket), do: {:noreply, reload(socket, true)}
+  def handle_info({:near_home, _date_or_done}, socket), do: {:noreply, reload(socket, false)}
 
   def handle_info({:near_home_turn, result}, socket) do
-    socket = socket |> assign(:asking, false) |> reload()
+    socket = reload(socket, false)
     poet = socket.assigns.poet
 
     cond do
@@ -150,10 +166,16 @@ defmodule TravelingPoetWeb.NearHomeLive do
 
   @impl true
   def render(assigns) do
+    here = Away.here(assigns.current_user)
+    around = around(assigns.picks)
+
     assigns =
       assigns
       |> assign(:home?, NearHome.home?(assigns.current_user))
-      |> assign(:on?, assigns.current_user.near_home != false)
+      |> assign(:here, here && Away.display_name(here.name, here.lat, here.lng))
+      |> assign(:around, around)
+      # Away, Near you runs on the "notice when I am away" switch
+      |> assign(:on?, assigns.current_user.near_home != false or here != nil)
 
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active_tab={:guide}>
@@ -164,10 +186,47 @@ defmodule TravelingPoetWeb.NearHomeLive do
             "guide",
             "What is on within %{km} km of %{home} in the coming days, found by %{poet}",
             km: NearHome.radius_km(),
-            home: @current_user.home_place_name,
+            home: heading_place(@picks, @around, @here, @current_user),
             poet: @poet.name
           )}
         </p>
+      </div>
+
+      <div
+        :if={@here && @on? && @here != @around}
+        id="near-away"
+        class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 px-3 py-2 rounded-lg bg-base-200 text-sm"
+      >
+        <.icon name="hero-map-pin" class="size-4 shrink-0 opacity-70" />
+        <span class="flex-1 min-w-48">
+          {if @asking,
+            do:
+              dgettext(
+                "guide",
+                "You are in %{place}. %{poet} is looking for things to do around you. This takes about ten minutes.",
+                place: @here,
+                poet: @poet.name
+              ),
+            else: dgettext("guide", "You are in %{place}, away from home.", place: @here)}
+        </span>
+        <.look_now :if={!@asking} asking={@asking} poet={@poet} />
+      </div>
+
+      <div
+        :if={@home? and not @current_user.away_aware}
+        id="near-away-offer"
+        class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-sm"
+      >
+        <span class="flex-1 min-w-48 opacity-70">
+          {dgettext(
+            "guide",
+            "Traveling? %{poet} can look around wherever you are, while the app is open.",
+            poet: @poet.name
+          )}
+        </span>
+        <button id="near-away-on" type="button" phx-click="away_on" class="btn btn-ghost btn-xs">
+          {dgettext("guide", "Notice when I am away")}
+        </button>
       </div>
 
       <.journey_switcher
@@ -208,8 +267,8 @@ defmodule TravelingPoetWeb.NearHomeLive do
             poet: @poet.name
           )}
         </p>
-        <.look_now asking={@asking} poet={@poet} />
-        <p :if={@asking} id="near-asking-note" class="opacity-70 max-w-md mx-auto">
+        <.look_now :if={is_nil(@here)} asking={@asking} poet={@poet} />
+        <p :if={@asking and is_nil(@here)} id="near-asking-note" class="opacity-70 max-w-md mx-auto">
           {dgettext(
             "guide",
             "This takes about ten minutes: %{poet} reads the local listings and venues' own pages. You can leave; the list lands here, on your journal and as a notification.",
@@ -253,6 +312,11 @@ defmodule TravelingPoetWeb.NearHomeLive do
     </Layouts.app>
     """
   end
+
+  # The place the list is around: the batch's own, else (no list yet) where
+  # the poet will look, which is where the reader is when away.
+  defp heading_place([_ | _], around, _here, user), do: around || user.home_place_name
+  defp heading_place([], _around, here, user), do: here || user.home_place_name
 
   attr :asking, :boolean, required: true
   attr :poet, :map, required: true

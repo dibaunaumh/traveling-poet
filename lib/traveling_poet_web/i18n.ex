@@ -100,6 +100,23 @@ defmodule TravelingPoetWeb.I18n do
       narration_progress:
         dgettext("js", "%{elapsed} of %{total}", elapsed: "{elapsed}", total: "{total}"),
       narration_failed: dgettext("js", "The recording would not play. Try again in a moment."),
+      here_denied:
+        dgettext(
+          "js",
+          "Location is blocked. Allow it for this site in your browser or phone settings."
+        ),
+      here_update: dgettext("js", "Update the app to use this."),
+      here_failed:
+        dgettext("js", "Could not tell where you are just now. It tries again next time."),
+      here_away_looking:
+        dgettext(
+          "js",
+          "You are in %{place}. Your poet is looking for things to do around you.",
+          place: "{place}"
+        ),
+      here_away:
+        dgettext("js", "You are in %{place}. Near you looks around you there.", place: "{place}"),
+      here_home: dgettext("js", "You are near home."),
       play: dgettext("js", "Play"),
       pause: dgettext("js", "Pause"),
       book_pages: dgettext("js", "%{count} pages", count: "{count}"),

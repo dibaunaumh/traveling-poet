@@ -154,3 +154,27 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Reading this page, this can take a minute"
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Could not tell where you are just now. It tries again next time."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Location is blocked. Allow it for this site in your browser or phone settings."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Update the app to use this."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. Near you looks around you there."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. Your poet is looking for things to do around you."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You are near home."
+msgstr ""

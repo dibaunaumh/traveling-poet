@@ -14,6 +14,10 @@ defmodule TravelingPoet.NearHome do
   live, so it hangs off the user, never the public journal, and the change
   stream leaves it out.
 
+  Away from home (card-78) the same turn looks around where the reader is
+  instead (`anchor/1`, `NearHome.Away`), and the batch remembers the place
+  it was found around.
+
   Included in the day's credit; capped at one turn a day (`Usage` kind
   "near_home"), and that turn counts as the sprite being busy for other
   headless turns.
@@ -24,7 +28,7 @@ defmodule TravelingPoet.NearHome do
 
   alias TravelingPoet.{Credits, Geo, Geocoder, LinkCheck, Locale, Markers, Repo, Topics, Usage}
   alias TravelingPoet.Accounts.User
-  alias TravelingPoet.NearHome.{Cadence, Pick}
+  alias TravelingPoet.NearHome.{Away, Cadence, Pick}
 
   @radius_km 40
   @window_days 10
@@ -126,7 +130,23 @@ defmodule TravelingPoet.NearHome do
 
   def home?(%User{home_lat: lat, home_lng: lng}), do: is_number(lat) and is_number(lng)
 
-  @doc "Whether this reader's poet should look near home today."
+  @doc """
+  The place Near you looks around: where the reader is when they are away
+  from home (`Away.where/1`), else home, as `%{name:, lat:, lng:, away?:}`.
+  Nil without a home.
+  """
+  def anchor(%User{} = user) do
+    cond do
+      not home?(user) -> nil
+      here = Away.here(user) -> here
+      true -> %{name: user.home_place_name, lat: user.home_lat, lng: user.home_lng, away?: false}
+    end
+  end
+
+  @doc """
+  Whether this reader's poet should look near them today: the weekly
+  cadence, or a place away from home it has not looked around yet.
+  """
   def due?(%User{} = user, %Date{} = today \\ Date.utc_today()) do
     Cadence.due?(
       %{
@@ -135,7 +155,7 @@ defmodule TravelingPoet.NearHome do
         last_batch_on: last_batch_on(user.id)
       },
       today
-    )
+    ) or Away.due?(user, today)
   end
 
   @doc """
@@ -172,8 +192,11 @@ defmodule TravelingPoet.NearHome do
       note = note(user, poet, Date.utc_today())
       session = Application.get_env(:traveling_poet, :agent_session, TravelingPoet.AgentSession)
 
+      # Pages open elsewhere show the wait (and its end) too.
+      Phoenix.PubSub.broadcast(TravelingPoet.PubSub, "user:#{user.id}", {:near_home, :looking})
+
       Task.start(fn ->
-        Logger.info("NearHome: asking poet #{poet.id} for picks near #{user.home_place_name}")
+        Logger.info("NearHome: asking poet #{poet.id} for picks near #{anchor(user).name}")
         result = session.run(user, note, channel: "system", reply_timeout_ms: @reply_timeout_ms)
 
         case result do
@@ -181,6 +204,7 @@ defmodule TravelingPoet.NearHome do
           other -> Logger.warning("NearHome: poet #{poet.id}: #{inspect(other, limit: 200)}")
         end
 
+        Phoenix.PubSub.broadcast(TravelingPoet.PubSub, "user:#{user.id}", {:near_home, :done})
         if reply_to, do: send(reply_to, {:near_home_turn, result})
       end)
 
@@ -189,11 +213,14 @@ defmodule TravelingPoet.NearHome do
   end
 
   defp gate(user, poet, after_run?) do
+    anchor = anchor(user)
+
     cond do
-      not home?(user) ->
+      is_nil(anchor) ->
         {:error, :no_home}
 
-      user.near_home == false ->
+      # Away, the reader's "notice where I am" switch is the consent
+      not anchor.away? and user.near_home == false ->
         {:error, :off}
 
       Credits.exhausted?(user, poet) ->
@@ -228,12 +255,27 @@ defmodule TravelingPoet.NearHome do
       end
 
     memory_line = memory_line(user.id, today)
+    anchor = anchor(user)
 
-    "[From the app: once a week you look near your companion's home, for things they " <>
-      "can actually go to. They live in #{user.home_place_name} " <>
-      "(#{coord(user.home_lat)}, #{coord(user.home_lng)}). #{tastes_line} " <>
+    {opening, around, question} =
+      if anchor.away? do
+        {"[From the app: your companion is away from home right now. Their phone says they " <>
+           "are in #{anchor.name || "a place far from home"} " <>
+           "(#{coord(anchor.lat)}, #{coord(anchor.lng)}); home is #{user.home_place_name}. " <>
+           "Look around where they are now for things they can actually go to while they " <>
+           "are there, the next few days first.", "of where they are",
+         "What is on around #{Away.display_name(anchor.name, anchor.lat, anchor.lng)}?"}
+      else
+        {"[From the app: once a week you look near your companion's home, for things they " <>
+           "can actually go to. They live in #{user.home_place_name} " <>
+           "(#{coord(user.home_lat)}, #{coord(user.home_lng)}).", "of home",
+         "What is on near home this week?"}
+      end
+
+    opening <>
+      " #{tastes_line} " <>
       "Search the web for events, exhibitions, markets, performances, places and outings " <>
-      "within #{@radius_km} km of home, happening between #{Date.to_iso8601(today)} and " <>
+      "within #{@radius_km} km #{around}, happening between #{Date.to_iso8601(today)} and " <>
       "#{Date.to_iso8601(until)}, that fit them: the local listings, venues' own pages, " <>
       "the city's calendar. Cite only pages you actually fetched. Each pick needs that page's " <>
       "URL, its dates (starts_on and ends_on, YYYY-MM-DD) or, for a place open all week, " <>
@@ -242,7 +284,7 @@ defmodule TravelingPoet.NearHome do
       memory_line <>
       "Then call near_home_put once with three to six picks; if the reply drops some, fix them and send " <>
       "the whole list again. Do not travel, do not write or change a journal page. Then tell " <>
-      "them in one short line what you found.] What is on near home this week?"
+      "them in one short line what you found.] " <> question
   end
 
   # What the poet must not repeat and what the reader made of earlier weeks:
@@ -300,12 +342,15 @@ defmodule TravelingPoet.NearHome do
   no location within reach of home.
   Nothing is replaced when every pick is dropped.
 
+  Distances are from `anchor/1`: where the reader is when away (the batch
+  then records that place), else home.
+
   Returns `{:ok, %{kept: [Pick], dropped: [%{name, reason}]}}` or
   `{:error, :no_home}`.
   """
   def ingest(%User{} = user, poet, picks, %Date{} = today \\ Date.utc_today())
       when is_list(picks) do
-    if home?(user) do
+    if anchor = anchor(user) do
       picks = Enum.take(picks, @max_picks)
       dead = dead_links(picks)
       earlier = earlier_picks(user.id, today)
@@ -314,9 +359,12 @@ defmodule TravelingPoet.NearHome do
         picks
         |> Enum.with_index()
         |> Enum.reduce({[], []}, fn {raw, i}, {kept, dropped} ->
-          case check(raw, user, today, dead, earlier) do
-            {:ok, attrs} -> {[Map.put(attrs, :position, i) | kept], dropped}
-            {:error, reason} -> {kept, [%{name: name_of(raw), reason: reason} | dropped]}
+          case check(raw, anchor, today, dead, earlier) do
+            {:ok, attrs} ->
+              {[attrs |> Map.put(:position, i) |> Map.merge(around(anchor)) | kept], dropped}
+
+            {:error, reason} ->
+              {kept, [%{name: name_of(raw), reason: reason} | dropped]}
           end
         end)
 
@@ -363,6 +411,11 @@ defmodule TravelingPoet.NearHome do
     stored
   end
 
+  defp around(%{away?: true} = anchor),
+    do: %{around_name: anchor.name, around_lat: anchor.lat, around_lng: anchor.lng}
+
+  defp around(_home), do: %{}
+
   defp dead_links(picks) do
     urls = for p <- picks, url = str(p, "url"), do: url
 
@@ -372,7 +425,7 @@ defmodule TravelingPoet.NearHome do
     end
   end
 
-  defp check(raw, user, today, dead, earlier) when is_map(raw) do
+  defp check(raw, anchor, today, dead, earlier) when is_map(raw) do
     name = str(raw, "name")
     url = str(raw, "url")
 
@@ -381,7 +434,7 @@ defmodule TravelingPoet.NearHome do
          {:url, u} when is_binary(u) <- {:url, url},
          {:dead, false} <- {:dead, MapSet.member?(dead, u)},
          {:ok, starts_on, ends_on} <- dates(raw, today),
-         {:ok, location} <- locate(raw, user) do
+         {:ok, location} <- locate(raw, anchor) do
       {:ok,
        %{
          name: String.slice(name, 0, 200),
@@ -438,9 +491,10 @@ defmodule TravelingPoet.NearHome do
     end
   end
 
-  # Where it is: the poet's coordinates when they put it near home, else the
-  # address (or the venue's name in the home town) on the map.
-  defp locate(raw, user) do
+  # Where it is: the poet's coordinates when they put it near the anchor (home,
+  # or where the reader is when away), else the address (or the venue's name
+  # in that town) on the map.
+  defp locate(raw, anchor) do
     given =
       case {raw["lat"], raw["lng"]} do
         {lat, lng} when is_number(lat) and is_number(lng) -> %{lat: lat / 1, lng: lng / 1}
@@ -448,18 +502,20 @@ defmodule TravelingPoet.NearHome do
       end
 
     cond do
-      given && distance(given, user) <= @radius_km * 1.5 ->
-        {:ok, Map.put(given, :distance_km, distance(given, user))}
+      given && distance(given, anchor) <= @radius_km * 1.5 ->
+        {:ok, Map.put(given, :distance_km, distance(given, anchor))}
 
-      query = geocode_query(raw, user) ->
+      query = geocode_query(raw, anchor) ->
         case Geocoder.locate(query) do
           {:ok, %{lat: lat, lng: lng}} ->
             found = %{lat: lat, lng: lng}
-            km = distance(found, user)
+            km = distance(found, anchor)
 
             if km <= @radius_km * 1.5,
               do: {:ok, Map.put(found, :distance_km, km)},
-              else: {:error, "#{round(km)} km from home; keep to #{@radius_km} km"}
+              else:
+                {:error,
+                 "#{round(km)} km from #{measured_from(anchor)}; keep to #{@radius_km} km"}
 
           _ ->
             {:error, "could not find \"#{query}\" on a map; give its full postal address"}
@@ -470,16 +526,20 @@ defmodule TravelingPoet.NearHome do
     end
   end
 
-  defp geocode_query(raw, user) do
+  defp geocode_query(raw, anchor) do
     cond do
       address = str(raw, "address") -> address
-      place = str(raw, "place_name") -> "#{place}, #{user.home_place_name}"
+      (place = str(raw, "place_name")) && anchor.name -> "#{place}, #{anchor.name}"
       true -> nil
     end
   end
 
-  defp distance(%{lat: lat, lng: lng}, user),
-    do: Geo.distance_km(lat, lng, user.home_lat, user.home_lng)
+  defp measured_from(%{away?: true, name: name}) when is_binary(name), do: Away.short_name(name)
+  defp measured_from(%{away?: true}), do: "where they are"
+  defp measured_from(_home), do: "home"
+
+  defp distance(%{lat: lat, lng: lng}, anchor),
+    do: Geo.distance_km(lat, lng, anchor.lat, anchor.lng)
 
   defp date(value) when is_binary(value) do
     case Date.from_iso8601(String.slice(String.trim(value), 0, 10)) do

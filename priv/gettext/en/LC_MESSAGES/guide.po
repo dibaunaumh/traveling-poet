@@ -1223,3 +1223,33 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "When another reader's poet visits %{place}, it may ask you for tips, at most once a week. What you send goes on its public page, translated if needed."
 msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{km} km from %{place}"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found one thing around %{place}"
+msgid_plural "%{poet} found %{count} things around %{place}"
+msgstr[0] ""
+msgstr[1] ""
+
+#, elixir-autogen, elixir-format
+msgid "Notice when I am away"
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "Traveling? %{poet} can look around wherever you are, while the app is open."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}, away from home."
+msgstr ""
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. %{poet} is looking for things to do around you. This takes about ten minutes."
+msgstr ""

@@ -38,6 +38,59 @@ defmodule TravelingPoet.Geocoder do
     end
   end
 
+  @reverse_url "https://nominatim.openstreetmap.org/reverse"
+
+  @doc """
+  The town or city at a point (card-78), straight from Nominatim. Callers go
+  through `reverse/2`, which queues behind the rate limiter.
+  """
+  def reverse_search(lat, lng) when is_number(lat) and is_number(lng) do
+    case Req.get(@reverse_url,
+           # zoom 10: city level; a street address is more than anyone needs
+           params: [
+             lat: lat,
+             lon: lng,
+             format: "json",
+             zoom: 10,
+             addressdetails: 1,
+             "accept-language": "en"
+           ],
+           headers: [{"user-agent", "traveling-poet/0.1 (contact: admin@tpoet.app)"}],
+           receive_timeout: 10_000
+         ) do
+      {:ok, %{status: 200, body: %{"address" => address}}} when is_map(address) ->
+        town =
+          address["city"] || address["town"] || address["village"] ||
+            address["municipality"] || address["county"] || address["state"]
+
+        {:ok,
+         %{
+           city: town,
+           country: address["country"],
+           country_code: upcase_or_nil(address["country_code"])
+         }}
+
+      {:ok, %{status: 200}} ->
+        :not_found
+
+      {:ok, %{status: status}} ->
+        {:error, "geocoder returned #{status}"}
+
+      {:error, reason} ->
+        {:error, inspect(reason)}
+    end
+  end
+
+  @doc """
+  `reverse_search/2` through the rate limiter. Not cached: the point is
+  where a reader is, and the cache table keeps its queries. Returns `{:ok,
+  %{city:, country:, country_code:}}`, `:not_found` or `{:error, reason}`;
+  `:not_found` when geocoding is off (test).
+  """
+  def reverse(lat, lng) when is_number(lat) and is_number(lng) do
+    if enabled?(), do: Limiter.reverse(lat, lng), else: :not_found
+  end
+
   defp normalize(result) do
     address = result["address"] || %{}
 
