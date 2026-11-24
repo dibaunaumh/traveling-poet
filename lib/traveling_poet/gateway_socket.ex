@@ -2,6 +2,12 @@ defmodule TravelingPoet.GatewaySocket do
   @moduledoc """
   WebSocket client for a user's OpenClaw gateway.
   Handles Ed25519 device identity auth, chat messages, and streaming events.
+
+  Every turn goes to the poet's main session unless the sender names
+  another (`send_message/3` with `:session_key`, e.g. Near you's own short
+  conversation). A subscriber that names a session (`subscribe/2`) hears only
+  the frames of that session; one that names none hears the main session's.
+  A frame that carries no session key reaches every subscriber.
   """
 
   # :temporary — never restarted by GatewaySocketSupervisor. Sockets are started on
@@ -61,6 +67,8 @@ defmodule TravelingPoet.GatewaySocket do
       session_key: @default_session_key,
       status: :connecting,
       subscribers: MapSet.new(),
+      # pid => the session key it listens to, for subscribers that named one
+      subscriber_sessions: %{},
       pending_requests: %{},
       message_queue: [],
       idle_timer: nil,
@@ -84,12 +92,20 @@ defmodule TravelingPoet.GatewaySocket do
     )
   end
 
-  def send_message(pid, text) do
-    WebSockex.cast(pid, {:send_message, text})
+  @doc """
+  Sends `text` as a chat turn. `session_key: key` sends it to that session
+  instead of the main one; OpenClaw starts the session on its first message.
+  """
+  def send_message(pid, text, opts \\ []) do
+    WebSockex.cast(pid, {:send_message, text, Keyword.get(opts, :session_key)})
   end
 
-  def subscribe(pid) do
-    WebSockex.cast(pid, {:subscribe, self()})
+  @doc """
+  Subscribes the caller to the socket's events. `session_key: key` limits
+  them to that session's (and to frames that name no session).
+  """
+  def subscribe(pid, opts \\ []) do
+    WebSockex.cast(pid, {:subscribe, self(), Keyword.get(opts, :session_key)})
   end
 
   def unsubscribe(pid) do
@@ -149,38 +165,37 @@ defmodule TravelingPoet.GatewaySocket do
   def handle_frame(_frame, state), do: {:ok, state}
 
   @impl true
-  def handle_cast({:send_message, text}, state) do
+  def handle_cast({:send_message, text}, state),
+    do: handle_cast({:send_message, text, nil}, state)
+
+  def handle_cast({:send_message, text, session_key}, state) do
     if state.status == :authenticated do
-      req_id = generate_req_id()
-
-      frame =
-        Jason.encode!(%{
-          type: "req",
-          id: req_id,
-          method: "chat.send",
-          params: %{
-            sessionKey: state.session_key,
-            message: text,
-            deliver: true,
-            idempotencyKey: req_id
-          }
-        })
-
       # The idle timer is gated on subscribers only (see maybe_start_idle_timer);
       # cancelling it here without restarting it used to leave a subscriber-less
       # socket open forever.
-      {:reply, {:text, frame},
-       %{state | pending_requests: Map.put(state.pending_requests, req_id, :chat_send)}}
+      chat_send(state, text, session_key)
     else
       Logger.info("GatewaySocket: queuing message, status=#{state.status}")
-      {:ok, %{state | message_queue: state.message_queue ++ [text]}}
+      {:ok, %{state | message_queue: state.message_queue ++ [{text, session_key}]}}
     end
   end
 
-  def handle_cast({:subscribe, pid}, state) do
+  def handle_cast({:subscribe, pid}, state), do: handle_cast({:subscribe, pid, nil}, state)
+
+  def handle_cast({:subscribe, pid, session_key}, state) do
     Process.monitor(pid)
-    state = %{state | subscribers: MapSet.put(state.subscribers, pid)}
-    state = reset_idle_timer(state)
+
+    sessions =
+      if session_key,
+        do: Map.put(subscriber_sessions(state), pid, session_key),
+        else: Map.delete(subscriber_sessions(state), pid)
+
+    state =
+      state
+      |> Map.put(:subscribers, MapSet.put(state.subscribers, pid))
+      |> Map.put(:subscriber_sessions, sessions)
+      |> reset_idle_timer()
+
     {:ok, state}
   end
 
@@ -190,16 +205,12 @@ defmodule TravelingPoet.GatewaySocket do
   end
 
   def handle_cast({:unsubscribe, pid}, state) do
-    state = %{state | subscribers: MapSet.delete(state.subscribers, pid)}
-    state = maybe_start_idle_timer(state)
-    {:ok, state}
+    {:ok, state |> drop_subscriber(pid) |> maybe_start_idle_timer()}
   end
 
   @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
-    state = %{state | subscribers: MapSet.delete(state.subscribers, pid)}
-    state = maybe_start_idle_timer(state)
-    {:ok, state}
+    {:ok, state |> drop_subscriber(pid) |> maybe_start_idle_timer()}
   end
 
   def handle_info(:idle_timeout, state) do
@@ -212,29 +223,14 @@ defmodule TravelingPoet.GatewaySocket do
   end
 
   def handle_info(:flush_queue, %{message_queue: [msg | rest]} = state) do
-    req_id = generate_req_id()
-
-    frame =
-      Jason.encode!(%{
-        type: "req",
-        id: req_id,
-        method: "chat.send",
-        params: %{
-          sessionKey: state.session_key,
-          message: msg,
-          deliver: true,
-          idempotencyKey: req_id
-        }
-      })
+    {text, session_key} =
+      case msg do
+        {text, session_key} -> {text, session_key}
+        text -> {text, nil}
+      end
 
     if rest != [], do: send(self(), :flush_queue)
-
-    {:reply, {:text, frame},
-     %{
-       state
-       | message_queue: rest,
-         pending_requests: Map.put(state.pending_requests, req_id, :chat_send)
-     }}
+    chat_send(%{state | message_queue: rest}, text, session_key)
   end
 
   def handle_info(:flush_queue, state), do: {:ok, state}
@@ -418,7 +414,12 @@ defmodule TravelingPoet.GatewaySocket do
       :chat_send ->
         Logger.error("GatewaySocket: chat.send error: #{error_msg}")
         report_turn_error(state, error_msg)
-        notify_subscribers(state, {:gateway_event, {:error, error_msg}})
+        notify_subscribers(state, {:gateway_event, {:error, error_msg}}, state.session_key)
+
+      {:chat_send, session_key} ->
+        Logger.error("GatewaySocket: chat.send error (#{session_key}): #{error_msg}")
+        report_turn_error(state, error_msg)
+        notify_subscribers(state, {:gateway_event, {:error, error_msg}}, session_key)
 
       _ ->
         Logger.warning("GatewaySocket: request #{id} failed: #{error_msg}")
@@ -435,13 +436,13 @@ defmodule TravelingPoet.GatewaySocket do
     state = %{state | pending_requests: pending}
 
     case req_type do
-      :chat_history ->
+      {:chat_history, session_key} ->
         # Extract last assistant message from chat history
         messages = payload["messages"] || []
 
         case Enum.find(Enum.reverse(messages), &(&1["role"] == "assistant")) do
           %{"content" => content} when is_list(content) ->
-            extract_and_notify_text(content, state)
+            extract_and_notify_text(content, state, session_key)
 
           _ ->
             Logger.warning("GatewaySocket: no assistant message in chat history")
@@ -467,13 +468,15 @@ defmodule TravelingPoet.GatewaySocket do
            "type" => "event",
            "event" => "agent",
            "payload" => %{"stream" => "assistant", "data" => %{"delta" => delta} = data}
-         },
+         } = frame,
          state
        ) do
+    session = frame_session(frame)
+
     if data["replace"] == true do
-      notify_subscribers(state, {:gateway_event, {:text_replace, data["text"] || delta}})
+      notify_subscribers(state, {:gateway_event, {:text_replace, data["text"] || delta}}, session)
     else
-      notify_subscribers(state, {:gateway_event, {:text_delta, delta}})
+      notify_subscribers(state, {:gateway_event, {:text_delta, delta}}, session)
     end
 
     {:ok, state}
@@ -488,12 +491,12 @@ defmodule TravelingPoet.GatewaySocket do
            "type" => "event",
            "event" => "agent",
            "payload" => %{"stream" => "tool", "data" => data}
-         },
+         } = frame,
          state
        )
        when is_map(data) do
     TravelingPoet.AiC.tool_event(state.user_id, data)
-    notify_subscribers(state, {:gateway_event, {:tool, data}})
+    notify_subscribers(state, {:gateway_event, {:tool, data}}, frame_session(frame))
     {:ok, state}
   end
 
@@ -548,7 +551,10 @@ defmodule TravelingPoet.GatewaySocket do
     Logger.info("GatewaySocket: chat final, fetching history")
 
     {:reply, {:text, frame},
-     %{state | pending_requests: Map.put(state.pending_requests, req_id, :chat_history)}}
+     %{
+       state
+       | pending_requests: Map.put(state.pending_requests, req_id, {:chat_history, session_key})
+     }}
   end
 
   # Session message — response delivered via message tool (not streamed via agent events)
@@ -557,15 +563,16 @@ defmodule TravelingPoet.GatewaySocket do
            "type" => "event",
            "event" => "session.message",
            "payload" => %{"message" => %{"role" => "assistant", "content" => content}}
-         },
+         } = frame,
          state
        ) do
     text = extract_text(content)
+    session = frame_session(frame)
     Logger.info("GatewaySocket: session.message received (#{String.length(text)} chars)")
 
     if text != "" do
-      notify_subscribers(state, {:gateway_event, {:text_delta, text}})
-      notify_subscribers(state, {:gateway_event, {:done, "session-message"}})
+      notify_subscribers(state, {:gateway_event, {:text_delta, text}}, session)
+      notify_subscribers(state, {:gateway_event, {:done, "session-message"}}, session)
     end
 
     {:ok, state}
@@ -577,13 +584,13 @@ defmodule TravelingPoet.GatewaySocket do
            "type" => "event",
            "event" => "agent",
            "payload" => %{"stream" => "lifecycle", "data" => %{"phase" => "error"} = data}
-         },
+         } = frame,
          state
        ) do
     error_msg = data["message"] || data["error"] || "Agent error"
     Logger.error("GatewaySocket: agent lifecycle error: #{error_msg}")
     report_turn_error(state, error_msg)
-    notify_subscribers(state, {:gateway_event, {:error, error_msg}})
+    notify_subscribers(state, {:gateway_event, {:error, error_msg}}, frame_session(frame))
     {:ok, state}
   end
 
@@ -593,13 +600,13 @@ defmodule TravelingPoet.GatewaySocket do
            "type" => "event",
            "event" => "chat",
            "payload" => %{"state" => "error"} = payload
-         },
+         } = frame,
          state
        ) do
     error_msg = payload["error"] || payload["message"] || "Chat error"
     Logger.error("GatewaySocket: chat error state: #{error_msg}")
     report_turn_error(state, error_msg)
-    notify_subscribers(state, {:gateway_event, {:error, error_msg}})
+    notify_subscribers(state, {:gateway_event, {:error, error_msg}}, frame_session(frame))
     {:ok, state}
   end
 
@@ -612,7 +619,7 @@ defmodule TravelingPoet.GatewaySocket do
         error_msg = payload["error"] || payload["message"] || "Unknown agent error"
         Logger.error("GatewaySocket: error in unmatched event #{frame["event"]}: #{error_msg}")
         report_turn_error(state, error_msg)
-        notify_subscribers(state, {:gateway_event, {:error, error_msg}})
+        notify_subscribers(state, {:gateway_event, {:error, error_msg}}, frame_session(frame))
 
       frame["event"] == "agent" ->
         Logger.info(
@@ -633,6 +640,10 @@ defmodule TravelingPoet.GatewaySocket do
 
   # -- Private: helpers --
 
+  # The frame's own session key, when it carries one.
+  defp frame_session(%{"payload" => %{"sessionKey" => key}}) when is_binary(key), do: key
+  defp frame_session(_frame), do: nil
+
   defp extract_text(content) when is_list(content) do
     content
     |> Enum.filter(fn item -> item["type"] == "text" end)
@@ -642,14 +653,44 @@ defmodule TravelingPoet.GatewaySocket do
 
   defp extract_text(_), do: ""
 
-  defp extract_and_notify_text(content, state) do
+  defp extract_and_notify_text(content, state, session_key) do
     text = extract_text(content)
 
     if text != "" do
       # Send full text to replace any partial streaming content
-      notify_subscribers(state, {:gateway_event, {:text_replace, text}})
-      notify_subscribers(state, {:gateway_event, {:done, "chat-history"}})
+      notify_subscribers(state, {:gateway_event, {:text_replace, text}}, session_key)
+      notify_subscribers(state, {:gateway_event, {:done, "chat-history"}}, session_key)
     end
+  end
+
+  defp chat_send(state, text, session_key) do
+    req_id = generate_req_id()
+
+    frame =
+      Jason.encode!(%{
+        type: "req",
+        id: req_id,
+        method: "chat.send",
+        params: %{
+          sessionKey: session_key || state.session_key,
+          message: text,
+          deliver: true,
+          idempotencyKey: req_id
+        }
+      })
+
+    pending = if session_key, do: {:chat_send, session_key}, else: :chat_send
+
+    {:reply, {:text, frame},
+     %{state | pending_requests: Map.put(state.pending_requests, req_id, pending)}}
+  end
+
+  defp subscriber_sessions(state), do: Map.get(state, :subscriber_sessions, %{})
+
+  defp drop_subscriber(state, pid) do
+    state
+    |> Map.put(:subscribers, MapSet.delete(state.subscribers, pid))
+    |> Map.put(:subscriber_sessions, Map.delete(subscriber_sessions(state), pid))
   end
 
   # Every failed turn goes to the admins with its cause
@@ -665,10 +706,27 @@ defmodule TravelingPoet.GatewaySocket do
     apply(mod, fun, [user_id, message])
   end
 
-  defp notify_subscribers(state, message) do
-    Enum.each(state.subscribers, fn pid ->
-      send(pid, message)
-    end)
+  # A frame that names no session reaches everyone. One from a session some
+  # subscriber named reaches only those subscribers; any other (the main
+  # session, however the gateway spells its key) reaches only the
+  # subscribers that named none. So a side session's turn never leaks into
+  # an open chat, and the chat never depends on the main key's spelling.
+  defp notify_subscribers(state, message, session_key \\ nil) do
+    state.subscribers
+    |> Enum.filter(&hears?(subscriber_sessions(state), &1, session_key))
+    |> Enum.each(&send(&1, message))
+  end
+
+  defp hears?(_sessions, _pid, nil), do: true
+
+  defp hears?(sessions, pid, session_key) do
+    key = String.downcase(session_key)
+    named? = Enum.any?(sessions, fn {_pid, named} -> String.downcase(named) == key end)
+
+    case Map.get(sessions, pid) do
+      nil -> not named?
+      named -> String.downcase(named) == key
+    end
   end
 
   defp generate_req_id do

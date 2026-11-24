@@ -200,6 +200,12 @@ defmodule TravelingPoet.NearHomeTest do
   end
 
   describe "request/3" do
+    test "every turn gets a session of its own" do
+      key = NearHome.session_key(~D[2026-11-24])
+      assert key =~ "agent:main:near-you-20261124-"
+      refute key == NearHome.session_key(~D[2026-11-24])
+    end
+
     test "briefs the poet on home, radius, window, tastes and language", %{user: user, poet: poet} do
       {:ok, _} = Topics.create(poet.id, %{label: "Azulejos"})
       {:ok, user} = Accounts.update_user(user, %{locale: "he"})
@@ -208,6 +214,8 @@ defmodule TravelingPoet.NearHomeTest do
       assert_receive {:session_run, user_id, note, opts}, 2000
       assert user_id == user.id
       assert opts[:channel] == "system"
+      # Its own short conversation, never the poet's long main one
+      assert opts[:session_key] =~ ~r/^agent:main:near-you-\d{8}-\d+$/
       assert note =~ "Lisbon, Portugal (38.7223, -9.1393)"
       assert note =~ "within 40 km"
       today = Date.utc_today()

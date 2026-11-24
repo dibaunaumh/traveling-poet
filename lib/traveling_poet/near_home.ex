@@ -197,7 +197,13 @@ defmodule TravelingPoet.NearHome do
 
       Task.start(fn ->
         Logger.info("NearHome: asking poet #{poet.id} for picks near #{anchor(user).name}")
-        result = session.run(user, note, channel: "system", reply_timeout_ms: @reply_timeout_ms)
+
+        result =
+          session.run(user, note,
+            channel: "system",
+            reply_timeout_ms: @reply_timeout_ms,
+            session_key: session_key(Date.utc_today())
+          )
 
         case result do
           {:ok, reply} -> rescue_written_call(user, poet, reply)
@@ -210,6 +216,17 @@ defmodule TravelingPoet.NearHome do
 
       {:ok, :started}
     end
+  end
+
+  @doc """
+  The OpenClaw session a Near you turn runs in: a new one every turn. In the
+  poet's main conversation (about 181k tokens of pages and chat) Nam ran
+  out of output mid-search and wrote its `near_home_put` call as text
+  (Ashdod, 2026-11-24); the turn needs nothing from that history, since
+  the note and `get_poet_context` carry what it does need.
+  """
+  def session_key(%Date{} = today) do
+    "agent:main:near-you-#{Date.to_iso8601(today, :basic)}-#{System.unique_integer([:positive])}"
   end
 
   @doc """

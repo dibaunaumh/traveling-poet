@@ -156,6 +156,106 @@ defmodule TravelingPoet.GatewaySocketTest do
     assert_received {:turn_error, 1, "The AI service couldn't accept this request."}
   end
 
+  describe "a side session (Near you)" do
+    @side "agent:main:near-you-20261124-7"
+
+    # A second subscriber that tells the test what it heard
+    defp listener(tag) do
+      test = self()
+
+      spawn(fn ->
+        Stream.repeatedly(fn -> receive(do: (msg -> send(test, {tag, msg}))) end)
+        |> Stream.run()
+      end)
+    end
+
+    defp delta(text, session_key) do
+      payload = %{stream: "assistant", data: %{delta: text}}
+      payload = if session_key, do: Map.put(payload, :sessionKey, session_key), else: payload
+      frame(%{type: "event", event: "agent", payload: payload})
+    end
+
+    test "a message names its session; without one it goes to the main session" do
+      {:reply, {:text, sent}, st} =
+        GatewaySocket.handle_cast({:send_message, "look around", @side}, state())
+
+      assert Jason.decode!(sent)["params"]["sessionKey"] == @side
+      assert {:chat_send, @side} in Map.values(st.pending_requests)
+
+      {:reply, {:text, sent}, _} =
+        GatewaySocket.handle_cast({:send_message, "hello", nil}, state())
+
+      assert Jason.decode!(sent)["params"]["sessionKey"] == "agent:main:main"
+    end
+
+    test "a message queued while connecting keeps its session" do
+      {:ok, st} =
+        GatewaySocket.handle_cast(
+          {:send_message, "look around", @side},
+          state(%{status: :connecting})
+        )
+
+      assert {:reply, {:text, sent}, %{message_queue: []}} =
+               GatewaySocket.handle_info(:flush_queue, st)
+
+      assert Jason.decode!(sent)["params"]["sessionKey"] == @side
+    end
+
+    test "each subscriber hears only its own session's turn" do
+      main = listener(:main)
+      {:ok, st} = GatewaySocket.handle_cast({:subscribe, main}, state())
+      {:ok, st} = GatewaySocket.handle_cast({:subscribe, self(), @side}, st)
+
+      GatewaySocket.handle_frame(delta("Opa, vegan", @side), st)
+      assert_receive {:gateway_event, {:text_delta, "Opa, vegan"}}
+      refute_receive {:main, _}, 100
+
+      # The main session, however the gateway spells its key
+      GatewaySocket.handle_frame(delta("Dear reader", "agent:main:main"), st)
+      GatewaySocket.handle_frame(delta("Dear reader, again", "main"), st)
+      assert_receive {:main, {:gateway_event, {:text_delta, "Dear reader"}}}
+      assert_receive {:main, {:gateway_event, {:text_delta, "Dear reader, again"}}}
+      refute_received {:gateway_event, {:text_delta, "Dear reader" <> _}}
+
+      # A frame naming no session reaches both
+      GatewaySocket.handle_frame(delta("both", nil), st)
+      assert_receive {:gateway_event, {:text_delta, "both"}}
+      assert_receive {:main, {:gateway_event, {:text_delta, "both"}}}
+    end
+
+    test "a side session's final reply goes to its subscriber only" do
+      main = listener(:main)
+      {:ok, st} = GatewaySocket.handle_cast({:subscribe, main}, state(%{pending_requests: %{}}))
+      {:ok, st} = GatewaySocket.handle_cast({:subscribe, self(), @side}, st)
+
+      final = %{type: "event", event: "chat", payload: %{state: "final", sessionKey: @side}}
+      {:reply, {:text, ask}, st} = GatewaySocket.handle_frame(frame(final), st)
+      ask = Jason.decode!(ask)
+      assert ask["params"]["sessionKey"] == @side
+
+      history = %{
+        type: "res",
+        id: ask["id"],
+        ok: true,
+        payload: %{
+          messages: [%{role: "assistant", content: [%{type: "text", text: "Five picks."}]}]
+        }
+      }
+
+      GatewaySocket.handle_frame(frame(history), st)
+      assert_receive {:gateway_event, {:text_replace, "Five picks."}}
+      assert_receive {:gateway_event, {:done, "chat-history"}}
+      refute_receive {:main, _}, 100
+    end
+
+    test "unsubscribing forgets the session" do
+      {:ok, st} = GatewaySocket.handle_cast({:subscribe, self(), @side}, state())
+      {:ok, st} = GatewaySocket.handle_cast({:unsubscribe, self()}, st)
+      assert st.subscriber_sessions == %{}
+      if st.idle_timer, do: Process.cancel_timer(st.idle_timer)
+    end
+  end
+
   test "a status request answers the caller" do
     assert {:ok, _} = GatewaySocket.handle_cast({:status, self()}, state())
     assert_received {:gateway_status, :authenticated}
