@@ -27,19 +27,33 @@ defmodule TravelingPoetWeb.NearHomeComponents do
       id="near-home-card"
       class="flex items-center gap-2 mt-3 ps-3 pe-1 py-1 rounded-lg bg-base-200 text-sm"
     >
-      <.icon name="hero-home-modern" class="size-4 shrink-0 opacity-70" />
+      <.icon
+        name={if around(@picks), do: "hero-map-pin", else: "hero-home-modern"}
+        class="size-4 shrink-0 opacity-70"
+      />
       <.link
         navigate={~p"/guide/near"}
         class="flex-1 min-w-0 link link-hover"
         id="near-home-card-open"
       >
-        {dngettext(
-          "guide",
-          "%{poet} found one thing near you this week",
-          "%{poet} found %{count} things near you this week",
-          length(@picks),
-          poet: @poet.name
-        )}
+        {if place = around(@picks),
+          do:
+            dngettext(
+              "guide",
+              "%{poet} found one thing around %{place}",
+              "%{poet} found %{count} things around %{place}",
+              length(@picks),
+              poet: @poet.name,
+              place: place
+            ),
+          else:
+            dngettext(
+              "guide",
+              "%{poet} found one thing near you this week",
+              "%{poet} found %{count} things near you this week",
+              length(@picks),
+              poet: @poet.name
+            )}
       </.link>
       <button
         type="button"
@@ -186,8 +200,14 @@ defmodule TravelingPoetWeb.NearHomeComponents do
             <h3 class="font-semibold leading-snug" dir="auto">{@pick.name}</h3>
             <p class="text-xs opacity-60">
               {kind_label(@pick.kind)}
-              <span :if={@pick.distance_km}>
+              <span :if={@pick.distance_km && is_nil(@pick.around_lat)}>
                 · {dgettext("guide", "%{km} km from home", km: km(@pick.distance_km))}
+              </span>
+              <span :if={@pick.distance_km && @pick.around_lat}>
+                · {dgettext("guide", "%{km} km from %{place}",
+                  km: km(@pick.distance_km),
+                  place: around([@pick])
+                )}
               </span>
             </p>
           </div>
@@ -219,6 +239,15 @@ defmodule TravelingPoetWeb.NearHomeComponents do
     </article>
     """
   end
+
+  @doc """
+  The town a batch was found around when the reader was away from home
+  (card-78), short; nil for a batch near home.
+  """
+  def around([%Pick{around_lat: lat, around_lng: lng} = pick | _]) when is_number(lat),
+    do: TravelingPoet.NearHome.Away.display_name(pick.around_name, lat, lng)
+
+  def around(_picks), do: nil
 
   @doc "The kind of a pick, in the reader's language."
   def kind_label("event"), do: dgettext("guide", "Event")

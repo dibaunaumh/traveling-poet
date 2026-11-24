@@ -27,6 +27,11 @@ defmodule TravelingPoet.NearHome.Pick do
     field :url, :string
     field :blurb, :string
     field :position, :integer, default: 0
+    # The place the batch was found around when the reader was away from
+    # home (card-78); nil when it was home.
+    field :around_name, :string
+    field :around_lat, :float
+    field :around_lng, :float
 
     belongs_to :user, TravelingPoet.Accounts.User
     belongs_to :poet, TravelingPoet.Poets.Poet
@@ -45,7 +50,7 @@ defmodule TravelingPoet.NearHome.Pick do
   def normalize_kind(_), do: "other"
 
   @fields ~w(user_id poet_id week_of name kind starts_on ends_on when_text place_name address
-             lat lng distance_km url blurb position)a
+             lat lng distance_km url blurb position around_name around_lat around_lng)a
 
   def changeset(pick, attrs) do
     pick

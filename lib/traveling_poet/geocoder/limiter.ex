@@ -44,6 +44,15 @@ defmodule TravelingPoet.Geocoder.Limiter do
       {:error, :limiter_unavailable}
   end
 
+  @doc "A rate-limited `Geocoder.reverse_search/2`; never raises, like `search/1`."
+  def reverse(lat, lng) do
+    GenServer.call(__MODULE__, {:reverse, lat, lng}, @call_timeout_ms)
+  catch
+    :exit, reason ->
+      Logger.warning("geocode limiter unavailable: #{inspect(reason)}")
+      {:error, :limiter_unavailable}
+  end
+
   @impl true
   def init(_opts), do: {:ok, %{last_at: nil}}
 
@@ -51,6 +60,12 @@ defmodule TravelingPoet.Geocoder.Limiter do
   def handle_call({:search, query}, _from, state) do
     wait_for_slot(state.last_at)
     result = Geocoder.search(query)
+    {:reply, result, %{state | last_at: System.monotonic_time(:millisecond)}}
+  end
+
+  def handle_call({:reverse, lat, lng}, _from, state) do
+    wait_for_slot(state.last_at)
+    result = Geocoder.reverse_search(lat, lng)
     {:reply, result, %{state | last_at: System.monotonic_time(:millisecond)}}
   end
 

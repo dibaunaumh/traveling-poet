@@ -83,6 +83,13 @@ defmodule TravelingPoet.Accounts.User do
     field :home_lat, :float
     field :home_lng, :float
     field :home_country_code, :string
+    # card-78: where the reader's device last said they are (coarse, only
+    # with `away_aware` on), so Near you can look around them when away
+    field :away_aware, :boolean, default: false
+    field :here_lat, :float
+    field :here_lng, :float
+    field :here_place_name, :string
+    field :here_at, :utc_datetime
 
     # Referral credits (card-126; TravelingPoet.Referrals): this reader's
     # invite code, who invited them, and when they last waved off the
@@ -162,6 +169,11 @@ defmodule TravelingPoet.Accounts.User do
       :home_lat,
       :home_lng,
       :home_country_code,
+      :away_aware,
+      :here_lat,
+      :here_lng,
+      :here_place_name,
+      :here_at,
       :local_voice,
       :local_voice_credit
     ])

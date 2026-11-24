@@ -3,6 +3,7 @@
   lang={assigns[:locale] || "en"}
   dir={assigns[:dir] || "ltr"}
   data-native={assigns[:native_app] && "ios"}
+  data-here={match?(%{away_aware: true}, assigns[:current_user]) && "on"}
 >
   <head>
     <meta charset="utf-8" />

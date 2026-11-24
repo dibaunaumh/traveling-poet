@@ -1223,3 +1223,33 @@ msgstr "מתחת להמלצות שלך, לקרוא לך:"
 #, elixir-autogen, elixir-format
 msgid "When another reader's poet visits %{place}, it may ask you for tips, at most once a week. What you send goes on its public page, translated if needed."
 msgstr "כשמשורר של קורא אחר מבקר ב%{place}, הוא עשוי לבקש ממך המלצות, לכל היותר פעם בשבוע. מה שתשלחו יופיע בעמוד הציבורי שלו, מתורגם אם צריך."
+
+#, elixir-autogen, elixir-format
+msgid "%{km} km from %{place}"
+msgstr "%{km} ק\"מ מ-%{place}"
+
+#, elixir-autogen, elixir-format
+msgid "%{poet} found one thing around %{place}"
+msgid_plural "%{poet} found %{count} things around %{place}"
+msgstr[0] "סביב %{place}: דבר אחד שנמצא בחיפוש של %{poet}"
+msgstr[1] "סביב %{place}: %{count} דברים שנמצאו בחיפוש של %{poet}"
+
+#, elixir-autogen, elixir-format
+msgid "Notice when I am away"
+msgstr "לשים לב כשאני בנסיעה"
+
+#, elixir-autogen, elixir-format
+msgid "Traveling? %{poet} can look around wherever you are, while the app is open."
+msgstr "בנסיעה? בזמן שהאפליקציה פתוחה, החיפוש של %{poet} יכול להתמקד במקום שבו אתם נמצאים."
+
+#, elixir-autogen, elixir-format
+msgid "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it."
+msgstr "בזמן שהאפליקציה פתוחה, הטלפון או הדפדפן מוסרים ל-%{poet} בערך איפה אתם. ביותר מ-%{km} ק\"מ מהבית, \"לידכם\" מחפש סביבכם שם. אף פעם לא ברקע, ורק אתם רואים את זה."
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}, away from home."
+msgstr "אתם ב-%{place}, רחוק מהבית."
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. %{poet} is looking for things to do around you. This takes about ten minutes."
+msgstr "אתם ב-%{place}. החיפוש של %{poet} אחר דברים לעשות סביבכם כבר בדרך. זה לוקח בערך עשר דקות."

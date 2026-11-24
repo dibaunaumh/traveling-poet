@@ -35,6 +35,7 @@ import Markers from "./markers_hook"
 import SettingsNav from "./settings_nav_hook"
 import {initBeacon} from "./beacon"
 import {initNative} from "./native"
+import {initHere} from "./here"
 import AppleIAP from "./apple_iap_hook"
 import ReadingTime from "./reading_time_hook"
 import LinkClicks from "./link_clicks_hook"
@@ -69,6 +70,9 @@ initBeacon()
 
 // Inside the iOS app: link handling and the status bar. A no-op in a browser.
 initNative()
+
+// Away from home (card-78): where the reader is, when they switched it on.
+initHere()
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()

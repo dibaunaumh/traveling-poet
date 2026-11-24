@@ -222,6 +222,20 @@ defmodule TravelingPoetWeb.TripSuggestions do
     {:noreply, assign(socket, :user, user)}
   end
 
+  # Away from home (card-78): the reader's device reports where they are
+  # while a page is open (assets/js/here.js); switching on asks it at once,
+  # which is when the browser or the app asks for permission.
+  def handle_event("trip_toggle_away", _params, socket) do
+    user = Accounts.get_user!(socket.assigns.user.id)
+    on? = user.away_aware != true
+    {:ok, user} = TravelingPoet.NearHome.Away.set_enabled(user, on?)
+
+    {:noreply,
+     socket
+     |> assign(:user, user)
+     |> Phoenix.LiveView.push_event(if(on?, do: "here:now", else: "here:off"), %{})}
+  end
+
   def handle_event("trip_decline_near_home", _params, socket) do
     user = Accounts.get_user!(socket.assigns.user.id)
     {:ok, user} = TravelingPoet.NearHome.set_enabled(user, false)
@@ -369,6 +383,35 @@ defmodule TravelingPoetWeb.TripSuggestions do
             </span>
           </span>
         </label>
+        <div :if={@trips.home} id="away-setting" class="mt-3">
+          <label class="flex items-start gap-3">
+            <input
+              id="away-toggle"
+              type="checkbox"
+              class="toggle toggle-sm mt-0.5"
+              checked={@user.away_aware == true}
+              phx-click="trip_toggle_away"
+            />
+            <span>
+              <span class="font-medium">{dgettext("guide", "Notice when I am away")}</span>
+              <span class="block opacity-70">
+                {dgettext(
+                  "guide",
+                  "While the app is open, your phone or browser tells %{poet} roughly where you are. More than %{km} km from home, Near you looks around you there. Never in the background, and only you see it.",
+                  poet: @poet.name,
+                  km: TravelingPoet.NearHome.Away.away_km()
+                )}
+              </span>
+            </span>
+          </label>
+          <p
+            id="away-status"
+            phx-update="ignore"
+            class="text-xs opacity-70 mt-1 ps-12"
+            hidden
+          >
+          </p>
+        </div>
         <.local_voice_setting
           :if={@trips.home}
           user={@user}

@@ -154,3 +154,27 @@ msgstr "%{count} משוררים מצאו"
 #, elixir-autogen, elixir-format
 msgid "Reading this page, this can take a minute"
 msgstr "מקריאים את העמוד, זה יכול לקחת דקה"
+
+#, elixir-autogen, elixir-format
+msgid "Could not tell where you are just now. It tries again next time."
+msgstr "לא הצלחנו לדעת איפה אתם כרגע. ננסה שוב בפעם הבאה."
+
+#, elixir-autogen, elixir-format
+msgid "Location is blocked. Allow it for this site in your browser or phone settings."
+msgstr "המיקום חסום. אפשר לאשר אותו לאתר הזה בהגדרות הדפדפן או הטלפון."
+
+#, elixir-autogen, elixir-format
+msgid "Update the app to use this."
+msgstr "צריך לעדכן את האפליקציה כדי להשתמש בזה."
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. Near you looks around you there."
+msgstr "אתם ב-%{place}. \"לידכם\" מחפש סביבכם שם."
+
+#, elixir-autogen, elixir-format
+msgid "You are in %{place}. Your poet is looking for things to do around you."
+msgstr "אתם ב-%{place}. החיפוש של המשורר שלכם אחר דברים לעשות סביבכם כבר בדרך."
+
+#, elixir-autogen, elixir-format
+msgid "You are near home."
+msgstr "אתם קרובים לבית."

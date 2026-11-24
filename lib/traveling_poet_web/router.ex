@@ -187,6 +187,8 @@ defmodule TravelingPoetWeb.Router do
     post "/ai-consent", AiConsentController, :agree
     # The iOS app asks for the address to open in its sign-in sheet
     get "/auth/native/connect_url", NativeAuthController, :connect_url
+    # Where the reader's device is, while a page is open (card-78)
+    post "/here", HereController, :update
 
     live_session :authenticated,
       on_mount: [{TravelingPoetWeb.UserAuth, :ensure_authenticated}] do
