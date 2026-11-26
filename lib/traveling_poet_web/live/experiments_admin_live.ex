@@ -217,10 +217,14 @@ defmodule TravelingPoetWeb.ExperimentsAdminLive do
 
             <p :if={p[:missing]} class="text-sm opacity-60">Not written: {p.missing}</p>
 
-            <div :if={!p[:missing]} dir="auto" class="space-y-3 min-w-0 [overflow-wrap:anywhere]">
-              <h2 class="text-lg font-semibold" dir="auto">{p.title}</h2>
-              <p :if={p.teaser not in [nil, ""]} class="italic opacity-80" dir="auto">{p.teaser}</p>
-              <section :for={s <- p.sections} class="space-y-1" dir="auto">
+            <div
+              :if={!p[:missing]}
+              dir={if @day.language == "he", do: "rtl", else: "ltr"}
+              class="space-y-3 min-w-0 [overflow-wrap:anywhere]"
+            >
+              <h2 class="text-lg font-semibold">{p.title}</h2>
+              <p :if={p.teaser not in [nil, ""]} class="italic opacity-80">{p.teaser}</p>
+              <section :for={s <- p.sections} class="space-y-1">
                 <div class="text-xs uppercase tracking-wide opacity-50">{s["kind"]}</div>
                 <h3 :if={s["title"] not in [nil, ""]} class="font-semibold">{s["title"]}</h3>
                 <div class={[
