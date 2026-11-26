@@ -95,6 +95,8 @@ defmodule TravelingPoet.ChangeStream.Registry do
     TravelingPoet.AppLoop.Run,
     # the app-side poet's notebook: read only by its own runs
     TravelingPoet.AppLoop.Note,
+    # a blind writing test and the admin's votes on it
+    TravelingPoet.Evals.BlindTests.BlindTest,
     Geocoder.CacheEntry,
     TravelingPoet.GooglePlaces.Entry,
     TravelingPoet.WebPush.Subscription,

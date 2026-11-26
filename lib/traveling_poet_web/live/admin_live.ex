@@ -295,6 +295,7 @@ defmodule TravelingPoetWeb.AdminLive do
             </span>
             <.link navigate={~p"/admin/funnel"} class="btn btn-sm btn-ghost">Funnel</.link>
             <.link navigate={~p"/admin/feedback"} class="btn btn-sm btn-ghost">Feedback</.link>
+            <.link navigate={~p"/admin/experiments"} class="btn btn-sm btn-ghost">Experiments</.link>
             <.link navigate={~p"/admin/change-stream"} class="btn btn-sm btn-ghost">
               Change stream
             </.link>
