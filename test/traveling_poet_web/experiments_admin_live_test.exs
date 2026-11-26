@@ -71,6 +71,8 @@ defmodule TravelingPoetWeb.ExperimentsAdminLiveTest do
   } do
     {:ok, view, html} = live(sign_in(conn, admin), ~p"/admin/experiments/shadow-test")
     assert html =~ "Loop one"
+    # an English day reads left to right; a Hebrew one right to left
+    assert has_element?(view, ~s(#page-A [dir="ltr"]))
     assert html =~ "Sprite one"
     # only letters, never who wrote it
     refute html =~ "app-loop"
@@ -108,6 +110,20 @@ defmodule TravelingPoetWeb.ExperimentsAdminLiveTest do
     assert rows["published"].wins == 0
     assert rows["app-loop"].publishable == 1
     assert rows["published"].publishable == 1
+  end
+
+  test "a Hebrew day's pages read right to left", %{conn: conn, admin: admin} do
+    m = manifest()
+
+    m = %{
+      m
+      | "run_id" => "he-test",
+        "days" => Enum.map(m["days"], &Map.put(&1, "language", "he"))
+    }
+
+    {:ok, _} = BlindTests.import_manifest(m)
+    {:ok, view, _} = live(sign_in(conn, admin), ~p"/admin/experiments/he-test")
+    assert has_element?(view, ~s(#page-A [dir="rtl"]))
   end
 
   test "picking the best page again clears it, and a letter not on the day is refused", %{
