@@ -66,7 +66,9 @@ defmodule TravelingPoet.Evals.Writing.Page do
   # Raw HTML in a model's markdown is dropped, not rendered.
   defp markdown(body), do: MDEx.to_html!(body || "")
 
-  defp notes(m, judge) do
+  @doc false
+  # Also shown by the admin judging page (`Evals.BlindTests`).
+  def notes(m, judge) do
     [
       judge && "#{judge["broken"]} broken sentences, fluency #{judge["fluency"]}/5",
       m["disclaimers"] > 0 && "#{m["disclaimers"]} disclaimers",

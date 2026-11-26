@@ -208,6 +208,8 @@ defmodule TravelingPoetWeb.Router do
       live "/admin/change-stream", ChangeStreamAdminLive
       live "/admin/funnel", FunnelAdminLive
       live "/admin/feedback", FeedbackAdminLive
+      live "/admin/experiments", ExperimentsAdminLive
+      live "/admin/experiments/:name", ExperimentsAdminLive
     end
   end
 
